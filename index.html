@@ -7,9 +7,7 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
     <style>
-        /* המלצת הדוח: הגדרה גלובלית למניעת קפיצות layout */
         * { box-sizing: border-box; }
-
         body { font-family: system-ui, sans-serif; background: #f4f7fa; padding-bottom: 220px; overflow-x: hidden; }
         
        .bottom-bar { 
@@ -19,28 +17,26 @@
             box-shadow: 0 -5px 25px rgba(0,0,0,0.2);
         }
 
-        /* המלצת הדוח: מבנה Grid יציב ב-4 עמודות למניעת "בריחת" אייקונים */
        .item-grid {
             display: grid;
-            grid-template-columns: 44px 44px 1fr 44px; /* מיקום קבוע לכל חלק */
+            grid-template-columns: 44px 44px 1fr 44px;
             align-items: center;
             background: white;
             border-radius: 24px;
             border: 1px solid #f3f4f6;
             margin-bottom: 12px;
             min-height: 110px;
-            touch-action: pan-y; /* מאפשר גלילה חלקה של המסך */
+            touch-action: pan-y;
             transition: all 0.2s;
         }
 
-        /* המלצת הדוח: שימוש ב-inset shadow למניעת התרחבות הכרטיס בגרירה */
        .chosen-item-border {
             box-shadow: inset 0 0 0 3px #6366f1, 0 10px 25px rgba(99, 102, 241, 0.3)!important;
             z-index: 100;
         }
 
        .drag-handle { 
-            touch-action: none; /* המלצת הדוח: ביטול גלילה רק על הידית */
+            touch-action: none;
             cursor: grab; color: #cbd5e1; height: 100%;
             display: flex; align-items: center; justify-content: center;
             font-size: 24px; user-select: none;
@@ -93,10 +89,7 @@
                 <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"></path></svg>
             </button>
             <div id="shareMenu">
-                <button onclick="shareToWhatsApp()" class="flex items-center gap-2 px-5 py-3 text-green-600 font-bold hover:bg-green-50 w-full transition">
-                    <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0.16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/></svg>
-                    WhatsApp
-                </button>
+                <button onclick="shareToWhatsApp()" class="flex items-center gap-2 px-5 py-3 text-green-600 font-bold hover:bg-green-50 w-full transition">WhatsApp</button>
             </div>
         </div>
 
@@ -127,17 +120,17 @@
     </div>
 
     <script>
-        let shoppingList = JSON.parse(localStorage.getItem('LIST_FINAL_V1')) ||;
+        let shoppingList = JSON.parse(localStorage.getItem('LIST_FINAL_V1')) || [];
         let isLocked = true;
         let currentEditIndex = null;
         let sortableInstance = null;
 
-        function toggleShareMenu() { const menu = document.getElementById('shareMenu'); menu.style.display = menu.style.display === 'block'? 'none' : 'block'; }
+        function toggleShareMenu() { const menu = document.getElementById('shareMenu'); menu.style.display = menu.style.display === 'block' ? 'none' : 'block'; }
         function openForm() { document.getElementById('inputForm').classList.remove('hidden'); document.getElementById('itemName').focus(); }
         function closeForm() { document.getElementById('inputForm').classList.add('hidden'); }
         function openDeleteModal() { if (shoppingList.length > 0) document.getElementById('customModal').style.display = 'flex'; }
         function closeDeleteModal() { document.getElementById('customModal').style.display = 'none'; }
-        function confirmClearAll() { shoppingList =; saveAndRender(); closeDeleteModal(); }
+        function confirmClearAll() { shoppingList = []; saveAndRender(); closeDeleteModal(); }
 
         function openPriceModal(index) {
             currentEditIndex = index;
@@ -146,16 +139,14 @@
         }
         function closePriceModal() { document.getElementById('priceModal').style.display = 'none'; }
         function confirmPriceUpdate() {
-            shoppingList[currentEditIndex].unitPrice = parseFloat(document.getElementById('newPriceInput').value) |
-
-| 0;
+            shoppingList[currentEditIndex].unitPrice = parseFloat(document.getElementById('newPriceInput').value) || 0;
             saveAndRender(); closePriceModal();
         }
 
         function shareToWhatsApp() {
             if (shoppingList.length === 0) return;
             let text = "🛒 *רשימת הקניות שלי:*\n\n";
-            shoppingList.forEach(item => { text += `${item.checked? "✅" : "⬜"} *${item.name}* (x${item.qty}) - ₪${(item.unitPrice * item.qty).toFixed(2)}\n`; });
+            shoppingList.forEach(item => { text += `${item.checked ? "✅" : "⬜"} *${item.name}* (x${item.qty}) - ₪${(item.unitPrice * item.qty).toFixed(2)}\n`; });
             text += `\n💰 *סה"כ: ₪${document.getElementById('totalSum').innerText}*`;
             window.open("https://wa.me/?text=" + encodeURIComponent(text), '_blank');
             document.getElementById('shareMenu').style.display = 'none';
@@ -163,9 +154,7 @@
 
         function addItem() {
             const name = document.getElementById('itemName').value.trim();
-            const price = parseFloat(document.getElementById('itemPrice').value) |
-
-| 0;
+            const price = parseFloat(document.getElementById('itemPrice').value) || 0;
             if (!name) return;
             shoppingList.push({ id: Date.now().toString(), name, unitPrice: price, qty: 1, checked: false });
             saveAndRender();
@@ -179,22 +168,20 @@
         function render() {
             const container = document.getElementById('itemsList');
             container.innerHTML = '';
-            document.getElementById('emptyMsg').style.display = shoppingList.length? 'none' : 'block';
+            document.getElementById('emptyMsg').style.display = shoppingList.length ? 'none' : 'block';
             
             shoppingList.forEach((item, index) => {
                 const div = document.createElement('div');
                 div.className = "item-grid";
                 div.dataset.id = item.id;
                 div.innerHTML = `
-                    <div class="drag-handle ${isLocked? 'invisible' : ''}">⠿</div>
-                    
+                    <div class="drag-handle ${isLocked ? 'invisible' : ''}">⠿</div>
                     <div class="flex items-center justify-center border-l border-gray-50 h-full">
-                        <input type="checkbox" ${item.checked? 'checked' : ''} onchange="toggleCheck(${index})" class="w-7 h-7 rounded-full accent-indigo-600 cursor-pointer">
+                        <input type="checkbox" ${item.checked ? 'checked' : ''} onchange="toggleCheck(${index})" class="w-7 h-7 rounded-full accent-indigo-600 cursor-pointer">
                     </div>
-
                     <div class="py-4 flex flex-col justify-center min-w-0 px-2">
                         <div class="flex justify-between items-center mb-2 gap-2">
-                            <span class="font-bold text-lg truncate ${item.checked? 'line-through text-gray-400' : 'text-gray-800'}">${item.name}</span>
+                            <span class="font-bold text-lg truncate ${item.checked ? 'line-through text-gray-400' : 'text-gray-800'}">${item.name}</span>
                             <span onclick="openPriceModal(${index})" class="font-black text-indigo-600 cursor-pointer text-lg shrink-0 px-2">₪${(item.unitPrice * item.qty).toFixed(2)}</span>
                         </div>
                         <div class="flex items-center gap-3 bg-gray-50 rounded-xl p-1 border w-fit">
@@ -203,7 +190,6 @@
                             <button onclick="updateQty(${index}, -1)" class="w-8 h-8 bg-white rounded-lg shadow-sm text-red-500 font-bold active:scale-90 transition">-</button>
                         </div>
                     </div>
-
                     <div class="flex items-center justify-center">
                         <button onclick="removeItem(${index})" class="p-2 text-red-500 active:scale-90 transition">
                             <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
@@ -223,19 +209,19 @@
             document.getElementById('paidSum').innerText = paid.toFixed(2);
         }
 
-        function toggleCheck(index) { shoppingList[index].checked =!shoppingList[index].checked; saveAndRender(); }
+        function toggleCheck(index) { shoppingList[index].checked = !shoppingList[index].checked; saveAndRender(); }
         function removeItem(index) { shoppingList.splice(index, 1); saveAndRender(); }
         function updateQty(index, val) { if (shoppingList[index].qty + val >= 1) { shoppingList[index].qty += val; saveAndRender(); } }
         
         function toggleLock() {
-            isLocked =!isLocked;
+            isLocked = !isLocked;
             const tag = document.getElementById('statusTag');
             const btn = document.getElementById('lockBtn');
             const path = document.getElementById('lockPath');
-            tag.innerText = isLocked? "גרירה נעולה" : "מצב עריכה";
-            tag.className = isLocked? "text-[9px] py-1 px-2 rounded-full bg-gray-100 text-gray-400 font-bold uppercase w-fit mt-1" : "text-[9px] py-1 px-2 rounded-full bg-orange-100 text-orange-600 font-bold uppercase w-fit mt-1";
-            btn.className = isLocked? "w-12 h-12 bg-blue-500 rounded-full flex items-center justify-center shadow-lg active:scale-90 transition" : "w-12 h-12 bg-orange-500 rounded-full flex items-center justify-center shadow-lg active:scale-90 transition";
-            path.setAttribute('d', isLocked? "M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" : "M8 11V7a4 4 0 118 0m-4 8v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2z");
+            tag.innerText = isLocked ? "גרירה נעולה" : "מצב עריכה";
+            tag.className = isLocked ? "text-[9px] py-1 px-2 rounded-full bg-gray-100 text-gray-400 font-bold uppercase w-fit mt-1" : "text-[9px] py-1 px-2 rounded-full bg-orange-100 text-orange-600 font-bold uppercase w-fit mt-1";
+            btn.className = isLocked ? "w-12 h-12 bg-blue-500 rounded-full flex items-center justify-center shadow-lg active:scale-90 transition" : "w-12 h-12 bg-orange-500 rounded-full flex items-center justify-center shadow-lg active:scale-90 transition";
+            path.setAttribute('d', isLocked ? "M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" : "M8 11V7a4 4 0 118 0m-4 8v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2z");
             render();
         }
 
@@ -249,9 +235,9 @@
                     ghostClass: 'sortable-ghost',
                     chosenClass: 'chosen-item-border',
                     forceFallback: true,
-                    fallbackTolerance: 3, // המלצת הדוח: רגישות תזוזה לשיפור גלילה במובייל
+                    fallbackTolerance: 3,
                     onEnd: () => {
-                        let newArr =;
+                        let newArr = [];
                         document.querySelectorAll('.item-grid').forEach(c => {
                             const item = shoppingList.find(i => i.id === c.dataset.id);
                             if (item) newArr.push(item);
