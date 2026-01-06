@@ -20,9 +20,10 @@
         .item-card { 
             background: white; border-radius: 22px; border: 1px solid #f3f4f6;
             touch-action: pan-y; position: relative; transition: all 0.2s;
+            display: flex; align-items: stretch; min-height: 110px;
         }
 
-        /* מסגרת פנימית שלא מזיזה טקסט */
+        /* מסגרת פנימית שלא מעוותת את הכרטיס בזמן גרירה */
         .chosen-item-border {
             box-shadow: inset 0 0 0 3px #6366f1, 0 10px 25px rgba(99, 102, 241, 0.3) !important;
             z-index: 100;
@@ -33,7 +34,11 @@
         .drag-handle { 
             touch-action: none; cursor: grab; color: #6366f1; width: 44px;
             display: flex; align-items: center; justify-content: center; font-size: 24px;
+            flex-shrink: 0; background: #fcfcff; border-radius: 22px 0 0 22px;
         }
+
+        /* מרווח איזון סימטרי שמונע מהתוכן לזוז */
+        .side-spacer { width: 44px; flex-shrink: 0; }
 
         #shareMenu {
             display: none; position: absolute; top: 65px; left: 20px;
@@ -53,7 +58,7 @@
         <div class="bg-white w-80 p-6 rounded-3xl text-center shadow-2xl">
             <h2 class="text-xl font-bold mb-4">למחוק את כל הרשימה?</h2>
             <div class="flex gap-3">
-                <button onclick="confirmClearAll()" class="flex-1 py-3 bg-red-500 text-white font-bold rounded-xl active:scale-95 transition">מחק</button>
+                <button onclick="confirmClearAll()" class="flex-1 py-3 bg-red-500 text-white font-bold rounded-xl active:scale-95 transition">מחק הכל</button>
                 <button onclick="closeDeleteModal()" class="flex-1 py-3 bg-gray-100 font-bold rounded-xl">ביטול</button>
             </div>
         </div>
@@ -97,7 +102,7 @@
         </div>
 
         <div id="itemsList" class="space-y-4"></div>
-        <div id="emptyMsg" class="text-center py-20 text-gray-400">הרשימה ריקה...</div>
+        <div id="emptyMsg" class="text-center py-20 text-gray-400 text-lg">הרשימה ריקה... 🛒</div>
     </div>
 
     <div class="bottom-bar text-white">
@@ -171,30 +176,34 @@
             
             shoppingList.forEach((item, index) => {
                 const div = document.createElement('div');
-                div.className = "item-card flex items-stretch";
+                div.className = "item-card";
                 div.dataset.id = item.id;
                 div.innerHTML = `
-                    <div class="drag-handle ${isLocked ? 'hidden' : 'flex'}">⠿</div>
-                    <div class="flex-1 p-4 flex items-center gap-3 min-w-0">
-                        <input type="checkbox" ${item.checked ? 'checked' : ''} onchange="toggleCheck(${index})" class="w-6 h-6 rounded-full accent-indigo-600 shrink-0 cursor-pointer">
-                        <div class="flex-1 min-w-0">
-                            <div class="flex justify-between items-center mb-1 gap-2">
-                                <span class="font-bold text-lg truncate ${item.checked ? 'line-through text-gray-400' : 'text-gray-800'}">${item.name}</span>
-                                <span onclick="openPriceModal(${index})" class="font-black text-indigo-600 cursor-pointer text-lg shrink-0">₪${(item.unitPrice * item.qty).toFixed(2)}</span>
+                    <div class="drag-handle ${isLocked ? 'hidden' : ''}">⠿</div>
+                    
+                    <div class="side-spacer ${isLocked ? '' : 'hidden'}"></div>
+
+                    <div class="flex-1 p-4 flex flex-col justify-between min-w-0">
+                        <div class="flex justify-between items-center mb-2 gap-2">
+                            <span class="font-bold text-lg truncate ${item.checked ? 'line-through text-gray-400' : 'text-gray-800'}">${item.name}</span>
+                            <span onclick="openPriceModal(${index})" class="font-black text-indigo-600 cursor-pointer text-lg shrink-0">₪${(item.unitPrice * item.qty).toFixed(2)}</span>
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <div class="flex items-center gap-3 bg-gray-50 rounded-xl p-1 border shrink-0">
+                                <button onclick="updateQty(${index}, 1)" class="w-8 h-8 bg-white rounded-lg shadow-sm text-green-600 font-bold active:scale-90 transition">+</button>
+                                <span class="font-bold w-5 text-center text-gray-700">${item.qty}</span>
+                                <button onclick="updateQty(${index}, -1)" class="w-8 h-8 bg-white rounded-lg shadow-sm text-red-500 font-bold active:scale-90 transition">-</button>
                             </div>
-                            <div class="flex justify-between items-center">
-                                <div class="flex items-center gap-3 bg-gray-50 rounded-xl p-1 border shrink-0">
-                                    <button onclick="updateQty(${index}, 1)" class="w-8 h-8 bg-white rounded-lg shadow-sm text-green-600 font-bold active:scale-90 transition">+</button>
-                                    <span class="font-bold w-5 text-center text-gray-700">${item.qty}</span>
-                                    <button onclick="updateQty(${index}, -1)" class="w-8 h-8 bg-white rounded-lg shadow-sm text-red-500 font-bold active:scale-90 transition">-</button>
-                                </div>
-                                <button onclick="removeItem(${index})" class="p-2 text-red-500 active:scale-90 transition shrink-0">
-                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
-                                </button>
-                            </div>
+                            <button onclick="removeItem(${index})" class="p-2 text-red-500 active:scale-90 transition shrink-0">
+                                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                            </button>
                         </div>
                     </div>
-                    <div class="${isLocked ? 'w-4' : 'hidden'} shrink-0"></div> `;
+
+                    <div class="p-4 flex items-center justify-center border-r border-gray-50 min-w-[60px]">
+                        <input type="checkbox" ${item.checked ? 'checked' : ''} onchange="toggleCheck(${index})" class="w-7 h-7 rounded-full accent-indigo-600 cursor-pointer">
+                    </div>
+                `;
                 container.appendChild(div);
             });
             calculate();
