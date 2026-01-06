@@ -1,281 +1,35 @@
-<!DOCTYPE html>
-<html lang="he" dir="rtl">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>רשימת קניות חכמה</title>
-
-    <link rel="manifest" href="manifest.json">
-    <meta name="theme-color" content="#6366f1">
-    <link rel="icon" type="image/png" href="icon.png">
-    <link rel="apple-touch-icon" href="icon.png">
-    
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
-
-    <style>
-        body { 
-            font-family: system-ui, -apple-system, sans-serif; 
-            background: #f4f7fa; 
-            padding-bottom: 220px; 
-            touch-action: manipulation; 
-        }
-        .bottom-bar { 
-            position: fixed; bottom: 0; left: 0; right: 0; 
-            background: linear-gradient(135deg, #6366f1 0%, #a855f7 100%); 
-            z-index: 1000; padding: 15px; border-radius: 20px 20px 0 0; 
-            box-shadow: 0 -5px 20px rgba(0,0,0,0.1); 
-        }
-        
-        /* שיפורי גרירה */
-        .item-card {
-            touch-action: pan-y;
-            user-select: none;
-            -webkit-user-select: none;
-        }
-        .drag-handle { 
-            cursor: grab; 
-            padding: 12px; 
-            margin: -12px;
-            margin-left: 5px;
-            color: #d1d5db;
-        }
-        .sortable-ghost { 
-            opacity: 0.2; 
-            background: #e0e7ff; 
-        }
-        .sortable-drag {
-            opacity: 0.95 !important;
-            background: white !important;
-            box-shadow: 0 15px 30px rgba(0,0,0,0.15) !important;
-            transform: scale(1.02);
-            border: 2px solid #6366f1 !important;
-        }
-
-        .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 2000; align-items: center; justify-content: center; padding: 20px; backdrop-filter: blur(4px); }
-        .modal-content { background: white; width: 100%; max-width: 320px; border-radius: 28px; padding: 30px; text-align: center; }
-        .warning-icon-circle { background: #fee2e2; width: 70px; height: 70px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 20px; }
-    </style>
-</head>
-<body>
-
-    <div id="customModal" class="modal-overlay">
-        <div class="modal-content shadow-2xl">
-            <div class="warning-icon-circle">
-                <svg class="w-10 h-10 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
-                </svg>
-            </div>
-            <h2 class="text-2xl font-bold mb-2 text-gray-800">מחיקת הרשימה</h2>
-            <p class="text-gray-500 mb-8 leading-relaxed text-lg">האם אתה בטוח שברצונך למחוק את כל הרשימה?</p>
-            <div class="flex gap-3">
-                <button onclick="confirmClearAll()" class="flex-1 py-4 bg-red-500 text-white font-bold rounded-2xl text-lg active:scale-95 transition-transform">מחק הכל</button>
-                <button onclick="closeDeleteModal()" class="flex-1 py-4 bg-gray-100 text-gray-700 font-bold rounded-2xl text-lg active:scale-95 transition-transform">ביטול</button>
-            </div>
+<div class="bottom-bar text-white">
+    <div class="flex justify-around mb-6 text-center">
+        <div>
+            <div class="text-[10px] opacity-70">שולם</div>
+            <div class="text-xl font-bold">₪<span id="paidSum">0.00</span></div>
+        </div>
+        <div class="w-px bg-white/20"></div>
+        <div>
+            <div class="text-[10px] opacity-70">סה"כ</div>
+            <div class="text-xl font-bold">₪<span id="totalSum">0.00</span></div>
         </div>
     </div>
 
-    <div id="priceModal" class="modal-overlay">
-        <div class="modal-content shadow-2xl">
-            <h2 class="text-xl font-bold mb-4 text-gray-800">עדכון מחיר</h2>
-            <p id="editItemName" class="mb-4 text-indigo-600 font-bold"></p>
-            <input type="number" id="newPriceInput" inputmode="decimal" class="w-full p-4 border-2 border-indigo-100 rounded-2xl mb-6 text-center text-xl font-bold outline-none">
-            <div class="flex gap-3">
-                <button onclick="confirmPriceUpdate()" class="flex-1 py-4 bg-indigo-600 text-white font-bold rounded-2xl">עדכן</button>
-                <button onclick="closePriceModal()" class="flex-1 py-4 bg-gray-100 rounded-2xl font-bold">ביטול</button>
-            </div>
-        </div>
-    </div>
+    <div class="grid grid-cols-4 items-center justify-items-center px-2">
+        <button id="lockBtn" onclick="toggleLock()" class="w-11 h-11 bg-blue-500 rounded-full flex items-center justify-center shadow-lg active:scale-90 transition-transform">
+            <svg id="lockIcon" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path id="lockPath" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
+        </button>
 
-    <div class="max-w-md mx-auto p-4">
-        <div class="bg-white rounded-2xl shadow-sm p-5 mb-4 flex justify-between items-center">
-            <h1 class="text-xl font-bold text-gray-800">הרשימה שלי</h1>
-            <div id="statusTag" class="text-[10px] py-1 px-2 rounded bg-gray-100 text-gray-500 font-bold uppercase tracking-wider">גרירה נעולה</div>
-        </div>
+        <button onclick="openForm()" class="col-span-2 w-16 h-16 bg-green-500 rounded-full flex items-center justify-center shadow-xl border-4 border-white/20 active:scale-95 transition-transform">
+            <svg class="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-width="3" d="M12 4v16m8-8H4"></path></svg>
+        </button>
 
-        <div id="inputForm" class="hidden bg-white p-5 rounded-2xl shadow-lg mb-4 border-2 border-indigo-100 relative">
-            <input type="text" id="itemName" autocomplete="off" placeholder="מה קונים?" class="w-full p-3 border rounded-xl mb-3 outline-none focus:border-indigo-500">
-            <input type="number" id="itemPrice" inputmode="decimal" placeholder="מחיר ליחידה (₪)" class="w-full p-3 border rounded-xl mb-3 outline-none">
-            <div class="flex gap-2">
-                <button onclick="addItem()" class="flex-1 bg-green-500 text-white py-3 rounded-xl font-bold shadow-md">הוסף</button>
-                <button onclick="closeForm()" class="flex-1 bg-gray-200 text-gray-600 py-3 rounded-xl">ביטול</button>
-            </div>
-        </div>
-
-        <div id="itemsList" class="space-y-3"></div>
-        <div id="emptyMsg" class="text-center py-20 text-gray-400">הרשימה ריקה</div>
-    </div>
-
-    <div class="bottom-bar text-white">
-        <div class="flex justify-around mb-4 text-center">
-            <div><div class="text-[10px] opacity-70">שולם</div><div class="text-xl font-bold">₪<span id="paidSum">0.00</span></div></div>
-            <div class="w-px bg-white/20"></div>
-            <div><div class="text-[10px] opacity-70">סה"כ</div><div class="text-xl font-bold">₪<span id="totalSum">0.00</span></div></div>
-        </div>
-        <div class="flex justify-between items-center px-4">
-            <button onclick="openDeleteModal()" class="w-12 h-12 bg-red-500/80 rounded-full flex items-center justify-center shadow-lg"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg></button>
-            
-            <button onclick="shareToWhatsApp()" class="w-12 h-12 bg-green-600 rounded-full flex items-center justify-center shadow-lg active:scale-90 transition-transform">
-                <svg class="w-7 h-7 text-white" fill="currentColor" viewBox="0 0 24 24">
+        <div class="flex gap-4">
+            <button onclick="shareToWhatsApp()" class="w-11 h-11 bg-green-600 rounded-full flex items-center justify-center shadow-lg active:scale-90 transition-transform">
+                <svg class="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 24 24">
                     <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/>
                 </svg>
             </button>
-
-            <button onclick="openForm()" class="w-16 h-16 bg-green-500 rounded-full flex items-center justify-center shadow-xl border-4 border-white/20 -mt-10"><svg class="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-width="3" d="M12 4v16m8-8H4"></path></svg></button>
-            
-            <button id="lockBtn" onclick="toggleLock()" class="w-12 h-12 bg-blue-500 rounded-full flex items-center justify-center shadow-lg"><svg id="lockIcon" class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path id="lockPath" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg></button>
+            <button onclick="openDeleteModal()" class="w-11 h-11 bg-red-500 rounded-full flex items-center justify-center shadow-lg active:scale-90 transition-transform">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+            </button>
         </div>
     </div>
-
-    <script>
-        let shoppingList = JSON.parse(localStorage.getItem('LIST_FINAL_V1')) || [];
-        let isLocked = true;
-        let currentEditIndex = null;
-        let sortableInstance = null;
-
-        function openForm() { document.getElementById('inputForm').classList.remove('hidden'); document.getElementById('itemName').focus(); }
-        function closeForm() { document.getElementById('inputForm').classList.add('hidden'); }
-        
-        function openDeleteModal() { if (shoppingList.length > 0) document.getElementById('customModal').style.display = 'flex'; }
-        function closeDeleteModal() { document.getElementById('customModal').style.display = 'none'; }
-        function confirmClearAll() { shoppingList = []; saveAndRender(); closeDeleteModal(); }
-
-        function openPriceModal(index) {
-            currentEditIndex = index;
-            document.getElementById('editItemName').innerText = shoppingList[index].name;
-            document.getElementById('newPriceInput').value = shoppingList[index].unitPrice;
-            document.getElementById('priceModal').style.display = 'flex';
-            setTimeout(() => document.getElementById('newPriceInput').select(), 100);
-        }
-        function closePriceModal() { document.getElementById('priceModal').style.display = 'none'; }
-        function confirmPriceUpdate() {
-            const val = parseFloat(document.getElementById('newPriceInput').value) || 0;
-            shoppingList[currentEditIndex].unitPrice = val;
-            saveAndRender(); closePriceModal();
-        }
-
-        // פונקציית שיתוף לוואטסאפ
-        function shareToWhatsApp() {
-            if (shoppingList.length === 0) return;
-            
-            let text = "🛒 *רשימת הקניות שלי:*\n\n";
-            
-            shoppingList.forEach(item => {
-                const checkMark = item.checked ? "✅" : "⬜";
-                const lineTotal = (item.unitPrice * item.qty).toFixed(2);
-                text += `${checkMark} *${item.name}*\n`;
-                text += `כמות: ${item.qty} | סה"כ: ₪${lineTotal}\n\n`;
-            });
-            
-            const total = shoppingList.reduce((acc, i) => acc + (i.unitPrice * i.qty), 0).toFixed(2);
-            text += `💰 *סה"כ לתשלום: ₪${total}*`;
-            
-            const url = "https://wa.me/?text=" + encodeURIComponent(text);
-            window.open(url, '_blank');
-        }
-
-        function addItem() {
-            const name = document.getElementById('itemName').value.trim();
-            const price = parseFloat(document.getElementById('itemPrice').value) || 0;
-            if (!name) return;
-            shoppingList.push({ id: Date.now().toString(), name, unitPrice: price, qty: 1, checked: false });
-            saveAndRender();
-            document.getElementById('itemName').value = '';
-            document.getElementById('itemPrice').value = '';
-            closeForm();
-        }
-
-        function saveAndRender() { 
-            localStorage.setItem('LIST_FINAL_V1', JSON.stringify(shoppingList)); 
-            render(); 
-        }
-
-        function render() {
-            const container = document.getElementById('itemsList');
-            container.innerHTML = '';
-            document.getElementById('emptyMsg').style.display = shoppingList.length ? 'none' : 'block';
-            
-            shoppingList.forEach((item, index) => {
-                const div = document.createElement('div');
-                div.className = `bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex items-center gap-3 item-card`;
-                div.dataset.id = item.id;
-                div.innerHTML = `
-                    <div class="drag-handle ${isLocked ? 'hidden' : 'block'}">
-                        <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 20 20"><path d="M7 7h2v2H7V7zm0 4h2v2H7v-2zm4-4h2v2h-2V7zm0 4h2v2h-2v-2z"></path></svg>
-                    </div>
-                    <input type="checkbox" ${item.checked ? 'checked' : ''} onchange="toggleCheck(${index})" class="w-6 h-6 rounded-full border-gray-300 text-indigo-600">
-                    <div class="flex-1">
-                        <div class="flex justify-between items-center">
-                            <span class="font-bold ${item.checked ? 'line-through text-gray-400' : ''}">${item.name}</span>
-                            <span onclick="openPriceModal(${index})" class="font-black text-indigo-600 cursor-pointer">₪${(item.unitPrice * item.qty).toFixed(2)}</span>
-                        </div>
-                        <div class="flex justify-between items-center mt-3">
-                            <div class="flex items-center gap-3 bg-gray-50 rounded-lg p-1 border">
-                                <button onclick="updateQty(${index}, 1)" class="w-8 h-8 bg-white rounded shadow text-green-600 font-bold active:scale-95">+</button>
-                                <span class="font-bold w-4 text-center">${item.qty}</span>
-                                <button onclick="updateQty(${index}, -1)" class="w-8 h-8 bg-white rounded shadow text-red-500 font-bold active:scale-95">-</button>
-                            </div>
-                            <button onclick="removeItem(${index})" class="text-red-300 p-2"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg></button>
-                        </div>
-                    </div>`;
-                container.appendChild(div);
-            });
-            
-            calculate();
-            initSort();
-        }
-
-        function calculate() {
-            const total = shoppingList.reduce((acc, i) => acc + (i.unitPrice * i.qty), 0);
-            const paid = shoppingList.filter(i => i.checked).reduce((acc, i) => acc + (i.unitPrice * i.qty), 0);
-            document.getElementById('totalSum').innerText = total.toFixed(2);
-            document.getElementById('paidSum').innerText = paid.toFixed(2);
-        }
-
-        function toggleCheck(index) { shoppingList[index].checked = !shoppingList[index].checked; saveAndRender(); }
-        function removeItem(index) { shoppingList.splice(index, 1); saveAndRender(); }
-        function updateQty(index, val) { if (shoppingList[index].qty + val >= 1) { shoppingList[index].qty += val; saveAndRender(); } }
-        
-        function toggleLock() {
-            isLocked = !isLocked;
-            document.getElementById('statusTag').innerText = isLocked ? "גרירה נעולה" : "מצב עריכה";
-            document.getElementById('lockBtn').className = isLocked ? "w-12 h-12 bg-blue-500 rounded-full flex items-center justify-center shadow-lg" : "w-12 h-12 bg-orange-500 rounded-full flex items-center justify-center shadow-lg";
-            
-            document.getElementById('lockPath').setAttribute('d', isLocked ? 
-                "M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" : 
-                "M8 11V7a4 4 0 118 0m-4 8v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2z"
-            );
-            
-            render();
-        }
-
-        function initSort() {
-            const el = document.getElementById('itemsList');
-            if (sortableInstance) { sortableInstance.destroy(); sortableInstance = null; }
-            if (!isLocked) {
-                sortableInstance = Sortable.create(el, { 
-                    handle: '.drag-handle', 
-                    animation: 250,
-                    ghostClass: 'sortable-ghost',
-                    dragClass: 'sortable-drag',
-                    delay: 100,
-                    delayOnTouchOnly: true,
-                    forceFallback: true,
-                    onEnd: () => {
-                        let newArr = [];
-                        document.querySelectorAll('.item-card').forEach(c => { 
-                            const item = shoppingList.find(i => i.id === c.dataset.id);
-                            if (item) newArr.push(item);
-                        });
-                        shoppingList = newArr;
-                        localStorage.setItem('LIST_FINAL_V1', JSON.stringify(shoppingList));
-                    }
-                });
-            }
-        }
-
-        render();
-    </script>
-</body>
-</html>
+</div>
 
