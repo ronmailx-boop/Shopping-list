@@ -20,10 +20,11 @@
             position: relative; 
             z-index: 10; 
             border-radius: 22px; 
-            touch-action: none; /* קריטי לעבודה חלקה של גרירה במובייל */
+            touch-action: pan-y; /* מאפשר גלילה רגילה של הדף */
         }
 
         .drag-handle { 
+            touch-action: none; /* מבטל גלילה רק כשלוחצים על הידית עצמה */
             cursor: grab; 
             color: #d1d5db; 
             padding: 10px; 
@@ -33,7 +34,6 @@
             align-items: center;
         }
 
-        /* תפריט שיתוף צף */
         #shareMenu {
             display: none;
             position: absolute;
@@ -51,7 +51,7 @@
             background: rgba(0,0,0,0.6); z-index: 3000; align-items: center; justify-content: center; backdrop-filter: blur(4px); 
         }
 
-        .sortable-ghost { opacity: 0.3; background: #e0e7ff; border: 2px dashed #6366f1; }
+        .sortable-ghost { opacity: 0.3; background: #e0e7ff; }
     </style>
 </head>
 <body>
@@ -60,7 +60,7 @@
         <div class="bg-white w-80 p-6 rounded-3xl text-center shadow-2xl">
             <h2 class="text-xl font-bold mb-4">למחוק את כל הרשימה?</h2>
             <div class="flex gap-3">
-                <button onclick="confirmClearAll()" class="flex-1 py-3 bg-red-500 text-white font-bold rounded-xl active:scale-95 transition">מחק</button>
+                <button onclick="confirmClearAll()" class="flex-1 py-3 bg-red-500 text-white font-bold rounded-xl">מחק</button>
                 <button onclick="closeDeleteModal()" class="flex-1 py-3 bg-gray-100 font-bold rounded-xl">ביטול</button>
             </div>
         </div>
@@ -68,10 +68,10 @@
 
     <div id="priceModal" class="modal-overlay">
         <div class="bg-white w-80 p-6 rounded-3xl text-center shadow-2xl">
-            <h2 class="text-lg font-bold mb-4 text-indigo-600">עדכון מחיר</h2>
-            <input type="number" id="newPriceInput" inputmode="decimal" class="w-full p-3 border-2 border-indigo-100 rounded-xl mb-4 text-center text-xl font-bold outline-none focus:border-indigo-400">
+            <h2 class="text-lg font-bold mb-4">עדכון מחיר</h2>
+            <input type="number" id="newPriceInput" inputmode="decimal" class="w-full p-3 border-2 border-indigo-100 rounded-xl mb-4 text-center text-xl font-bold outline-none">
             <div class="flex gap-3">
-                <button onclick="confirmPriceUpdate()" class="flex-1 py-3 bg-indigo-600 text-white font-bold rounded-xl active:scale-95 transition">עדכן</button>
+                <button onclick="confirmPriceUpdate()" class="flex-1 py-3 bg-indigo-600 text-white font-bold rounded-xl">עדכן</button>
                 <button onclick="closePriceModal()" class="flex-1 py-3 bg-gray-100 font-bold rounded-xl">ביטול</button>
             </div>
         </div>
@@ -79,16 +79,14 @@
 
     <div class="max-w-md mx-auto p-4 relative">
         <div class="bg-white rounded-2xl shadow-sm p-4 mb-4 flex justify-between items-center relative">
-            <div class="flex flex-col">
+            <div>
                 <h1 class="text-2xl font-black text-gray-800">הרשימה שלי</h1>
                 <div id="statusTag" class="text-[9px] py-1 px-2 rounded-full bg-gray-100 text-gray-400 font-bold uppercase tracking-wider w-fit mt-1">גרירה נעולה</div>
             </div>
             
-            <div class="flex items-center gap-3">
-                <button onclick="toggleShareMenu()" class="p-2 text-gray-500 hover:bg-gray-100 rounded-full transition">
-                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"></path></svg>
-                </button>
-            </div>
+            <button onclick="toggleShareMenu()" class="p-2 text-gray-500 hover:bg-gray-100 rounded-full transition">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"></path></svg>
+            </button>
 
             <div id="shareMenu" class="border">
                 <button onclick="shareToWhatsApp()" class="flex items-center gap-2 px-4 py-2 hover:bg-green-50 rounded-lg transition text-green-600 font-bold">
@@ -100,7 +98,7 @@
 
         <div id="inputForm" class="hidden bg-white p-5 rounded-2xl shadow-lg mb-4 border-2 border-indigo-400">
             <input type="text" id="itemName" placeholder="מה קונים?" class="w-full p-3 border rounded-xl mb-3 outline-none">
-            <input type="number" id="itemPrice" inputmode="decimal" placeholder="מחיר ליחידה" class="w-full p-3 border rounded-xl mb-3 outline-none">
+            <input type="number" id="itemPrice" inputmode="decimal" placeholder="מחיר" class="w-full p-3 border rounded-xl mb-3 outline-none">
             <div class="flex gap-2">
                 <button onclick="addItem()" class="flex-1 bg-green-500 text-white py-3 rounded-xl font-bold">הוסף</button>
                 <button onclick="closeForm()" class="flex-1 bg-gray-100 py-3 rounded-xl">ביטול</button>
@@ -108,7 +106,7 @@
         </div>
 
         <div id="itemsList" class="space-y-4"></div>
-        <div id="emptyMsg" class="text-center py-20 text-gray-400 text-lg">הרשימה ריקה... 🛒</div>
+        <div id="emptyMsg" class="text-center py-20 text-gray-400">הרשימה ריקה...</div>
     </div>
 
     <div class="bottom-bar text-white">
@@ -117,19 +115,10 @@
             <div class="w-px bg-white/20 h-6 self-center"></div>
             <div><div class="text-[10px] opacity-80">סה"כ</div><div class="text-xl font-bold">₪<span id="totalSum">0.00</span></div></div>
         </div>
-        
         <div class="flex items-center justify-around px-4">
-            <button onclick="openDeleteModal()" class="w-12 h-12 bg-red-500 rounded-full flex items-center justify-center shadow-lg active:scale-90 transition">
-                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
-            </button>
-
-            <button onclick="openForm()" class="w-16 h-16 bg-green-500 rounded-full flex items-center justify-center shadow-2xl border-4 border-white/20 active:scale-95 transition">
-                <svg class="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-width="3" d="M12 4v16m8-8H4"></path></svg>
-            </button>
-
-            <button id="lockBtn" onclick="toggleLock()" class="w-12 h-12 bg-blue-500 rounded-full flex items-center justify-center shadow-lg active:scale-90 transition">
-                <svg id="lockIcon" class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path id="lockPath" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
-            </button>
+            <button onclick="openDeleteModal()" class="w-12 h-12 bg-red-500 rounded-full flex items-center justify-center shadow-lg"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg></button>
+            <button onclick="openForm()" class="w-16 h-16 bg-green-500 rounded-full flex items-center justify-center shadow-2xl border-4 border-white/20 active:scale-95"><svg class="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-width="3" d="M12 4v16m8-8H4"></path></svg></button>
+            <button id="lockBtn" onclick="toggleLock()" class="w-12 h-12 bg-blue-500 rounded-full flex items-center justify-center shadow-lg"><svg id="lockIcon" class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path id="lockPath" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg></button>
         </div>
     </div>
 
@@ -164,9 +153,7 @@
         function shareToWhatsApp() {
             if (shoppingList.length === 0) return;
             let text = "🛒 *רשימת הקניות שלי:*\n\n";
-            shoppingList.forEach(item => {
-                text += `${item.checked ? "✅" : "⬜"} *${item.name}* (x${item.qty}) - ₪${(item.unitPrice * item.qty).toFixed(2)}\n`;
-            });
+            shoppingList.forEach(item => { text += `${item.checked ? "✅" : "⬜"} *${item.name}* (x${item.qty}) - ₪${(item.unitPrice * item.qty).toFixed(2)}\n`; });
             text += `\n💰 *סה"כ: ₪${document.getElementById('totalSum').innerText}*`;
             window.open("https://wa.me/?text=" + encodeURIComponent(text), '_blank');
             document.getElementById('shareMenu').style.display = 'none';
@@ -183,10 +170,7 @@
             closeForm();
         }
 
-        function saveAndRender() {
-            localStorage.setItem('LIST_FINAL_V1', JSON.stringify(shoppingList));
-            render();
-        }
+        function saveAndRender() { localStorage.setItem('LIST_FINAL_V1', JSON.stringify(shoppingList)); render(); }
 
         function render() {
             const container = document.getElementById('itemsList');
@@ -207,13 +191,11 @@
                         </div>
                         <div class="flex justify-between items-center">
                             <div class="flex items-center gap-3 bg-gray-50 rounded-xl p-1 border">
-                                <button onclick="updateQty(${index}, 1)" class="w-8 h-8 bg-white rounded-lg shadow-sm text-green-600 font-bold active:scale-90 transition">+</button>
-                                <span class="font-bold w-5 text-center text-gray-700">${item.qty}</span>
-                                <button onclick="updateQty(${index}, -1)" class="w-8 h-8 bg-white rounded-lg shadow-sm text-red-500 font-bold active:scale-90 transition">-</button>
+                                <button onclick="updateQty(${index}, 1)" class="w-8 h-8 bg-white rounded-lg shadow-sm text-green-600 font-bold">+</button>
+                                <span class="font-bold w-5 text-center">${item.qty}</span>
+                                <button onclick="updateQty(${index}, -1)" class="w-8 h-8 bg-white rounded-lg shadow-sm text-red-500 font-bold">-</button>
                             </div>
-                            <button onclick="removeItem(${index})" class="p-2 text-red-500 active:scale-90 transition">
-                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
-                            </button>
+                            <button onclick="removeItem(${index})" class="p-2 text-red-500"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg></button>
                         </div>
                     </div>`;
                 container.appendChild(div);
@@ -238,26 +220,22 @@
             const tag = document.getElementById('statusTag');
             const btn = document.getElementById('lockBtn');
             const path = document.getElementById('lockPath');
-            
             tag.innerText = isLocked ? "גרירה נעולה" : "מצב עריכה";
             tag.className = isLocked ? "text-[9px] py-1 px-2 rounded-full bg-gray-100 text-gray-400 font-bold uppercase tracking-wider w-fit mt-1" : "text-[9px] py-1 px-2 rounded-full bg-orange-100 text-orange-600 font-bold uppercase tracking-wider w-fit mt-1";
-            btn.className = isLocked ? "w-12 h-12 bg-blue-500 rounded-full flex items-center justify-center shadow-lg active:scale-90 transition" : "w-12 h-12 bg-orange-500 rounded-full flex items-center justify-center shadow-lg active:scale-90 transition";
+            btn.className = isLocked ? "w-12 h-12 bg-blue-500 rounded-full flex items-center justify-center shadow-lg" : "w-12 h-12 bg-orange-500 rounded-full flex items-center justify-center shadow-lg";
             path.setAttribute('d', isLocked ? "M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" : "M8 11V7a4 4 0 118 0m-4 8v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2z");
-            
             render();
         }
 
         function initSort() {
             const el = document.getElementById('itemsList');
             if (sortableInstance) sortableInstance.destroy();
-            
             if (!isLocked) {
                 sortableInstance = Sortable.create(el, {
                     handle: '.drag-handle',
                     animation: 250,
                     ghostClass: 'sortable-ghost',
                     forceFallback: true,
-                    fallbackTolerance: 3,
                     onEnd: () => {
                         let newArr = [];
                         document.querySelectorAll('.item-card').forEach(c => {
