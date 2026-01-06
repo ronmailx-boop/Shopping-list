@@ -20,13 +20,20 @@
             position: relative; 
             z-index: 10; 
             border-radius: 22px; 
-            touch-action: pan-y; /* מאפשר גלילה רגילה של הדף */
+            touch-action: pan-y;
+            transition: border 0.2s, box-shadow 0.2s; /* מעבר חלק למסגרת */
+        }
+
+        /* מסגרת כחולה מודגשת במצב עריכה */
+        .edit-mode-border {
+            border: 2px solid #6366f1 !important;
+            box-shadow: 0 0 10px rgba(99, 102, 241, 0.2);
         }
 
         .drag-handle { 
-            touch-action: none; /* מבטל גלילה רק כשלוחצים על הידית עצמה */
+            touch-action: none;
             cursor: grab; 
-            color: #d1d5db; 
+            color: #6366f1; /* שינוי לצבע כחול כדי שיהיה בולט */
             padding: 10px; 
             font-size: 24px; 
             user-select: none;
@@ -179,7 +186,8 @@
             
             shoppingList.forEach((item, index) => {
                 const div = document.createElement('div');
-                div.className = "bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex items-center gap-3 item-card";
+                // הוספת ה-Class של המסגרת אם הנעילה פתוחה
+                div.className = `bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex items-center gap-3 item-card ${!isLocked ? 'edit-mode-border' : ''}`;
                 div.dataset.id = item.id;
                 div.innerHTML = `
                     <div class="drag-handle ${isLocked ? 'hidden' : 'flex'}">⠿</div>
@@ -191,11 +199,13 @@
                         </div>
                         <div class="flex justify-between items-center">
                             <div class="flex items-center gap-3 bg-gray-50 rounded-xl p-1 border">
-                                <button onclick="updateQty(${index}, 1)" class="w-8 h-8 bg-white rounded-lg shadow-sm text-green-600 font-bold">+</button>
+                                <button onclick="updateQty(${index}, 1)" class="w-8 h-8 bg-white rounded-lg shadow-sm text-green-600 font-bold active:scale-90 transition">+</button>
                                 <span class="font-bold w-5 text-center">${item.qty}</span>
-                                <button onclick="updateQty(${index}, -1)" class="w-8 h-8 bg-white rounded-lg shadow-sm text-red-500 font-bold">-</button>
+                                <button onclick="updateQty(${index}, -1)" class="w-8 h-8 bg-white rounded-lg shadow-sm text-red-500 font-bold active:scale-90 transition">-</button>
                             </div>
-                            <button onclick="removeItem(${index})" class="p-2 text-red-500"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg></button>
+                            <button onclick="removeItem(${index})" class="p-2 text-red-500 active:scale-90 transition">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                            </button>
                         </div>
                     </div>`;
                 container.appendChild(div);
