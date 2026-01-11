@@ -8,7 +8,7 @@ let db = JSON.parse(localStorage.getItem('BUDGET_FINAL_V27')) || {
     lastUpdated: Date.now()
 };
 
-let isLocked = true, activePage = db.lastActivePage || 'lists', tokenClient;
+let isLocked = true, activePage = db.lastActivePage || 'lists';
 
 function save() { 
     db.lastUpdated = Date.now();
@@ -29,7 +29,7 @@ function render() {
     list.items.forEach((item, idx) => {
         const sub = item.price * item.qty; total += sub; if (item.checked) paid += sub;
         const div = document.createElement('div'); div.className = "item-card";
-        div.innerHTML = `<div class="flex justify-between items-center mb-4"><div class="flex items-center gap-3"><input type="checkbox" ${item.checked ? 'checked' : ''} onchange="toggleItem(${idx})" class="w-6 h-6"><b>${item.name}</b></div><button onclick="removeItem(${idx})" class="trash-btn">🗑️</button></div><div class="flex justify-between font-bold"><span>כמות: ${item.qty}</span><span class="text-indigo-600">₪${sub.toFixed(2)}</span></div>`;
+        div.innerHTML = `<div class="flex justify-between items-center mb-4"><div class="flex items-center gap-3"><input type="checkbox" ${item.checked ? 'checked' : ''} onchange="toggleItem(${idx})" class="w-6 h-6"><b>${item.name}</b></div><button onclick="removeItem(${idx})" class="text-red-500">🗑️</button></div><div class="flex justify-between font-bold"><span>כמות: ${item.qty}</span><span class="text-indigo-600">₪${sub.toFixed(2)}</span></div>`;
         container.appendChild(div);
     });
     
@@ -40,15 +40,14 @@ function render() {
 
 // גוגל דרייב
 function handleAuthClick() {
-    tokenClient = google.accounts.oauth2.initTokenClient({
+    google.accounts.oauth2.initTokenClient({
         client_id: CLIENT_ID, scope: SCOPES,
         callback: (resp) => {
             localStorage.setItem('G_TOKEN', resp.access_token);
             document.getElementById('cloudIndicator').style.backgroundColor = '#22c55e';
             uploadToCloud();
         },
-    });
-    tokenClient.requestAccessToken({prompt: 'consent'});
+    }).requestAccessToken();
 }
 
 async function uploadToCloud() {
@@ -71,7 +70,7 @@ function importData(event) {
         reader.onload = (e) => {
             db = JSON.parse(e.target.result);
             save();
-            alert("הנתונים יובאו!");
+            alert("הנתונים שוחזרו!");
             location.reload();
         };
         reader.readAsText(file);
@@ -84,16 +83,15 @@ function exportData() {
     a.href = dataStr; a.download = "vplus_backup.json"; a.click();
 }
 
-function addItem() {
-    const n = document.getElementById('itemName').value, p = parseFloat(document.getElementById('itemPrice').value) || 0;
-    if(n) { db.lists[db.currentId].items.push({name:n, price:p, qty:1, checked:false}); save(); closeModal('inputForm'); }
-}
-
 function toggleItem(i) { db.lists[db.currentId].items[i].checked = !db.lists[db.currentId].items[i].checked; save(); }
 function removeItem(i) { db.lists[db.currentId].items.splice(i, 1); save(); }
 function toggleLock() { isLocked = !isLocked; render(); }
 function openModal(id) { document.getElementById(id).classList.add('active'); }
 function closeModal(id) { document.getElementById(id).classList.remove('active'); }
+function addItem() {
+    const n = document.getElementById('itemName').value, p = parseFloat(document.getElementById('itemPrice').value) || 0;
+    if(n) { db.lists[db.currentId].items.push({name:n, price:p, qty:1, checked:false}); save(); closeModal('inputForm'); }
+}
 function executeClear() { db.lists[db.currentId].items = []; save(); closeModal('confirmModal'); }
 
 document.addEventListener('DOMContentLoaded', render);
