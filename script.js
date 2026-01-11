@@ -1,3 +1,7 @@
+// Google Drive Configuration
+const CLIENT_ID = '151476121869-b5lbrt5t89s8d342ftd1cg1q926518pt.apps.googleusercontent.com';
+const SCOPES = 'https://www.googleapis.com/auth/drive.appdata';
+
 let db = JSON.parse(localStorage.getItem('BUDGET_FINAL_V27')) || { 
     currentId: 'L1', selectedInSummary: [], 
     lists: { 'L1': { name: 'הרשימה שלי', items: [] } },
@@ -8,12 +12,6 @@ let db = JSON.parse(localStorage.getItem('BUDGET_FINAL_V27')) || {
 let isLocked = true, activePage = db.lastActivePage || 'lists', currentEditIdx = null, listToDelete = null;
 let sortableInstance = null;
 let tokenClient;
-let gapiInited = false;
-let gisiInited = false;
-
-// Google Drive Settings - כאן תצטרך להכניס את ה-Client ID שלך מגוגל קונסול בעתיד
-const CLIENT_ID = 'YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com';
-const SCOPES = 'https://www.googleapis.com/auth/drive.appdata';
 
 function save() { 
     db.lastActivePage = activePage;
@@ -32,7 +30,10 @@ function handleAuthClick() {
         client_id: CLIENT_ID,
         scope: SCOPES,
         callback: async (resp) => {
-            if (resp.error) return;
+            if (resp.error) {
+                console.error("Auth Error:", resp.error);
+                return;
+            }
             localStorage.setItem('G_TOKEN', resp.access_token);
             document.getElementById('cloudIndicator').classList.replace('bg-gray-300', 'bg-green-500');
             syncWithCloud();
@@ -46,7 +47,6 @@ async function syncWithCloud() {
     if (!token) return;
 
     try {
-        // חיפוש קובץ הגיבוי בענן
         const resp = await fetch('https://www.googleapis.com/drive/v3/files?spaces=appDataFolder', {
             headers: { 'Authorization': `Bearer ${token}` }
         });
@@ -59,12 +59,12 @@ async function syncWithCloud() {
             });
             const cloudDb = await fileResp.json();
             
-            // השוואת זמנים - מי מעודכן יותר?
             if (cloudDb.lastUpdated > db.lastUpdated) {
-                db = cloudDb;
-                localStorage.setItem('BUDGET_FINAL_V27', JSON.stringify(db));
-                render();
-                alert('הנתונים סונכרנו מהענן!');
+                if(confirm("נמצא גיבוי חדש יותר בענן. האם לעדכן את המכשיר?")) {
+                    db = cloudDb;
+                    localStorage.setItem('BUDGET_FINAL_V27', JSON.stringify(db));
+                    render();
+                }
             } else {
                 uploadToCloud(file.id);
             }
@@ -91,10 +91,10 @@ async function uploadToCloud(existingId = null) {
         method: existingId ? 'PATCH' : 'POST',
         headers: { 'Authorization': `Bearer ${token}` },
         body: form
-    });
+    }).then(() => console.log("Cloud Upload OK"));
 }
 
-// --- שאר הפונקציות הקיימות (נשארו זהות ומתוקנות) ---
+// --- לוגיקת האפליקציה ---
 
 function showPage(p) { activePage = p; save(); }
 function openModal(id) { 
@@ -131,7 +131,7 @@ function render() {
         list.items.forEach((item, idx) => {
             const sub = item.price * item.qty; total += sub; if (item.checked) paid += sub;
             const div = document.createElement('div'); div.className = "item-card"; div.setAttribute('data-id', idx);
-            div.innerHTML = `<div class="flex justify-between items-center mb-4"><div class="flex items-center gap-3 flex-1"><input type="checkbox" ${item.checked ? 'checked' : ''} onchange="toggleItem(${idx})" class="w-7 h-7 accent-indigo-600"><div class="flex-1 text-2xl font-bold ${item.checked ? 'line-through text-gray-300' : ''}">${item.name}</div></div><button onclick="removeItem(${idx})" class="trash-btn"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" stroke-width="2"></path></svg></button></div><div class="flex justify-between items-center"><div class="flex items-center gap-3 bg-gray-50 rounded-xl px-2 py-1 border"><button onclick="changeQty(${idx}, 1)" class="text-green-500 text-2xl font-bold">+</button><span class="font-bold w-6 text-center">${item.qty}</span><button onclick="changeQty(${idx}, -1)" class="text-red-500 text-2xl font-bold">-</button></div><span onclick="openEditTotalModal(${idx})" class="text-2xl font-black text-indigo-600">₪${sub.toFixed(2)}</span></div>`;
+            div.innerHTML = `<div class=\"flex justify-between items-center mb-4\"><div class=\"flex items-center gap-3 flex-1\"><input type=\"checkbox\" ${item.checked ? 'checked' : ''} onchange=\"toggleItem(${idx})\" class=\"w-7 h-7 accent-indigo-600\"><div class=\"flex-1 text-2xl font-bold ${item.checked ? 'line-through text-gray-300' : ''}\">${item.name}</div></div><button onclick=\"removeItem(${idx})\" class=\"trash-btn\"><svg class=\"w-5 h-5\" fill=\"none\" stroke=\"currentColor\" viewBox=\"0 0 24 24\"><path d=\"M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16\" stroke-width=\"2\"></path></svg></button></div><div class=\"flex justify-between items-center\"><div class=\"flex items-center gap-3 bg-gray-50 rounded-xl px-2 py-1 border\"><button onclick=\"changeQty(${idx}, 1)\" class=\"text-green-500 text-2xl font-bold\">+</button><span class=\"font-bold w-6 text-center\">${item.qty}</span><button onclick=\"changeQty(${idx}, -1)\" class=\"text-red-500 text-2xl font-bold\">-</button></div><span onclick=\"openEditTotalModal(${idx})\" class=\"text-2xl font-black text-indigo-600\">₪${sub.toFixed(2)}</span></div>`;
             container.appendChild(div);
         });
     } else {
@@ -142,7 +142,7 @@ function render() {
             l.items.forEach(i => { const s = i.price*i.qty; lT += s; if(i.checked) lP += s; });
             const isSel = db.selectedInSummary.includes(id); if (isSel) { total += lT; paid += lP; }
             const div = document.createElement('div'); div.className = "item-card p-4"; div.dataset.id = id;
-            div.innerHTML = `<div class="flex justify-between items-center"><div class="flex items-center gap-4"><input type="checkbox" ${isSel ? 'checked' : ''} onchange="toggleSum('${id}')" class="w-7 h-7 accent-indigo-600"><span class="font-bold text-xl cursor-pointer" onclick="db.currentId='${id}'; showPage('lists')">${l.name}</span></div><div class="flex items-center gap-3"><div class="text-indigo-600 font-black text-xl">₪${lT.toFixed(2)}</div><button onclick="prepareDeleteList('${id}')" class="text-red-400 p-1"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" stroke-width="2"></path></svg></button></div></div>`;
+            div.innerHTML = `<div class=\"flex justify-between items-center\"><div class=\"flex items-center gap-4\"><input type=\"checkbox\" ${isSel ? 'checked' : ''} onchange=\"toggleSum('${id}')\" class=\"w-7 h-7 accent-indigo-600\"><span class=\"font-bold text-xl cursor-pointer\" onclick=\"db.currentId='${id}'; showPage('lists')\">${l.name}</span></div><div class=\"flex items-center gap-3\"><div class=\"text-indigo-600 font-black text-xl\">₪${lT.toFixed(2)}</div><button onclick=\"prepareDeleteList('${id}')\" class=\"text-red-400 p-1\"><svg class=\"w-5 h-5\" fill=\"none\" stroke=\"currentColor\" viewBox=\"0 0 24 24\"><path d=\"M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16\" stroke-width=\"2\"></path></svg></button></div></div>`;
             container.appendChild(div);
         });
     }
@@ -153,12 +153,12 @@ function render() {
 }
 
 function addItem() { const n = document.getElementById('itemName').value.trim(), p = parseFloat(document.getElementById('itemPrice').value) || 0; if (n) { db.lists[db.currentId].items.push({ name: n, price: p, qty: 1, checked: false }); closeModal('inputForm'); save(); } }
-function changeQty(idx, d) { if(db.lists[db.currentId].items[idx].qty + d >= 1) { db.lists[db.currentId].items[idx].qty += d; save(); } }
-function removeItem(idx) { db.lists[db.currentId].items.splice(idx,1); save(); }
+function changeQty(idx, delta) { const item = db.lists[db.currentId].items[idx]; if (item.qty + delta >= 1) { item.qty += delta; save(); } }
+function removeItem(idx) { db.lists[db.currentId].items.splice(idx, 1); save(); }
 function toggleLock() { isLocked = !isLocked; render(); }
 function executeClear() { db.lists[db.currentId].items = []; closeModal('confirmModal'); save(); }
 function saveNewList() { const n = document.getElementById('newListNameInput').value.trim(); if(n){ const id = 'L'+Date.now(); db.lists[id] = {name: n, items:[]}; db.currentId = id; activePage = 'lists'; closeModal('newListModal'); save(); } }
-function deleteFullList() { if (listToDelete) { delete db.lists[listToDelete]; if (db.currentId === listToDelete) db.currentId = Object.keys(db.lists)[0] || (db.lists['L1']={name:'הרשימה שלי', items:[]}, 'L1'); closeModal('deleteListModal'); save(); } }
+function deleteFullList() { if (listToDelete) { delete db.lists[listToDelete]; const keys = Object.keys(db.lists); if (db.currentId === listToDelete) db.currentId = keys[0] || (db.lists['L1']={name:'הרשימה שלי', items:[]}, 'L1'); closeModal('deleteListModal'); save(); } }
 function prepareDeleteList(id) { listToDelete = id; openModal('deleteListModal'); }
 function saveListName() { const n = document.getElementById('editListNameInput').value.trim(); if(n){ db.lists[db.currentId].name = n; save(); closeModal('editListNameModal'); } }
 function openEditTotalModal(idx) { currentEditIdx = idx; openModal('editTotalModal'); }
@@ -184,20 +184,20 @@ function preparePrint() {
     const idsToPrint = db.selectedInSummary.length > 0 ? db.selectedInSummary : Object.keys(db.lists);
     idsToPrint.forEach(id => {
         const l = db.lists[id]; let listTotal = 0;
-        html += `<div style="border-bottom: 2px solid #7367f0; margin-bottom: 20px; padding-bottom: 10px;"><h2>${l.name}</h2><table style="width:100%; border-collapse:collapse; border:1px solid #ddd; margin-bottom:10px;"><thead><tr style="background:#f9fafb;"><th style="padding:8px; border:1px solid #ddd; text-align:right;">מוצר</th><th style="padding:8px; border:1px solid #ddd; text-align:center;">כמות</th><th style="padding:8px; border:1px solid #ddd; text-align:left;">סה"כ</th></tr></thead><tbody>`;
-        l.items.forEach(i => { const s = i.price * i.qty; listTotal += s; html += `<tr><td style="padding:8px; border:1px solid #ddd; text-align:right;">${i.name}</td><td style="padding:8px; border:1px solid #ddd; text-align:center;">${i.qty}</td><td style="padding:8px; border:1px solid #ddd; text-align:left;">₪${s.toFixed(2)}</td></tr>`; });
-        html += `</tbody></table><div style="text-align:left; font-weight:bold;">סיכום רשימה: ₪${listTotal.toFixed(2)}</div></div>`;
+        html += `<div style=\"border-bottom: 2px solid #7367f0; margin-bottom: 20px; padding-bottom: 10px;\"><h2>${l.name}</h2><table style=\"width:100%; border-collapse:collapse; border:1px solid #ddd; margin-bottom:10px;\"><thead><tr style=\"background:#f9fafb;\"><th style=\"padding:8px; border:1px solid #ddd; text-align:right;\">מוצר</th><th style=\"padding:8px; border:1px solid #ddd; text-align:center;\">כמות</th><th style=\"padding:8px; border:1px solid #ddd; text-align:left;\">סה\"כ</th></tr></thead><tbody>`;
+        l.items.forEach(i => { const s = i.price * i.qty; listTotal += s; html += `<tr><td style=\"padding:8px; border:1px solid #ddd; text-align:right;\">${i.name}</td><td style=\"padding:8px; border:1px solid #ddd; text-align:center;\">${i.qty}</td><td style=\"padding:8px; border:1px solid #ddd; text-align:left;\">₪${s.toFixed(2)}</td></tr>`; });
+        html += `</tbody></table><div style=\"text-align:left; font-weight:bold;\">סיכום רשימה: ₪${listTotal.toFixed(2)}</div></div>`;
         grandTotal += listTotal;
     });
-    html += `<div style="text-align:center; margin-top:30px; padding:15px; border:3px double #7367f0; font-size:1.5em; font-weight:900;">סה"כ כולל: ₪${grandTotal.toFixed(2)}</div>`;
+    html += `<div style=\"text-align:center; margin-top:30px; padding:15px; border:3px double #7367f0; font-size:1.5em; font-weight:900;\">סה\"כ כולל: ₪${grandTotal.toFixed(2)}</div>`;
     printArea.innerHTML = html; window.print();
 }
 
 function shareFullToWhatsApp() {
     const list = db.lists[db.currentId];
-    let text = `🛒 *${list.name} (רשימה מלאה):*\n\n`;
-    list.items.forEach(i => text += `${i.checked ? '✅' : '⬜'} *${i.name}* (x${i.qty}) - ₪${(i.price * i.qty).toFixed(2)}\n`);
-    text += `\n💰 *סה"כ: ₪${document.getElementById('displayTotal').innerText}*`;
+    let text = `🛒 *${list.name} (רשימה מלאה):*\\n\\n`;
+    list.items.forEach(i => text += `${i.checked ? '✅' : '⬜'} *${i.name}* (x${i.qty}) - ₪${(i.price * i.qty).toFixed(2)}\\n`);
+    text += `\\n💰 *סה\"כ: ₪${document.getElementById('displayTotal').innerText}*`;
     window.open("https://wa.me/?text=" + encodeURIComponent(text));
     closeModal('shareListModal');
 }
@@ -206,8 +206,8 @@ function shareMissingToWhatsApp() {
     const list = db.lists[db.currentId];
     const missing = list.items.filter(i => !i.checked);
     if (missing.length === 0) { alert("אין מוצרים חסרים!"); return; }
-    let text = `⬜ *${list.name} (מוצרים חסרים):*\n\n`;
-    missing.forEach(i => text += `• *${i.name}* (x${i.qty})\n`);
+    let text = `⬜ *${list.name} (מוצרים חסרים):*\\n\\n`;
+    missing.forEach(i => text += `• *${i.name}* (x${i.qty})\\n`);
     window.open("https://wa.me/?text=" + encodeURIComponent(text));
     closeModal('shareListModal');
 }
@@ -215,14 +215,14 @@ function shareMissingToWhatsApp() {
 function shareSummaryToWhatsApp() {
     const selectedIds = db.selectedInSummary;
     if (selectedIds.length === 0) { alert("בחר רשימות לשיתוף!"); return; }
-    let text = `📦 *ריכוז רשימות (חסרים בלבד):*\n\n`;
+    let text = `📦 *ריכוז רשימות (חסרים בלבד):*\\n\\n`;
     selectedIds.forEach(id => {
         const l = db.lists[id];
         const missing = l.items.filter(i => !i.checked);
         if (missing.length > 0) {
-            text += `🔹 *${l.name}:*\n`;
-            missing.forEach(i => text += `  - ${i.name} (x${i.qty})\n`);
-            text += `\n`;
+            text += `🔹 *${l.name}:*\\n`;
+            missing.forEach(i => text += `  - ${i.name} (x${i.qty})\\n`);
+            text += `\\n`;
         }
     });
     window.open("https://wa.me/?text=" + encodeURIComponent(text));
@@ -239,6 +239,9 @@ if ('serviceWorker' in navigator) { window.addEventListener('load', () => { navi
 
 window.onload = function() { 
     if (localStorage.getItem('THEME') === 'dark') document.body.classList.add('dark-mode'); 
-    if (localStorage.getItem('G_TOKEN')) syncWithCloud();
+    if (localStorage.getItem('G_TOKEN')) {
+        document.getElementById('cloudIndicator').classList.replace('bg-gray-300', 'bg-green-500');
+        syncWithCloud();
+    }
     render(); 
 };
