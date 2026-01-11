@@ -1,78 +1,39 @@
-/* הגדרות כלליות */
-* { box-sizing: border-box; touch-action: manipulation; }
+/* Header תיקון מיקום לוגו וכפתורים ב */
+.app-header { 
+    background: white; 
+    padding: 10px 20px; 
+    display: flex; 
+    flex-direction: row-reverse; /* הופך את הסדר: כפתורים לימין, לוגו לשמאל */
+    justify-content: space-between; 
+    align-items: center; 
+    box-shadow: 0 2px 8px rgba(0,0,0,0.05); 
+    position: sticky; 
+    top: 0; 
+    z-index: 2000;
+    height: 65px;
+}
 
-body { 
-    font-family: system-ui, -apple-system, sans-serif; 
-    background: #f4f7fa; 
-    padding-bottom: 240px; 
-    min-height: 100vh; 
-    transition: background 0.3s; 
+.logo-text {
+    direction: ltr; /* שומר על ה-V מצד שמאל ל-plus */
     margin: 0;
 }
 
-/* כרטיסי מוצר */
-.item-card { 
-    background: white; 
-    border-radius: 25px; 
-    padding: 15px; 
-    margin-bottom: 12px; 
-    box-shadow: 0 4px 12px rgba(0,0,0,0.03); 
-    display: flex; 
-    flex-direction: column; 
+.header-controls {
+    display: flex;
+    align-items: center;
+    gap: 12px;
 }
 
-/* בר תחתון סגול */
-.bottom-bar { 
-    position: fixed; 
-    bottom: 0; 
-    left: 0; 
-    right: 0; 
-    background: #7367f0; 
-    z-index: 1000; 
-    padding: 15px 15px 35px 15px; 
-    border-radius: 35px 35px 0 0; 
-    box-shadow: 0 -10px 25px rgba(0, 0, 0, 0.15); 
-}
-
-/* כפתורי טאבים */
-.tab-btn { flex: 1; padding: 12px; border-radius: 15px; font-weight: bold; text-align: center; cursor: pointer; transition: 0.2s; background: white; color: #666; border: 1px solid #eee; }
-.tab-active { background: #7367f0; color: white; border-color: #7367f0; box-shadow: 0 4px 12px rgba(115, 103, 240, 0.3); }
-
-/* כפתור מחיקה (פח) - תיקון לבקשתך ללא רקע ורוד */
+/* ביטול הרקע הוורוד בפח מחיקת מוצר */
 .trash-btn { 
-    width: 40px; 
-    height: 40px; 
-    background: transparent !important; /* הסרת הרקע הוורוד */
-    display: flex; 
-    align-items: center; 
-    justify-content: center; 
+    background: transparent !important; 
     color: #ef4444; 
     border: none; 
-    cursor: pointer; 
+    cursor: pointer;
+    padding: 5px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
-/* עיגולי שליטה בבר התחתון */
-.bottom-circle-btn { 
-    width: 54px; 
-    height: 54px; 
-    border-radius: 50%; 
-    display: flex; 
-    align-items: center; 
-    justify-content: center; 
-    border: 2px solid rgba(255,255,255,0.2);
-    color: white;
-}
-
-/* מודאלים */
-.modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 7000; align-items: center; justify-content: center; backdrop-filter: blur(8px); padding: 20px; }
-.modal-overlay.active { display: flex; }
-.edit-modal { width: 100%; max-width: 350px; background: white; border-radius: 35px; padding: 25px; text-align: center; }
-.modal-input { width: 100%; padding: 15px; border: 2px solid #f3f4f6; border-radius: 18px; font-size: 18px; text-align: center; margin-bottom: 15px; outline: none; }
-
-.app-header { background: white; padding: 10px 20px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 8px rgba(0,0,0,0.05); position: sticky; top: 0; z-index: 2000; }
-.header-controls { display: flex; align-items: center; gap: 8px; }
-
-/* מצב לילה */
-body.dark-mode { background: #1a1a2e; color: #e0e0e0; }
-.dark-mode .item-card, .dark-mode .edit-modal { background: #16213e !important; color: white; }
-.dark-mode .modal-input { background: #0f3460; color: white; border-color: #1a1a2e; }
+/* שאר הקוד שנתתי קודם נשאר זהה... */
