@@ -2,7 +2,7 @@ const CLIENT_ID = '151476121869-b5lbrt5t89s8d342ftd1cg1q926518pt.apps.googleuser
 const SCOPES = 'https://www.googleapis.com/auth/drive.appdata';
 
 let db = JSON.parse(localStorage.getItem('BUDGET_FINAL_V27')) || { 
-    currentId: 'L1', selectedInSummary: [], 
+    currentId: 'L1', 
     lists: { 'L1': { name: 'הרשימה שלי', items: [] } },
     lastActivePage: 'lists',
     lastUpdated: Date.now()
@@ -21,31 +21,28 @@ function render() {
     const container = document.getElementById(activePage === 'lists' ? 'itemsContainer' : 'summaryContainer');
     if (!container) return;
     container.innerHTML = '';
-    let total = 0, paid = 0;
-
+    
     const list = db.lists[db.currentId] || { name: 'רשימה', items: [] };
     document.getElementById('listNameDisplay').innerText = list.name;
-
-    if (activePage === 'lists') {
-        list.items.forEach((item, idx) => {
-            const sub = item.price * item.qty; total += sub; if (item.checked) paid += sub;
-            const div = document.createElement('div'); div.className = "item-card";
-            div.innerHTML = `<div class="flex justify-between items-center mb-4"><div class="flex items-center gap-3"><input type="checkbox" ${item.checked ? 'checked' : ''} onchange="toggleItem(${idx})" class="w-7 h-7"><b>${item.name}</b></div><button onclick="removeItem(${idx})" class="trash-btn">🗑️</button></div><div class="flex justify-between font-bold"><span>כמות: ${item.qty}</span><span class="text-indigo-600">₪${sub.toFixed(2)}</span></div>`;
-            container.appendChild(div);
-        });
-    }
-
+    
+    let total = 0, paid = 0;
+    list.items.forEach((item, idx) => {
+        const sub = item.price * item.qty; total += sub; if (item.checked) paid += sub;
+        const div = document.createElement('div'); div.className = "item-card";
+        div.innerHTML = `<div class="flex justify-between items-center mb-4"><div class="flex items-center gap-3"><input type="checkbox" ${item.checked ? 'checked' : ''} onchange="toggleItem(${idx})" class="w-6 h-6"><b>${item.name}</b></div><button onclick="removeItem(${idx})" class="trash-btn">🗑️</button></div><div class="flex justify-between font-bold"><span>כמות: ${item.qty}</span><span class="text-indigo-600">₪${sub.toFixed(2)}</span></div>`;
+        container.appendChild(div);
+    });
+    
     document.getElementById('displayTotal').innerText = total.toFixed(2);
     document.getElementById('displayPaid').innerText = paid.toFixed(2);
     document.getElementById('displayLeft').innerText = (total - paid).toFixed(2);
 }
 
-// מנגנון גוגל
+// גוגל דרייב
 function handleAuthClick() {
     tokenClient = google.accounts.oauth2.initTokenClient({
         client_id: CLIENT_ID, scope: SCOPES,
-        callback: async (resp) => {
-            if (resp.error) return;
+        callback: (resp) => {
             localStorage.setItem('G_TOKEN', resp.access_token);
             document.getElementById('cloudIndicator').style.backgroundColor = '#22c55e';
             uploadToCloud();
@@ -66,18 +63,16 @@ async function uploadToCloud() {
     });
 }
 
-// פונקציות יבוא ויצוא ידניות
+// יבוא ויצוא
 function importData(event) {
     const file = event.target.files[0];
     if (file) {
         const reader = new FileReader();
         reader.onload = (e) => {
-            try {
-                db = JSON.parse(e.target.result);
-                save();
-                alert("הנתונים יובאו!");
-                location.reload();
-            } catch(err) { alert("קובץ לא תקין"); }
+            db = JSON.parse(e.target.result);
+            save();
+            alert("הנתונים יובאו!");
+            location.reload();
         };
         reader.readAsText(file);
     }
@@ -89,16 +84,16 @@ function exportData() {
     a.href = dataStr; a.download = "vplus_backup.json"; a.click();
 }
 
-// עזרי רשימה
+function addItem() {
+    const n = document.getElementById('itemName').value, p = parseFloat(document.getElementById('itemPrice').value) || 0;
+    if(n) { db.lists[db.currentId].items.push({name:n, price:p, qty:1, checked:false}); save(); closeModal('inputForm'); }
+}
+
 function toggleItem(i) { db.lists[db.currentId].items[i].checked = !db.lists[db.currentId].items[i].checked; save(); }
 function removeItem(i) { db.lists[db.currentId].items.splice(i, 1); save(); }
 function toggleLock() { isLocked = !isLocked; render(); }
 function openModal(id) { document.getElementById(id).classList.add('active'); }
 function closeModal(id) { document.getElementById(id).classList.remove('active'); }
-function addItem() {
-    const n = document.getElementById('itemName').value, p = parseFloat(document.getElementById('itemPrice').value) || 0;
-    if(n) { db.lists[db.currentId].items.push({name:n, price:p, qty:1, checked:false}); save(); closeModal('inputForm'); }
-}
 function executeClear() { db.lists[db.currentId].items = []; save(); closeModal('confirmModal'); }
 
 document.addEventListener('DOMContentLoaded', render);
