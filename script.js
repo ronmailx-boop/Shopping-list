@@ -2,13 +2,13 @@ const CLIENT_ID = '151476121869-b5lbrt5t89s8d342ftd1cg1q926518pt.apps.googleuser
 const SCOPES = 'https://www.googleapis.com/auth/drive.appdata';
 
 let db = JSON.parse(localStorage.getItem('BUDGET_FINAL_V27')) || { 
-    currentId: 'L1', 
+    currentId: 'L1', selectedInSummary: [], 
     lists: { 'L1': { name: 'הרשימה שלי', items: [] } },
     lastActivePage: 'lists',
     lastUpdated: Date.now()
 };
 
-let isLocked = true, activePage = db.lastActivePage || 'lists';
+let isLocked = true, activePage = db.lastActivePage || 'lists', tokenClient;
 
 function save() { 
     db.lastUpdated = Date.now();
@@ -29,7 +29,7 @@ function render() {
     list.items.forEach((item, idx) => {
         const sub = item.price * item.qty; total += sub; if (item.checked) paid += sub;
         const div = document.createElement('div'); div.className = "item-card";
-        div.innerHTML = `<div class="flex justify-between items-center mb-4"><div class="flex items-center gap-3"><input type="checkbox" ${item.checked ? 'checked' : ''} onchange="toggleItem(${idx})" class="w-6 h-6"><b>${item.name}</b></div><button onclick="removeItem(${idx})" class="text-red-500">🗑️</button></div><div class="flex justify-between font-bold"><span>כמות: ${item.qty}</span><span class="text-indigo-600">₪${sub.toFixed(2)}</span></div>`;
+        div.innerHTML = `<div class="flex justify-between items-center mb-4"><div class="flex items-center gap-3"><input type="checkbox" ${item.checked ? 'checked' : ''} onchange="toggleItem(${idx})" class="w-7 h-7"><b>${item.name}</b></div><button onclick="removeItem(${idx})" class="trash-btn">🗑️</button></div><div class="flex justify-between font-bold"><span>כמות: ${item.qty}</span><span class="text-indigo-600">₪${sub.toFixed(2)}</span></div>`;
         container.appendChild(div);
     });
     
@@ -38,16 +38,16 @@ function render() {
     document.getElementById('displayLeft').innerText = (total - paid).toFixed(2);
 }
 
-// גוגל דרייב
 function handleAuthClick() {
-    google.accounts.oauth2.initTokenClient({
+    tokenClient = google.accounts.oauth2.initTokenClient({
         client_id: CLIENT_ID, scope: SCOPES,
         callback: (resp) => {
             localStorage.setItem('G_TOKEN', resp.access_token);
             document.getElementById('cloudIndicator').style.backgroundColor = '#22c55e';
             uploadToCloud();
         },
-    }).requestAccessToken();
+    });
+    tokenClient.requestAccessToken({prompt: 'consent'});
 }
 
 async function uploadToCloud() {
@@ -62,7 +62,6 @@ async function uploadToCloud() {
     });
 }
 
-// יבוא ויצוא
 function importData(event) {
     const file = event.target.files[0];
     if (file) {
@@ -70,7 +69,6 @@ function importData(event) {
         reader.onload = (e) => {
             db = JSON.parse(e.target.result);
             save();
-            alert("הנתונים שוחזרו!");
             location.reload();
         };
         reader.readAsText(file);
@@ -93,5 +91,8 @@ function addItem() {
     if(n) { db.lists[db.currentId].items.push({name:n, price:p, qty:1, checked:false}); save(); closeModal('inputForm'); }
 }
 function executeClear() { db.lists[db.currentId].items = []; save(); closeModal('confirmModal'); }
+function saveListName() { const n = document.getElementById('editListNameInput').value; if(n){db.lists[db.currentId].name=n; save(); closeModal('editListNameModal');}}
+function saveNewList() { const n = document.getElementById('newListNameInput').value; if(n){const id='L'+Date.now(); db.lists[id]={name:n, items:[]}; db.currentId=id; save(); closeModal('newListModal');}}
+function showPage(p) { activePage = p; save(); }
 
 document.addEventListener('DOMContentLoaded', render);
