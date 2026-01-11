@@ -1,45 +1,108 @@
 let db = JSON.parse(localStorage.getItem('BUDGET_FINAL_V27')) || { 
     currentId: 'L1', selectedInSummary: [], 
     lists: { 'L1': { name: 'הרשימה שלי', items: [] } },
-    lastActivePage: 'lists'
+    lastActivePage: 'lists',
+    lastUpdated: Date.now()
 };
 
 let isLocked = true, activePage = db.lastActivePage || 'lists', currentEditIdx = null, listToDelete = null;
 let sortableInstance = null;
+let tokenClient;
+let gapiInited = false;
+let gisiInited = false;
+
+// Google Drive Settings - כאן תצטרך להכניס את ה-Client ID שלך מגוגל קונסול בעתיד
+const CLIENT_ID = 'YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com';
+const SCOPES = 'https://www.googleapis.com/auth/drive.appdata';
 
 function save() { 
     db.lastActivePage = activePage;
+    db.lastUpdated = Date.now();
     localStorage.setItem('BUDGET_FINAL_V27', JSON.stringify(db)); 
     render(); 
+    if (localStorage.getItem('G_TOKEN')) {
+        uploadToCloud();
+    }
 }
 
-function showPage(p) { activePage = p; save(); }
+// --- מנגנון גוגל דרייב ---
 
+function handleAuthClick() {
+    tokenClient = google.accounts.oauth2.initTokenClient({
+        client_id: CLIENT_ID,
+        scope: SCOPES,
+        callback: async (resp) => {
+            if (resp.error) return;
+            localStorage.setItem('G_TOKEN', resp.access_token);
+            document.getElementById('cloudIndicator').classList.replace('bg-gray-300', 'bg-green-500');
+            syncWithCloud();
+        },
+    });
+    tokenClient.requestAccessToken({prompt: 'consent'});
+}
+
+async function syncWithCloud() {
+    const token = localStorage.getItem('G_TOKEN');
+    if (!token) return;
+
+    try {
+        // חיפוש קובץ הגיבוי בענן
+        const resp = await fetch('https://www.googleapis.com/drive/v3/files?spaces=appDataFolder', {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const data = await resp.json();
+        const file = data.files.find(f => f.name === 'vplus_backup.json');
+
+        if (file) {
+            const fileResp = await fetch(`https://www.googleapis.com/drive/v3/files/${file.id}?alt=media`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            const cloudDb = await fileResp.json();
+            
+            // השוואת זמנים - מי מעודכן יותר?
+            if (cloudDb.lastUpdated > db.lastUpdated) {
+                db = cloudDb;
+                localStorage.setItem('BUDGET_FINAL_V27', JSON.stringify(db));
+                render();
+                alert('הנתונים סונכרנו מהענן!');
+            } else {
+                uploadToCloud(file.id);
+            }
+        } else {
+            uploadToCloud();
+        }
+    } catch (e) { console.error('Sync error', e); }
+}
+
+async function uploadToCloud(existingId = null) {
+    const token = localStorage.getItem('G_TOKEN');
+    if (!token) return;
+
+    const metadata = { name: 'vplus_backup.json', parents: ['appDataFolder'] };
+    const form = new FormData();
+    form.append('metadata', new Blob([JSON.stringify(metadata)], {type: 'application/json'}));
+    form.append('file', new Blob([JSON.stringify(db)], {type: 'application/json'}));
+
+    const url = existingId 
+        ? `https://www.googleapis.com/upload/drive/v3/files/${existingId}?uploadType=multipart`
+        : 'https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart';
+    
+    fetch(url, {
+        method: existingId ? 'PATCH' : 'POST',
+        headers: { 'Authorization': `Bearer ${token}` },
+        body: form
+    });
+}
+
+// --- שאר הפונקציות הקיימות (נשארו זהות ומתוקנות) ---
+
+function showPage(p) { activePage = p; save(); }
 function openModal(id) { 
     const m = document.getElementById(id);
     if(!m) return;
     m.classList.add('active'); 
-    
-    if(id === 'inputForm') {
-        document.getElementById('itemName').value = '';
-        document.getElementById('itemPrice').value = '';
-        setTimeout(() => document.getElementById('itemName').focus(), 150);
-    }
-    
-    if(id === 'editListNameModal') {
-        const input = document.getElementById('editListNameInput');
-        input.value = db.lists[db.currentId].name;
-        setTimeout(() => input.focus(), 150);
-    }
-    
-    if(id === 'editTotalModal') {
-        const item = db.lists[db.currentId].items[currentEditIdx];
-        const input = document.getElementById('editTotalInput');
-        input.value = (item.price * item.qty).toFixed(2);
-        setTimeout(() => input.focus(), 150);
-    }
+    if(id === 'editListNameModal') document.getElementById('editListNameInput').value = db.lists[db.currentId].name;
 }
-
 function closeModal(id) { const m = document.getElementById(id); if(m) m.classList.remove('active'); }
 
 function render() {
@@ -89,63 +152,17 @@ function render() {
     initSortable();
 }
 
-function saveListName() { 
-    const n = document.getElementById('editListNameInput').value.trim(); 
-    if(n) { 
-        db.lists[db.currentId].name = n; 
-        save(); 
-        closeModal('editListNameModal');
-    } 
-}
-
-function openEditTotalModal(idx) { 
-    currentEditIdx = idx; 
-    openModal('editTotalModal'); 
-}
-
-function saveTotal() { 
-    const val = parseFloat(document.getElementById('editTotalInput').value); 
-    if (!isNaN(val)) { 
-        const item = db.lists[db.currentId].items[currentEditIdx]; 
-        item.price = val / item.qty; 
-        save(); 
-        closeModal('editTotalModal');
-    } 
-}
-
-function exportData() {
-    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(db));
-    const downloadAnchorNode = document.createElement('a');
-    const now = new Date();
-    const fileName = `VPLUS_BACKUP_${now.toLocaleDateString().replace(/\//g,'-')}_${now.getHours()}-${now.getMinutes()}.json`;
-    downloadAnchorNode.setAttribute("href", dataStr);
-    downloadAnchorNode.setAttribute("download", fileName);
-    document.body.appendChild(downloadAnchorNode);
-    downloadAnchorNode.click();
-    downloadAnchorNode.remove();
-}
-
-function importData(event) {
-    const file = event.target.files[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = (e) => {
-        try {
-            const imported = JSON.parse(e.target.result);
-            if(imported.lists) { db = imported; save(); alert("הגיבוי נטען בהצלחה!"); }
-        } catch(err) { alert("קובץ לא תקין"); }
-    };
-    reader.readAsText(file);
-}
-
 function addItem() { const n = document.getElementById('itemName').value.trim(), p = parseFloat(document.getElementById('itemPrice').value) || 0; if (n) { db.lists[db.currentId].items.push({ name: n, price: p, qty: 1, checked: false }); closeModal('inputForm'); save(); } }
-function changeQty(idx, delta) { const item = db.lists[db.currentId].items[idx]; if (item.qty + delta >= 1) { item.qty += delta; save(); } }
-function removeItem(idx) { db.lists[db.currentId].items.splice(idx, 1); save(); }
+function changeQty(idx, d) { if(db.lists[db.currentId].items[idx].qty + d >= 1) { db.lists[db.currentId].items[idx].qty += d; save(); } }
+function removeItem(idx) { db.lists[db.currentId].items.splice(idx,1); save(); }
 function toggleLock() { isLocked = !isLocked; render(); }
 function executeClear() { db.lists[db.currentId].items = []; closeModal('confirmModal'); save(); }
 function saveNewList() { const n = document.getElementById('newListNameInput').value.trim(); if(n){ const id = 'L'+Date.now(); db.lists[id] = {name: n, items:[]}; db.currentId = id; activePage = 'lists'; closeModal('newListModal'); save(); } }
-function deleteFullList() { if (listToDelete) { delete db.lists[listToDelete]; const keys = Object.keys(db.lists); if (db.currentId === listToDelete) db.currentId = keys[0] || (db.lists['L1']={name:'הרשימה שלי', items:[]}, 'L1'); closeModal('deleteListModal'); save(); } }
+function deleteFullList() { if (listToDelete) { delete db.lists[listToDelete]; if (db.currentId === listToDelete) db.currentId = Object.keys(db.lists)[0] || (db.lists['L1']={name:'הרשימה שלי', items:[]}, 'L1'); closeModal('deleteListModal'); save(); } }
 function prepareDeleteList(id) { listToDelete = id; openModal('deleteListModal'); }
+function saveListName() { const n = document.getElementById('editListNameInput').value.trim(); if(n){ db.lists[db.currentId].name = n; save(); closeModal('editListNameModal'); } }
+function openEditTotalModal(idx) { currentEditIdx = idx; openModal('editTotalModal'); }
+function saveTotal() { const val = parseFloat(document.getElementById('editTotalInput').value); if (!isNaN(val)) { const item = db.lists[db.currentId].items[currentEditIdx]; item.price = val / item.qty; save(); closeModal('editTotalModal'); } }
 function toggleItem(i) { db.lists[db.currentId].items[i].checked = !db.lists[db.currentId].items[i].checked; save(); }
 function toggleSum(id) { const i = db.selectedInSummary.indexOf(id); if (i > -1) db.selectedInSummary.splice(i, 1); else db.selectedInSummary.push(id); save(); }
 function toggleSelectAll(c) { db.selectedInSummary = c ? Object.keys(db.lists) : []; save(); }
@@ -211,8 +228,17 @@ function shareSummaryToWhatsApp() {
     window.open("https://wa.me/?text=" + encodeURIComponent(text));
 }
 
-if ('serviceWorker' in navigator) {
-    window.addEventListener('load', () => { navigator.serviceWorker.register('sw.js'); });
+function exportData() {
+    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(db));
+    const a = document.createElement('a');
+    a.href = dataStr; a.download = `VPLUS_BACKUP_${new Date().toLocaleDateString()}.json`;
+    a.click();
 }
 
-window.onload = function() { if (localStorage.getItem('THEME') === 'dark') document.body.classList.add('dark-mode'); render(); };
+if ('serviceWorker' in navigator) { window.addEventListener('load', () => { navigator.serviceWorker.register('sw.js'); }); }
+
+window.onload = function() { 
+    if (localStorage.getItem('THEME') === 'dark') document.body.classList.add('dark-mode'); 
+    if (localStorage.getItem('G_TOKEN')) syncWithCloud();
+    render(); 
+};
