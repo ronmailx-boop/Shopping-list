@@ -5,7 +5,7 @@ body { font-family: system-ui, sans-serif; background: #f4f7fa; padding-bottom: 
 .tab-btn { flex: 1; padding: 12px; border-radius: 15px; font-weight: bold; text-align: center; cursor: pointer; transition: 0.2s; background: white; color: #666; border: 1px solid #eee; }
 .tab-active { background: #7367f0 !important; color: white !important; }
 
-/* תיקון עיוות לפח ולמנעול */
+/* כפתורי עיגול בבר התחתון - תיקון עיוות סופי */
 .bottom-circle-btn {
     width: 48px !important;
     height: 48px !important;
