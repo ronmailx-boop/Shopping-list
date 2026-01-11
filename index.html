@@ -27,10 +27,9 @@
 
     <div class="max-w-md mx-auto p-4 no-print">
         <div class="flex gap-3 mb-6">
-            <div id="tabLists" onclick="showPage('lists')" class="tab-btn">הרשימה שלי</div>
+            <div id="tabLists" onclick="showPage('lists')" class="tab-btn tab-active">הרשימה שלי</div>
             <div id="tabSummary" onclick="showPage('summary')" class="tab-btn">הרשימות שלי</div>
         </div>
-
         <div id="pageLists">
             <div class="category-separator">
                 <div id="listNameDisplay" class="text-3xl font-black text-center" onclick="openModal('editListNameModal')">טוען...</div>
@@ -49,9 +48,7 @@
             <div class="flex-1 text-center">₪<span id="displayPaid">0.00</span></div>
         </div>
         <div class="flex items-center justify-between gap-4">
-            <button onclick="openModal('confirmModal')" class="bottom-circle-btn bg-red-500">
-                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
-            </button>
+            <button onclick="openModal('confirmModal')" class="bottom-circle-btn bg-red-500">🗑️</button>
             <div class="text-center flex-1 text-2xl font-black text-orange-300">₪<span id="displayLeft">0.00</span></div>
             <button id="mainLockBtn" onclick="toggleLock()" class="bottom-circle-btn bg-blue-600">
                 <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path id="lockIconPath" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
@@ -60,16 +57,15 @@
     </div>
 
     <div id="settingsModal" class="modal-overlay no-print"><div class="edit-modal">
-        <h2 class="mb-4">הגדרות</h2>
-        <button onclick="exportData()" class="w-full bg-green-600 text-white py-3 rounded-xl font-bold mb-2">ייצוא גיבוי 📥</button>
-        <button onclick="document.getElementById('importFile').click()" class="w-full bg-blue-600 text-white py-3 rounded-xl font-bold mb-2">ייבוא גיבוי 📤</button>
+        <h2 class="mb-4 font-bold">הגדרות וגיבוי</h2>
+        <button onclick="exportData()" class="w-full bg-green-600 text-white py-3 rounded-xl font-bold mb-2">ייצוא לקובץ 📥</button>
+        <button onclick="document.getElementById('importFile').click()" class="w-full bg-blue-600 text-white py-3 rounded-xl font-bold mb-2">ייבוא מקובץ 📤</button>
         <input type="file" id="importFile" class="hidden" accept=".json" onchange="importData(event)">
-        <button onclick="closeModal('settingsModal')" class="mt-4 text-gray-400">סגור</button>
+        <button onclick="closeModal('settingsModal')" class="mt-4 text-gray-400 block w-full">סגור</button>
     </div></div>
 
     <div id="inputForm" class="modal-overlay no-print"><div class="edit-modal"><h2>הוספה</h2><input type="text" id="itemName" placeholder="שם" class="modal-input"><input type="number" id="itemPrice" placeholder="מחיר" class="modal-input"><button class="bg-green-500 text-white w-full py-4 rounded-xl" onclick="addItem()">הוסף</button></div></div>
-    <div id="confirmModal" class="modal-overlay no-print"><div class="edit-modal"><h2>מחיקת הכל?</h2><button class="bg-red-500 text-white w-full py-4 rounded-xl" onclick="executeClear()">מחק הכל</button></div></div>
-    <div id="editListNameModal" class="modal-overlay no-print"><div class="edit-modal"><h2>שם רשימה</h2><input type="text" id="editListNameInput" class="modal-input"><button class="bg-indigo-600 text-white w-full py-4 rounded-xl" onclick="saveListName()">שמור</button></div></div>
+    <div id="confirmModal" class="modal-overlay no-print"><div class="edit-modal"><h2>ניקוי רשימה?</h2><button class="bg-red-500 text-white w-full py-4 rounded-xl" onclick="executeClear()">מחק הכל</button></div></div>
 
     <script src="script.js"></script>
 </body>
