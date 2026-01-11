@@ -16,7 +16,7 @@
         <div class="header-controls">
             <div id="cloudBtn" onclick="handleAuthClick()" class="bg-indigo-50 text-indigo-600 px-3 py-1 rounded-full text-[10px] font-bold border border-indigo-100 flex items-center gap-1 cursor-pointer">
                 <span>סנכרון ענן</span>
-                <div id="cloudIndicator" class="w-2 h-2 bg-gray-300 rounded-full"></div>
+                <div id="cloudIndicator" class="w-2 h-2 bg-gray-300 rounded-full transition-colors"></div>
             </div>
             <button onclick="openModal('settingsModal')" class="p-2 gear-btn">
                 <svg class="w-7 h-7 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
@@ -27,7 +27,7 @@
 
     <div class="max-w-md mx-auto p-4 no-print">
         <div class="flex gap-3 mb-6">
-            <div id="tabLists" onclick="showPage('lists')" class="tab-btn tab-active">הרשימה שלי</div>
+            <div id="tabLists" onclick="showPage('lists')" class="tab-btn">הרשימה שלי</div>
             <div id="tabSummary" onclick="showPage('summary')" class="tab-btn">הרשימות שלי</div>
         </div>
 
@@ -43,10 +43,10 @@
     </div>
 
     <div class="bottom-bar text-white no-print">
-        <div class="flex items-center justify-between mb-4 text-center">
-            <div class="flex-1">₪<span id="displayTotal">0.00</span></div>
+        <div class="flex items-center justify-between mb-4">
+            <div class="flex-1 text-center">₪<span id="displayTotal">0.00</span></div>
             <button onclick="openModal('inputForm')" class="w-16 h-16 bg-green-500 rounded-full flex items-center justify-center shadow-2xl text-white text-4xl font-bold">+</button>
-            <div class="flex-1">₪<span id="displayPaid">0.00</span></div>
+            <div class="flex-1 text-center">₪<span id="displayPaid">0.00</span></div>
         </div>
         <div class="flex items-center justify-between gap-4">
             <button onclick="openModal('confirmModal')" class="bottom-circle-btn bg-red-500">
@@ -68,7 +68,7 @@
     </div></div>
 
     <div id="inputForm" class="modal-overlay no-print"><div class="edit-modal"><h2>הוספה</h2><input type="text" id="itemName" placeholder="שם" class="modal-input"><input type="number" id="itemPrice" placeholder="מחיר" class="modal-input"><button class="bg-green-500 text-white w-full py-4 rounded-xl" onclick="addItem()">הוסף</button></div></div>
-    <div id="confirmModal" class="modal-overlay no-print"><div class="edit-modal"><h2>ניקוי רשימה?</h2><button class="bg-red-500 text-white w-full py-4 rounded-xl" onclick="executeClear()">מחק הכל</button></div></div>
+    <div id="confirmModal" class="modal-overlay no-print"><div class="edit-modal"><h2>מחיקת הכל?</h2><button class="bg-red-500 text-white w-full py-4 rounded-xl" onclick="executeClear()">מחק הכל</button></div></div>
     <div id="editListNameModal" class="modal-overlay no-print"><div class="edit-modal"><h2>שם רשימה</h2><input type="text" id="editListNameInput" class="modal-input"><button class="bg-indigo-600 text-white w-full py-4 rounded-xl" onclick="saveListName()">שמור</button></div></div>
 
     <script src="script.js"></script>
