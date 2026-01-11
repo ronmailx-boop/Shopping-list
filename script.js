@@ -19,12 +19,27 @@ function openModal(id) {
     const m = document.getElementById(id);
     if(!m) return;
     m.classList.add('active'); 
+    
     if(id === 'inputForm') {
         document.getElementById('itemName').value = '';
         document.getElementById('itemPrice').value = '';
         setTimeout(() => document.getElementById('itemName').focus(), 150);
     }
+    
+    if(id === 'editListNameModal') {
+        const input = document.getElementById('editListNameInput');
+        input.value = db.lists[db.currentId].name;
+        setTimeout(() => input.focus(), 150);
+    }
+    
+    if(id === 'editTotalModal') {
+        const item = db.lists[db.currentId].items[currentEditIdx];
+        const input = document.getElementById('editTotalInput');
+        input.value = (item.price * item.qty).toFixed(2);
+        setTimeout(() => input.focus(), 150);
+    }
 }
+
 function closeModal(id) { const m = document.getElementById(id); if(m) m.classList.remove('active'); }
 
 function render() {
@@ -74,7 +89,30 @@ function render() {
     initSortable();
 }
 
-// WhatsApp & Manual Backup Handlers
+function saveListName() { 
+    const n = document.getElementById('editListNameInput').value.trim(); 
+    if(n) { 
+        db.lists[db.currentId].name = n; 
+        save(); 
+        closeModal('editListNameModal');
+    } 
+}
+
+function openEditTotalModal(idx) { 
+    currentEditIdx = idx; 
+    openModal('editTotalModal'); 
+}
+
+function saveTotal() { 
+    const val = parseFloat(document.getElementById('editTotalInput').value); 
+    if (!isNaN(val)) { 
+        const item = db.lists[db.currentId].items[currentEditIdx]; 
+        item.price = val / item.qty; 
+        save(); 
+        closeModal('editTotalModal');
+    } 
+}
+
 function exportData() {
     const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(db));
     const downloadAnchorNode = document.createElement('a');
@@ -98,6 +136,44 @@ function importData(event) {
         } catch(err) { alert("קובץ לא תקין"); }
     };
     reader.readAsText(file);
+}
+
+function addItem() { const n = document.getElementById('itemName').value.trim(), p = parseFloat(document.getElementById('itemPrice').value) || 0; if (n) { db.lists[db.currentId].items.push({ name: n, price: p, qty: 1, checked: false }); closeModal('inputForm'); save(); } }
+function changeQty(idx, delta) { const item = db.lists[db.currentId].items[idx]; if (item.qty + delta >= 1) { item.qty += delta; save(); } }
+function removeItem(idx) { db.lists[db.currentId].items.splice(idx, 1); save(); }
+function toggleLock() { isLocked = !isLocked; render(); }
+function executeClear() { db.lists[db.currentId].items = []; closeModal('confirmModal'); save(); }
+function saveNewList() { const n = document.getElementById('newListNameInput').value.trim(); if(n){ const id = 'L'+Date.now(); db.lists[id] = {name: n, items:[]}; db.currentId = id; activePage = 'lists'; closeModal('newListModal'); save(); } }
+function deleteFullList() { if (listToDelete) { delete db.lists[listToDelete]; const keys = Object.keys(db.lists); if (db.currentId === listToDelete) db.currentId = keys[0] || (db.lists['L1']={name:'הרשימה שלי', items:[]}, 'L1'); closeModal('deleteListModal'); save(); } }
+function prepareDeleteList(id) { listToDelete = id; openModal('deleteListModal'); }
+function toggleItem(i) { db.lists[db.currentId].items[i].checked = !db.lists[db.currentId].items[i].checked; save(); }
+function toggleSum(id) { const i = db.selectedInSummary.indexOf(id); if (i > -1) db.selectedInSummary.splice(i, 1); else db.selectedInSummary.push(id); save(); }
+function toggleSelectAll(c) { db.selectedInSummary = c ? Object.keys(db.lists) : []; save(); }
+function toggleDarkMode() { document.body.classList.toggle('dark-mode'); localStorage.setItem('THEME', document.body.classList.contains('dark-mode') ? 'dark' : 'light'); }
+
+function initSortable() {
+    const el = document.getElementById(activePage === 'lists' ? 'itemsContainer' : 'summaryContainer');
+    if (sortableInstance) sortableInstance.destroy();
+    if (el && !isLocked) {
+        sortableInstance = Sortable.create(el, { animation: 150, onEnd: () => save() });
+    }
+}
+
+function preparePrint() { 
+    closeModal('settingsModal');
+    let printArea = document.getElementById('printArea');
+    let grandTotal = 0;
+    let html = `<h1 style="text-align:center; color:#7367f0;">דוח קניות מפורט - Vplus</h1>`;
+    const idsToPrint = db.selectedInSummary.length > 0 ? db.selectedInSummary : Object.keys(db.lists);
+    idsToPrint.forEach(id => {
+        const l = db.lists[id]; let listTotal = 0;
+        html += `<div style="border-bottom: 2px solid #7367f0; margin-bottom: 20px; padding-bottom: 10px;"><h2>${l.name}</h2><table style="width:100%; border-collapse:collapse; border:1px solid #ddd; margin-bottom:10px;"><thead><tr style="background:#f9fafb;"><th style="padding:8px; border:1px solid #ddd; text-align:right;">מוצר</th><th style="padding:8px; border:1px solid #ddd; text-align:center;">כמות</th><th style="padding:8px; border:1px solid #ddd; text-align:left;">סה"כ</th></tr></thead><tbody>`;
+        l.items.forEach(i => { const s = i.price * i.qty; listTotal += s; html += `<tr><td style="padding:8px; border:1px solid #ddd; text-align:right;">${i.name}</td><td style="padding:8px; border:1px solid #ddd; text-align:center;">${i.qty}</td><td style="padding:8px; border:1px solid #ddd; text-align:left;">₪${s.toFixed(2)}</td></tr>`; });
+        html += `</tbody></table><div style="text-align:left; font-weight:bold;">סיכום רשימה: ₪${listTotal.toFixed(2)}</div></div>`;
+        grandTotal += listTotal;
+    });
+    html += `<div style="text-align:center; margin-top:30px; padding:15px; border:3px double #7367f0; font-size:1.5em; font-weight:900;">סה"כ כולל: ₪${grandTotal.toFixed(2)}</div>`;
+    printArea.innerHTML = html; window.print();
 }
 
 function shareFullToWhatsApp() {
@@ -133,49 +209,6 @@ function shareSummaryToWhatsApp() {
         }
     });
     window.open("https://wa.me/?text=" + encodeURIComponent(text));
-}
-
-// PDF Logic
-function preparePrint() { 
-    closeModal('settingsModal');
-    let printArea = document.getElementById('printArea');
-    let grandTotal = 0;
-    let html = `<h1 style="text-align:center; color:#7367f0;">דוח קניות מפורט - Vplus</h1>`;
-    const idsToPrint = db.selectedInSummary.length > 0 ? db.selectedInSummary : Object.keys(db.lists);
-    idsToPrint.forEach(id => {
-        const l = db.lists[id]; let listTotal = 0;
-        html += `<div style="border-bottom: 2px solid #7367f0; margin-bottom: 20px; padding-bottom: 10px;"><h2>${l.name}</h2><table style="width:100%; border-collapse:collapse; border:1px solid #ddd; margin-bottom:10px;"><thead><tr style="background:#f9fafb;"><th style="padding:8px; border:1px solid #ddd; text-align:right;">מוצר</th><th style="padding:8px; border:1px solid #ddd; text-align:center;">כמות</th><th style="padding:8px; border:1px solid #ddd; text-align:left;">סה"כ</th></tr></thead><tbody>`;
-        l.items.forEach(i => { const s = i.price * i.qty; listTotal += s; html += `<tr><td style="padding:8px; border:1px solid #ddd; text-align:right;">${i.name}</td><td style="padding:8px; border:1px solid #ddd; text-align:center;">${i.qty}</td><td style="padding:8px; border:1px solid #ddd; text-align:left;">₪${s.toFixed(2)}</td></tr>`; });
-        html += `</tbody></table><div style="text-align:left; font-weight:bold;">סיכום רשימה: ₪${listTotal.toFixed(2)}</div></div>`;
-        grandTotal += listTotal;
-    });
-    html += `<div style="text-align:center; margin-top:30px; padding:15px; border:3px double #7367f0; font-size:1.5em; font-weight:900;">סה"כ כולל: ₪${grandTotal.toFixed(2)}</div>`;
-    printArea.innerHTML = html; window.print();
-}
-
-// Base Logic Functions
-function addItem() { const n = document.getElementById('itemName').value.trim(), p = parseFloat(document.getElementById('itemPrice').value) || 0; if (n) { db.lists[db.currentId].items.push({ name: n, price: p, qty: 1, checked: false }); closeModal('inputForm'); save(); } }
-function changeQty(idx, d) { if(db.lists[db.currentId].items[idx].qty + d >= 1) { db.lists[db.currentId].items[idx].qty += d; save(); } }
-function removeItem(idx) { db.lists[db.currentId].items.splice(idx,1); save(); }
-function saveNewList() { const n = document.getElementById('newListNameInput').value.trim(); if(n){ const id = 'L'+Date.now(); db.lists[id] = {name: n, items:[]}; db.currentId = id; activePage = 'lists'; closeModal('newListModal'); save(); } }
-function toggleLock() { isLocked = !isLocked; render(); }
-function executeClear() { db.lists[db.currentId].items = []; closeModal('confirmModal'); save(); }
-function prepareDeleteList(id) { listToDelete = id; openModal('deleteListModal'); }
-function deleteFullList() { if (listToDelete) { delete db.lists[listToDelete]; const keys = Object.keys(db.lists); if (db.currentId === listToDelete) db.currentId = keys[0] || (db.lists['L1']={name:'הרשימה שלי', items:[]}, 'L1'); closeModal('deleteListModal'); save(); } }
-function saveListName() { const n = document.getElementById('editListNameInput').value.trim(); if(n){ db.lists[db.currentId].name = n; save(); } closeModal('editListNameModal'); }
-function openEditTotalModal(idx) { currentEditIdx = idx; openModal('editTotalModal'); }
-function saveTotal() { const val = parseFloat(document.getElementById('editTotalInput').value); if (!isNaN(val)) { const item = db.lists[db.currentId].items[currentEditIdx]; item.price = val / item.qty; save(); } closeModal('editTotalModal'); }
-function toggleItem(i) { db.lists[db.currentId].items[i].checked = !db.lists[db.currentId].items[i].checked; save(); }
-function toggleSum(id) { const i = db.selectedInSummary.indexOf(id); if (i > -1) db.selectedInSummary.splice(i, 1); else db.selectedInSummary.push(id); save(); }
-function toggleSelectAll(c) { db.selectedInSummary = c ? Object.keys(db.lists) : []; save(); }
-function toggleDarkMode() { document.body.classList.toggle('dark-mode'); localStorage.setItem('THEME', document.body.classList.contains('dark-mode') ? 'dark' : 'light'); }
-
-function initSortable() {
-    const el = document.getElementById(activePage === 'lists' ? 'itemsContainer' : 'summaryContainer');
-    if (sortableInstance) sortableInstance.destroy();
-    if (el && !isLocked) {
-        sortableInstance = Sortable.create(el, { animation: 150, onEnd: () => save() });
-    }
 }
 
 if ('serviceWorker' in navigator) {
