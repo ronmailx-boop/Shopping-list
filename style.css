@@ -5,11 +5,13 @@ body { font-family: system-ui, sans-serif; background: #f4f7fa; padding-bottom: 
 .tab-btn { flex: 1; padding: 12px; border-radius: 15px; font-weight: bold; text-align: center; cursor: pointer; transition: 0.2s; background: white; color: #666; border: 1px solid #eee; }
 .tab-active { background: #7367f0 !important; color: white !important; }
 
-/* כפתורי עיגול בבר התחתון - תיקון עיוות */
+/* תיקון עיוות לפח ולמנעול */
 .bottom-circle-btn {
     width: 48px !important;
     height: 48px !important;
-    flex-shrink: 0 !important; /* מונע מהפח להימעך */
+    min-width: 48px !important;
+    min-height: 48px !important;
+    flex-shrink: 0 !important;
     border-radius: 50% !important;
     display: flex !important;
     align-items: center !important;
@@ -27,7 +29,7 @@ body { font-family: system-ui, sans-serif; background: #f4f7fa; padding-bottom: 
 .app-header { background: white; padding: 10px 20px; display: flex; flex-direction: row-reverse; justify-content: space-between; align-items: center; box-shadow: 0 2px 8px rgba(0,0,0,0.05); position: sticky; top: 0; z-index: 2000; height: 60px; }
 .header-controls { display: flex; align-items: center; gap: 8px; direction: rtl; }
 
-/* תיקון סמל הגדרות */
+/* תיקון לכפתור ההגדרות */
 .gear-btn { flex-shrink: 0; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; }
 
 .trash-btn { width: 44px; height: 44px; background: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #ef4444; border: none; cursor: pointer; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
@@ -37,7 +39,6 @@ body.dark-mode { background: #1a1a2e; color: #e0e0e0; }
 .dark-mode .app-header { background: #16213e; border-bottom: 1px solid #0f3460; }
 .dark-mode .item-card, .dark-mode .bg-white { background-color: #0f3460 !important; border-color: #1a1a2e; color: white; }
 .dark-mode #selectAllLabel { color: white !important; }
-.dark-mode .select-all-container { background-color: #0f3460 !important; }
 
 @media print {
     .no-print, .bottom-bar, .app-header, .tab-btn, .modal-overlay, .trash-btn, input, button { display: none !important; }
