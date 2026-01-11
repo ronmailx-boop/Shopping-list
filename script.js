@@ -52,21 +52,17 @@ function render() {
         document.getElementById('listNameDisplay').innerText = list.name;
         list.items.forEach((item, idx) => {
             const sub = item.price * item.qty; total += sub; if (item.checked) paid += sub;
-            const div = document.createElement('div'); 
-            div.className = "item-card";
-            div.setAttribute('data-id', idx);
-            div.innerHTML = `<div class="flex justify-between items-center mb-4"><div class="flex items-center gap-3 flex-1"><input type="checkbox" ${item.checked ? 'checked' : ''} onchange="toggleItem(${idx})" class="w-7 h-7 accent-indigo-600"><div class="flex-1 text-2xl font-bold ${item.checked ? 'line-through text-gray-300' : ''}">${item.name}</div></div><button onclick="removeItem(${idx})" class="trash-btn"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg></button></div><div class="flex justify-between items-center"><div class="flex items-center gap-3 bg-gray-50 rounded-xl px-2 py-1 border"><button onclick="changeQty(${idx}, 1)" class="text-green-500 text-2xl font-bold">+</button><span class="font-bold w-6 text-center">${item.qty}</span><button onclick="changeQty(${idx}, -1)" class="text-red-500 text-2xl font-bold">-</button></div><span onclick="openEditTotalModal(${idx})" class="text-2xl font-black text-indigo-600">₪${sub.toFixed(2)}</span></div>`;
+            const div = document.createElement('div'); div.className = "item-card"; div.setAttribute('data-id', idx);
+            div.innerHTML = `<div class="flex justify-between items-center mb-4"><div class="flex items-center gap-3 flex-1"><input type="checkbox" ${item.checked ? 'checked' : ''} onchange="toggleItem(${idx})" class="w-7 h-7 accent-indigo-600"><div class="flex-1 text-2xl font-bold ${item.checked ? 'line-through text-gray-300' : ''}">${item.name}</div></div><button onclick="removeItem(${idx})" class="trash-btn"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" stroke-width="2"></path></svg></button></div><div class="flex justify-between items-center"><div class="flex items-center gap-3 bg-gray-50 rounded-xl px-2 py-1 border"><button onclick="changeQty(${idx}, 1)" class="text-green-500 text-2xl font-bold">+</button><span class="font-bold w-6 text-center">${item.qty}</span><button onclick="changeQty(${idx}, -1)" class="text-red-500 text-2xl font-bold">-</button></div><span onclick="openEditTotalModal(${idx})" class="text-2xl font-black text-indigo-600">₪${sub.toFixed(2)}</span></div>`;
             container.appendChild(div);
         });
     } else {
         document.getElementById('pageLists').classList.add('hidden');
         document.getElementById('pageSummary').classList.remove('hidden');
         Object.keys(db.lists).forEach(id => {
-            const l = db.lists[id];
-            let lT = 0, lP = 0;
+            const l = db.lists[id]; let lT = 0, lP = 0;
             l.items.forEach(i => { const s = i.price*i.qty; lT += s; if(i.checked) lP += s; });
-            const isSel = db.selectedInSummary.includes(id); 
-            if (isSel) { total += lT; paid += lP; }
+            const isSel = db.selectedInSummary.includes(id); if (isSel) { total += lT; paid += lP; }
             const div = document.createElement('div'); div.className = "item-card p-4"; div.dataset.id = id;
             div.innerHTML = `<div class="flex justify-between items-center"><div class="flex items-center gap-4"><input type="checkbox" ${isSel ? 'checked' : ''} onchange="toggleSum('${id}')" class="w-7 h-7 accent-indigo-600"><span class="font-bold text-xl cursor-pointer" onclick="db.currentId='${id}'; showPage('lists')">${l.name}</span></div><div class="flex items-center gap-3"><div class="text-indigo-600 font-black text-xl">₪${lT.toFixed(2)}</div><button onclick="prepareDeleteList('${id}')" class="text-red-400 p-1"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" stroke-width="2"></path></svg></button></div></div>`;
             container.appendChild(div);
@@ -78,54 +74,34 @@ function render() {
     initSortable();
 }
 
-function addItem() { const n = document.getElementById('itemName').value.trim(), p = parseFloat(document.getElementById('itemPrice').value) || 0; if (n) { db.lists[db.currentId].items.push({ name: n, price: p, qty: 1, checked: false }); closeModal('inputForm'); save(); } }
-function changeQty(idx, d) { if(db.lists[db.currentId].items[idx].qty + d >= 1) { db.lists[db.currentId].items[idx].qty += d; save(); } }
-function removeItem(idx) { db.lists[db.currentId].items.splice(idx,1); save(); }
-function toggleLock() { isLocked = !isLocked; render(); }
-function executeClear() { db.lists[db.currentId].items = []; closeModal('confirmModal'); save(); }
-function saveNewList() { const n = document.getElementById('newListNameInput').value.trim(); if(n){ const id = 'L'+Date.now(); db.lists[id] = {name: n, items:[]}; db.currentId = id; activePage = 'lists'; closeModal('newListModal'); save(); } }
-function deleteFullList() { if (listToDelete) { delete db.lists[listToDelete]; const keys = Object.keys(db.lists); if (db.currentId === listToDelete) db.currentId = keys[0] || (db.lists['L1']={name:'הרשימה שלי', items:[]}, 'L1'); closeModal('deleteListModal'); save(); } }
-function prepareDeleteList(id) { listToDelete = id; openModal('deleteListModal'); }
-
-function initSortable() {
-    const el = document.getElementById(activePage === 'lists' ? 'itemsContainer' : 'summaryContainer');
-    if (sortableInstance) sortableInstance.destroy();
-    if (el && !isLocked) {
-        sortableInstance = Sortable.create(el, { animation: 150, onEnd: function() {
-            if (activePage === 'lists') {
-                const newOrder = Array.from(el.children).map(c => parseInt(c.getAttribute('data-id')));
-                const items = db.lists[db.currentId].items;
-                db.lists[db.currentId].items = newOrder.map(oldIdx => items[oldIdx]);
-            } else {
-                const newOrder = Array.from(el.children).map(c => c.getAttribute('data-id'));
-                const newLists = {}; newOrder.forEach(id => newLists[id] = db.lists[id]);
-                db.lists = newLists;
-            }
-            save(); 
-        } });
-    }
+// WhatsApp & Manual Backup Handlers
+function exportData() {
+    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(db));
+    const downloadAnchorNode = document.createElement('a');
+    const now = new Date();
+    const fileName = `VPLUS_BACKUP_${now.toLocaleDateString().replace(/\//g,'-')}_${now.getHours()}-${now.getMinutes()}.json`;
+    downloadAnchorNode.setAttribute("href", dataStr);
+    downloadAnchorNode.setAttribute("download", fileName);
+    document.body.appendChild(downloadAnchorNode);
+    downloadAnchorNode.click();
+    downloadAnchorNode.remove();
 }
 
-function preparePrint() { 
-    closeModal('settingsModal');
-    let printArea = document.getElementById('printArea');
-    let grandTotal = 0;
-    let html = `<h1 style="text-align:center; color:#7367f0;">דוח קניות מפורט - Vplus</h1>`;
-    const idsToPrint = db.selectedInSummary.length > 0 ? db.selectedInSummary : Object.keys(db.lists);
-    idsToPrint.forEach(id => {
-        const l = db.lists[id]; let listTotal = 0;
-        html += `<div style="border-bottom: 2px solid #7367f0; margin-bottom: 20px; padding-bottom: 10px;"><h2>${l.name}</h2><table style="width:100%; border-collapse:collapse; border:1px solid #ddd; margin-bottom:10px;"><thead><tr style="background:#f9fafb;"><th style="padding:8px; border:1px solid #ddd; text-align:right;">מוצר</th><th style="padding:8px; border:1px solid #ddd; text-align:center;">כמות</th><th style="padding:8px; border:1px solid #ddd; text-align:left;">סה"כ</th></tr></thead><tbody>`;
-        l.items.forEach(i => { const s = i.price * i.qty; listTotal += s; html += `<tr><td style="padding:8px; border:1px solid #ddd; text-align:right;">${i.name}</td><td style="padding:8px; border:1px solid #ddd; text-align:center;">${i.qty}</td><td style="padding:8px; border:1px solid #ddd; text-align:left;">₪${s.toFixed(2)}</td></tr>`; });
-        html += `</tbody></table><div style="text-align:left; font-weight:bold;">סיכום רשימה: ₪${listTotal.toFixed(2)}</div></div>`;
-        grandTotal += listTotal;
-    });
-    html += `<div style="text-align:center; margin-top:30px; padding:15px; border:3px double #7367f0; font-size:1.5em; font-weight:900;">סה"כ כולל: ₪${grandTotal.toFixed(2)}</div>`;
-    printArea.innerHTML = html; window.print();
+function importData(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (e) => {
+        try {
+            const imported = JSON.parse(e.target.result);
+            if(imported.lists) { db = imported; save(); alert("הגיבוי נטען בהצלחה!"); }
+        } catch(err) { alert("קובץ לא תקין"); }
+    };
+    reader.readAsText(file);
 }
 
 function shareFullToWhatsApp() {
     const list = db.lists[db.currentId];
-    if (list.items.length === 0) return;
     let text = `🛒 *${list.name} (רשימה מלאה):*\n\n`;
     list.items.forEach(i => text += `${i.checked ? '✅' : '⬜'} *${i.name}* (x${i.qty}) - ₪${(i.price * i.qty).toFixed(2)}\n`);
     text += `\n💰 *סה"כ: ₪${document.getElementById('displayTotal').innerText}*`;
@@ -145,8 +121,8 @@ function shareMissingToWhatsApp() {
 
 function shareSummaryToWhatsApp() {
     const selectedIds = db.selectedInSummary;
-    if (selectedIds.length === 0) { alert("בחר לפחות רשימה אחת לשיתוף!"); return; }
-    let text = `📦 *ריכוז רשימות קנייה (חסרים בלבד):*\n\n`;
+    if (selectedIds.length === 0) { alert("בחר רשימות לשיתוף!"); return; }
+    let text = `📦 *ריכוז רשימות (חסרים בלבד):*\n\n`;
     selectedIds.forEach(id => {
         const l = db.lists[id];
         const missing = l.items.filter(i => !i.checked);
@@ -159,6 +135,33 @@ function shareSummaryToWhatsApp() {
     window.open("https://wa.me/?text=" + encodeURIComponent(text));
 }
 
+// PDF Logic
+function preparePrint() { 
+    closeModal('settingsModal');
+    let printArea = document.getElementById('printArea');
+    let grandTotal = 0;
+    let html = `<h1 style="text-align:center; color:#7367f0;">דוח קניות מפורט - Vplus</h1>`;
+    const idsToPrint = db.selectedInSummary.length > 0 ? db.selectedInSummary : Object.keys(db.lists);
+    idsToPrint.forEach(id => {
+        const l = db.lists[id]; let listTotal = 0;
+        html += `<div style="border-bottom: 2px solid #7367f0; margin-bottom: 20px; padding-bottom: 10px;"><h2>${l.name}</h2><table style="width:100%; border-collapse:collapse; border:1px solid #ddd; margin-bottom:10px;"><thead><tr style="background:#f9fafb;"><th style="padding:8px; border:1px solid #ddd; text-align:right;">מוצר</th><th style="padding:8px; border:1px solid #ddd; text-align:center;">כמות</th><th style="padding:8px; border:1px solid #ddd; text-align:left;">סה"כ</th></tr></thead><tbody>`;
+        l.items.forEach(i => { const s = i.price * i.qty; listTotal += s; html += `<tr><td style="padding:8px; border:1px solid #ddd; text-align:right;">${i.name}</td><td style="padding:8px; border:1px solid #ddd; text-align:center;">${i.qty}</td><td style="padding:8px; border:1px solid #ddd; text-align:left;">₪${s.toFixed(2)}</td></tr>`; });
+        html += `</tbody></table><div style="text-align:left; font-weight:bold;">סיכום רשימה: ₪${listTotal.toFixed(2)}</div></div>`;
+        grandTotal += listTotal;
+    });
+    html += `<div style="text-align:center; margin-top:30px; padding:15px; border:3px double #7367f0; font-size:1.5em; font-weight:900;">סה"כ כולל: ₪${grandTotal.toFixed(2)}</div>`;
+    printArea.innerHTML = html; window.print();
+}
+
+// Base Logic Functions
+function addItem() { const n = document.getElementById('itemName').value.trim(), p = parseFloat(document.getElementById('itemPrice').value) || 0; if (n) { db.lists[db.currentId].items.push({ name: n, price: p, qty: 1, checked: false }); closeModal('inputForm'); save(); } }
+function changeQty(idx, d) { if(db.lists[db.currentId].items[idx].qty + d >= 1) { db.lists[db.currentId].items[idx].qty += d; save(); } }
+function removeItem(idx) { db.lists[db.currentId].items.splice(idx,1); save(); }
+function saveNewList() { const n = document.getElementById('newListNameInput').value.trim(); if(n){ const id = 'L'+Date.now(); db.lists[id] = {name: n, items:[]}; db.currentId = id; activePage = 'lists'; closeModal('newListModal'); save(); } }
+function toggleLock() { isLocked = !isLocked; render(); }
+function executeClear() { db.lists[db.currentId].items = []; closeModal('confirmModal'); save(); }
+function prepareDeleteList(id) { listToDelete = id; openModal('deleteListModal'); }
+function deleteFullList() { if (listToDelete) { delete db.lists[listToDelete]; const keys = Object.keys(db.lists); if (db.currentId === listToDelete) db.currentId = keys[0] || (db.lists['L1']={name:'הרשימה שלי', items:[]}, 'L1'); closeModal('deleteListModal'); save(); } }
 function saveListName() { const n = document.getElementById('editListNameInput').value.trim(); if(n){ db.lists[db.currentId].name = n; save(); } closeModal('editListNameModal'); }
 function openEditTotalModal(idx) { currentEditIdx = idx; openModal('editTotalModal'); }
 function saveTotal() { const val = parseFloat(document.getElementById('editTotalInput').value); if (!isNaN(val)) { const item = db.lists[db.currentId].items[currentEditIdx]; item.price = val / item.qty; save(); } closeModal('editTotalModal'); }
@@ -166,5 +169,17 @@ function toggleItem(i) { db.lists[db.currentId].items[i].checked = !db.lists[db.
 function toggleSum(id) { const i = db.selectedInSummary.indexOf(id); if (i > -1) db.selectedInSummary.splice(i, 1); else db.selectedInSummary.push(id); save(); }
 function toggleSelectAll(c) { db.selectedInSummary = c ? Object.keys(db.lists) : []; save(); }
 function toggleDarkMode() { document.body.classList.toggle('dark-mode'); localStorage.setItem('THEME', document.body.classList.contains('dark-mode') ? 'dark' : 'light'); }
+
+function initSortable() {
+    const el = document.getElementById(activePage === 'lists' ? 'itemsContainer' : 'summaryContainer');
+    if (sortableInstance) sortableInstance.destroy();
+    if (el && !isLocked) {
+        sortableInstance = Sortable.create(el, { animation: 150, onEnd: () => save() });
+    }
+}
+
+if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => { navigator.serviceWorker.register('sw.js'); });
+}
 
 window.onload = function() { if (localStorage.getItem('THEME') === 'dark') document.body.classList.add('dark-mode'); render(); };
