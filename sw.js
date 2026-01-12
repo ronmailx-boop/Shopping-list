@@ -1,4 +1,4 @@
-const CACHE_NAME = 'vplus-v5';
+const CACHE_NAME = 'vplus-v7';
 
 const assets = [
   './',
@@ -10,11 +10,11 @@ const assets = [
 ];
 
 self.addEventListener('install', (event) => {
-  console.log('Service Worker: Installing...');
+  console.log('[Service Worker] Installing...');
   event.waitUntil(
     caches.open(CACHE_NAME)
       .then(cache => {
-        console.log('Service Worker: Caching files');
+        console.log('[Service Worker] Caching files');
         return cache.addAll(assets);
       })
       .then(() => self.skipWaiting())
@@ -22,7 +22,7 @@ self.addEventListener('install', (event) => {
 });
 
 self.addEventListener('activate', (event) => {
-  console.log('Service Worker: Activating...');
+  console.log('[Service Worker] Activating...');
   event.waitUntil(
     caches.keys().then(keys => {
       return Promise.all(
