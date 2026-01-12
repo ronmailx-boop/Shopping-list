@@ -1,6 +1,6 @@
 // ========== Google Drive Configuration ==========
 const GOOGLE_CLIENT_ID = '151476121869-b5lbrt5t89s8d342ftd1cg1q926518pt.apps.googleusercontent.com';
-const GOOGLE_API_KEY = 'YOUR_API_KEY'; // תצטרך להוסיף את ה-API Key מ-Google Cloud Console
+const GOOGLE_API_KEY = 'AIzaSyBuFcx7xgMt4Ca2aMcwcyrty38EeRWUW7c';
 const DISCOVERY_DOC = 'https://www.googleapis.com/discovery/v1/apis/drive/v3/rest';
 const SCOPES = 'https://www.googleapis.com/auth/drive.file';
 const FOLDER_NAME = 'Vplus_Budget_Data';
