@@ -1,4 +1,4 @@
-const CACHE_NAME = 'vplus-v5';
+const CACHE_NAME = 'vplus-final-fix';
 const assets = [
     './',
     './index.html',
@@ -9,10 +9,9 @@ const assets = [
 ];
 
 self.addEventListener('install', (e) => {
+    self.skipWaiting(); // גורם לגרסה החדשה להיכנס לתוקף מיד
     e.waitUntil(
-        caches.open(CACHE_NAME).then(cache => {
-            return cache.addAll(assets);
-        })
+        caches.open(CACHE_NAME).then(cache => cache.addAll(assets))
     );
 });
 
@@ -29,8 +28,6 @@ self.addEventListener('activate', (e) => {
 
 self.addEventListener('fetch', (e) => {
     e.respondWith(
-        caches.match(e.request).then(res => {
-            return res || fetch(e.request);
-        })
+        fetch(e.request).catch(() => caches.match(e.request))
     );
 });
