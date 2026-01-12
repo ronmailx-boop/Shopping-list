@@ -27,39 +27,16 @@ cursor: pointer;
 
 .modal-overlay.active { display: flex; }
 
-.edit-modal { width: 90%; max-width: 400px; background-color: #ffffff !important; border-radius: 40px; padding: 30px; text-align: center; color: #333; border: 2px solid #eee; box-shadow: 0 25px 50px rgba(0,0,0,0.5); }
+.modal-content { width: 90%; max-width: 400px; background: white; border-radius: 30px; padding: 30px; }
 
-.modal-input { width: 100%; padding: 18px; border: 2px solid #f3f4f6; border-radius: 22px; font-size: 18px; text-align: center; outline: none; margin-bottom: 15px; font-weight: bold; background: #f9fafb !important; color: #333; }
-
-.app-header { background: white; padding: 10px 20px; display: flex; flex-direction: row-reverse; justify-content: space-between; align-items: center; box-shadow: 0 2px 8px rgba(0,0,0,0.05); position: sticky; top: 0; z-index: 2000; height: 60px; }
-
-.header-controls { display: flex; align-items: center; gap: 8px; direction: rtl; }
-
-.gear-btn { flex-shrink: 0; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; }
-
-.trash-btn { width: 44px; height: 44px; background: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #ef4444; border: none; cursor: pointer; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
-
-.category-separator { background: #7367f0; color: white; border-radius: 20px; padding: 15px; margin-bottom: 20px; text-align: center; }
-
-body.dark-mode { background: #1a1a2e; color: #e0e0e0; }
-
-.dark-mode .app-header { background: #16213e; border-bottom: 1px solid #0f3460; }
-
-.dark-mode .item-card, .dark-mode .bg-white { background-color: #0f3460 !important; border-color: #1a1a2e; color: white; }
-
-.dark-mode #selectAllLabel { color: white !important; }
-
-.dark-mode .select-all-container { background-color: #0f3460 !important; }
+.modal-input { width: 100%; padding: 18px; border: 2px solid #f3f4f6; border-radius: 22px; font-size: 18px; text-align: center; outline: none; margin-bottom: 15px; font-weight: bold; background: #f9fafb; color: #333; }
 
 .hidden { display: none; }
 
-.bg-blue-600 { background: #2563eb; }
+body.dark-mode { background: #1a1a2e; color: #e0e0e0; }
 
-.bg-orange-400 { background: #fb923c; }
-
-.bg-white { background: white; }
+.dark-mode .item-card { background-color: #0f3460 !important; color: white; }
 
 @media print {
-.no-print, .bottom-bar, .app-header, .tab-btn, .modal-overlay, .trash-btn, input, button { display: none !important; }
-#printArea { display: block !important; width: 100%; direction: rtl; }
+.no-print, .bottom-bar, button { display: none !important; }
 }
