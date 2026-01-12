@@ -1,201 +1,203 @@
 <!DOCTYPE html>
 <html lang="he" dir="rtl">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Vplus - ניהול תקציב חכם</title>
-<link rel="manifest" href="manifest.json">
-<meta name="theme-color" content="#7367f0">
-<link rel="apple-touch-icon" href="icon.png">
-<link rel="stylesheet" href="style.css">
-<script src="https://apis.google.com/js/api.js"></script>
-<script src="https://accounts.google.com/gsi/client"></script>
-<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Vplus - ניהול תקציב חכם</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#7367f0">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
+    <script src="https://apis.google.com/js/api.js"></script>
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>
-<body>
+<body class="bg-gray-50 min-h-screen">
 
-<div class="app-header">
-  <div class="header-controls">
-    <button onclick="openModal('settingsModal')" class="gear-btn" style="background:none;border:none;cursor:pointer;">
-      <svg width="32" height="32" fill="none" stroke="#7367f0" stroke-width="2" viewBox="0 0 24 24">
-        <path d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
-        <circle cx="12" cy="12" r="3"/>
-      </svg>
-    </button>
-    <button id="cloudSyncBtn" onclick="handleCloudSync()" style="background:none;border:none;cursor:pointer;font-size:28px;" title="סנכרון ענן">☁️</button>
-  </div>
-  <div style="display:flex;align-items:center;gap:8px;">
-    <span style="font-size:26px;font-weight:bold;color:#7367f0;">V</span>
-    <span style="font-size:22px;font-weight:500;color:#333;">plus</span>
-  </div>
-</div>
-
-<div id="pageLists" style="padding:15px;">
-  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:15px;">
-    <button onclick="openModal('deleteListModal')" style="background:#ef4444;color:white;border:none;padding:12px 20px;border-radius:15px;cursor:pointer;font-weight:bold;">🗑️ מחק רשימה</button>
-    <h2 id="listNameDisplay" onclick="openModal('editListNameModal')" style="cursor:pointer;margin:0;color:#7367f0;">הרשימה שלי</h2>
-  </div>
-  <div id="itemsContainer"></div>
-</div>
-
-<div id="pageSummary" class="hidden" style="padding:15px;">
-  <h2 style="text-align:center;color:#7367f0;margin-bottom:20px;">הרשימות שלי</h2>
-  <button onclick="openModal('newListModal')" style="width:100%;padding:15px;background:#10b981;color:white;border:none;border-radius:20px;font-size:18px;font-weight:bold;margin-bottom:20px;cursor:pointer;">+ רשימה חדשה</button>
-  
-  <div class="select-all-container" style="background:white;border-radius:20px;padding:15px;margin-bottom:15px;display:flex;align-items:center;gap:10px;box-shadow:0 2px 8px rgba(0,0,0,0.05);">
-    <label id="selectAllLabel" for="selectAll" style="flex:1;font-weight:bold;color:#333;cursor:pointer;">בחר את כל הרשימות</label>
-    <input type="checkbox" id="selectAll" onchange="toggleSelectAll(this.checked)" style="width:24px;height:24px;cursor:pointer;">
-  </div>
-  
-  <div id="summaryContainer"></div>
-</div>
-
-<div class="bottom-bar">
-  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
-    <div style="display:flex;gap:10px;">
-      <button id="mainLockBtn" onclick="toggleLock()" class="bottom-circle-btn bg-blue-600">
-        <svg width="24" height="24" fill="white" viewBox="0 0 24 24">
-          <path id="lockIconPath" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
-        </svg>
-      </button>
-      <button onclick="openClearModal()" class="bottom-circle-btn" style="background:#ef4444;">
-        <svg width="24" height="24" fill="white" viewBox="0 0 24 24">
-          <path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
-        </svg>
-      </button>
+    <!-- Header -->
+    <div class="sticky top-0 bg-white shadow-md z-50 px-5 py-3 flex items-center justify-between">
+        <div class="flex items-center gap-3">
+            <button id="cloudBtn" onclick="handleCloudSync()" class="text-3xl">☁️</button>
+            <button onclick="openModal('settingsModal')" class="text-3xl">⚙️</button>
+        </div>
+        <div class="flex items-center gap-2">
+            <span class="text-2xl font-bold text-indigo-600">V</span>
+            <span class="text-xl font-semibold text-gray-700">plus</span>
+        </div>
     </div>
-    <span id="statusTag" style="background:rgba(255,255,255,0.2);padding:8px 15px;border-radius:15px;font-size:14px;font-weight:bold;color:white;">נעול</span>
-    <button onclick="openModal('inputForm')" class="bottom-circle-btn" style="background:#10b981;width:60px;height:60px;">
-      <svg width="32" height="32" fill="white" viewBox="0 0 24 24">
-        <path d="M12 4v16m8-8H4"/>
-      </svg>
-    </button>
-  </div>
 
-  <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;background:rgba(255,255,255,0.15);padding:12px;border-radius:20px;margin-bottom:10px;">
-    <div style="text-align:center;">
-      <div style="font-size:13px;color:rgba(255,255,255,0.8);margin-bottom:3px;">סה"כ רשימה</div>
-      <div id="totalAmount" style="font-size:20px;font-weight:bold;color:white;">₪0.00</div>
+    <!-- Page: Lists -->
+    <div id="pageLists" class="px-4 py-4">
+        <div class="flex items-center justify-between mb-4">
+            <button onclick="openModal('deleteListModal')" class="bg-red-500 text-white px-4 py-2 rounded-lg font-bold">🗑️ מחק רשימה</button>
+            <h2 id="listNameDisplay" onclick="openModal('editListNameModal')" class="text-2xl font-bold text-indigo-600 cursor-pointer">הרשימה שלי</h2>
+        </div>
+        <div id="itemsContainer"></div>
     </div>
-    <div style="text-align:center;">
-      <div style="font-size:13px;color:rgba(255,255,255,0.8);margin-bottom:3px;">שולם ברשימה</div>
-      <div id="paidAmount" style="font-size:20px;font-weight:bold;color:#10b981;">₪0.00</div>
+
+    <!-- Page: Summary -->
+    <div id="pageSummary" class="hidden px-4 py-4">
+        <h2 class="text-center text-2xl font-bold text-indigo-600 mb-5">הרשימות שלי</h2>
+        <button onclick="openModal('newListModal')" class="w-full bg-green-500 text-white py-4 rounded-2xl text-lg font-bold mb-5 shadow-lg">+ רשימה חדשה</button>
+        
+        <div class="bg-white rounded-2xl p-4 mb-4 shadow flex items-center gap-3">
+            <label for="selectAll" class="flex-1 font-bold text-gray-700 cursor-pointer" id="selectAllLabel">בחר את כל הרשימות</label>
+            <input type="checkbox" id="selectAll" onchange="toggleSelectAll(this.checked)" class="w-6 h-6 cursor-pointer">
+        </div>
+        
+        <div id="summaryContainer"></div>
     </div>
-    <div style="text-align:center;">
-      <div style="font-size:13px;color:rgba(255,255,255,0.8);margin-bottom:3px;">נשאר לשלם</div>
-      <div id="remainingAmount" style="font-size:20px;font-weight:bold;color:#fbbf24;">₪0.00</div>
+
+    <!-- Bottom Bar -->
+    <div class="fixed bottom-0 left-0 right-0 bg-indigo-600 rounded-t-[35px] shadow-2xl px-4 pb-8 pt-4 z-40">
+        <div class="flex items-center justify-between mb-3">
+            <div class="flex gap-3">
+                <button id="mainLockBtn" onclick="toggleLock()" class="w-12 h-12 bg-blue-600 rounded-full flex items-center justify-center shadow-lg border-2 border-white/20">
+                    <svg class="w-6 h-6" fill="white" viewBox="0 0 24 24">
+                        <path id="lockIconPath" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
+                    </svg>
+                </button>
+                <button onclick="openClearModal()" class="w-12 h-12 bg-red-500 rounded-full flex items-center justify-center shadow-lg border-2 border-white/20">
+                    <svg class="w-6 h-6" fill="white" viewBox="0 0 24 24">
+                        <path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                    </svg>
+                </button>
+            </div>
+            <span id="statusTag" class="bg-white/20 px-4 py-2 rounded-2xl text-sm font-bold text-white">נעול</span>
+            <button onclick="openModal('inputForm')" class="w-16 h-16 bg-green-500 rounded-full flex items-center justify-center shadow-2xl">
+                <svg class="w-8 h-8" fill="white" viewBox="0 0 24 24">
+                    <path d="M12 4v16m8-8H4"/>
+                </svg>
+            </button>
+        </div>
+
+        <div class="grid grid-cols-3 gap-2 bg-white/10 p-3 rounded-2xl mb-3">
+            <div class="text-center">
+                <div class="text-xs text-white/80 mb-1">סה"כ רשימה</div>
+                <div id="totalAmount" class="text-xl font-bold text-white">₪0.00</div>
+            </div>
+            <div class="text-center">
+                <div class="text-xs text-white/80 mb-1">שולם ברשימה</div>
+                <div id="paidAmount" class="text-xl font-bold text-green-300">₪0.00</div>
+            </div>
+            <div class="text-center">
+                <div class="text-xs text-white/80 mb-1">נשאר לשלם</div>
+                <div id="remainingAmount" class="text-xl font-bold text-yellow-300">₪0.00</div>
+            </div>
+        </div>
+
+        <div class="flex gap-2">
+            <button id="tabLists" onclick="showPage('lists')" class="flex-1 bg-white text-gray-700 py-3 rounded-2xl font-bold transition-all">הרשימה שלי</button>
+            <button id="tabSummary" onclick="showPage('summary')" class="flex-1 bg-white/20 text-white py-3 rounded-2xl font-bold transition-all">הרשימות שלי</button>
+        </div>
     </div>
-  </div>
 
-  <div style="display:flex;gap:8px;">
-    <button id="tabLists" onclick="showPage('lists')" class="tab-btn tab-active">הרשימה שלי</button>
-    <button id="tabSummary" onclick="showPage('summary')" class="tab-btn">הרשימות שלי</button>
-  </div>
-</div>
-
-<div id="inputForm" class="modal-overlay">
-  <div class="edit-modal">
-    <h2 style="margin-bottom:20px;color:#7367f0;">הוספת מוצר</h2>
-    <input id="itemName" type="text" placeholder="שם המוצר" class="modal-input">
-    <input id="itemPrice" type="number" step="0.01" placeholder="מחיר" class="modal-input">
-    <div style="display:flex;gap:10px;margin-top:10px;">
-      <button onclick="addItem()" style="flex:1;padding:15px;background:#10b981;color:white;border:none;border-radius:20px;font-weight:bold;cursor:pointer;">הוסף</button>
-      <button onclick="closeModal('inputForm')" style="flex:1;padding:15px;background:#6b7280;color:white;border:none;border-radius:20px;font-weight:bold;cursor:pointer;">ביטול</button>
+    <!-- Modal: Add Item -->
+    <div id="inputForm" class="modal-overlay">
+        <div class="modal-content">
+            <h2 class="text-2xl font-bold text-indigo-600 mb-5">הוספת מוצר</h2>
+            <input id="itemName" type="text" placeholder="שם המוצר" class="modal-input">
+            <input id="itemPrice" type="number" step="0.01" placeholder="מחיר" class="modal-input">
+            <div class="flex gap-3 mt-4">
+                <button onclick="addItem()" class="flex-1 bg-green-500 text-white py-4 rounded-2xl font-bold">הוסף</button>
+                <button onclick="closeModal('inputForm')" class="flex-1 bg-gray-400 text-white py-4 rounded-2xl font-bold">ביטול</button>
+            </div>
+        </div>
     </div>
-  </div>
-</div>
 
-<div id="newListModal" class="modal-overlay">
-  <div class="edit-modal">
-    <h2 style="margin-bottom:20px;color:#7367f0;">רשימה חדשה</h2>
-    <input id="newListName" type="text" placeholder="שם הרשימה" class="modal-input">
-    <div style="display:flex;gap:10px;margin-top:10px;">
-      <button onclick="createNewList()" style="flex:1;padding:15px;background:#10b981;color:white;border:none;border-radius:20px;font-weight:bold;cursor:pointer;">צור</button>
-      <button onclick="closeModal('newListModal')" style="flex:1;padding:15px;background:#6b7280;color:white;border:none;border-radius:20px;font-weight:bold;cursor:pointer;">ביטול</button>
+    <!-- Modal: New List -->
+    <div id="newListModal" class="modal-overlay">
+        <div class="modal-content">
+            <h2 class="text-2xl font-bold text-indigo-600 mb-5">רשימה חדשה</h2>
+            <input id="newListName" type="text" placeholder="שם הרשימה" class="modal-input">
+            <div class="flex gap-3 mt-4">
+                <button onclick="createNewList()" class="flex-1 bg-green-500 text-white py-4 rounded-2xl font-bold">צור</button>
+                <button onclick="closeModal('newListModal')" class="flex-1 bg-gray-400 text-white py-4 rounded-2xl font-bold">ביטול</button>
+            </div>
+        </div>
     </div>
-  </div>
-</div>
 
-<div id="clearModal" class="modal-overlay">
-  <div class="edit-modal">
-    <h2 style="margin-bottom:20px;color:#ef4444;">ניקוי מוצרים</h2>
-    <p style="margin-bottom:20px;font-size:16px;">למחוק את כל המוצרים?</p>
-    <div style="display:flex;gap:10px;">
-      <button onclick="clearItems()" style="flex:1;padding:15px;background:#ef4444;color:white;border:none;border-radius:20px;font-weight:bold;cursor:pointer;">נקה</button>
-      <button onclick="closeModal('clearModal')" style="flex:1;padding:15px;background:#6b7280;color:white;border:none;border-radius:20px;font-weight:bold;cursor:pointer;">ביטול</button>
+    <!-- Modal: Clear Items -->
+    <div id="clearModal" class="modal-overlay">
+        <div class="modal-content">
+            <h2 class="text-2xl font-bold text-red-500 mb-5">ניקוי מוצרים</h2>
+            <p class="text-gray-600 mb-5">למחוק את כל המוצרים?</p>
+            <div class="flex gap-3">
+                <button onclick="clearItems()" class="flex-1 bg-red-500 text-white py-4 rounded-2xl font-bold">נקה</button>
+                <button onclick="closeModal('clearModal')" class="flex-1 bg-gray-400 text-white py-4 rounded-2xl font-bold">ביטול</button>
+            </div>
+        </div>
     </div>
-  </div>
-</div>
 
-<div id="deleteListModal" class="modal-overlay">
-  <div class="edit-modal">
-    <h2 style="margin-bottom:20px;color:#ef4444;">מחיקת רשימה</h2>
-    <div style="display:flex;gap:10px;">
-      <button onclick="deleteCurrentList()" style="flex:1;padding:15px;background:#ef4444;color:white;border:none;border-radius:20px;font-weight:bold;cursor:pointer;">מחק</button>
-      <button onclick="closeModal('deleteListModal')" style="flex:1;padding:15px;background:#6b7280;color:white;border:none;border-radius:20px;font-weight:bold;cursor:pointer;">ביטול</button>
+    <!-- Modal: Delete List -->
+    <div id="deleteListModal" class="modal-overlay">
+        <div class="modal-content">
+            <h2 class="text-2xl font-bold text-red-500 mb-5">מחיקת רשימה</h2>
+            <div class="flex gap-3">
+                <button onclick="deleteCurrentList()" class="flex-1 bg-red-500 text-white py-4 rounded-2xl font-bold">מחק</button>
+                <button onclick="closeModal('deleteListModal')" class="flex-1 bg-gray-400 text-white py-4 rounded-2xl font-bold">ביטול</button>
+            </div>
+        </div>
     </div>
-  </div>
-</div>
 
-<div id="editListNameModal" class="modal-overlay">
-  <div class="edit-modal">
-    <h2 style="margin-bottom:20px;color:#7367f0;">שינוי שם</h2>
-    <input id="editListNameInput" type="text" class="modal-input">
-    <div style="display:flex;gap:10px;margin-top:10px;">
-      <button onclick="saveListName()" style="flex:1;padding:15px;background:#7367f0;color:white;border:none;border-radius:20px;font-weight:bold;cursor:pointer;">שמור</button>
-      <button onclick="closeModal('editListNameModal')" style="flex:1;padding:15px;background:#6b7280;color:white;border:none;border-radius:20px;font-weight:bold;cursor:pointer;">ביטול</button>
+    <!-- Modal: Edit List Name -->
+    <div id="editListNameModal" class="modal-overlay">
+        <div class="modal-content">
+            <h2 class="text-2xl font-bold text-indigo-600 mb-5">שינוי שם</h2>
+            <input id="editListNameInput" type="text" class="modal-input">
+            <div class="flex gap-3 mt-4">
+                <button onclick="saveListName()" class="flex-1 bg-indigo-600 text-white py-4 rounded-2xl font-bold">שמור</button>
+                <button onclick="closeModal('editListNameModal')" class="flex-1 bg-gray-400 text-white py-4 rounded-2xl font-bold">ביטול</button>
+            </div>
+        </div>
     </div>
-  </div>
-</div>
 
-<div id="editPriceModal" class="modal-overlay">
-  <div class="edit-modal">
-    <h2 style="margin-bottom:20px;color:#7367f0;">עדכון מחיר</h2>
-    <input id="editPriceInput" type="number" step="0.01" class="modal-input">
-    <div style="display:flex;gap:10px;margin-top:10px;">
-      <button onclick="savePrice()" style="flex:1;padding:15px;background:#7367f0;color:white;border:none;border-radius:20px;font-weight:bold;cursor:pointer;">עדכן</button>
-      <button onclick="closeModal('editPriceModal')" style="flex:1;padding:15px;background:#6b7280;color:white;border:none;border-radius:20px;font-weight:bold;cursor:pointer;">ביטול</button>
+    <!-- Modal: Edit Price -->
+    <div id="editPriceModal" class="modal-overlay">
+        <div class="modal-content">
+            <h2 class="text-2xl font-bold text-indigo-600 mb-5">עדכון מחיר</h2>
+            <input id="editPriceInput" type="number" step="0.01" class="modal-input">
+            <div class="flex gap-3 mt-4">
+                <button onclick="savePrice()" class="flex-1 bg-indigo-600 text-white py-4 rounded-2xl font-bold">עדכן</button>
+                <button onclick="closeModal('editPriceModal')" class="flex-1 bg-gray-400 text-white py-4 rounded-2xl font-bold">ביטול</button>
+            </div>
+        </div>
     </div>
-  </div>
-</div>
 
-<div id="settingsModal" class="modal-overlay">
-  <div class="edit-modal">
-    <h2 style="margin-bottom:20px;color:#7367f0;">הגדרות</h2>
-    <div style="display:flex;flex-direction:column;gap:15px;">
-      <button onclick="toggleDarkMode()" style="width:100%;padding:15px;background:#7367f0;color:white;border:none;border-radius:20px;font-weight:bold;cursor:pointer;">מצב לילה 🌙</button>
-      <button onclick="printList()" style="width:100%;padding:15px;background:#10b981;color:white;border:none;border-radius:20px;font-weight:bold;cursor:pointer;">הדפס PDF 🖨️</button>
-      <button onclick="closeModal('settingsModal')" style="width:100%;padding:15px;background:#6b7280;color:white;border:none;border-radius:20px;font-weight:bold;cursor:pointer;">סגור</button>
+    <!-- Modal: Settings -->
+    <div id="settingsModal" class="modal-overlay">
+        <div class="modal-content">
+            <h2 class="text-2xl font-bold text-indigo-600 mb-5">הגדרות</h2>
+            <button onclick="toggleDarkMode()" class="w-full bg-indigo-600 text-white py-4 rounded-xl font-bold mb-3">מצב לילה 🌙</button>
+            <button onclick="printList()" class="w-full bg-green-500 text-white py-4 rounded-xl font-bold mb-3">הדפס PDF 🖨️</button>
+            <button onclick="closeModal('settingsModal')" class="w-full bg-gray-400 text-white py-4 rounded-xl font-bold">סגור</button>
+        </div>
     </div>
-  </div>
-</div>
 
-<div id="whatsappModal" class="modal-overlay">
-  <div class="edit-modal">
-    <h2 style="margin-bottom:20px;color:#25d366;">מה לשלוח ב-WhatsApp?</h2>
-    <div style="display:flex;flex-direction:column;gap:10px;">
-      <button onclick="shareWhatsApp('full')" style="width:100%;padding:15px;background:#25d366;color:white;border:none;border-radius:20px;font-weight:bold;cursor:pointer;">שיתוף רשימה מלאה 📋</button>
-      <button onclick="shareWhatsApp('missing')" style="width:100%;padding:15px;background:#25d366;color:white;border:none;border-radius:20px;font-weight:bold;cursor:pointer;">שיתוף מוצרים חסרים בלבד ⬜</button>
-      <button onclick="closeModal('whatsappModal')" style="width:100%;padding:15px;background:#6b7280;color:white;border:none;border-radius:20px;font-weight:bold;cursor:pointer;">ביטול</button>
+    <!-- Modal: Share List -->
+    <div id="shareListModal" class="modal-overlay">
+        <div class="modal-content">
+            <h2 class="text-2xl font-bold text-green-500 mb-5">מה לשלוח ב-WhatsApp?</h2>
+            <button onclick="shareAllToWhatsApp()" class="w-full bg-indigo-600 text-white py-4 rounded-xl font-bold mb-3 shadow-md">שיתוף רשימה מלאה 📋</button>
+            <button onclick="shareMissingToWhatsApp()" class="w-full bg-green-500 text-white py-4 rounded-xl font-bold mb-4 shadow-md">שיתוף מוצרים חסרים בלבד ⬜</button>
+            <button onclick="closeModal('shareListModal')" class="text-gray-400 font-bold block w-full mt-2">ביטול</button>
+        </div>
     </div>
-  </div>
-</div>
 
-<div id="printArea" style="display:none;"></div>
-
-<script src="script.js"></script>
-<script>
-if ('serviceWorker' in navigator) {
-  window.addEventListener('load', function() {
-    navigator.serviceWorker.register('./sw.js')
-      .then(function(registration) {
-        console.log('✅ Service Worker registered successfully');
-      })
-      .catch(function(error) {
-        console.log('❌ Service Worker registration failed:', error);
+    <script src="script.js"></script>
+    <script>
+    // PWA Service Worker Registration
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', function() {
+        navigator.serviceWorker.register('./sw.js')
+          .then(function(registration) {
+            console.log('✅ Service Worker registered successfully');
+          })
+          .catch(function(error) {
+            console.log('❌ Service Worker registration failed:', error);
+          });
       });
-  });
-}
-</script>
+    }
+    </script>
 </body>
 </html>
