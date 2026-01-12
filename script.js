@@ -30,11 +30,9 @@ function save() {
     
     // Debounced auto-sync to cloud if connected
     if (accessToken) {
-        // Clear existing timeout
         if (syncTimeout) {
             clearTimeout(syncTimeout);
         }
-        // Set new timeout - sync after 1 second of inactivity
         syncTimeout = setTimeout(() => {
             syncToCloud();
         }, 1000);
@@ -247,7 +245,6 @@ function handleCloudClick() {
     if (!accessToken) {
         handleAuthClick();
     } else {
-        // Already connected - show sync options
         if (confirm('האם ברצונך לסנכרן את הנתונים עם הענן?')) {
             syncToCloud();
         }
@@ -262,8 +259,6 @@ function handleAuthClick() {
         }
         accessToken = gapi.client.getToken();
         updateCloudIndicator('connected');
-        
-        // After successful auth, try to load from cloud
         await loadFromCloud();
     };
 
@@ -276,7 +271,6 @@ function handleAuthClick() {
 
 async function findOrCreateFolder() {
     try {
-        // Search for existing folder
         const response = await gapi.client.drive.files.list({
             q: `name='${FOLDER_NAME}' and mimeType='application/vnd.google-apps.folder' and trashed=false`,
             fields: 'files(id, name)',
@@ -287,7 +281,6 @@ async function findOrCreateFolder() {
             return response.result.files[0].id;
         }
 
-        // Create new folder
         const folderMetadata = {
             name: FOLDER_NAME,
             mimeType: 'application/vnd.google-apps.folder'
@@ -331,7 +324,6 @@ async function syncToCloud() {
     try {
         const folderId = await findOrCreateFolder();
         if (!folderId) {
-            alert('שגיאה ביצירת תיקייה בענן');
             updateCloudIndicator('connected');
             return;
         }
@@ -340,13 +332,11 @@ async function syncToCloud() {
         const content = JSON.stringify(db);
         const blob = new Blob([content], { type: 'application/json' });
 
-        // Metadata - don't include 'parents' when updating existing file
         const metadata = {
             name: FILE_NAME,
             mimeType: 'application/json'
         };
         
-        // Only add parents when creating new file
         if (!fileId) {
             metadata.parents = [folderId];
         }
@@ -425,13 +415,11 @@ window.onload = function() {
     if (localStorage.getItem('THEME') === 'dark') document.body.classList.add('dark-mode'); 
     render();
     
-    // Set up cloud button click handler
     const cloudBtn = document.getElementById('cloudBtn');
     if (cloudBtn) {
         cloudBtn.onclick = handleCloudClick;
     }
     
-    // Load Google API
     const script1 = document.createElement('script');
     script1.src = 'https://apis.google.com/js/api.js';
     script1.onload = gapiLoaded;
