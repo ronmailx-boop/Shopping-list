@@ -1,4 +1,4 @@
-const CACHE_NAME = 'vplus-v3';
+const CACHE_NAME = 'vplus-v4';
 const assets = [
     './',
     './index.html',
