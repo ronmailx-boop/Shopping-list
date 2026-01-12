@@ -1,28 +1,19 @@
 <!DOCTYPE html>
 <html lang="he" dir="rtl">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Vplus - ניהול תקציב חכם</title>
-  <link rel="manifest" href="manifest.json">
-  <meta name="theme-color" content="#7367f0">
-  <link rel="stylesheet" href="style.css">
-  <script src="https://apis.google.com/js/api.js"></script>
-  <script src="https://accounts.google.com/gsi/client"></script>
-  <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
-  <script>
-    if ('serviceWorker' in navigator) {
-      window.addEventListener('load', () => {
-        navigator.serviceWorker.register('./sw.js')
-          .then(reg => console.log('Service Worker registered', reg))
-          .catch(err => console.log('Service Worker registration failed', err));
-      });
-    }
-  </script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Vplus - ניהול תקציב חכם</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#7367f0">
+<link rel="apple-touch-icon" href="icon.png">
+<link rel="stylesheet" href="style.css">
+<script src="https://apis.google.com/js/api.js"></script>
+<script src="https://accounts.google.com/gsi/client"></script>
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
 </head>
 <body>
 
-<!-- App Header -->
 <div class="app-header">
   <div class="header-controls">
     <button onclick="openModal('settingsModal')" class="gear-btn" style="background:none;border:none;cursor:pointer;">
@@ -39,7 +30,6 @@
   </div>
 </div>
 
-<!-- Page: Lists -->
 <div id="pageLists" style="padding:15px;">
   <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:15px;">
     <button onclick="openModal('deleteListModal')" style="background:#ef4444;color:white;border:none;padding:12px 20px;border-radius:15px;cursor:pointer;font-weight:bold;">🗑️ מחק רשימה</button>
@@ -48,7 +38,6 @@
   <div id="itemsContainer"></div>
 </div>
 
-<!-- Page: Summary -->
 <div id="pageSummary" class="hidden" style="padding:15px;">
   <h2 style="text-align:center;color:#7367f0;margin-bottom:20px;">הרשימות שלי</h2>
   <button onclick="openModal('newListModal')" style="width:100%;padding:15px;background:#10b981;color:white;border:none;border-radius:20px;font-size:18px;font-weight:bold;margin-bottom:20px;cursor:pointer;">+ רשימה חדשה</button>
@@ -61,7 +50,6 @@
   <div id="summaryContainer"></div>
 </div>
 
-<!-- Bottom Bar -->
 <div class="bottom-bar">
   <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
     <div style="display:flex;gap:10px;">
@@ -105,7 +93,6 @@
   </div>
 </div>
 
-<!-- Modal: Add Item -->
 <div id="inputForm" class="modal-overlay">
   <div class="edit-modal">
     <h2 style="margin-bottom:20px;color:#7367f0;">הוספת מוצר</h2>
@@ -118,7 +105,6 @@
   </div>
 </div>
 
-<!-- Modal: New List -->
 <div id="newListModal" class="modal-overlay">
   <div class="edit-modal">
     <h2 style="margin-bottom:20px;color:#7367f0;">רשימה חדשה</h2>
@@ -130,7 +116,6 @@
   </div>
 </div>
 
-<!-- Modal: Clear Items -->
 <div id="clearModal" class="modal-overlay">
   <div class="edit-modal">
     <h2 style="margin-bottom:20px;color:#ef4444;">ניקוי מוצרים</h2>
@@ -142,7 +127,6 @@
   </div>
 </div>
 
-<!-- Modal: Delete List -->
 <div id="deleteListModal" class="modal-overlay">
   <div class="edit-modal">
     <h2 style="margin-bottom:20px;color:#ef4444;">מחיקת רשימה</h2>
@@ -153,7 +137,6 @@
   </div>
 </div>
 
-<!-- Modal: Edit List Name -->
 <div id="editListNameModal" class="modal-overlay">
   <div class="edit-modal">
     <h2 style="margin-bottom:20px;color:#7367f0;">שינוי שם</h2>
@@ -165,7 +148,6 @@
   </div>
 </div>
 
-<!-- Modal: Edit Price -->
 <div id="editPriceModal" class="modal-overlay">
   <div class="edit-modal">
     <h2 style="margin-bottom:20px;color:#7367f0;">עדכון מחיר</h2>
@@ -177,7 +159,6 @@
   </div>
 </div>
 
-<!-- Modal: Settings -->
 <div id="settingsModal" class="modal-overlay">
   <div class="edit-modal">
     <h2 style="margin-bottom:20px;color:#7367f0;">הגדרות</h2>
@@ -189,7 +170,6 @@
   </div>
 </div>
 
-<!-- Modal: WhatsApp Share -->
 <div id="whatsappModal" class="modal-overlay">
   <div class="edit-modal">
     <h2 style="margin-bottom:20px;color:#25d366;">מה לשלוח ב-WhatsApp?</h2>
@@ -204,5 +184,18 @@
 <div id="printArea" style="display:none;"></div>
 
 <script src="script.js"></script>
+<script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', function() {
+    navigator.serviceWorker.register('./sw.js')
+      .then(function(registration) {
+        console.log('✅ Service Worker registered successfully');
+      })
+      .catch(function(error) {
+        console.log('❌ Service Worker registration failed:', error);
+      });
+  });
+}
+</script>
 </body>
 </html>
