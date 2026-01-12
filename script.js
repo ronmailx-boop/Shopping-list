@@ -11,6 +11,7 @@ let gisInited = false;
 let tokenClient;
 let accessToken = null;
 let driveFileId = null;
+let syncTimeout = null;
 
 // ========== Original App Logic ==========
 let db = JSON.parse(localStorage.getItem('BUDGET_FINAL_V27')) || { 
@@ -27,9 +28,16 @@ function save() {
     localStorage.setItem('BUDGET_FINAL_V27', JSON.stringify(db)); 
     render();
     
-    // Auto-sync to cloud if connected
+    // Debounced auto-sync to cloud if connected
     if (accessToken) {
-        syncToCloud();
+        // Clear existing timeout
+        if (syncTimeout) {
+            clearTimeout(syncTimeout);
+        }
+        // Set new timeout - sync after 1 second of inactivity
+        syncTimeout = setTimeout(() => {
+            syncToCloud();
+        }, 1000);
     }
 }
 
