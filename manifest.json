@@ -11,11 +11,14 @@
     {
       "src": "icon.png",
       "sizes": "512x512",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any"
     }
   ],
-  "start_url": "./index.html",
+  "start_url": "./",
+  "scope": "./",
   "display": "standalone",
   "theme_color": "#7367f0",
-  "background_color": "#f4f7fa"
+  "background_color": "#f4f7fa",
+  "orientation": "portrait"
 }
