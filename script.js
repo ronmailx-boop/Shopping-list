@@ -227,7 +227,7 @@ function updateCloudIndicator(status) {
     if (!indicator) return;
     
     if (status === 'connected') {
-        indicator.className = 'w-2 h-2 bg-green-500 rounded-full animate-pulse';
+        indicator.className = 'w-2 h-2 bg-green-500 rounded-full';
     } else if (status === 'syncing') {
         indicator.className = 'w-2 h-2 bg-yellow-500 rounded-full animate-pulse';
     } else {
