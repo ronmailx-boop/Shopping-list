@@ -340,11 +340,16 @@ async function syncToCloud() {
         const content = JSON.stringify(db);
         const blob = new Blob([content], { type: 'application/json' });
 
+        // Metadata - don't include 'parents' when updating existing file
         const metadata = {
             name: FILE_NAME,
-            mimeType: 'application/json',
-            parents: [folderId]
+            mimeType: 'application/json'
         };
+        
+        // Only add parents when creating new file
+        if (!fileId) {
+            metadata.parents = [folderId];
+        }
 
         const form = new FormData();
         form.append('metadata', new Blob([JSON.stringify(metadata)], { type: 'application/json' }));
