@@ -257,6 +257,7 @@ function handleCloudClick() {
 function handleAuthClick() {
     tokenClient.callback = async (resp) => {
         if (resp.error !== undefined) {
+            alert('שגיאה באימות:\n' + resp.error);
             throw (resp);
         }
         accessToken = gapi.client.getToken();
@@ -298,6 +299,7 @@ async function findOrCreateFolder() {
         return folder.result.id;
     } catch (err) {
         console.error('Error finding/creating folder:', err);
+        alert('שגיאה ביצירת תיקייה:\n' + err.message);
         return null;
     }
 }
@@ -316,6 +318,7 @@ async function findFile(folderId) {
         return null;
     } catch (err) {
         console.error('Error finding file:', err);
+        alert('שגיאה בחיפוש קובץ:\n' + err.message);
         return null;
     }
 }
@@ -362,11 +365,12 @@ async function syncToCloud() {
             updateCloudIndicator('connected');
             console.log('הנתונים סונכרנו בהצלחה לענן');
         } else {
-            throw new Error('Failed to sync');
+            const errorText = await response.text();
+            throw new Error('Failed to sync: ' + response.status + ' - ' + errorText);
         }
     } catch (err) {
         console.error('Error syncing to cloud:', err);
-        alert('שגיאה בסנכרון לענן');
+        alert('שגיאה בסנכרון לענן:\n' + err.message);
         updateCloudIndicator('connected');
     }
 }
@@ -405,6 +409,7 @@ async function loadFromCloud() {
         }
     } catch (err) {
         console.error('Error loading from cloud:', err);
+        alert('שגיאה בטעינה מהענן:\n' + err.message);
         updateCloudIndicator('connected');
     }
 }
