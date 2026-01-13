@@ -1,6 +1,6 @@
 // ========== Google Drive Configuration ==========
 const GOOGLE_CLIENT_ID = '151476121869-b5lbrt5t89s8d342ftd1cg1q926518pt.apps.googleusercontent.com';
-const GOOGLE_API_KEY = 'AIzaSyBuFcx7xgMt4Ca2aMcwcyrty38EeRWUW7c';
+const GOOGLE_API_KEY = 'AIzaSyDIMiuwL-phvwI7iAUeMQmTOowWE96mP6I'; 
 const DISCOVERY_DOC = 'https://www.googleapis.com/discovery/v1/apis/drive/v3/rest';
 const SCOPES = 'https://www.googleapis.com/auth/drive.file';
 const FOLDER_NAME = 'Vplus_Budget_Data';
@@ -215,7 +215,7 @@ function gisLoaded() {
     tokenClient = google.accounts.oauth2.initTokenClient({
         client_id: GOOGLE_CLIENT_ID,
         scope: SCOPES,
-        callback: '', // defined later
+        callback: '', 
     });
     gisInited = true;
     maybeEnableButtons();
