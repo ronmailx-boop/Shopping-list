@@ -28,7 +28,6 @@ function save() {
     localStorage.setItem('BUDGET_FINAL_V27', JSON.stringify(db)); 
     render();
     
-    // Debounced auto-sync to cloud if connected
     if (accessToken) {
         if (syncTimeout) {
             clearTimeout(syncTimeout);
@@ -203,12 +202,20 @@ function gapiLoaded() {
 }
 
 async function initializeGapiClient() {
-    await gapi.client.init({
-        apiKey: GOOGLE_API_KEY,
-        discoveryDocs: [DISCOVERY_DOC],
-    });
-    gapiInited = true;
-    maybeEnableButtons();
+    try {
+        await gapi.client.init({
+            apiKey: GOOGLE_API_KEY,
+            discoveryDocs: [DISCOVERY_DOC],
+        });
+        // טעינה מפורשת של הדרייב כדי למנוע undefined
+        if (!gapi.client.drive) {
+            await gapi.client.load('drive', 'v3');
+        }
+        gapiInited = true;
+        maybeEnableButtons();
+    } catch (err) {
+        console.error("GAPI Init Error:", err);
+    }
 }
 
 function gisLoaded() {
@@ -271,6 +278,7 @@ function handleAuthClick() {
 
 async function findOrCreateFolder() {
     try {
+        if (!gapi.client.drive) await gapi.client.load('drive', 'v3');
         const response = await gapi.client.drive.files.list({
             q: `name='${FOLDER_NAME}' and mimeType='application/vnd.google-apps.folder' and trashed=false`,
             fields: 'files(id, name)',
@@ -291,14 +299,14 @@ async function findOrCreateFolder() {
         });
         return folder.result.id;
     } catch (err) {
-        console.error('Error finding/creating folder:', err);
-        alert('שגיאה ביצירת תיקייה:\n' + err.message);
+        console.error('Folder Error:', err);
         return null;
     }
 }
 
 async function findFile(folderId) {
     try {
+        if (!gapi.client.drive) await gapi.client.load('drive', 'v3');
         const response = await gapi.client.drive.files.list({
             q: `name='${FILE_NAME}' and '${folderId}' in parents and trashed=false`,
             fields: 'files(id, name)',
@@ -310,15 +318,13 @@ async function findFile(folderId) {
         }
         return null;
     } catch (err) {
-        console.error('Error finding file:', err);
-        alert('שגיאה בחיפוש קובץ:\n' + err.message);
+        console.error('File Search Error:', err);
         return null;
     }
 }
 
 async function syncToCloud() {
     if (!accessToken) return;
-    
     updateCloudIndicator('syncing');
     
     try {
@@ -337,9 +343,7 @@ async function syncToCloud() {
             mimeType: 'application/json'
         };
         
-        if (!fileId) {
-            metadata.parents = [folderId];
-        }
+        if (!fileId) metadata.parents = [folderId];
 
         const form = new FormData();
         form.append('metadata', new Blob([JSON.stringify(metadata)], { type: 'application/json' }));
@@ -358,21 +362,17 @@ async function syncToCloud() {
 
         if (response.ok) {
             updateCloudIndicator('connected');
-            console.log('הנתונים סונכרנו בהצלחה לענן');
         } else {
-            const errorText = await response.text();
-            throw new Error('Failed to sync: ' + response.status + ' - ' + errorText);
+            throw new Error('Sync failed');
         }
     } catch (err) {
-        console.error('Error syncing to cloud:', err);
-        alert('שגיאה בסנכרון לענן:\n' + err.message);
+        console.error('Sync Error:', err);
         updateCloudIndicator('connected');
     }
 }
 
 async function loadFromCloud() {
     if (!accessToken) return;
-    
     updateCloudIndicator('syncing');
     
     try {
@@ -384,7 +384,6 @@ async function loadFromCloud() {
 
         const fileId = await findFile(folderId);
         if (!fileId) {
-            console.log('אין קובץ נתונים בענן');
             updateCloudIndicator('connected');
             return;
         }
@@ -400,25 +399,19 @@ async function loadFromCloud() {
             activePage = db.lastActivePage || 'lists';
             render();
             updateCloudIndicator('connected');
-            console.log('הנתונים נטענו מהענן בהצלחה');
         }
     } catch (err) {
-        console.error('Error loading from cloud:', err);
-        alert('שגיאה בטעינה מהענן:\n' + err.message);
+        console.error('Load Error:', err);
         updateCloudIndicator('connected');
     }
 }
-
-// ========== Initialize ==========
 
 window.onload = function() { 
     if (localStorage.getItem('THEME') === 'dark') document.body.classList.add('dark-mode'); 
     render();
     
     const cloudBtn = document.getElementById('cloudBtn');
-    if (cloudBtn) {
-        cloudBtn.onclick = handleCloudClick;
-    }
+    if (cloudBtn) cloudBtn.onclick = handleCloudClick;
     
     const script1 = document.createElement('script');
     script1.src = 'https://apis.google.com/js/api.js';
