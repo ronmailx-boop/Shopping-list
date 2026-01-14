@@ -13,6 +13,7 @@ let accessToken = null;
 let driveFileId = null;
 let syncTimeout = null;
 let isSyncing = false;
+let hasLoadedFromCloud = false;
 
 // ========== Original App Logic ==========
 let db = JSON.parse(localStorage.getItem('BUDGET_FINAL_V27')) || { 
@@ -33,10 +34,10 @@ function save() {
     db.lastActivePage = activePage;
     db.lastSync = Date.now();
     localStorage.setItem('BUDGET_FINAL_V27', JSON.stringify(db));
-    localStorage.setItem('LAST_LOCAL_CHANGE', Date.now().toString());
     render();
     
-    if (accessToken && !isSyncing) {
+    // סינכרון רק אם התחברנו וטענו מהענן
+    if (accessToken && hasLoadedFromCloud && !isSyncing) {
         if (syncTimeout) {
             clearTimeout(syncTimeout);
         }
@@ -440,7 +441,10 @@ function handleAuthClick() {
         }
         accessToken = gapi.client.getToken().access_token;
         updateCloudIndicator('connected');
+        
+        // קודם טוען מהענן, ואז מאפשר סינכרון
         await loadFromCloud();
+        hasLoadedFromCloud = true;
     };
 
     if (gapi.client.getToken() === null) {
@@ -580,9 +584,11 @@ async function loadFromCloud() {
 
         const fileId = await findFileInFolder(folderId);
         if (!fileId) {
-            console.log('📁 לא נמצא קובץ בענן, ייווצר בסינכרון הבא');
+            console.log('📁 לא נמצא קובץ בענן - יש לך נתונים מקומיים, הם יישמרו בענן');
             isSyncing = false;
             updateCloudIndicator('connected');
+            // כאן נשמור את הנתונים המקומיים לענן
+            await syncToCloud();
             return;
         }
 
@@ -596,16 +602,20 @@ async function loadFromCloud() {
 
         const cloudData = await response.json();
         
-        const localTimestamp = localStorage.getItem('LAST_LOCAL_CHANGE');
+        // השוואת timestamps
+        const localTimestamp = db.lastSync || 0;
         const cloudTimestamp = cloudData.lastSync || 0;
         
-        if (localTimestamp && parseInt(localTimestamp) > cloudTimestamp) {
-            console.log('⚠️ יש שינויים מקומיים חדשים יותר, מדלג על טעינה');
+        if (localTimestamp > cloudTimestamp) {
+            console.log('⚠️ הנתונים המקומיים חדשים יותר מהענן');
+            // נשמור את המקומיים לענן
             isSyncing = false;
             updateCloudIndicator('connected');
+            await syncToCloud();
             return;
         }
         
+        // הענן חדש יותר - נטען ממנו
         db = cloudData;
         localStorage.setItem('BUDGET_FINAL_V27', JSON.stringify(db));
         render();
