@@ -616,15 +616,40 @@ async function loadFromCloud() {
 
         const cloudData = await response.json();
         
-        // בפעם הראשונה שמתחברים - תמיד טוען מהענן (אפילו אם יש משהו מקומי)
+        // בפעם הראשונה שמתחברים - מיזוג חכם
         if (!hasLoadedOnce) {
-            console.log('📥 טעינה ראשונית מהענן');
+            console.log('📥 מיזוג נתונים מקומיים עם הענן');
+            
+            // שמירת המוצרים המקומיים הנוכחיים
+            const localItems = db.lists[db.currentId] ? [...db.lists[db.currentId].items] : [];
+            
+            // טעינת הנתונים מהענן
             db = cloudData;
+            
+            // הוספת המוצרים המקומיים לרשימה הנוכחית מהענן
+            if (localItems.length > 0) {
+                const currentListId = db.currentId || 'L1';
+                if (!db.lists[currentListId]) {
+                    db.lists[currentListId] = { name: 'הרשימה שלי', items: [] };
+                }
+                
+                // הוספת המוצרים המקומיים לסוף הרשימה מהענן
+                db.lists[currentListId].items = [
+                    ...db.lists[currentListId].items,
+                    ...localItems
+                ];
+                
+                console.log(`✅ צורפו ${localItems.length} מוצרים מקומיים`);
+            }
+            
             localStorage.setItem('BUDGET_FINAL_V27', JSON.stringify(db));
             render();
             hasLoadedOnce = true;
+            
+            // שמירה מיידית לענן עם המוצרים המשולבים
             isSyncing = false;
             updateCloudIndicator('connected');
+            await syncToCloud();
             return;
         }
         
