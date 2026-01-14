@@ -614,11 +614,29 @@ async function loadFromCloud() {
 
         const cloudData = await response.json();
         
-        // השוואת timestamps
+        // בדיקה אם הנתונים המקומיים הם בעצם ריקים/חדשים
+        const localHasData = db.lists && Object.keys(db.lists).length > 1 || 
+                           (db.lists['L1'] && db.lists['L1'].items && db.lists['L1'].items.length > 0);
+        
+        const cloudHasData = cloudData.lists && Object.keys(cloudData.lists).length > 1 || 
+                            (cloudData.lists['L1'] && cloudData.lists['L1'].items && cloudData.lists['L1'].items.length > 0);
+        
+        // אם אין נתונים מקומיים אבל יש בענן - תמיד טוען מהענן
+        if (!localHasData && cloudHasData) {
+            console.log('📥 טוען נתונים מהענן (מקומי ריק)');
+            db = cloudData;
+            localStorage.setItem('BUDGET_FINAL_V27', JSON.stringify(db));
+            render();
+            isSyncing = false;
+            updateCloudIndicator('connected');
+            return;
+        }
+        
+        // השוואת timestamps רק אם יש נתונים משני הצדדים
         const localTimestamp = db.lastSync || 0;
         const cloudTimestamp = cloudData.lastSync || 0;
         
-        if (localTimestamp > cloudTimestamp) {
+        if (localHasData && localTimestamp > cloudTimestamp) {
             console.log('⚠️ הנתונים המקומיים חדשים יותר - שומר לענן');
             isSyncing = false;
             updateCloudIndicator('connected');
