@@ -14,6 +14,7 @@ let driveFileId = null;
 let syncTimeout = null;
 let isSyncing = false;
 let isConnected = false;
+let hasLoadedOnce = false;
 
 // ========== Original App Logic ==========
 let db = JSON.parse(localStorage.getItem('BUDGET_FINAL_V27')) || { 
@@ -598,6 +599,7 @@ async function loadFromCloud() {
         const fileId = await findFileInFolder(folderId);
         if (!fileId) {
             console.log('📁 לא נמצא קובץ בענן - שומר נתונים מקומיים');
+            hasLoadedOnce = true;
             isSyncing = false;
             updateCloudIndicator('connected');
             await syncToCloud();
@@ -614,29 +616,23 @@ async function loadFromCloud() {
 
         const cloudData = await response.json();
         
-        // בדיקה אם הנתונים המקומיים הם בעצם ריקים/חדשים
-        const localHasData = db.lists && Object.keys(db.lists).length > 1 || 
-                           (db.lists['L1'] && db.lists['L1'].items && db.lists['L1'].items.length > 0);
-        
-        const cloudHasData = cloudData.lists && Object.keys(cloudData.lists).length > 1 || 
-                            (cloudData.lists['L1'] && cloudData.lists['L1'].items && cloudData.lists['L1'].items.length > 0);
-        
-        // אם אין נתונים מקומיים אבל יש בענן - תמיד טוען מהענן
-        if (!localHasData && cloudHasData) {
-            console.log('📥 טוען נתונים מהענן (מקומי ריק)');
+        // בפעם הראשונה שמתחברים - תמיד טוען מהענן (אפילו אם יש משהו מקומי)
+        if (!hasLoadedOnce) {
+            console.log('📥 טעינה ראשונית מהענן');
             db = cloudData;
             localStorage.setItem('BUDGET_FINAL_V27', JSON.stringify(db));
             render();
+            hasLoadedOnce = true;
             isSyncing = false;
             updateCloudIndicator('connected');
             return;
         }
         
-        // השוואת timestamps רק אם יש נתונים משני הצדדים
+        // מפעם השנייה והלאה - השוואת timestamps חכמה
         const localTimestamp = db.lastSync || 0;
         const cloudTimestamp = cloudData.lastSync || 0;
         
-        if (localHasData && localTimestamp > cloudTimestamp) {
+        if (localTimestamp > cloudTimestamp) {
             console.log('⚠️ הנתונים המקומיים חדשים יותר - שומר לענן');
             isSyncing = false;
             updateCloudIndicator('connected');
