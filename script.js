@@ -13,7 +13,7 @@ let accessToken = null;
 let driveFileId = null;
 let syncTimeout = null;
 let isSyncing = false;
-let hasLoadedFromCloud = false;
+let isConnected = false;
 
 // ========== Original App Logic ==========
 let db = JSON.parse(localStorage.getItem('BUDGET_FINAL_V27')) || { 
@@ -36,14 +36,13 @@ function save() {
     localStorage.setItem('BUDGET_FINAL_V27', JSON.stringify(db));
     render();
     
-    // סינכרון רק אם התחברנו וטענו מהענן
-    if (accessToken && hasLoadedFromCloud && !isSyncing) {
+    if (isConnected && !isSyncing) {
         if (syncTimeout) {
             clearTimeout(syncTimeout);
         }
         syncTimeout = setTimeout(() => {
             syncToCloud();
-        }, 1000);
+        }, 2000);
     }
 }
 
@@ -430,21 +429,33 @@ function gisLoaded() {
 
 function maybeEnableButtons() {
     if (gapiInited && gisInited) {
-        document.getElementById('cloudBtn').onclick = handleAuthClick;
+        document.getElementById('cloudBtn').onclick = handleCloudClick;
+    }
+}
+
+function handleCloudClick() {
+    if (isConnected) {
+        // כבר מחובר - נבצע סינכרון ידני
+        syncToCloud();
+    } else {
+        // לא מחובר - נתחבר
+        handleAuthClick();
     }
 }
 
 function handleAuthClick() {
     tokenClient.callback = async (resp) => {
         if (resp.error !== undefined) {
-            throw (resp);
+            console.error('שגיאת התחברות:', resp);
+            return;
         }
+        
         accessToken = gapi.client.getToken().access_token;
+        isConnected = true;
         updateCloudIndicator('connected');
         
-        // קודם טוען מהענן, ואז מאפשר סינכרון
+        // טעינה ראשונית מהענן
         await loadFromCloud();
-        hasLoadedFromCloud = true;
     };
 
     if (gapi.client.getToken() === null) {
@@ -457,7 +468,7 @@ function handleAuthClick() {
 function updateCloudIndicator(status) {
     const indicator = document.getElementById('cloudIndicator');
     if (status === 'connected') {
-        indicator.className = 'w-2 h-2 bg-green-500 rounded-full animate-pulse';
+        indicator.className = 'w-2 h-2 bg-green-500 rounded-full';
     } else if (status === 'syncing') {
         indicator.className = 'w-2 h-2 bg-yellow-500 rounded-full animate-pulse';
     } else {
@@ -489,7 +500,7 @@ async function findOrCreateFolder() {
 
         return folder.result.id;
     } catch (err) {
-        console.error('Error finding/creating folder:', err);
+        console.error('שגיאה ביצירת/איתור תיקייה:', err);
         return null;
     }
 }
@@ -504,7 +515,7 @@ async function findFileInFolder(folderId) {
 
         return response.result.files.length > 0 ? response.result.files[0].id : null;
     } catch (err) {
-        console.error('Error finding file:', err);
+        console.error('שגיאה באיתור קובץ:', err);
         return null;
     }
 }
@@ -518,7 +529,7 @@ async function syncToCloud() {
     try {
         const folderId = await findOrCreateFolder();
         if (!folderId) {
-            console.error('Failed to get folder ID');
+            console.error('נכשל ביצירת תיקייה');
             isSyncing = false;
             updateCloudIndicator('connected');
             return;
@@ -528,6 +539,7 @@ async function syncToCloud() {
         const dataToSave = JSON.stringify(db);
 
         if (fileId) {
+            // עדכון קובץ קיים
             await fetch(`https://www.googleapis.com/upload/drive/v3/files/${fileId}?uploadType=media`, {
                 method: 'PATCH',
                 headers: {
@@ -538,6 +550,7 @@ async function syncToCloud() {
             });
             driveFileId = fileId;
         } else {
+            // יצירת קובץ חדש
             const metadata = {
                 name: FILE_NAME,
                 parents: [folderId]
@@ -559,9 +572,9 @@ async function syncToCloud() {
             driveFileId = result.id;
         }
 
-        console.log('✅ סינכרון הושלם בהצלחה');
+        console.log('✅ הנתונים נשמרו בענן בהצלחה');
     } catch (err) {
-        console.error('❌ שגיאה בסינכרון:', err);
+        console.error('❌ שגיאה בשמירה לענן:', err);
     } finally {
         isSyncing = false;
         updateCloudIndicator('connected');
@@ -584,10 +597,9 @@ async function loadFromCloud() {
 
         const fileId = await findFileInFolder(folderId);
         if (!fileId) {
-            console.log('📁 לא נמצא קובץ בענן - יש לך נתונים מקומיים, הם יישמרו בענן');
+            console.log('📁 לא נמצא קובץ בענן - שומר נתונים מקומיים');
             isSyncing = false;
             updateCloudIndicator('connected');
-            // כאן נשמור את הנתונים המקומיים לענן
             await syncToCloud();
             return;
         }
@@ -607,20 +619,19 @@ async function loadFromCloud() {
         const cloudTimestamp = cloudData.lastSync || 0;
         
         if (localTimestamp > cloudTimestamp) {
-            console.log('⚠️ הנתונים המקומיים חדשים יותר מהענן');
-            // נשמור את המקומיים לענן
+            console.log('⚠️ הנתונים המקומיים חדשים יותר - שומר לענן');
             isSyncing = false;
             updateCloudIndicator('connected');
             await syncToCloud();
             return;
         }
         
-        // הענן חדש יותר - נטען ממנו
+        // טעינה מהענן
         db = cloudData;
         localStorage.setItem('BUDGET_FINAL_V27', JSON.stringify(db));
         render();
         
-        console.log('✅ נתונים נטענו מהענן בהצלחה');
+        console.log('✅ נתונים נטענו מהענן');
     } catch (err) {
         console.error('❌ שגיאה בטעינה מהענן:', err);
     } finally {
