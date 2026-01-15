@@ -273,12 +273,14 @@ function importFromText() {
     // חילוץ שם רשימה מהשורה הראשונה
     const lines = text.split('\n').filter(line => line.trim());
     let listName = 'רשימה מיובאת';
+    let startIndex = 0;
     
     const firstLine = lines[0];
     if (firstLine.includes('*') && firstLine.includes(':')) {
         const match = firstLine.match(/\*([^*]+)\*/);
         if (match) {
             listName = match[1].trim();
+            startIndex = 1; // דילוג על שורת הכותרת
         }
     }
 
@@ -296,53 +298,75 @@ function importFromText() {
     const items = [];
 
     // ניתוח שורות
-    lines.forEach(line => {
-        // דילוג על כותרות וסיכומים
-        if (line.includes('🛒') || line.includes('💰') || line.includes('סה"כ')) {
-            return;
+    for (let i = startIndex; i < lines.length; i++) {
+        const line = lines[i].trim();
+        
+        // דילוג על שורות ריקות, אימוג'י בלבד, וסיכומים
+        if (!line || line.includes('🛒') || line.includes('💰') || line.includes('סה"כ') || line === '---') {
+            continue;
         }
 
-        // חיפוש פורמט: ⬜ *שם* (xכמות) - ₪מחיר
-        // או: ✅ *שם* (xכמות) - ₪מחיר
+        let itemAdded = false;
+
+        // 1. פורמט מלא: ⬜ *שם* (xכמות) - ₪מחיר
         const fullMatch = line.match(/[⬜✅]\s*\*([^*]+)\*\s*\(x(\d+)\)\s*-\s*₪([\d.]+)/);
-        
         if (fullMatch) {
             const name = fullMatch[1].trim();
             const qty = parseInt(fullMatch[2]);
             const totalPrice = parseFloat(fullMatch[3]);
             const price = totalPrice / qty;
             const checked = line.includes('✅');
-            
             items.push({ name, price, qty, checked });
-            return;
+            itemAdded = true;
         }
 
-        // חיפוש פורמט פשוט: *שם*
-        const simpleMatch = line.match(/\*([^*]+)\*/);
-        if (simpleMatch) {
-            const name = simpleMatch[1].trim();
-            items.push({ name, price: 0, qty: 1, checked: false });
-            return;
+        // 2. פורמט עם נקודה וכמות: • שם (xכמות)
+        if (!itemAdded) {
+            const bulletQtyMatch = line.match(/^[•\-]\s*\*?([^(]+)\*?\s*\(x(\d+)\)/);
+            if (bulletQtyMatch) {
+                const name = bulletQtyMatch[1].trim().replace(/\*/g, '');
+                const qty = parseInt(bulletQtyMatch[2]);
+                if (name) {
+                    items.push({ name, price: 0, qty, checked: false });
+                    itemAdded = true;
+                }
+            }
         }
 
-        // חיפוש פורמט עם נקודה: • שם (xכמות)
-        const bulletMatch = line.match(/[•-]\s*\*?([^(]+)\*?\s*\(x(\d+)\)/);
-        if (bulletMatch) {
-            const name = bulletMatch[1].trim().replace(/\*/g, '');
-            const qty = parseInt(bulletMatch[2]);
-            items.push({ name, price: 0, qty, checked: false });
-            return;
+        // 3. פורמט עם נקודה: • שם
+        if (!itemAdded) {
+            const bulletMatch = line.match(/^[•\-]\s*\*?(.+?)\*?$/);
+            if (bulletMatch) {
+                const name = bulletMatch[1].trim().replace(/\*/g, '');
+                if (name) {
+                    items.push({ name, price: 0, qty: 1, checked: false });
+                    itemAdded = true;
+                }
+            }
         }
 
-        // פורמט בסיסי: כל שורה שמתחילה ב-• או -
-        const basicMatch = line.match(/^[•-]\s*(.+)/);
-        if (basicMatch) {
-            const name = basicMatch[1].trim().replace(/\*/g, '');
-            if (name) {
+        // 4. פורמט עם כוכביות: *שם*
+        if (!itemAdded) {
+            const starMatch = line.match(/^\*([^*]+)\*$/);
+            if (starMatch) {
+                const name = starMatch[1].trim();
+                if (name) {
+                    items.push({ name, price: 0, qty: 1, checked: false });
+                    itemAdded = true;
+                }
+            }
+        }
+
+        // 5. פורמט פשוט: כל שורה היא מוצר (אם אין תו מיוחד בהתחלה)
+        if (!itemAdded && line.length > 0) {
+            // ניקוי תווים מיוחדים אפשריים
+            const name = line.replace(/^[\d\.\)\-\s]+/, '').trim();
+            // וידוא שזה לא מספר בלבד
+            if (name && !/^\d+$/.test(name)) {
                 items.push({ name, price: 0, qty: 1, checked: false });
             }
         }
-    });
+    }
 
     if (items.length === 0) {
         alert('לא נמצאו מוצרים בטקסט');
