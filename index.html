@@ -54,7 +54,10 @@
 
         <div id="pageLists">
             <div class="lists-header-card bg-white p-2 rounded-2xl border border-gray-100 shadow-sm mb-4">
-                <button onclick="openModal('newListModal')" class="bg-indigo-600 text-white w-full py-3 rounded-xl font-bold">+ רשימה חדשה</button>
+                <div class="flex gap-2">
+                    <button onclick="openModal('newListModal')" class="bg-indigo-600 text-white flex-1 py-3 rounded-xl font-bold">+ רשימה חדשה</button>
+                    <button onclick="openModal('importModal')" class="bg-green-500 text-white flex-1 py-3 rounded-xl font-bold">📥 ייבוא</button>
+                </div>
             </div>
             <div class="category-separator">
                 <div class="flex justify-between items-center px-2">
@@ -103,7 +106,21 @@
 
     <div id="printArea" class="hidden"></div>
 
+    <!-- Modals -->
     <div id="inputForm" class="modal-overlay no-print"><div class="edit-modal"><h2>הוספת מוצר</h2><input type="text" id="itemName" placeholder="שם המוצר" class="modal-input"><input type="number" id="itemPrice" inputmode="decimal" placeholder="מחיר" class="modal-input"><div class="flex gap-3"><button class="bg-green-500 text-white flex-1 py-4 rounded-xl font-bold shadow-md" onclick="addItem()">הוסף</button><button class="bg-gray-100 text-gray-500 flex-1 py-4 rounded-xl font-bold" onclick="closeModal('inputForm')">ביטול</button></div></div></div>
+    
+    <div id="importModal" class="modal-overlay no-print">
+        <div class="edit-modal">
+            <h2 class="mb-2">ייבוא רשימה מטקסט</h2>
+            <p class="text-sm text-gray-500 mb-4">הדבק טקסט מוואטסאפ או כל רשימה</p>
+            <textarea id="importText" placeholder="הדבק כאן טקסט לייבוא..." class="modal-input" rows="8" style="resize: vertical; min-height: 150px;"></textarea>
+            <div class="flex gap-3">
+                <button class="bg-green-500 text-white flex-1 py-4 rounded-xl font-bold shadow-md" onclick="importFromText()">ייבא</button>
+                <button class="bg-gray-100 flex-1 py-4 rounded-xl font-bold" onclick="closeModal('importModal')">ביטול</button>
+            </div>
+        </div>
+    </div>
+    
     <div id="newListModal" class="modal-overlay no-print"><div class="edit-modal"><h2>רשימה חדשה</h2><input type="text" id="newListNameInput" placeholder="שם הרשימה" class="modal-input"><div class="flex gap-3"><button class="bg-indigo-600 text-white flex-1 py-4 rounded-xl font-bold shadow-md" onclick="saveNewList()">צור</button><button class="bg-gray-100 flex-1 py-4 rounded-xl font-bold" onclick="closeModal('newListModal')">ביטול</button></div></div></div>
     <div id="confirmModal" class="modal-overlay no-print"><div class="edit-modal"><h2 class="text-red-600">ניקוי מוצרים</h2><p class="mb-6">למחוק את כל המוצרים?</p><div class="flex gap-3"><button class="bg-red-500 text-white flex-1 py-4 rounded-xl font-bold shadow-lg" onclick="executeClear()">נקה</button><button class="bg-gray-100 flex-1 py-4 rounded-xl font-bold" onclick="closeModal('confirmModal')">ביטול</button></div></div></div>
     <div id="deleteListModal" class="modal-overlay no-print"><div class="edit-modal"><h2 class="text-red-600">מחיקת רשימה</h2><div class="flex gap-3"><button id="confirmDeleteListBtn" class="bg-red-500 text-white flex-1 py-4 rounded-xl font-bold" onclick="deleteFullList()">מחק</button><button class="bg-gray-100 flex-1 py-4 rounded-xl font-bold" onclick="closeModal('deleteListModal')">ביטול</button></div></div></div>
