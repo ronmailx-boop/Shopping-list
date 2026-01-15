@@ -36,7 +36,6 @@ function save() {
     localStorage.setItem('BUDGET_FINAL_V27', JSON.stringify(db));
     render();
     
-    // סינכרון אוטומטי רק אם מחובר
     if (isConnected && !isSyncing) {
         if (syncTimeout) clearTimeout(syncTimeout);
         syncTimeout = setTimeout(() => {
@@ -83,6 +82,10 @@ function openModal(id) {
     }
     if(id === 'editListNameModal') {
         document.getElementById('editListNameInput').value = db.lists[db.currentId].name;
+    }
+    if(id === 'importModal') {
+        document.getElementById('importText').value = '';
+        setTimeout(() => document.getElementById('importText').focus(), 150);
     }
 }
 
@@ -257,6 +260,104 @@ function deleteFullList() {
 function prepareDeleteList(id) { 
     listToDelete = id; 
     openModal('deleteListModal'); 
+}
+
+// ========== ייבוא טקסט ==========
+function importFromText() {
+    const text = document.getElementById('importText').value.trim();
+    if (!text) {
+        alert('אנא הדבק טקסט לייבוא');
+        return;
+    }
+
+    // חילוץ שם רשימה מהשורה הראשונה
+    const lines = text.split('\n').filter(line => line.trim());
+    let listName = 'רשימה מיובאת';
+    
+    const firstLine = lines[0];
+    if (firstLine.includes('*') && firstLine.includes(':')) {
+        const match = firstLine.match(/\*([^*]+)\*/);
+        if (match) {
+            listName = match[1].trim();
+        }
+    }
+
+    // בדיקה אם השם כבר קיים והוספת מספר
+    let finalName = listName;
+    let counter = 1;
+    const existingNames = Object.values(db.lists).map(l => l.name);
+    while (existingNames.includes(finalName)) {
+        counter++;
+        finalName = `${listName} ${counter}`;
+    }
+
+    // יצירת רשימה חדשה
+    const newListId = 'L' + Date.now();
+    const items = [];
+
+    // ניתוח שורות
+    lines.forEach(line => {
+        // דילוג על כותרות וסיכומים
+        if (line.includes('🛒') || line.includes('💰') || line.includes('סה"כ')) {
+            return;
+        }
+
+        // חיפוש פורמט: ⬜ *שם* (xכמות) - ₪מחיר
+        // או: ✅ *שם* (xכמות) - ₪מחיר
+        const fullMatch = line.match(/[⬜✅]\s*\*([^*]+)\*\s*\(x(\d+)\)\s*-\s*₪([\d.]+)/);
+        
+        if (fullMatch) {
+            const name = fullMatch[1].trim();
+            const qty = parseInt(fullMatch[2]);
+            const totalPrice = parseFloat(fullMatch[3]);
+            const price = totalPrice / qty;
+            const checked = line.includes('✅');
+            
+            items.push({ name, price, qty, checked });
+            return;
+        }
+
+        // חיפוש פורמט פשוט: *שם*
+        const simpleMatch = line.match(/\*([^*]+)\*/);
+        if (simpleMatch) {
+            const name = simpleMatch[1].trim();
+            items.push({ name, price: 0, qty: 1, checked: false });
+            return;
+        }
+
+        // חיפוש פורמט עם נקודה: • שם (xכמות)
+        const bulletMatch = line.match(/[•-]\s*\*?([^(]+)\*?\s*\(x(\d+)\)/);
+        if (bulletMatch) {
+            const name = bulletMatch[1].trim().replace(/\*/g, '');
+            const qty = parseInt(bulletMatch[2]);
+            items.push({ name, price: 0, qty, checked: false });
+            return;
+        }
+
+        // פורמט בסיסי: כל שורה שמתחילה ב-• או -
+        const basicMatch = line.match(/^[•-]\s*(.+)/);
+        if (basicMatch) {
+            const name = basicMatch[1].trim().replace(/\*/g, '');
+            if (name) {
+                items.push({ name, price: 0, qty: 1, checked: false });
+            }
+        }
+    });
+
+    if (items.length === 0) {
+        alert('לא נמצאו מוצרים בטקסט');
+        return;
+    }
+
+    // הוספת הרשימה
+    db.lists[newListId] = { name: finalName, items };
+    db.currentId = newListId;
+    activePage = 'lists';
+    
+    closeModal('importModal');
+    save();
+    
+    alert(`✅ יובאו ${items.length} מוצרים לרשימה "${finalName}"`);
 }
 
 function initSortable() {
@@ -434,10 +535,8 @@ function maybeEnableButtons() {
 
 function handleCloudClick() {
     if (isConnected) {
-        // כבר מחובר - סינכרון ידני
         manualSync();
     } else {
-        // לא מחובר - התחברות
         handleAuthClick();
     }
 }
@@ -453,7 +552,6 @@ function handleAuthClick() {
         isConnected = true;
         updateCloudIndicator('connected');
         
-        // טעינה ומיזוג ראשוני
         await loadAndMerge();
     };
 
@@ -594,7 +692,6 @@ async function loadAndMerge() {
         const fileId = await findFileInFolder(folderId);
         
         if (!fileId) {
-            // אין קובץ בענן - שומר את המקומיים
             console.log('📁 אין קובץ בענן - שומר נתונים מקומיים');
             isSyncing = false;
             updateCloudIndicator('connected');
@@ -612,20 +709,16 @@ async function loadAndMerge() {
 
         const cloudData = await response.json();
         
-        // שמירת מוצרים מקומיים שנוצרו באופליין
         const localItems = db.lists[db.currentId] ? [...db.lists[db.currentId].items] : [];
         
-        // טעינת הכל מהענן
         db = cloudData;
         
-        // מיזוג: הוספת מוצרים מקומיים שאין בענן
         if (localItems.length > 0) {
             const currentListId = db.currentId || 'L1';
             if (!db.lists[currentListId]) {
                 db.lists[currentListId] = { name: 'הרשימה שלי', items: [] };
             }
             
-            // מוסיף רק מוצרים שלא קיימים בענן
             const cloudItemNames = db.lists[currentListId].items.map(i => i.name);
             const newItems = localItems.filter(localItem => 
                 !cloudItemNames.includes(localItem.name)
@@ -640,7 +733,6 @@ async function loadAndMerge() {
         localStorage.setItem('BUDGET_FINAL_V27', JSON.stringify(db));
         render();
         
-        // שמירה לענן אם היו שינויים
         if (localItems.length > 0) {
             isSyncing = false;
             updateCloudIndicator('connected');
@@ -657,7 +749,6 @@ async function loadAndMerge() {
 }
 
 async function manualSync() {
-    // סינכרון ידני - טוען מהענן ומשלב
     await loadAndMerge();
 }
 
