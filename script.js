@@ -14,7 +14,6 @@ let driveFileId = null;
 let syncTimeout = null;
 let isSyncing = false;
 let isConnected = false;
-let hasLoadedOnce = false;
 
 // ========== Original App Logic ==========
 let db = JSON.parse(localStorage.getItem('BUDGET_FINAL_V27')) || { 
@@ -37,13 +36,12 @@ function save() {
     localStorage.setItem('BUDGET_FINAL_V27', JSON.stringify(db));
     render();
     
+    // סינכרון אוטומטי רק אם מחובר
     if (isConnected && !isSyncing) {
-        if (syncTimeout) {
-            clearTimeout(syncTimeout);
-        }
+        if (syncTimeout) clearTimeout(syncTimeout);
         syncTimeout = setTimeout(() => {
             syncToCloud();
-        }, 2000);
+        }, 1500);
     }
 }
 
@@ -436,10 +434,10 @@ function maybeEnableButtons() {
 
 function handleCloudClick() {
     if (isConnected) {
-        // כבר מחובר - נבצע סינכרון ידני
-        syncToCloud();
+        // כבר מחובר - סינכרון ידני
+        manualSync();
     } else {
-        // לא מחובר - נתחבר
+        // לא מחובר - התחברות
         handleAuthClick();
     }
 }
@@ -455,8 +453,8 @@ function handleAuthClick() {
         isConnected = true;
         updateCloudIndicator('connected');
         
-        // טעינה ראשונית מהענן
-        await loadFromCloud();
+        // טעינה ומיזוג ראשוני
+        await loadAndMerge();
     };
 
     if (gapi.client.getToken() === null) {
@@ -501,7 +499,7 @@ async function findOrCreateFolder() {
 
         return folder.result.id;
     } catch (err) {
-        console.error('שגיאה ביצירת/איתור תיקייה:', err);
+        console.error('שגיאה ביצירת תיקייה:', err);
         return null;
     }
 }
@@ -530,7 +528,6 @@ async function syncToCloud() {
     try {
         const folderId = await findOrCreateFolder();
         if (!folderId) {
-            console.error('נכשל ביצירת תיקייה');
             isSyncing = false;
             updateCloudIndicator('connected');
             return;
@@ -540,7 +537,6 @@ async function syncToCloud() {
         const dataToSave = JSON.stringify(db);
 
         if (fileId) {
-            // עדכון קובץ קיים
             await fetch(`https://www.googleapis.com/upload/drive/v3/files/${fileId}?uploadType=media`, {
                 method: 'PATCH',
                 headers: {
@@ -551,7 +547,6 @@ async function syncToCloud() {
             });
             driveFileId = fileId;
         } else {
-            // יצירת קובץ חדש
             const metadata = {
                 name: FILE_NAME,
                 parents: [folderId]
@@ -573,16 +568,16 @@ async function syncToCloud() {
             driveFileId = result.id;
         }
 
-        console.log('✅ הנתונים נשמרו בענן בהצלחה');
+        console.log('✅ סונכרן לענן');
     } catch (err) {
-        console.error('❌ שגיאה בשמירה לענן:', err);
+        console.error('❌ שגיאה בסינכרון:', err);
     } finally {
         isSyncing = false;
         updateCloudIndicator('connected');
     }
 }
 
-async function loadFromCloud() {
+async function loadAndMerge() {
     if (!accessToken || isSyncing) return;
     
     isSyncing = true;
@@ -597,9 +592,10 @@ async function loadFromCloud() {
         }
 
         const fileId = await findFileInFolder(folderId);
+        
         if (!fileId) {
-            console.log('📁 לא נמצא קובץ בענן - שומר נתונים מקומיים');
-            hasLoadedOnce = true;
+            // אין קובץ בענן - שומר את המקומיים
+            console.log('📁 אין קובץ בענן - שומר נתונים מקומיים');
             isSyncing = false;
             updateCloudIndicator('connected');
             await syncToCloud();
@@ -616,67 +612,53 @@ async function loadFromCloud() {
 
         const cloudData = await response.json();
         
-        // בפעם הראשונה שמתחברים - מיזוג חכם
-        if (!hasLoadedOnce) {
-            console.log('📥 מיזוג נתונים מקומיים עם הענן');
-            
-            // שמירת המוצרים המקומיים הנוכחיים
-            const localItems = db.lists[db.currentId] ? [...db.lists[db.currentId].items] : [];
-            
-            // טעינת הנתונים מהענן
-            db = cloudData;
-            
-            // הוספת המוצרים המקומיים לרשימה הנוכחית מהענן
-            if (localItems.length > 0) {
-                const currentListId = db.currentId || 'L1';
-                if (!db.lists[currentListId]) {
-                    db.lists[currentListId] = { name: 'הרשימה שלי', items: [] };
-                }
-                
-                // הוספת המוצרים המקומיים לסוף הרשימה מהענן
-                db.lists[currentListId].items = [
-                    ...db.lists[currentListId].items,
-                    ...localItems
-                ];
-                
-                console.log(`✅ צורפו ${localItems.length} מוצרים מקומיים`);
+        // שמירת מוצרים מקומיים שנוצרו באופליין
+        const localItems = db.lists[db.currentId] ? [...db.lists[db.currentId].items] : [];
+        
+        // טעינת הכל מהענן
+        db = cloudData;
+        
+        // מיזוג: הוספת מוצרים מקומיים שאין בענן
+        if (localItems.length > 0) {
+            const currentListId = db.currentId || 'L1';
+            if (!db.lists[currentListId]) {
+                db.lists[currentListId] = { name: 'הרשימה שלי', items: [] };
             }
             
-            localStorage.setItem('BUDGET_FINAL_V27', JSON.stringify(db));
-            render();
-            hasLoadedOnce = true;
+            // מוסיף רק מוצרים שלא קיימים בענן
+            const cloudItemNames = db.lists[currentListId].items.map(i => i.name);
+            const newItems = localItems.filter(localItem => 
+                !cloudItemNames.includes(localItem.name)
+            );
             
-            // שמירה מיידית לענן עם המוצרים המשולבים
-            isSyncing = false;
-            updateCloudIndicator('connected');
-            await syncToCloud();
-            return;
+            if (newItems.length > 0) {
+                db.lists[currentListId].items.push(...newItems);
+                console.log(`✅ צורפו ${newItems.length} מוצרים חדשים`);
+            }
         }
         
-        // מפעם השנייה והלאה - השוואת timestamps חכמה
-        const localTimestamp = db.lastSync || 0;
-        const cloudTimestamp = cloudData.lastSync || 0;
-        
-        if (localTimestamp > cloudTimestamp) {
-            console.log('⚠️ הנתונים המקומיים חדשים יותר - שומר לענן');
-            isSyncing = false;
-            updateCloudIndicator('connected');
-            await syncToCloud();
-            return;
-        }
-        
-        // טעינה מהענן
-        db = cloudData;
         localStorage.setItem('BUDGET_FINAL_V27', JSON.stringify(db));
         render();
         
-        console.log('✅ נתונים נטענו מהענן');
+        // שמירה לענן אם היו שינויים
+        if (localItems.length > 0) {
+            isSyncing = false;
+            updateCloudIndicator('connected');
+            await syncToCloud();
+        }
+        
+        console.log('✅ טעינה מהענן הושלמה');
     } catch (err) {
-        console.error('❌ שגיאה בטעינה מהענן:', err);
+        console.error('❌ שגיאה בטעינה:', err);
     } finally {
         isSyncing = false;
         updateCloudIndicator('connected');
     }
+}
+
+async function manualSync() {
+    // סינכרון ידני - טוען מהענן ומשלב
+    await loadAndMerge();
 }
 
 // טעינת Google API
