@@ -29,6 +29,9 @@ let activePage = db.lastActivePage || 'lists';
 let currentEditIdx = null;
 let listToDelete = null;
 let sortableInstance = null;
+let isBottomBarCollapsed = false;
+let touchStartY = 0;
+let touchEndY = 0;
 
 function save() { 
     db.lastActivePage = activePage;
@@ -36,6 +39,7 @@ function save() {
     localStorage.setItem('BUDGET_FINAL_V27', JSON.stringify(db));
     render();
     
+    // סינכרון אוטומטי רק אם מחובר
     if (isConnected && !isSyncing) {
         if (syncTimeout) clearTimeout(syncTimeout);
         syncTimeout = setTimeout(() => {
@@ -82,10 +86,6 @@ function openModal(id) {
     }
     if(id === 'editListNameModal') {
         document.getElementById('editListNameInput').value = db.lists[db.currentId].name;
-    }
-    if(id === 'importModal') {
-        document.getElementById('importText').value = '';
-        setTimeout(() => document.getElementById('importText').focus(), 150);
     }
 }
 
@@ -260,128 +260,6 @@ function deleteFullList() {
 function prepareDeleteList(id) { 
     listToDelete = id; 
     openModal('deleteListModal'); 
-}
-
-// ========== ייבוא טקסט ==========
-function importFromText() {
-    const text = document.getElementById('importText').value.trim();
-    if (!text) {
-        alert('אנא הדבק טקסט לייבוא');
-        return;
-    }
-
-    // חילוץ שם רשימה מהשורה הראשונה
-    const lines = text.split('\n').filter(line => line.trim());
-    let listName = 'רשימה מיובאת';
-    let startIndex = 0;
-    
-    const firstLine = lines[0];
-    if (firstLine.includes('*') && firstLine.includes(':')) {
-        const match = firstLine.match(/\*([^*]+)\*/);
-        if (match) {
-            listName = match[1].trim();
-            startIndex = 1; // דילוג על שורת הכותרת
-        }
-    }
-
-    // בדיקה אם השם כבר קיים והוספת מספר
-    let finalName = listName;
-    let counter = 1;
-    const existingNames = Object.values(db.lists).map(l => l.name);
-    while (existingNames.includes(finalName)) {
-        counter++;
-        finalName = `${listName} ${counter}`;
-    }
-
-    // יצירת רשימה חדשה
-    const newListId = 'L' + Date.now();
-    const items = [];
-
-    // ניתוח שורות
-    for (let i = startIndex; i < lines.length; i++) {
-        const line = lines[i].trim();
-        
-        // דילוג על שורות ריקות, אימוג'י בלבד, וסיכומים
-        if (!line || line.includes('🛒') || line.includes('💰') || line.includes('סה"כ') || line === '---') {
-            continue;
-        }
-
-        let itemAdded = false;
-
-        // 1. פורמט מלא: ⬜ *שם* (xכמות) - ₪מחיר
-        const fullMatch = line.match(/[⬜✅]\s*\*([^*]+)\*\s*\(x(\d+)\)\s*-\s*₪([\d.]+)/);
-        if (fullMatch) {
-            const name = fullMatch[1].trim();
-            const qty = parseInt(fullMatch[2]);
-            const totalPrice = parseFloat(fullMatch[3]);
-            const price = totalPrice / qty;
-            const checked = line.includes('✅');
-            items.push({ name, price, qty, checked });
-            itemAdded = true;
-        }
-
-        // 2. פורמט עם נקודה וכמות: • שם (xכמות)
-        if (!itemAdded) {
-            const bulletQtyMatch = line.match(/^[•\-]\s*\*?([^(]+)\*?\s*\(x(\d+)\)/);
-            if (bulletQtyMatch) {
-                const name = bulletQtyMatch[1].trim().replace(/\*/g, '');
-                const qty = parseInt(bulletQtyMatch[2]);
-                if (name) {
-                    items.push({ name, price: 0, qty, checked: false });
-                    itemAdded = true;
-                }
-            }
-        }
-
-        // 3. פורמט עם נקודה: • שם
-        if (!itemAdded) {
-            const bulletMatch = line.match(/^[•\-]\s*\*?(.+?)\*?$/);
-            if (bulletMatch) {
-                const name = bulletMatch[1].trim().replace(/\*/g, '');
-                if (name) {
-                    items.push({ name, price: 0, qty: 1, checked: false });
-                    itemAdded = true;
-                }
-            }
-        }
-
-        // 4. פורמט עם כוכביות: *שם*
-        if (!itemAdded) {
-            const starMatch = line.match(/^\*([^*]+)\*$/);
-            if (starMatch) {
-                const name = starMatch[1].trim();
-                if (name) {
-                    items.push({ name, price: 0, qty: 1, checked: false });
-                    itemAdded = true;
-                }
-            }
-        }
-
-        // 5. פורמט פשוט: כל שורה היא מוצר (אם אין תו מיוחד בהתחלה)
-        if (!itemAdded && line.length > 0) {
-            // ניקוי תווים מיוחדים אפשריים
-            const name = line.replace(/^[\d\.\)\-\s]+/, '').trim();
-            // וידוא שזה לא מספר בלבד
-            if (name && !/^\d+$/.test(name)) {
-                items.push({ name, price: 0, qty: 1, checked: false });
-            }
-        }
-    }
-
-    if (items.length === 0) {
-        alert('לא נמצאו מוצרים בטקסט');
-        return;
-    }
-
-    // הוספת הרשימה
-    db.lists[newListId] = { name: finalName, items };
-    db.currentId = newListId;
-    activePage = 'lists';
-    
-    closeModal('importModal');
-    save();
-    
-    alert(`✅ יובאו ${items.length} מוצרים לרשימה "${finalName}"`);
 }
 
 function initSortable() {
@@ -559,8 +437,10 @@ function maybeEnableButtons() {
 
 function handleCloudClick() {
     if (isConnected) {
+        // כבר מחובר - סינכרון ידני
         manualSync();
     } else {
+        // לא מחובר - התחברות
         handleAuthClick();
     }
 }
@@ -576,6 +456,7 @@ function handleAuthClick() {
         isConnected = true;
         updateCloudIndicator('connected');
         
+        // טעינה ומיזוג ראשוני
         await loadAndMerge();
     };
 
@@ -716,6 +597,7 @@ async function loadAndMerge() {
         const fileId = await findFileInFolder(folderId);
         
         if (!fileId) {
+            // אין קובץ בענן - שומר את המקומיים
             console.log('📁 אין קובץ בענן - שומר נתונים מקומיים');
             isSyncing = false;
             updateCloudIndicator('connected');
@@ -733,16 +615,20 @@ async function loadAndMerge() {
 
         const cloudData = await response.json();
         
+        // שמירת מוצרים מקומיים שנוצרו באופליין
         const localItems = db.lists[db.currentId] ? [...db.lists[db.currentId].items] : [];
         
+        // טעינת הכל מהענן
         db = cloudData;
         
+        // מיזוג: הוספת מוצרים מקומיים שאין בענן
         if (localItems.length > 0) {
             const currentListId = db.currentId || 'L1';
             if (!db.lists[currentListId]) {
                 db.lists[currentListId] = { name: 'הרשימה שלי', items: [] };
             }
             
+            // מוסיף רק מוצרים שלא קיימים בענן
             const cloudItemNames = db.lists[currentListId].items.map(i => i.name);
             const newItems = localItems.filter(localItem => 
                 !cloudItemNames.includes(localItem.name)
@@ -757,6 +643,7 @@ async function loadAndMerge() {
         localStorage.setItem('BUDGET_FINAL_V27', JSON.stringify(db));
         render();
         
+        // שמירה לענן אם היו שינויים
         if (localItems.length > 0) {
             isSyncing = false;
             updateCloudIndicator('connected');
@@ -773,6 +660,7 @@ async function loadAndMerge() {
 }
 
 async function manualSync() {
+    // סינכרון ידני - טוען מהענן ומשלב
     await loadAndMerge();
 }
 
@@ -787,5 +675,55 @@ script2.src = 'https://accounts.google.com/gsi/client';
 script2.onload = gisLoaded;
 document.head.appendChild(script2);
 
+// ========== מחווה גרירה לבר התחתון ==========
+function initBottomBarGesture() {
+    const bottomBar = document.querySelector('.bottom-bar');
+    if (!bottomBar) return;
+
+    bottomBar.addEventListener('touchstart', (e) => {
+        touchStartY = e.touches[0].clientY;
+    }, { passive: true });
+
+    bottomBar.addEventListener('touchmove', (e) => {
+        touchEndY = e.touches[0].clientY;
+    }, { passive: true });
+
+    bottomBar.addEventListener('touchend', () => {
+        const swipeDistance = touchStartY - touchEndY;
+        
+        // גרירה למטה (מעל 50 פיקסלים)
+        if (swipeDistance < -50 && !isBottomBarCollapsed) {
+            collapseBottomBar();
+        }
+        // גרירה למעלה (מעל 50 פיקסלים)
+        else if (swipeDistance > 50 && isBottomBarCollapsed) {
+            expandBottomBar();
+        }
+    });
+}
+
+function collapseBottomBar() {
+    isBottomBarCollapsed = true;
+    const bottomBar = document.querySelector('.bottom-bar');
+    bottomBar.classList.add('collapsed');
+    document.body.style.paddingBottom = '80px';
+}
+
+function expandBottomBar() {
+    isBottomBarCollapsed = false;
+    const bottomBar = document.querySelector('.bottom-bar');
+    bottomBar.classList.remove('collapsed');
+    document.body.style.paddingBottom = '240px';
+}
+
+function toggleBottomBar() {
+    if (isBottomBarCollapsed) {
+        expandBottomBar();
+    } else {
+        collapseBottomBar();
+    }
+}
+
 // אתחול ראשוני
 render();
+setTimeout(initBottomBarGesture, 500);
