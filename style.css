@@ -10,7 +10,7 @@ body { font-family: system-ui, sans-serif; background: #f4f7fa; padding-bottom: 
     right: 0; 
     background: #7367f0; 
     z-index: 1000; 
-    padding: 15px 15px 35px 15px; 
+    padding: 35px 15px 35px 15px; 
     border-radius: 35px 35px 0 0; 
     box-shadow: 0 -10px 25px rgba(0, 0, 0, 0.15);
     transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
@@ -38,32 +38,39 @@ body { font-family: system-ui, sans-serif; background: #f4f7fa; padding-bottom: 
     transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-/* אינדיקטור גרירה */
-.bottom-bar::before {
-    content: '';
+/* אינדיקטור גרירה - כפתור ארוך לחיצה */
+.collapse-indicator {
     position: absolute;
     top: 8px;
     left: 50%;
     transform: translateX(-50%);
-    width: 50px;
-    height: 4px;
-    background: rgba(255, 255, 255, 0.4);
-    border-radius: 3px;
+    width: 140px;
+    height: 18px;
+    background: rgba(255, 255, 255, 0.5);
+    border-radius: 10px;
+    z-index: 11;
+    cursor: pointer;
     transition: all 0.3s;
-    z-index: 10;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
-.bottom-bar.collapsed::before {
+.collapse-indicator:hover {
+    background: rgba(255, 255, 255, 0.7);
+}
+
+.collapse-indicator:active {
+    background: rgba(255, 255, 255, 0.9);
+    transform: translateX(-50%) scale(0.98);
+}
+
+/* כששורת הכפתור מכווצת - הפס במרכז */
+.bottom-bar.collapsed .collapse-indicator {
     top: 50%;
     transform: translate(-50%, -50%);
     background: rgba(255, 255, 255, 0.8);
-    width: 60px;
     height: 5px;
-}
-
-/* הסרת הטקסט "גרור למעלה" */
-.bottom-bar.collapsed::after {
-    display: none;
 }
 
 .tab-btn { flex: 1; padding: 12px; border-radius: 15px; font-weight: bold; text-align: center; cursor: pointer; transition: 0.2s; background: white; color: #666; border: 1px solid #eee; }
