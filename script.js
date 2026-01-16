@@ -132,14 +132,106 @@ function render() {
     initSortable();
 }
 
-// ========== Actions ==========
-function toggleItem(idx) { db.lists[db.currentId].items[idx].checked = !db.lists[db.currentId].items[idx].checked; save(); }
-function toggleSum(id) {
-    const i = db.selectedInSummary.indexOf(id);
-    if (i > -1) db.selectedInSummary.splice(i, 1);
-    else db.selectedInSummary.push(id);
-    save();
+// ========== Cloud Sync Core (התיקון המרכזי) ==========
+function gapiLoaded() {
+    gapi.load('client', async () => {
+        await gapi.client.init({
+            apiKey: GOOGLE_API_KEY,
+            discoveryDocs: [DISCOVERY_DOC],
+        });
+        gapiInited = true;
+    });
 }
+
+function gisLoaded() {
+    tokenClient = google.accounts.oauth2.initTokenClient({
+        client_id: GOOGLE_CLIENT_ID,
+        scope: SCOPES,
+        callback: (resp) => {
+            if (resp.error !== undefined) throw (resp);
+            accessToken = resp.access_token;
+            isConnected = true;
+            updateCloudIndicator('connected');
+            save(); // שמירה וסנכרון ראשוני
+        },
+    });
+    gisInited = true;
+}
+
+async function handleCloudClick() {
+    if (!isConnected) {
+        tokenClient.requestAccessToken({ prompt: 'consent' });
+    } else {
+        await syncToCloud();
+    }
+}
+
+async function findOrCreateFolder() {
+    try {
+        const resp = await gapi.client.drive.files.list({
+            q: `name='${FOLDER_NAME}' and mimeType='application/vnd.google-apps.folder' and trashed=false`,
+            fields: 'files(id)',
+        });
+        if (resp.result.files.length > 0) return resp.result.files[0].id;
+
+        const folder = await gapi.client.drive.files.create({
+            resource: { name: FOLDER_NAME, mimeType: 'application/vnd.google-apps.folder' },
+            fields: 'id',
+        });
+        return folder.result.id;
+    } catch (e) { return null; }
+}
+
+async function syncToCloud() {
+    if (!accessToken || isSyncing) return;
+    isSyncing = true;
+    updateCloudIndicator('syncing');
+    try {
+        const folderId = await findOrCreateFolder();
+        const fileList = await gapi.client.drive.files.list({
+            q: `name='${FILE_NAME}' and '${folderId}' in parents and trashed=false`,
+            fields: 'files(id)',
+        });
+
+        const fileId = fileList.result.files.length > 0 ? fileList.result.files[0].id : null;
+        const metadata = { name: FILE_NAME, parents: [folderId] };
+        const content = JSON.stringify(db);
+
+        if (fileId) {
+            await fetch(`https://www.googleapis.com/upload/drive/v3/files/${fileId}?uploadType=media`, {
+                method: 'PATCH',
+                headers: { 'Authorization': `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
+                body: content
+            });
+        } else {
+            const form = new FormData();
+            form.append('metadata', new Blob([JSON.stringify(metadata)], { type: 'application/json' }));
+            form.append('file', new Blob([content], { type: 'application/json' }));
+            await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart', {
+                method: 'POST',
+                headers: { 'Authorization': `Bearer ${accessToken}` },
+                body: form
+            });
+        }
+        updateCloudIndicator('connected');
+    } catch (e) { console.error(e); }
+    isSyncing = false;
+}
+
+function updateCloudIndicator(status) {
+    const ind = document.getElementById('cloudIndicator');
+    if(ind) ind.className = `w-2 h-2 rounded-full ${status === 'connected' ? 'bg-green-500' : 'bg-yellow-500 animate-pulse'}`;
+}
+
+// ========== Actions ==========
+function openModal(id) { 
+    if (id === 'inputForm') {
+        document.getElementById('itemName').value = '';
+        document.getElementById('itemPrice').value = '';
+    }
+    document.getElementById(id).classList.add('active'); 
+}
+function closeModal(id) { document.getElementById(id).classList.remove('active'); }
 
 function addItem() {
     const n = document.getElementById('itemName').value.trim();
@@ -158,10 +250,7 @@ function changeQty(idx, d) {
     } 
 }
 
-function removeItem(idx) { 
-    db.lists[db.currentId].items.splice(idx, 1); 
-    save(); 
-}
+function removeItem(idx) { db.lists[db.currentId].items.splice(idx, 1); save(); }
 
 function saveNewList() {
     const n = document.getElementById('newListNameInput').value.trim();
@@ -177,18 +266,11 @@ function saveNewList() {
 
 function saveListName() {
     const n = document.getElementById('editListNameInput').value.trim();
-    if(n) {
-        db.lists[db.currentId].name = n;
-        save();
-    }
+    if(n) { db.lists[db.currentId].name = n; save(); }
     closeModal('editListNameModal');
 }
 
-function executeClear() {
-    db.lists[db.currentId].items = [];
-    closeModal('confirmModal');
-    save();
-}
+function executeClear() { db.lists[db.currentId].items = []; closeModal('confirmModal'); save(); }
 
 function updateFontSize(size) {
     db.fontSize = parseInt(size);
@@ -196,21 +278,6 @@ function updateFontSize(size) {
     document.getElementById('fontSizeValue').textContent = size;
     save();
 }
-
-function openModal(id) { 
-    const modal = document.getElementById(id);
-    if (!modal) return;
-    
-    // ניקוי שדות בהוספת מוצר חדש (התיקון שביקשת)
-    if (id === 'inputForm') {
-        document.getElementById('itemName').value = '';
-        document.getElementById('itemPrice').value = '';
-    }
-    
-    modal.classList.add('active'); 
-}
-
-function closeModal(id) { document.getElementById(id).classList.remove('active'); }
 
 function openEditTotalModal(idx) { 
     currentEditIdx = idx; 
@@ -240,7 +307,7 @@ function importFromText() {
     save();
 }
 
-// ========== PDF Format (התיקון שביקשת - ללא פס סגול) ==========
+// ========== PDF & WhatsApp ==========
 function preparePrint() { 
     closeModal('settingsModal');
     const printArea = document.getElementById('printArea');
@@ -249,47 +316,32 @@ function preparePrint() {
                 <h1 style="text-align:center; color:#7367f0; font-size:22px; margin-bottom:30px;">דוח קניות - Vplus</h1>`;
     
     const idsToPrint = db.selectedInSummary.length > 0 ? db.selectedInSummary : Object.keys(db.lists);
-
     idsToPrint.forEach(id => {
         const l = db.lists[id];
         let listTotal = 0;
         html += `<div style="margin-bottom:25px;">
-                <h2 style="font-size:16px; margin-bottom:8px; text-align:right;">${l.name}</h2>
+                <h2 style="font-size:16px; margin-bottom:8px;">${l.name}</h2>
                 <table style="width:100%; border-collapse:collapse; border:1px solid #ddd;">
                     <thead><tr style="background:#f8f9fa;">
-                        <th style="padding:10px; border:1px solid #ddd; text-align:right; width:75%;">מוצר</th>
+                        <th style="padding:10px; border:1px solid #ddd; text-align:right;">מוצר</th>
                         <th style="padding:10px; border:1px solid #ddd; text-align:center;">סה"כ</th>
                     </tr></thead><tbody>`;
-        
         l.items.forEach(i => {
-            const sub = i.price * i.qty;
-            listTotal += sub;
-            html += `<tr>
-                <td style="padding:10px; border:1px solid #ddd; text-align:right;">${i.name} (x${i.qty})</td>
-                <td style="padding:10px; border:1px solid #ddd; text-align:center;">₪${sub.toFixed(2)}</td>
-            </tr>`;
+            const sub = i.price * i.qty; listTotal += sub;
+            html += `<tr><td style="padding:10px; border:1px solid #ddd;">${i.name} (x${i.qty})</td>
+                         <td style="padding:10px; border:1px solid #ddd; text-align:center;">₪${sub.toFixed(2)}</td></tr>`;
         });
-        
-        html += `</tbody></table>
-            <div style="text-align:left; font-weight:bold; margin-top:5px; font-size:13px;">₪${listTotal.toFixed(2)}</div>
-        </div>`;
+        html += `</tbody></table><div style="text-align:left; font-weight:bold; margin-top:5px;">₪${listTotal.toFixed(2)}</div></div>`;
         grandTotal += listTotal;
     });
-    
     html += `<div style="text-align:center; font-size:20px; font-weight:900; margin-top:40px; border-top:2px solid #333; padding-top:10px;">סה"כ כולל: ₪${grandTotal.toFixed(2)}</div></div>`;
-    
-    printArea.innerHTML = html;
-    window.print();
+    printArea.innerHTML = html; window.print();
 }
 
-// ========== WhatsApp Logic ==========
 function shareFullToWhatsApp() {
     const list = db.lists[db.currentId];
-    if (!list || list.items.length === 0) return;
     let text = `📋 *${list.name}*\n\n`;
-    list.items.forEach(item => {
-        text += `${item.checked ? '✅' : '⬜'} *${item.name}* (x${item.qty}) - ₪${(item.price * item.qty).toFixed(2)}\n`;
-    });
+    list.items.forEach(item => text += `${item.checked ? '✅' : '⬜'} *${item.name}* (x${item.qty}) - ₪${(item.price * item.qty).toFixed(2)}\n`);
     text += `\n💰 *סה"כ: ₪${(list.items.reduce((acc, i) => acc + (i.price * i.qty), 0)).toFixed(2)}*`;
     window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
     closeModal('shareListModal');
@@ -297,99 +349,50 @@ function shareFullToWhatsApp() {
 
 function shareMissingToWhatsApp() {
     const list = db.lists[db.currentId];
-    if (!list) return;
     let text = `🛒 *מוצרים חסרים מתוך: ${list.name}*\n\n`;
     const missing = list.items.filter(i => !i.checked);
-    if (missing.length === 0) {
-        text += "הכל כבר נקנה! 🎉";
-    } else {
-        missing.forEach(item => { text += `• *${item.name}* (x${item.qty})\n`; });
-    }
+    if (missing.length === 0) text += "הכל כבר נקנה! 🎉";
+    else missing.forEach(item => text += `• *${item.name}* (x${item.qty})\n`);
     window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
     closeModal('shareListModal');
 }
 
-function shareSummaryToWhatsApp() {
-    const selectedIds = db.selectedInSummary;
-    if (selectedIds.length === 0) { alert("בחר לפחות רשימה אחת לשיתוף!"); return; }
-    let text = `📦 *ריכוז רשימות קנייה (חסרים בלבד):*\n\n`;
-    selectedIds.forEach(id => {
-        const l = db.lists[id];
-        const missing = l.items.filter(i => !i.checked);
-        if (missing.length > 0) {
-            text += `🔹 *${l.name}:*\n`;
-            missing.forEach(i => text += `  - ${i.name} (x${i.qty})\n`);
-            text += `\n`;
-        }
-    });
-    window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
-}
-
-// ========== UI Utilities ==========
+// ========== Init ==========
 function initSortable() {
     const el = document.getElementById('itemsContainer');
     if (sortableInstance) sortableInstance.destroy();
     if (el && !isLocked) {
-        sortableInstance = Sortable.create(el, {
-            animation: 150,
-            onEnd: (evt) => {
-                const items = db.lists[db.currentId].items;
-                const movedItem = items.splice(evt.oldIndex, 1)[0];
-                items.splice(evt.newIndex, 0, movedItem);
-                save();
-            }
-        });
+        sortableInstance = Sortable.create(el, { animation: 150, onEnd: (evt) => {
+            const items = db.lists[db.currentId].items;
+            const movedItem = items.splice(evt.oldIndex, 1)[0];
+            items.splice(evt.newIndex, 0, movedItem);
+            save();
+        }});
     }
 }
 
 function toggleBottomBar() {
     const bar = document.querySelector('.bottom-bar');
     isBottomBarCollapsed = !isBottomBarCollapsed;
-    if(isBottomBarCollapsed) bar.classList.add('collapsed');
-    else bar.classList.remove('collapsed');
-}
-
-function showPage(p) { activePage = p; save(); }
-function toggleLock() { isLocked = !isLocked; render(); }
-function toggleDarkMode() { document.body.classList.toggle('dark-mode'); closeModal('settingsModal'); }
-
-// ========== Cloud Sync (Mock) ==========
-async function syncToCloud() {
-    if (!isConnected || isSyncing) return;
-    isSyncing = true;
-    updateCloudIndicator('syncing');
-    try {
-        console.log("סנכרון ענן בוצע");
-        updateCloudIndicator('connected');
-    } catch (e) { console.error(e); }
-    isSyncing = false;
-}
-
-function updateCloudIndicator(status) {
-    const ind = document.getElementById('cloudIndicator');
-    if(ind) ind.className = `w-2 h-2 rounded-full ${status === 'connected' ? 'bg-green-500' : 'bg-yellow-500 animate-pulse'}`;
-}
-
-function gapiLoaded() { gapi.load('client', () => gapi.client.init({apiKey: GOOGLE_API_KEY, discoveryDocs: [DISCOVERY_DOC]})); }
-function gisLoaded() { 
-    tokenClient = google.accounts.oauth2.initTokenClient({
-        client_id: GOOGLE_CLIENT_ID, scope: SCOPES,
-        callback: (resp) => { accessToken = resp.access_token; isConnected = true; updateCloudIndicator('connected'); save(); }
-    });
-}
-
-function handleCloudClick() {
-    if (!isConnected) tokenClient.requestAccessToken();
-    else syncToCloud();
+    bar.classList.toggle('collapsed', isBottomBarCollapsed);
 }
 
 window.onload = () => {
     document.getElementById('cloudBtn').onclick = handleCloudClick;
     const bottomBar = document.querySelector('.bottom-bar');
-    if(bottomBar) {
-        bottomBar.addEventListener('click', (e) => {
-            if(e.offsetY < 30) toggleBottomBar();
-        });
-    }
+    if(bottomBar) bottomBar.addEventListener('click', (e) => { if(e.offsetY < 30) toggleBottomBar(); });
+    gapiLoaded();
+    gisLoaded();
     render();
 };
+
+function toggleItem(idx) { db.lists[db.currentId].items[idx].checked = !db.lists[db.currentId].items[idx].checked; save(); }
+function toggleSum(id) {
+    const i = db.selectedInSummary.indexOf(id);
+    if (i > -1) db.selectedInSummary.splice(i, 1);
+    else db.selectedInSummary.push(id);
+    save();
+}
+function showPage(p) { activePage = p; save(); }
+function toggleLock() { isLocked = !isLocked; render(); }
+function toggleDarkMode() { document.body.classList.toggle('dark-mode'); closeModal('settingsModal'); }
