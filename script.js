@@ -21,7 +21,8 @@ let db = JSON.parse(localStorage.getItem('BUDGET_FINAL_V27')) || {
     selectedInSummary: [], 
     lists: { 'L1': { name: 'הרשימה שלי', items: [] } },
     lastActivePage: 'lists',
-    lastSync: 0
+    lastSync: 0,
+    fontSize: 16
 };
 
 let isLocked = true;
@@ -36,6 +37,7 @@ let touchEndY = 0;
 function save() { 
     db.lastActivePage = activePage;
     db.lastSync = Date.now();
+    db.fontSize = db.fontSize || 16;
     localStorage.setItem('BUDGET_FINAL_V27', JSON.stringify(db));
     render();
     
@@ -69,6 +71,14 @@ function toggleDarkMode() {
     closeModal('settingsModal');
 }
 
+// פונקציה חדשה לשינוי גודל טקסט
+function updateFontSize(size) {
+    db.fontSize = parseInt(size);
+    document.documentElement.style.setProperty('--base-font-size', size + 'px');
+    document.getElementById('fontSizeValue').textContent = size;
+    save();
+}
+
 function showPage(p) { 
     activePage = p; 
     save(); 
@@ -78,6 +88,7 @@ function openModal(id) {
     const m = document.getElementById(id);
     if(!m) return;
     m.classList.add('active'); 
+    
     if(id === 'inputForm') {
         document.getElementById('itemName').value = '';
         document.getElementById('itemPrice').value = '';
@@ -89,6 +100,13 @@ function openModal(id) {
     if(id === 'importModal') {
         document.getElementById('importText').value = '';
         setTimeout(() => document.getElementById('importText').focus(), 150);
+    }
+    if(id === 'settingsModal') {
+        const slider = document.getElementById('fontSizeSlider');
+        if(slider) {
+            slider.value = db.fontSize || 16;
+            document.getElementById('fontSizeValue').textContent = db.fontSize || 16;
+        }
     }
 }
 
@@ -129,9 +147,9 @@ function render() {
             div.setAttribute('data-id', idx);
             div.innerHTML = `
                 <div class="flex justify-between items-center mb-4">
-                    <div class="flex items-center gap-3 flex-1">
-                        <input type="checkbox" ${item.checked ? 'checked' : ''} onchange="toggleItem(${idx})" class="w-7 h-7 accent-indigo-600">
-                        <div class="flex-1 text-2xl font-bold ${item.checked ? 'line-through text-gray-300' : ''}">${item.name}</div>
+                    <div class="flex items-center gap-3 flex-1" style="min-width: 0;">
+                        <input type="checkbox" ${item.checked ? 'checked' : ''} onchange="toggleItem(${idx})" class="w-7 h-7 accent-indigo-600" style="flex-shrink: 0;">
+                        <div class="flex-1 text-2xl font-bold ${item.checked ? 'line-through text-gray-300' : ''}" style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${item.name}</div>
                     </div>
                     <button onclick="removeItem(${idx})" class="trash-btn">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -171,13 +189,13 @@ function render() {
             div.dataset.id = id;
             div.innerHTML = `
                 <div class="flex justify-between items-center">
-                    <div class="flex items-center gap-4">
-                        <input type="checkbox" ${isSel ? 'checked' : ''} onchange="toggleSum('${id}')" class="w-7 h-7 accent-indigo-600">
-                        <span class="font-bold text-xl cursor-pointer" onclick="db.currentId='${id}'; showPage('lists')">${l.name}</span>
+                    <div class="flex items-center gap-4" style="min-width: 0; flex: 1;">
+                        <input type="checkbox" ${isSel ? 'checked' : ''} onchange="toggleSum('${id}')" class="w-7 h-7 accent-indigo-600" style="flex-shrink: 0;">
+                        <span class="font-bold text-xl cursor-pointer" onclick="db.currentId='${id}'; showPage('lists')" style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1;">${l.name}</span>
                     </div>
-                    <div class="flex items-center gap-3">
+                    <div class="flex items-center gap-3" style="flex-shrink: 0;">
                         <div class="text-indigo-600 font-black text-xl">₪${lT.toFixed(2)}</div>
-                        <button onclick="prepareDeleteList('${id}')" class="text-red-400 p-1">
+                        <button onclick="prepareDeleteList('${id}')" class="text-red-400 p-1" style="flex-shrink: 0;">
                             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" stroke-width="2"></path>
                             </svg>
@@ -677,163 +695,4 @@ async function syncToCloud() {
             });
 
             const result = await response.json();
-            driveFileId = result.id;
-        }
-
-        console.log('✅ סונכרן לענן');
-    } catch (err) {
-        console.error('❌ שגיאה בסינכרון:', err);
-    } finally {
-        isSyncing = false;
-        updateCloudIndicator('connected');
-    }
-}
-
-async function loadAndMerge() {
-    if (!accessToken || isSyncing) return;
-    
-    isSyncing = true;
-    updateCloudIndicator('syncing');
-
-    try {
-        const folderId = await findOrCreateFolder();
-        if (!folderId) {
-            isSyncing = false;
-            updateCloudIndicator('connected');
-            return;
-        }
-
-        const fileId = await findFileInFolder(folderId);
-        
-        if (!fileId) {
-            console.log('📁 אין קובץ בענן - שומר נתונים מקומיים');
-            isSyncing = false;
-            updateCloudIndicator('connected');
-            await syncToCloud();
-            return;
-        }
-
-        driveFileId = fileId;
-
-        const response = await fetch(`https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`, {
-            headers: {
-                'Authorization': `Bearer ${accessToken}`
-            }
-        });
-
-        const cloudData = await response.json();
-        
-        const localItems = db.lists[db.currentId] ? [...db.lists[db.currentId].items] : [];
-        
-        db = cloudData;
-        
-        if (localItems.length > 0) {
-            const currentListId = db.currentId || 'L1';
-            if (!db.lists[currentListId]) {
-                db.lists[currentListId] = { name: 'הרשימה שלי', items: [] };
-            }
-            
-            const cloudItemNames = db.lists[currentListId].items.map(i => i.name);
-            const newItems = localItems.filter(localItem => 
-                !cloudItemNames.includes(localItem.name)
-            );
-            
-            if (newItems.length > 0) {
-                db.lists[currentListId].items.push(...newItems);
-                console.log(`✅ צורפו ${newItems.length} מוצרים חדשים`);
-            }
-        }
-        
-        localStorage.setItem('BUDGET_FINAL_V27', JSON.stringify(db));
-        render();
-        
-        if (localItems.length > 0) {
-            isSyncing = false;
-            updateCloudIndicator('connected');
-            await syncToCloud();
-        }
-        
-        console.log('✅ טעינה מהענן הושלמה');
-    } catch (err) {
-        console.error('❌ שגיאה בטעינה:', err);
-    } finally {
-        isSyncing = false;
-        updateCloudIndicator('connected');
-    }
-}
-
-async function manualSync() {
-    await loadAndMerge();
-}
-
-// ========== מחווה גרירה לבר התחתון ==========
-function initBottomBarGesture() {
-    const bottomBar = document.querySelector('.bottom-bar');
-    if (!bottomBar) return;
-
-    bottomBar.addEventListener('touchstart', (e) => {
-        touchStartY = e.touches[0].clientY;
-    }, { passive: true });
-
-    bottomBar.addEventListener('touchmove', (e) => {
-        touchEndY = e.touches[0].clientY;
-    }, { passive: true });
-
-    bottomBar.addEventListener('touchend', () => {
-        const swipeDistance = touchStartY - touchEndY;
-        
-        if (swipeDistance < -50 && !isBottomBarCollapsed) {
-            collapseBottomBar();
-        }
-        else if (swipeDistance > 50 && isBottomBarCollapsed) {
-            expandBottomBar();
-        }
-    });
-
-    bottomBar.addEventListener('click', (e) => {
-        const rect = bottomBar.getBoundingClientRect();
-        const clickY = e.clientY - rect.top;
-        
-        if (clickY < 25) {
-            toggleBottomBar();
-            e.stopPropagation();
-        }
-    });
-}
-
-function collapseBottomBar() {
-    isBottomBarCollapsed = true;
-    const bottomBar = document.querySelector('.bottom-bar');
-    bottomBar.classList.add('collapsed');
-    document.body.style.paddingBottom = '35px';
-}
-
-function expandBottomBar() {
-    isBottomBarCollapsed = false;
-    const bottomBar = document.querySelector('.bottom-bar');
-    bottomBar.classList.remove('collapsed');
-    document.body.style.paddingBottom = '240px';
-}
-
-function toggleBottomBar() {
-    if (isBottomBarCollapsed) {
-        expandBottomBar();
-    } else {
-        collapseBottomBar();
-    }
-}
-
-// טעינת Google API
-const script1 = document.createElement('script');
-script1.src = 'https://apis.google.com/js/api.js';
-script1.onload = gapiLoaded;
-document.head.appendChild(script1);
-
-const script2 = document.createElement('script');
-script2.src = 'https://accounts.google.com/gsi/client';
-script2.onload = gisLoaded;
-document.head.appendChild(script2);
-
-// אתחול ראשוני
-render();
-setTimeout(initBottomBarGesture, 500);
+            drive
