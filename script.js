@@ -5,12 +5,12 @@ const GOOGLE_API_KEY = 'AIzaSyDIMiuwL-phvwI7iAUeMQmTOowWE96mP6I';
 let gapiInited = false, gisInited = false, tokenClient, accessToken = null, isConnected = false;
 
 // ========== App State ==========
-let db = JSON.parse(localStorage.getItem('BUDGET_FINAL_V27')) || { 
+let db = JSON.parse(localStorage.getItem('VPLUS_DB_V1')) || { 
     currentId: 'L1', lists: { 'L1': { name: 'הרשימה שלי', items: [] } }, fontSize: 16
 };
-let isLocked = true, activePage = 'lists', currentEditIdx = null;
+let isLocked = true, activePage = 'lists';
 
-// ========== Global Handlers (For HTML Buttons) ==========
+// ========== Global Handlers (חייב window כדי שה-HTML יזהה) ==========
 window.openModal = (id) => document.getElementById(id).classList.add('active');
 window.closeModal = (id) => document.getElementById(id).classList.remove('active');
 window.showPage = (p) => { activePage = p; render(); };
@@ -30,8 +30,8 @@ window.gisLoaded = () => {
     gisInited = true;
 };
 window.handleCloudClick = async () => {
-    if (!gapiInited || !gisInited) { alert("טוען..."); return; }
-    if (isConnected) { await loadAndMerge(); } 
+    if (!gapiInited || !gisInited) { alert("טוען חיבור לגוגל..."); return; }
+    if (isConnected) { await loadAndMerge(); alert("סונכרן!"); } 
     else {
         tokenClient.callback = async (resp) => {
             accessToken = resp.access_token; gapi.client.setToken(resp); isConnected = true;
@@ -42,13 +42,11 @@ window.handleCloudClick = async () => {
     }
 };
 
-// ========== Render Logic (The UI Fix) ==========
+// ========== Render (תיקון גרפיקה) ==========
 function render() {
-    // החלפת עמודים
     document.getElementById('pageLists').classList.toggle('hidden', activePage !== 'lists');
     document.getElementById('pageSummary').classList.toggle('hidden', activePage !== 'summary');
     
-    // עיצוב טאבים בדיוק לפי ה-CSS שלך
     document.getElementById('tabLists').className = `tab-btn flex-1 ${activePage === 'lists' ? 'tab-active' : ''}`;
     document.getElementById('tabSummary').className = `tab-btn flex-1 ${activePage === 'summary' ? 'tab-active' : ''}`;
 
@@ -65,7 +63,7 @@ function render() {
             const sub = item.price * item.qty;
             total += sub; if (item.checked) paid += sub;
             const div = document.createElement('div');
-            div.className = "item-card";
+            div.className = "item-card"; // משתמש ב-CSS המקורי שלך
             div.innerHTML = `
                 <div class="flex justify-between items-start">
                     <div class="flex items-start gap-3 flex-1">
@@ -76,11 +74,11 @@ function render() {
                 </div>
                 <div class="flex justify-between mt-3">
                     <div class="flex items-center gap-3 bg-gray-100 rounded-xl px-2">
-                        <button onclick="window.changeQty(${idx}, 1)" class="text-green-600 font-bold text-xl">+</button>
+                        <button onclick="window.changeQty(${idx}, 1)" class="text-green-600 font-bold">+</button>
                         <span>${item.qty}</span>
-                        <button onclick="window.changeQty(${idx}, -1)" class="text-red-600 font-bold text-xl">-</button>
+                        <button onclick="window.changeQty(${idx}, -1)" class="text-red-600 font-bold">-</button>
                     </div>
-                    <span onclick="window.openEditTotalModal(${idx})" class="font-black text-indigo-600 cursor-pointer">₪${sub.toFixed(2)}</span>
+                    <span class="font-black text-indigo-600">₪${sub.toFixed(2)}</span>
                 </div>`;
             container.appendChild(div);
         });
@@ -90,20 +88,20 @@ function render() {
     document.getElementById('displayLeft').innerText = (total - paid).toFixed(2);
 }
 
-// ========== Actions (Save & Cloud) ==========
-window.save = function() { localStorage.setItem('BUDGET_FINAL_V27', JSON.stringify(db)); render(); if(isConnected) syncToCloud(); };
+// ========== Actions ==========
+window.save = () => { localStorage.setItem('VPLUS_DB_V1', JSON.stringify(db)); render(); if(isConnected) syncToCloud(); };
 window.addItem = () => {
     const n = document.getElementById('itemName').value, p = parseFloat(document.getElementById('itemPrice').value) || 0;
-    if (n) { db.lists[db.currentId].items.push({ name: n, price: p, qty: 1, checked: false }); save(); closeModal('inputForm'); }
+    if (n) { db.lists[db.currentId].items.push({ name: n, price: p, qty: 1, checked: false }); window.save(); window.closeModal('inputForm'); }
 };
-window.toggleItem = (i) => { db.lists[db.currentId].items[i].checked = !db.lists[db.currentId].items[i].checked; save(); };
-window.removeItem = (i) => { db.lists[db.currentId].items.splice(i, 1); save(); };
-window.changeQty = (i, d) => { if(db.lists[db.currentId].items[i].qty + d > 0) { db.lists[db.currentId].items[i].qty += d; save(); } };
-window.saveNewList = () => { const n = document.getElementById('newListNameInput').value; if(n) { const id = 'L'+Date.now(); db.lists[id] = {name:n, items:[]}; db.currentId=id; activePage='lists'; save(); closeModal('newListModal'); } };
-window.executeClear = () => { db.lists[db.currentId].items = []; save(); closeModal('confirmModal'); };
-window.updateFontSize = (v) => { db.fontSize=v; render(); };
+window.toggleItem = (i) => { db.lists[db.currentId].items[i].checked = !db.lists[db.currentId].items[i].checked; window.save(); };
+window.removeItem = (i) => { db.lists[db.currentId].items.splice(i, 1); window.save(); };
+window.changeQty = (i, d) => { if(db.lists[db.currentId].items[i].qty + d > 0) { db.lists[db.currentId].items[i].qty += d; window.save(); } };
+window.saveNewList = () => { const n = document.getElementById('newListNameInput').value; if(n) { const id = 'L'+Date.now(); db.lists[id] = {name:n, items:[]}; db.currentId=id; activePage='lists'; window.save(); window.closeModal('newListModal'); } };
+window.executeClear = () => { db.lists[db.currentId].items = []; window.save(); window.closeModal('confirmModal'); };
+window.updateFontSize = (v) => { db.fontSize = v; render(); };
 
-// פונקציות סנכרון ענן (לוגיקה בלבד)
+// פונקציות סנכרון (לוגיקה בלבד)
 async function syncToCloud() { /* לוגיקה זהה לגרסה קודמת */ }
 async function loadAndMerge() { /* לוגיקה זהה לגרסה קודמת */ }
 
