@@ -58,30 +58,6 @@ function toggleBottomBar() {
     localStorage.setItem('BUDGET_FINAL_V27', JSON.stringify(db));
 }
 
-// ========== אתחול הגדרות בטעינת הדף ==========
-window.addEventListener('DOMContentLoaded', () => {
-    // שחזור גודל טקסט
-    if (db.fontSize) {
-        document.body.style.fontSize = db.fontSize + 'px';
-    }
-    
-    // שחזור מצב בר תחתון
-    if (db.bottomBarCollapsed) {
-        const bar = document.querySelector('.bottom-bar');
-        const content = document.getElementById('bottomBarContent');
-        if (bar && content) {
-            bar.classList.add('collapsed');
-            content.style.display = 'none';
-        }
-    }
-    
-    // עדכון ערך הסליידר כשנפתח המודל
-    setTimeout(() => {
-        const slider = document.getElementById('fontSizeSlider');
-        if (slider) slider.value = db.fontSize || 16;
-    }, 100);
-});
-
 function save() { 
     db.lastActivePage = activePage;
     db.lastSync = Date.now();
@@ -318,7 +294,6 @@ function prepareDeleteList(id) {
     openModal('deleteListModal'); 
 }
 
-// ========== ייבוא טקסט ==========
 function importFromText() {
     const text = document.getElementById('importText').value.trim();
     if (!text) {
@@ -702,4 +677,25 @@ async function syncToCloud() {
         const dataToSave = JSON.stringify(db);
 
         if (fileId) {
-            await fetch(`https://www.googleapis.com/uploa
+            await fetch(`https://www.googleapis.com/upload/drive/v3/files/${fileId}?uploadType=media`, {
+                method: 'PATCH',
+                headers: {
+                    'Authorization': `Bearer ${accessToken}`,
+                    'Content-Type': 'application/json'
+                },
+                body: dataToSave
+            });
+            driveFileId = fileId;
+        } else {
+            const metadata = {
+                name: FILE_NAME,
+                parents: [folderId]
+            };
+
+            const form = new FormData();
+            form.append('metadata', new Blob([JSON.stringify(metadata)], { type: 'application/json' }));
+            form.append('file', new Blob([dataToSave], { type: 'application/json' }));
+
+            const response = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id', {
+                method: 'POST',
+                headers: {
