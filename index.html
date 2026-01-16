@@ -20,13 +20,13 @@
       }
     </script>
 </head>
-<body class="bg-gray-50 pb-40 transition-colors duration-300">
+<body>
 
-    <div class="app-header no-print flex justify-between items-center p-4 bg-white shadow-sm sticky top-0 z-50">
+    <div class="app-header no-print">
         <h1 class="font-bold text-2xl" style="direction: ltr;"><span style="color: #22c55e !important;">V</span><span class="text-indigo-600">plus</span></h1>
         
-        <div class="header-controls flex gap-2">
-            <button id="cloudBtn" onclick="handleCloudClick()" class="bg-indigo-50 text-indigo-600 px-3 py-2 rounded-xl font-bold flex items-center gap-2 border-none cursor-pointer hover:bg-indigo-100 transition-all">
+        <div class="header-controls">
+            <button id="cloudBtn" onclick="handleCloudClick()" style="border:none; cursor:pointer;" class="bg-indigo-50 text-indigo-600 px-3 py-2 rounded-xl font-bold flex items-center gap-2">
                 <div id="cloudIndicator" class="w-2 h-2 rounded-full bg-gray-300"></div>
                 <span>סנכרון</span>
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M3 15a4 4 0 004 4h9a5 5 0 10-.1-9.999 5.002 5.002 0 10-9.78 2.096A4.001 4.001 0 003 15z" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg>
@@ -41,37 +41,33 @@
     <div id="pageLists" class="px-4 pt-4">
         <div class="flex justify-between items-center mb-6">
             <div class="flex flex-col">
-                <h2 id="listNameDisplay" onclick="openModal('editListNameModal')" class="text-3xl font-black text-gray-800 cursor-pointer">הרשימה שלי</h2>
+                <h2 id="listNameDisplay" onclick="openModal('editListNameModal')" class="text-3xl font-black text-gray-800">הרשימה שלי</h2>
                 <span id="statusTag" class="text-sm font-bold text-gray-400 mt-1">פתוח לעריכה</span>
             </div>
             <div class="flex gap-2">
                 <button onclick="openModal('newListModal')" class="bg-indigo-600 text-white px-4 py-2 rounded-xl font-bold shadow-lg shadow-indigo-100">+ רשימה חדשה</button>
-                <button onclick="openModal('importModal')" class="bg-green-500 text-white px-3 py-2 rounded-xl font-bold flex items-center gap-1 shadow-md">
-                    📥 ייבוא
-                </button>
+                <button onclick="openModal('importModal')" class="bg-green-500 text-white px-3 py-2 rounded-xl font-bold flex items-center gap-1 shadow-md">📥 ייבוא</button>
             </div>
         </div>
 
-        <div id="itemsContainer" class="space-y-3">
-            </div>
+        <div id="itemsContainer"></div>
     </div>
 
     <div id="pageSummary" class="hidden px-4 pt-4">
         <div class="flex justify-between items-center mb-6">
             <h2 class="text-3xl font-black text-gray-800">סיכום רשימות</h2>
-            <div class="flex items-center gap-2 bg-white px-3 py-2 rounded-xl shadow-sm">
+            <div class="flex items-center gap-2 bg-white px-3 py-2 rounded-xl shadow-sm select-all-container">
                 <input type="checkbox" id="selectAllCheckbox" onchange="toggleSelectAll(this.checked)" class="w-5 h-5 accent-indigo-600">
-                <label for="selectAllCheckbox" class="font-bold text-gray-600 text-sm">בחר הכל</label>
+                <label for="selectAllCheckbox" id="selectAllLabel" class="font-bold text-gray-600 text-sm">בחר הכל</label>
             </div>
         </div>
-        <div id="summaryContainer" class="space-y-3">
-            </div>
+        <div id="summaryContainer"></div>
     </div>
 
     <div class="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 p-4 pb-8 z-50 no-print shadow-2xl">
         <div class="max-w-md mx-auto">
             <div class="flex justify-between items-end mb-4 px-2">
-                <div class="flex flex-col text-right">
+                <div class="flex flex-col">
                     <span class="text-gray-400 text-xs font-bold mb-1">סה"כ לתשלום</span>
                     <span class="text-3xl font-black text-indigo-600">₪<span id="displayTotal">0</span></span>
                 </div>
@@ -79,7 +75,7 @@
                     <span class="text-gray-400 text-xs font-bold mb-1">שולם</span>
                     <span class="text-xl font-bold text-green-500">₪<span id="displayPaid">0</span></span>
                 </div>
-                <div class="flex flex-col items-start">
+                <div class="flex flex-col items-end">
                     <span class="text-gray-400 text-xs font-bold mb-1">נותר</span>
                     <span class="text-xl font-bold text-orange-500">₪<span id="displayLeft">0</span></span>
                 </div>
@@ -87,69 +83,43 @@
 
             <div class="flex items-center gap-3">
                 <div class="flex bg-gray-100 p-1.5 rounded-2xl flex-1 items-center">
-                    <button id="tabLists" onclick="showPage('lists')" class="tab-btn flex-1 py-3 rounded-xl font-bold text-sm transition-all duration-300 tab-active">הרשימה שלי</button>
+                    <button id="tabLists" onclick="showPage('lists')" class="tab-btn flex-1 py-3 rounded-xl font-bold text-sm transition-all duration-300">הרשימה שלי</button>
                     <button id="tabSummary" onclick="showPage('summary')" class="tab-btn flex-1 py-3 rounded-xl font-bold text-sm transition-all duration-300">סיכום</button>
                 </div>
                 
-                <button onclick="toggleLock()" id="mainLockBtn" class="bottom-circle-btn bg-indigo-600 text-white p-4 rounded-2xl shadow-lg transition-all active:scale-95">
+                <button onclick="toggleLock()" id="mainLockBtn" class="bottom-circle-btn bg-indigo-600 text-white p-4 rounded-2xl shadow-lg">
                     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path id="lockIconPath" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg>
                 </button>
 
-                <button onclick="openModal('inputForm')" class="bottom-circle-btn bg-green-500 text-white p-4 rounded-2xl shadow-lg transition-all active:scale-95">
+                <button onclick="openModal('inputForm')" class="bottom-circle-btn bg-green-500 text-white p-4 rounded-2xl shadow-lg">
                     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M12 4v16m8-8H4" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg>
                 </button>
             </div>
         </div>
     </div>
 
-    <div id="inputForm" class="modal-overlay no-print fixed inset-0 bg-black/50 hidden items-center justify-center z-[100] px-4">
-        <div class="edit-modal bg-white w-full max-w-sm p-6 rounded-3xl shadow-2xl">
-            <h2 class="text-xl font-bold mb-4 text-gray-800">הוספת מוצר</h2>
-            <input type="text" id="itemName" placeholder="שם המוצר" class="w-full p-4 bg-gray-50 border-none rounded-xl mb-3 text-lg font-bold outline-none focus:ring-2 ring-indigo-100">
-            <input type="number" id="itemPrice" placeholder="מחיר ליחידה (₪)" class="w-full p-4 bg-gray-50 border-none rounded-xl mb-6 text-lg font-bold outline-none focus:ring-2 ring-indigo-100">
-            <div class="flex gap-3">
-                <button onclick="addItem()" class="flex-1 bg-indigo-600 text-white py-4 rounded-xl font-bold text-lg active:scale-95 transition-transform">הוסף</button>
-                <button onclick="closeModal('inputForm')" class="flex-1 bg-gray-100 text-gray-500 py-4 rounded-xl font-bold text-lg active:scale-95 transition-transform">ביטול</button>
-            </div>
-        </div>
-    </div>
+    <div id="inputForm" class="modal-overlay no-print"><div class="edit-modal"><h2 class="text-xl font-bold mb-4">הוספת מוצר</h2><input type="text" id="itemName" placeholder="שם המוצר" class="w-full p-4 bg-gray-50 border-none rounded-xl mb-3 text-lg font-bold outline-none"><input type="number" id="itemPrice" placeholder="מחיר ליחידה (₪)" class="w-full p-4 bg-gray-50 border-none rounded-xl mb-6 text-lg font-bold outline-none"><div class="flex gap-3"><button onclick="addItem()" class="flex-1 bg-indigo-600 text-white py-4 rounded-xl font-bold text-lg">הוסף</button><button onclick="closeModal('inputForm')" class="flex-1 bg-gray-100 text-gray-500 py-4 rounded-xl font-bold text-lg">ביטול</button></div></div></div>
 
-    <div id="settingsModal" class="modal-overlay fixed inset-0 bg-black/50 hidden items-center justify-center z-[100] px-4">
-        <div class="edit-modal bg-white w-full max-w-sm p-6 rounded-3xl shadow-2xl">
-            <h2 class="text-xl font-bold mb-6 text-gray-800">הגדרות</h2>
-            <div class="mb-6 p-4 bg-gray-50 rounded-xl text-right">
+    <div id="settingsModal" class="modal-overlay no-print">
+        <div class="edit-modal">
+            <h2 class="text-xl font-bold mb-6">הגדרות</h2>
+            <div class="mb-6 p-4 bg-gray-50 rounded-xl">
                 <label class="block text-sm font-bold text-gray-500 mb-2">גודל טקסט מוצרים</label>
-                <input type="range" id="fontSizeSlider" min="14" max="32" value="18" style="width: 100%; accent-color: #7367f0;" oninput="updateFontSize(this.value)">
-                <div class="text-xs text-gray-400 mt-2 text-center">גודל: <span id="fontSizeValue">18</span>px</div>
+                <input type="range" id="fontSizeSlider" min="12" max="30" value="16" style="width: 100%; accent-color: #7367f0;" oninput="updateFontSize(this.value)">
+                <div style="font-size: 0.75rem; color: #6b7280; margin-top: 0.25rem; text-align: center;">גודל נוכחי: <span id="fontSizeValue">16</span>px</div>
             </div>
-            <div class="space-y-3">
-                <button onclick="toggleDarkMode()" class="w-full bg-gray-100 text-gray-700 py-4 rounded-xl font-bold flex items-center justify-center gap-2">
-                    מצב לילה 🌙
-                </button>
-                <button onclick="closeModal('settingsModal')" class="w-full py-4 text-gray-400 font-bold">סגור</button>
-            </div>
+            <button onclick="toggleDarkMode()" class="w-full bg-indigo-50 text-indigo-600 py-4 rounded-xl font-bold mb-4">מצב לילה 🌙</button>
+            <button onclick="preparePrint()" class="w-full bg-orange-500 text-white py-4 rounded-xl font-bold">הדפס PDF 🖨️</button>
+            <button onclick="closeModal('settingsModal')" class="mt-4 text-gray-400 block w-full">סגור</button>
         </div>
     </div>
 
-    <div id="newListModal" class="modal-overlay fixed inset-0 bg-black/50 hidden items-center justify-center z-[100] px-4">
-        <div class="edit-modal bg-white w-full max-w-sm p-6 rounded-3xl shadow-2xl text-right">
-            <h2 class="text-xl font-bold mb-4 text-gray-800">רשימה חדשה</h2>
-            <input type="text" id="newListNameInput" placeholder="שם הרשימה..." class="w-full p-4 bg-gray-50 rounded-xl mb-4 font-bold outline-none border-2 border-transparent focus:border-indigo-600">
-            <button onclick="saveNewList()" class="w-full bg-indigo-600 text-white py-4 rounded-xl font-bold text-lg active:scale-95 transition-transform">צור רשימה</button>
-        </div>
-    </div>
-
-    <div id="editListNameModal" class="modal-overlay fixed inset-0 bg-black/50 hidden items-center justify-center z-[100] px-4">
-        <div class="edit-modal bg-white w-full max-w-sm p-6 rounded-3xl shadow-2xl text-right">
-            <h2 class="text-xl font-bold mb-4 text-gray-800">ערוך שם רשימה</h2>
-            <input type="text" id="editListNameInput" class="w-full p-4 bg-gray-50 rounded-xl mb-4 font-bold outline-none border-2 border-transparent focus:border-indigo-600">
-            <button onclick="saveListName()" class="w-full bg-indigo-600 text-white py-4 rounded-xl font-bold text-lg active:scale-95 transition-transform">שמור</button>
-        </div>
-    </div>
+    <div id="newListModal" class="modal-overlay"><div class="edit-modal"><h2 class="mb-4">רשימה חדשה</h2><input type="text" id="newListNameInput" placeholder="שם הרשימה..." class="w-full p-4 bg-gray-100 rounded-xl mb-4 font-bold outline-none"><button onclick="saveNewList()" class="w-full bg-indigo-600 text-white py-4 rounded-xl font-bold">צור רשימה</button></div></div>
+    <div id="editListNameModal" class="modal-overlay"><div class="edit-modal"><h2 class="mb-4">ערוך שם רשימה</h2><input type="text" id="editListNameInput" class="w-full p-4 bg-gray-100 rounded-xl mb-4 font-bold outline-none border-2 border-indigo-100"><button onclick="saveListName()" class="w-full bg-indigo-600 text-white py-4 rounded-xl font-bold">שמור</button></div></div>
+    <div id="importModal" class="modal-overlay"><div class="edit-modal"><h2 class="mb-4">ייבוא רשימה</h2><textarea id="importText" placeholder="הדבק כאן רשימה (כל מוצר בשורה חדשה)..." class="w-full p-4 bg-gray-100 rounded-xl mb-4 h-40 font-bold outline-none"></textarea><button onclick="importFromText()" class="w-full bg-green-500 text-white py-4 rounded-xl font-bold">ייבא מוצרים</button><button onclick="closeModal('importModal')" class="mt-4 text-gray-400 block w-full">ביטול</button></div></div>
 
     <script src="script.js"></script>
     <script async defer src="https://apis.google.com/js/api.js" onload="gapiLoaded()"></script>
     <script async defer src="https://accounts.google.com/gsi/client" onload="gisLoaded()"></script>
-
 </body>
 </html>
