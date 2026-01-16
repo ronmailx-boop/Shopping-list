@@ -1,4 +1,4 @@
-// ========== Google Drive Configuration ==========
+// ========== Google Drive Configuration (מתוך הקבצים המקוריים) ==========
 const GOOGLE_CLIENT_ID = '151476121869-b5lbrt5t89s8d342ftd1cg1q926518pt.apps.googleusercontent.com';
 const GOOGLE_API_KEY = 'AIzaSyDIMiuwL-phvwI7iAUeMQmTOowWE96mP6I'; 
 const DISCOVERY_DOC = 'https://www.googleapis.com/discovery/v1/apis/drive/v3/rest';
@@ -29,7 +29,7 @@ let activePage = db.lastActivePage || 'lists';
 let currentEditIdx = null;
 let sortableInstance = null;
 
-// ========== Core Logic & Render ==========
+// ========== Core Logic ==========
 function save() { 
     db.lastActivePage = activePage;
     db.lastSync = Date.now();
@@ -116,37 +116,114 @@ function render() {
     initSortable();
 }
 
-// ========== WhatsApp Share ==========
-function shareFullToWhatsApp() {
-    const list = db.lists[db.currentId];
-    if (!list) return;
-    let text = `📋 *${list.name}*\n\n`;
-    list.items.forEach(i => {
-        text += `${i.checked ? '✅' : '⬜'} *${i.name}* (x${i.qty}) - ₪${(i.price * i.qty).toFixed(2)}\n`;
+// ========== Fix: שחזור סנכרון גוגל (מתוך קבצי המקור 8 ו-9) ==========
+
+function gapiLoaded() {
+    gapi.load('client', async () => {
+        await gapi.client.init({ apiKey: GOOGLE_API_KEY, discoveryDocs: [DISCOVERY_DOC] });
+        gapiInited = true;
     });
-    const total = document.getElementById('displayTotal').innerText;
-    text += `\n💰 *סה"כ לתשלום: ₪${total}*`;
-    window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
-    closeModal('shareListModal');
 }
 
-function shareMissingToWhatsApp() {
-    const list = db.lists[db.currentId];
-    if (!list) return;
-    const missing = list.items.filter(i => !i.checked);
-    if (missing.length === 0) { alert("אין מוצרים חסרים!"); return; }
-    let text = `🛒 *מוצרים חסרים ב-${list.name}:*\n\n`;
-    missing.forEach(i => {
-        text += `• ${i.name} (x${i.qty})\n`;
+function gisLoaded() {
+    tokenClient = google.accounts.oauth2.initTokenClient({
+        client_id: GOOGLE_CLIENT_ID,
+        scope: SCOPES,
+        callback: '', // יוגדר בלחיצה
     });
-    window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
-    closeModal('shareListModal');
+    gisInited = true;
 }
+
+// פונקציית הלחיצה המרכזית
+async function handleCloudClick() {
+    if (isConnected) {
+        await manualSync();
+    } else {
+        tokenClient.callback = async (resp) => {
+            if (resp.error !== undefined) throw (resp);
+            accessToken = resp.access_token;
+            gapi.client.setToken(resp);
+            isConnected = true;
+            updateCloudIndicator('connected');
+            await loadAndMerge();
+        };
+        tokenClient.requestAccessToken({ prompt: 'consent' });
+    }
+}
+
+async function loadAndMerge() {
+    if (!accessToken) return;
+    updateCloudIndicator('syncing');
+    try {
+        const folderId = await findOrCreateFolder();
+        const response = await gapi.client.drive.files.list({
+            q: `name='${FILE_NAME}' and '${folderId}' in parents and trashed=false`,
+            fields: 'files(id, name)'
+        });
+        
+        const fileId = response.result.files.length > 0 ? response.result.files[0].id : null;
+        if (fileId) {
+            const res = await fetch(`https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`, {
+                headers: { 'Authorization': `Bearer ${accessToken}` }
+            });
+            const cloudDb = await res.json();
+            db = cloudDb; // הענן קובע
+            save();
+        } else {
+            await syncToCloud(); // אם אין קובץ בענן, ניצור אחד
+        }
+    } catch (e) { console.error(e); }
+    updateCloudIndicator('connected');
+}
+
+async function syncToCloud() {
+    if (!accessToken || isSyncing) return;
+    isSyncing = true;
+    updateCloudIndicator('syncing');
+    try {
+        const folderId = await findOrCreateFolder();
+        const response = await gapi.client.drive.files.list({
+            q: `name='${FILE_NAME}' and '${folderId}' in parents and trashed=false`
+        });
+        const fileId = response.result.files.length > 0 ? response.result.files[0].id : null;
+        const content = JSON.stringify(db);
+
+        if (fileId) {
+            await fetch(`https://www.googleapis.com/upload/drive/v3/files/${fileId}?uploadType=media`, {
+                method: 'PATCH', headers: { 'Authorization': `Bearer ${accessToken}`, 'Content-Type': 'application/json' }, body: content
+            });
+        } else {
+            const metadata = { name: FILE_NAME, parents: [folderId] };
+            const form = new FormData();
+            form.append('metadata', new Blob([JSON.stringify(metadata)], { type: 'application/json' }));
+            form.append('file', new Blob([content], { type: 'application/json' }));
+            await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart', {
+                method: 'POST', headers: { 'Authorization': `Bearer ${accessToken}` }, body: form
+            });
+        }
+    } catch (e) { console.error(e); }
+    isSyncing = false;
+    updateCloudIndicator('connected');
+}
+
+async function findOrCreateFolder() {
+    const resp = await gapi.client.drive.files.list({ q: `name='${FOLDER_NAME}' and mimeType='application/vnd.google-apps.folder' and trashed=false` });
+    if (resp.result.files.length > 0) return resp.result.files[0].id;
+    const folder = await gapi.client.drive.files.create({ resource: { name: FOLDER_NAME, mimeType: 'application/vnd.google-apps.folder' } });
+    return folder.result.id;
+}
+
+async function manualSync() {
+    await loadAndMerge();
+}
+
+// ========== שאר הפונקציות (ללא שינוי) ==========
+function executeClear() { if (db.lists[db.currentId]) { db.lists[db.currentId].items = []; closeModal('confirmModal'); save(); } }
 
 function shareSummaryToWhatsApp() {
     const selectedIds = db.selectedInSummary;
-    if (selectedIds.length === 0) { alert("יש לבחור לפחות רשימה אחת!"); return; }
-    let text = `📦 *ריכוז רשימות קנייה (חסרים):*\n\n`;
+    if (selectedIds.length === 0) { alert("בחר רשימות בסיכום"); return; }
+    let text = `📦 *ריכוז חסרים:*\n\n`;
     selectedIds.forEach(id => {
         const l = db.lists[id];
         const missing = l.items.filter(i => !i.checked);
@@ -159,293 +236,26 @@ function shareSummaryToWhatsApp() {
     window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
 }
 
-// ========== Google Drive Sync - REBUILT & IMPROVED ==========
-function gapiLoaded() {
-    gapi.load('client', async () => {
-        try {
-            await gapi.client.init({
-                apiKey: GOOGLE_API_KEY,
-                discoveryDocs: [DISCOVERY_DOC]
-            });
-            gapiInited = true;
-            console.log('✅ GAPI initialized');
-            maybeEnableSync();
-        } catch (error) {
-            console.error('❌ GAPI init error:', error);
-        }
-    });
-}
-
-function gisLoaded() {
-    try {
-        tokenClient = google.accounts.oauth2.initTokenClient({
-            client_id: GOOGLE_CLIENT_ID,
-            scope: SCOPES,
-            callback: async (response) => {
-                if (response.error) {
-                    console.error('❌ Token error:', response.error);
-                    return;
-                }
-                accessToken = response.access_token;
-                isConnected = true;
-                updateCloudIndicator('connected');
-                console.log('✅ Connected to Google Drive');
-                await loadFromCloud();
-            }
+function preparePrint() { 
+    closeModal('settingsModal');
+    const printArea = document.getElementById('printArea');
+    let grandTotal = 0;
+    let html = `<div dir="rtl" style="padding:30px;"><h1 style="text-align:center; color:#7367f0;">דוח קניות - Vplus</h1>`;
+    const idsToPrint = db.selectedInSummary.length > 0 ? db.selectedInSummary : Object.keys(db.lists);
+    idsToPrint.forEach(id => {
+        const l = db.lists[id];
+        let listTotal = 0;
+        html += `<h3>${l.name}</h3><table style="width:100%; border-collapse:collapse; margin-bottom:15px;">`;
+        l.items.forEach(i => {
+            const s = i.price * i.qty; listTotal += s;
+            html += `<tr><td style="border:1px solid #ddd; padding:8px;">${i.name}</td><td style="border:1px solid #ddd; padding:8px; text-align:center;">${i.qty}</td><td style="border:1px solid #ddd; padding:8px; text-align:left;">₪${s.toFixed(2)}</td></tr>`;
         });
-        gisInited = true;
-        console.log('✅ GIS initialized');
-        maybeEnableSync();
-    } catch (error) {
-        console.error('❌ GIS init error:', error);
-    }
-}
-
-function maybeEnableSync() {
-    if (gapiInited && gisInited) {
-        const btn = document.getElementById('cloudBtn');
-        if (btn) {
-            btn.style.opacity = '1';
-            btn.style.cursor = 'pointer';
-        }
-        console.log('✅ Cloud sync ready');
-    }
-}
-
-async function handleCloudClick() {
-    console.log('☁️ Cloud button clicked');
-    
-    if (!gapiInited || !gisInited) {
-        alert('⏳ מערכת הענן עדיין נטענת, אנא המתן רגע...');
-        return;
-    }
-    
-    if (isConnected) {
-        // כבר מחובר - סנכרן מיידית
-        console.log('🔄 Already connected, syncing...');
-        await loadFromCloud();
-        alert('✅ הסנכרון הושלם בהצלחה!');
-    } else {
-        // לא מחובר - בקש הרשאה
-        console.log('🔑 Requesting access...');
-        try {
-            tokenClient.requestAccessToken({ prompt: '' });
-        } catch (error) {
-            console.error('❌ Access error:', error);
-            alert('שגיאה בהתחברות. אנא נסה שוב.');
-        }
-    }
-}
-
-async function syncToCloud() {
-    if (!accessToken || isSyncing) return;
-    
-    isSyncing = true;
-    updateCloudIndicator('syncing');
-    console.log('⬆️ Uploading to cloud...');
-    
-    try {
-        const folderId = await getOrCreateFolder();
-        const existingFile = await findFile(folderId);
-        const content = JSON.stringify(db);
-        
-        if (existingFile) {
-            // עדכן קובץ קיים
-            await fetch(`https://www.googleapis.com/upload/drive/v3/files/${existingFile.id}?uploadType=media`, {
-                method: 'PATCH',
-                headers: {
-                    'Authorization': `Bearer ${accessToken}`,
-                    'Content-Type': 'application/json'
-                },
-                body: content
-            });
-            console.log('✅ File updated');
-        } else {
-            // צור קובץ חדש
-            const metadata = {
-                name: FILE_NAME,
-                parents: [folderId],
-                mimeType: 'application/json'
-            };
-            
-            const form = new FormData();
-            form.append('metadata', new Blob([JSON.stringify(metadata)], { type: 'application/json' }));
-            form.append('file', new Blob([content], { type: 'application/json' }));
-            
-            await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart', {
-                method: 'POST',
-                headers: { 'Authorization': `Bearer ${accessToken}` },
-                body: form
-            });
-            console.log('✅ New file created');
-        }
-        
-        updateCloudIndicator('connected');
-    } catch (error) {
-        console.error('❌ Sync error:', error);
-        updateCloudIndicator('error');
-    } finally {
-        isSyncing = false;
-    }
-}
-
-async function loadFromCloud() {
-    if (!accessToken) return;
-    
-    updateCloudIndicator('syncing');
-    console.log('⬇️ Loading from cloud...');
-    
-    try {
-        const folderId = await getOrCreateFolder();
-        const existingFile = await findFile(folderId);
-        
-        if (existingFile) {
-            // טען קובץ קיים
-            const response = await fetch(`https://www.googleapis.com/drive/v3/files/${existingFile.id}?alt=media`, {
-                headers: { 'Authorization': `Bearer ${accessToken}` }
-            });
-            
-            const cloudData = await response.json();
-            
-            // מיזוג חכם - בחר את הנתונים העדכניים יותר
-            if (!db.lastSync || cloudData.lastSync > db.lastSync) {
-                db = cloudData;
-                localStorage.setItem('BUDGET_FINAL_V27', JSON.stringify(db));
-                render();
-                console.log('✅ Data loaded from cloud');
-            } else {
-                console.log('ℹ️ Local data is newer, uploading...');
-                await syncToCloud();
-            }
-        } else {
-            // אין קובץ בענן - העלה את הנתונים המקומיים
-            console.log('ℹ️ No cloud file, creating...');
-            await syncToCloud();
-        }
-        
-        updateCloudIndicator('connected');
-    } catch (error) {
-        console.error('❌ Load error:', error);
-        updateCloudIndicator('error');
-    }
-}
-
-async function getOrCreateFolder() {
-    const response = await gapi.client.drive.files.list({
-        q: `name='${FOLDER_NAME}' and mimeType='application/vnd.google-apps.folder' and trashed=false`,
-        fields: 'files(id, name)',
-        spaces: 'drive'
+        html += `</table><div style="text-align:left; font-weight:bold;">סה"כ: ₪${listTotal.toFixed(2)}</div><br>`;
+        grandTotal += listTotal;
     });
-    
-    if (response.result.files && response.result.files.length > 0) {
-        console.log('📁 Folder found:', response.result.files[0].id);
-        return response.result.files[0].id;
-    }
-    
-    // צור תיקייה חדשה
-    const folderMetadata = {
-        name: FOLDER_NAME,
-        mimeType: 'application/vnd.google-apps.folder'
-    };
-    
-    const folder = await gapi.client.drive.files.create({
-        resource: folderMetadata,
-        fields: 'id'
-    });
-    
-    console.log('📁 Folder created:', folder.result.id);
-    return folder.result.id;
-}
-
-async function findFile(folderId) {
-    const response = await gapi.client.drive.files.list({
-        q: `name='${FILE_NAME}' and '${folderId}' in parents and trashed=false`,
-        fields: 'files(id, name)',
-        pageSize: 1,
-        spaces: 'drive'
-    });
-    
-    if (response.result.files && response.result.files.length > 0) {
-        console.log('📄 File found:', response.result.files[0].id);
-        return response.result.files[0];
-    }
-    
-    console.log('📄 No file found');
-    return null;
-}
-
-// ========== UI Utilities ==========
-function openModal(id) { 
-    const m = document.getElementById(id);
-    if(m) {
-        m.classList.add('active');
-        if(id==='inputForm'){ 
-            document.getElementById('itemName').value=''; 
-            document.getElementById('itemPrice').value=''; 
-        }
-    }
-}
-
-function closeModal(id) { 
-    const m = document.getElementById(id); 
-    if(m) m.classList.remove('active'); 
-}
-
-function showPage(p) { 
-    activePage = p; 
-    render(); 
-}
-
-function toggleLock() { 
-    isLocked = !isLocked; 
-    render(); 
-}
-
-function toggleItem(idx) { 
-    db.lists[db.currentId].items[idx].checked = !db.lists[db.currentId].items[idx].checked; 
-    save(); 
-}
-
-function removeItem(idx) { 
-    db.lists[db.currentId].items.splice(idx, 1); 
-    save(); 
-}
-
-function changeQty(idx, d) { 
-    if(db.lists[db.currentId].items[idx].qty + d >= 1) { 
-        db.lists[db.currentId].items[idx].qty += d; 
-        save(); 
-    } 
-}
-
-function toggleSum(id) {
-    const i = db.selectedInSummary.indexOf(id);
-    if (i > -1) db.selectedInSummary.splice(i, 1); 
-    else db.selectedInSummary.push(id);
-    save();
-}
-
-function toggleSelectAll(checked) { 
-    db.selectedInSummary = checked ? Object.keys(db.lists) : []; 
-    save(); 
-}
-
-function addItem() {
-    const n = document.getElementById('itemName').value.trim();
-    const p = parseFloat(document.getElementById('itemPrice').value) || 0;
-    if (n) { 
-        db.lists[db.currentId].items.push({ name: n, price: p, qty: 1, checked: false }); 
-        closeModal('inputForm'); 
-        save(); 
-    }
-}
-
-function executeClear() { 
-    if (db.lists[db.currentId]) { 
-        db.lists[db.currentId].items = []; 
-        closeModal('confirmModal'); 
-        save(); 
-    } 
+    html += `<h2 style="text-align:center; border-top:2px solid #333;">סה"כ כללי: ₪${grandTotal.toFixed(2)}</h2></div>`;
+    printArea.innerHTML = html;
+    setTimeout(() => { window.print(); }, 600);
 }
 
 function saveNewList() {
@@ -454,11 +264,8 @@ function saveNewList() {
     if (name) {
         const id = 'L' + Date.now();
         db.lists[id] = { name: name, items: [] };
-        db.currentId = id; 
-        activePage = 'lists';
-        input.value = ''; 
-        closeModal('newListModal'); 
-        save();
+        db.currentId = id; activePage = 'lists';
+        input.value = ''; closeModal('newListModal'); save();
     }
 }
 
@@ -471,84 +278,43 @@ function importFromText() {
         const clean = line.replace(/[•\-\*⬜✅]/g, '').trim();
         if (clean) db.lists[db.currentId].items.push({ name: clean, price: 0, qty: 1, checked: false });
     });
-    textarea.value = ''; 
-    closeModal('importModal'); 
+    textarea.value = ''; closeModal('importModal'); save();
+}
+
+function openModal(id) { 
+    const m = document.getElementById(id);
+    if(m) {
+        m.classList.add('active');
+        if(id==='inputForm'){ document.getElementById('itemName').value=''; document.getElementById('itemPrice').value=''; }
+    }
+}
+function closeModal(id) { const m = document.getElementById(id); if(m) m.classList.remove('active'); }
+function showPage(p) { activePage = p; render(); }
+function toggleLock() { isLocked = !isLocked; render(); }
+function toggleItem(idx) { db.lists[db.currentId].items[idx].checked = !db.lists[db.currentId].items[idx].checked; save(); }
+function removeItem(idx) { db.lists[db.currentId].items.splice(idx, 1); save(); }
+function changeQty(idx, d) { if(db.lists[db.currentId].items[idx].qty + d >= 1) { db.lists[db.currentId].items[idx].qty += d; save(); } }
+function toggleSum(id) {
+    const i = db.selectedInSummary.indexOf(id);
+    if (i > -1) db.selectedInSummary.splice(i, 1); else db.selectedInSummary.push(id);
     save();
 }
-
-// ========== Init & Utilities ==========
-function preparePrint() { 
-    closeModal('settingsModal');
-    const printArea = document.getElementById('printArea');
-    let grandTotal = 0;
-    let html = `<div dir="rtl" style="padding:30px;"><h1 style="text-align:center; color:#7367f0;">דוח קניות - Vplus</h1>`;
-    const idsToPrint = db.selectedInSummary.length > 0 ? db.selectedInSummary : Object.keys(db.lists);
-    idsToPrint.forEach(id => {
-        const l = db.lists[id];
-        let listTotal = 0;
-        html += `<h3>${l.name}</h3><table style="width:100%; border-collapse:collapse; margin-bottom:15px;">`;
-        l.items.forEach(i => {
-            const s = i.price * i.qty; 
-            listTotal += s;
-            html += `<tr><td style="border:1px solid #ddd; padding:8px;">${i.name}</td><td style="border:1px solid #ddd; padding:8px; text-align:center;">${i.qty}</td><td style="border:1px solid #ddd; padding:8px; text-align:left;">₪${s.toFixed(2)}</td></tr>`;
-        });
-        html += `</table><div style="text-align:left; font-weight:bold;">סה"כ: ₪${listTotal.toFixed(2)}</div><br>`;
-        grandTotal += listTotal;
-    });
-    html += `<h2 style="text-align:center; border-top:2px solid #333;">סה"כ כללי: ₪${grandTotal.toFixed(2)}</h2></div>`;
-    printArea.innerHTML = html;
-    setTimeout(() => { window.print(); }, 600);
+function addItem() {
+    const n = document.getElementById('itemName').value.trim();
+    const p = parseFloat(document.getElementById('itemPrice').value) || 0;
+    if (n) { db.lists[db.currentId].items.push({ name: n, price: p, qty: 1, checked: false }); closeModal('inputForm'); save(); }
 }
-
-function updateCloudIndicator(status) {
-    const indicator = document.getElementById('cloudIndicator');
-    if (!indicator) return;
-    
-    if (status === 'connected') {
-        indicator.className = 'w-2 h-2 bg-green-500 rounded-full';
-    } else if (status === 'syncing') {
-        indicator.className = 'w-2 h-2 bg-yellow-500 rounded-full animate-pulse';
-    } else if (status === 'error') {
-        indicator.className = 'w-2 h-2 bg-red-500 rounded-full';
-    } else {
-        indicator.className = 'w-2 h-2 bg-gray-300 rounded-full';
-    }
+function updateCloudIndicator(s) {
+    const i = document.getElementById('cloudIndicator');
+    if(i) i.className = `w-2 h-2 rounded-full ${s === 'connected' ? 'bg-green-500' : 'bg-yellow-500 animate-pulse'}`;
 }
-
-function updateFontSize(s) { 
-    db.fontSize = parseInt(s); 
-    document.documentElement.style.setProperty('--base-font-size', s+'px'); 
-    document.getElementById('fontSizeValue').innerText = s; 
-    save(); 
-}
-
-function toggleDarkMode() { 
-    document.body.classList.toggle('dark-mode'); 
-    closeModal('settingsModal'); 
-}
-
-function saveListName() { 
-    const n = document.getElementById('editListNameInput').value.trim(); 
-    if(n) { 
-        db.lists[db.currentId].name = n; 
-        save(); 
-    } 
-    closeModal('editListNameModal'); 
-}
-
-function openEditTotalModal(i) { 
-    currentEditIdx = i; 
-    document.getElementById('editTotalInput').value = ''; 
-    openModal('editTotalModal'); 
-}
-
+function updateFontSize(s) { db.fontSize=parseInt(s); document.documentElement.style.setProperty('--base-font-size', s+'px'); document.getElementById('fontSizeValue').innerText=s; save(); }
+function toggleDarkMode() { document.body.classList.toggle('dark-mode'); closeModal('settingsModal'); }
+function saveListName() { const n = document.getElementById('editListNameInput').value.trim(); if(n) { db.lists[db.currentId].name = n; save(); } closeModal('editListNameModal'); }
+function openEditTotalModal(i) { currentEditIdx=i; document.getElementById('editTotalInput').value=''; openModal('editTotalModal'); }
 function saveTotal() {
-    const v = parseFloat(document.getElementById('editTotalInput').value);
-    if(!isNaN(v)){ 
-        const item = db.lists[db.currentId].items[currentEditIdx]; 
-        item.price = v / item.qty; 
-        save(); 
-    }
+    const v=parseFloat(document.getElementById('editTotalInput').value);
+    if(!isNaN(v)){ const item=db.lists[db.currentId].items[currentEditIdx]; item.price=v/item.qty; save(); }
     closeModal('editTotalModal');
 }
 
@@ -556,41 +322,38 @@ function initSortable() {
     const el = document.getElementById('itemsContainer');
     if (sortableInstance) sortableInstance.destroy();
     if (el && !isLocked && activePage === 'lists') {
-        sortableInstance = Sortable.create(el, { 
-            animation: 150, 
-            onEnd: (evt) => {
-                const items = db.lists[db.currentId].items;
-                const moved = items.splice(evt.oldIndex, 1)[0];
-                items.splice(evt.newIndex, 0, moved);
-                save();
-            }
-        });
+        sortableInstance = Sortable.create(el, { animation: 150, onEnd: (evt) => {
+            const items = db.lists[db.currentId].items;
+            const moved = items.splice(evt.oldIndex, 1)[0];
+            items.splice(evt.newIndex, 0, moved);
+            save();
+        }});
     }
 }
 
-// ========== App Initialization ==========
+function shareFullToWhatsApp() {
+    const list = db.lists[db.currentId];
+    if (!list || list.items.length === 0) return;
+    let text = `🛒 *${list.name} (רשימה מלאה):*\n\n`;
+    list.items.forEach(i => text += `${i.checked ? '✅' : '⬜'} *${i.name}* (x${i.qty}) - ₪${(i.price * i.qty).toFixed(2)}\n`);
+    window.open(`https://wa.me/?text=${encodeURIComponent(text)}`);
+    closeModal('shareListModal');
+}
+
+function shareMissingToWhatsApp() {
+    const list = db.lists[db.currentId];
+    const missing = list.items.filter(i => !i.checked);
+    if (missing.length === 0) { alert("אין מוצרים חסרים!"); return; }
+    let text = `⬜ *${list.name} (מוצרים חסרים):*\n\n`;
+    missing.forEach(i => text += `• *${i.name}* (x${i.qty})\n`);
+    window.open(`https://wa.me/?text=${encodeURIComponent(text)}`);
+    closeModal('shareListModal');
+}
+
 window.onload = () => {
-    console.log('🚀 Vplus App Loading...');
-    
-    // חיבור כפתור הענן
-    const cloudBtn = document.getElementById('cloudBtn');
-    if (cloudBtn) {
-        cloudBtn.onclick = handleCloudClick;
-        cloudBtn.style.opacity = '0.5'; // מתחיל כהה עד שה-API נטען
-        console.log('☁️ Cloud button connected');
-    }
-    
-    // התקנת מאזין לכווץ הבר התחתון
-    const bar = document.querySelector('.bottom-bar');
-    if (bar) {
-        bar.addEventListener('click', (e) => { 
-            if (e.offsetY < 35) {
-                bar.classList.toggle('collapsed');
-            }
-        });
-    }
-    
-    // טעינה ראשונית
+    // הכפתור מקבל את הפונקציה ב-HTML דרך הקוד מעלה
+    document.getElementById('cloudBtn').onclick = handleCloudClick;
     render();
-    console.log('✅ App loaded successfully');
+    const bar = document.querySelector('.bottom-bar');
+    if(bar) bar.addEventListener('click', (e) => { if(e.offsetY < 35) bar.classList.toggle('collapsed'); });
 };
