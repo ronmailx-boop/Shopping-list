@@ -21,9 +21,7 @@ let db = JSON.parse(localStorage.getItem('BUDGET_FINAL_V27')) || {
     selectedInSummary: [], 
     lists: { 'L1': { name: 'הרשימה שלי', items: [] } },
     lastActivePage: 'lists',
-    lastSync: 0,
-    fontSize: 16,
-    bottomBarCollapsed: false
+    lastSync: 0
 };
 
 let isLocked = true;
@@ -31,32 +29,6 @@ let activePage = db.lastActivePage || 'lists';
 let currentEditIdx = null;
 let listToDelete = null;
 let sortableInstance = null;
-
-// ========== פונקציית שינוי גודל טקסט ==========
-function changeFontSize(size) {
-    db.fontSize = parseInt(size);
-    document.body.style.fontSize = size + 'px';
-    localStorage.setItem('BUDGET_FINAL_V27', JSON.stringify(db));
-}
-
-// ========== פונקציית כיווץ/הרחבת בר תחתון ==========
-function toggleBottomBar() {
-    db.bottomBarCollapsed = !db.bottomBarCollapsed;
-    const bar = document.querySelector('.bottom-bar');
-    const content = document.getElementById('bottomBarContent');
-    
-    if (bar && content) {
-        if (db.bottomBarCollapsed) {
-            bar.classList.add('collapsed');
-            content.style.display = 'none';
-        } else {
-            bar.classList.remove('collapsed');
-            content.style.display = 'block';
-        }
-    }
-    
-    localStorage.setItem('BUDGET_FINAL_V27', JSON.stringify(db));
-}
 
 function save() { 
     db.lastActivePage = activePage;
@@ -114,10 +86,6 @@ function openModal(id) {
     if(id === 'importModal') {
         document.getElementById('importText').value = '';
         setTimeout(() => document.getElementById('importText').focus(), 150);
-    }
-    if(id === 'settingsModal') {
-        const slider = document.getElementById('fontSizeSlider');
-        if (slider) slider.value = db.fontSize || 16;
     }
 }
 
@@ -294,6 +262,7 @@ function prepareDeleteList(id) {
     openModal('deleteListModal'); 
 }
 
+// ========== ייבוא טקסט ==========
 function importFromText() {
     const text = document.getElementById('importText').value.trim();
     if (!text) {
@@ -301,6 +270,7 @@ function importFromText() {
         return;
     }
 
+    // חילוץ שם רשימה מהשורה הראשונה
     const lines = text.split('\n').filter(line => line.trim());
     let listName = 'רשימה מיובאת';
     let startIndex = 0;
@@ -310,10 +280,11 @@ function importFromText() {
         const match = firstLine.match(/\*([^*]+)\*/);
         if (match) {
             listName = match[1].trim();
-            startIndex = 1;
+            startIndex = 1; // דילוג על שורת הכותרת
         }
     }
 
+    // בדיקה אם השם כבר קיים והוספת מספר
     let finalName = listName;
     let counter = 1;
     const existingNames = Object.values(db.lists).map(l => l.name);
@@ -322,18 +293,22 @@ function importFromText() {
         finalName = `${listName} ${counter}`;
     }
 
+    // יצירת רשימה חדשה
     const newListId = 'L' + Date.now();
     const items = [];
 
+    // ניתוח שורות
     for (let i = startIndex; i < lines.length; i++) {
         const line = lines[i].trim();
         
+        // דילוג על שורות ריקות, אימוג'י בלבד, וסיכומים
         if (!line || line.includes('🛒') || line.includes('💰') || line.includes('סה"כ') || line === '---') {
             continue;
         }
 
         let itemAdded = false;
 
+        // 1. פורמט מלא: ⬜ *שם* (xכמות) - ₪מחיר
         const fullMatch = line.match(/[⬜✅]\s*\*([^*]+)\*\s*\(x(\d+)\)\s*-\s*₪([\d.]+)/);
         if (fullMatch) {
             const name = fullMatch[1].trim();
@@ -345,6 +320,7 @@ function importFromText() {
             itemAdded = true;
         }
 
+        // 2. פורמט עם נקודה וכמות: • שם (xכמות)
         if (!itemAdded) {
             const bulletQtyMatch = line.match(/^[•\-]\s*\*?([^(]+)\*?\s*\(x(\d+)\)/);
             if (bulletQtyMatch) {
@@ -357,6 +333,7 @@ function importFromText() {
             }
         }
 
+        // 3. פורמט עם נקודה: • שם
         if (!itemAdded) {
             const bulletMatch = line.match(/^[•\-]\s*\*?(.+?)\*?$/);
             if (bulletMatch) {
@@ -368,6 +345,7 @@ function importFromText() {
             }
         }
 
+        // 4. פורמט עם כוכביות: *שם*
         if (!itemAdded) {
             const starMatch = line.match(/^\*([^*]+)\*$/);
             if (starMatch) {
@@ -379,8 +357,11 @@ function importFromText() {
             }
         }
 
+        // 5. פורמט פשוט: כל שורה היא מוצר (אם אין תו מיוחד בהתחלה)
         if (!itemAdded && line.length > 0) {
+            // ניקוי תווים מיוחדים אפשריים
             const name = line.replace(/^[\d\.\)\-\s]+/, '').trim();
+            // וידוא שזה לא מספר בלבד
             if (name && !/^\d+$/.test(name)) {
                 items.push({ name, price: 0, qty: 1, checked: false });
             }
@@ -392,6 +373,7 @@ function importFromText() {
         return;
     }
 
+    // הוספת הרשימה
     db.lists[newListId] = { name: finalName, items };
     db.currentId = newListId;
     activePage = 'lists';
@@ -699,3 +681,111 @@ async function syncToCloud() {
             const response = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id', {
                 method: 'POST',
                 headers: {
+                    'Authorization': `Bearer ${accessToken}`
+                },
+                body: form
+            });
+
+            const result = await response.json();
+            driveFileId = result.id;
+        }
+
+        console.log('✅ סונכרן לענן');
+    } catch (err) {
+        console.error('❌ שגיאה בסינכרון:', err);
+    } finally {
+        isSyncing = false;
+        updateCloudIndicator('connected');
+    }
+}
+
+async function loadAndMerge() {
+    if (!accessToken || isSyncing) return;
+    
+    isSyncing = true;
+    updateCloudIndicator('syncing');
+
+    try {
+        const folderId = await findOrCreateFolder();
+        if (!folderId) {
+            isSyncing = false;
+            updateCloudIndicator('connected');
+            return;
+        }
+
+        const fileId = await findFileInFolder(folderId);
+        
+        if (!fileId) {
+            console.log('📁 אין קובץ בענן - שומר נתונים מקומיים');
+            isSyncing = false;
+            updateCloudIndicator('connected');
+            await syncToCloud();
+            return;
+        }
+
+        driveFileId = fileId;
+
+        const response = await fetch(`https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`, {
+            headers: {
+                'Authorization': `Bearer ${accessToken}`
+            }
+        });
+
+        const cloudData = await response.json();
+        
+        const localItems = db.lists[db.currentId] ? [...db.lists[db.currentId].items] : [];
+        
+        db = cloudData;
+        
+        if (localItems.length > 0) {
+            const currentListId = db.currentId || 'L1';
+            if (!db.lists[currentListId]) {
+                db.lists[currentListId] = { name: 'הרשימה שלי', items: [] };
+            }
+            
+            const cloudItemNames = db.lists[currentListId].items.map(i => i.name);
+            const newItems = localItems.filter(localItem => 
+                !cloudItemNames.includes(localItem.name)
+            );
+            
+            if (newItems.length > 0) {
+                db.lists[currentListId].items.push(...newItems);
+                console.log(`✅ צורפו ${newItems.length} מוצרים חדשים`);
+            }
+        }
+        
+        localStorage.setItem('BUDGET_FINAL_V27', JSON.stringify(db));
+        render();
+        
+        if (localItems.length > 0) {
+            isSyncing = false;
+            updateCloudIndicator('connected');
+            await syncToCloud();
+        }
+        
+        console.log('✅ טעינה מהענן הושלמה');
+    } catch (err) {
+        console.error('❌ שגיאה בטעינה:', err);
+    } finally {
+        isSyncing = false;
+        updateCloudIndicator('connected');
+    }
+}
+
+async function manualSync() {
+    await loadAndMerge();
+}
+
+// טעינת Google API
+const script1 = document.createElement('script');
+script1.src = 'https://apis.google.com/js/api.js';
+script1.onload = gapiLoaded;
+document.head.appendChild(script1);
+
+const script2 = document.createElement('script');
+script2.src = 'https://accounts.google.com/gsi/client';
+script2.onload = gisLoaded;
+document.head.appendChild(script2);
+
+// אתחול ראשוני
+render();
