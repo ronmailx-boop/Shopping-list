@@ -693,4 +693,6 @@ async function syncToCloud() {
 
             const form = new FormData();
             form.append('metadata', new Blob([JSON.stringify(metadata)], { type: 'application/json' }));
-            form.append('file',
+            form.append('file', new Blob([dataToSave], { type: 'application/json' }));
+
+            const response = await fetch('https://www.googleapis.com/upload/drive/v3
