@@ -118,7 +118,18 @@ function render() {
     initSortable();
 }
 
-// ========== שחזור פונקציות וואטסאפ ( WhatsApp Share Functions ) ==========
+// ========== Fix: Clear Current List (executeClear) ==========
+function executeClear() {
+    // מחיקת כל המוצרים ברשימה הפעילה
+    if (db.lists[db.currentId]) {
+        db.lists[db.currentId].items = [];
+        closeModal('confirmModal');
+        save();
+        console.log("✅ הרשימה נוקתה בהצלחה");
+    }
+}
+
+// ========== WhatsApp Share ==========
 function shareFullToWhatsApp() {
     const list = db.lists[db.currentId];
     if (!list || list.items.length === 0) return;
@@ -135,10 +146,7 @@ function shareMissingToWhatsApp() {
     const list = db.lists[db.currentId];
     if (!list) return;
     const missing = list.items.filter(i => !i.checked);
-    if (missing.length === 0) { 
-        alert("אין מוצרים חסרים!"); 
-        return; 
-    }
+    if (missing.length === 0) { alert("אין מוצרים חסרים!"); return; }
     let text = `⬜ *${list.name} (מוצרים חסרים):*\n\n`;
     missing.forEach(i => text += `• *${i.name}* (x${i.qty})\n`);
     window.open("https://wa.me/?text=" + encodeURIComponent(text));
@@ -147,24 +155,18 @@ function shareMissingToWhatsApp() {
 
 function shareSummaryToWhatsApp() {
     const selectedIds = db.selectedInSummary;
-    if (selectedIds.length === 0) { 
-        alert("יש לבחור לפחות רשימה אחת לשיתוף (סמן ב-V את הרשימות)"); 
-        return; 
-    }
+    if (selectedIds.length === 0) { alert("יש לבחור לפחות רשימה אחת לשיתוף"); return; }
     let text = `📦 *ריכוז רשימות קנייה (חסרים):*\n\n`;
-    let hasMissing = false;
     selectedIds.forEach(id => {
         const l = db.lists[id];
         const missing = l.items.filter(i => !i.checked);
         if (missing.length > 0) {
-            hasMissing = true;
             text += `🔹 *${l.name}:*\n`;
             missing.forEach(i => text += `  - ${i.name} (x${i.qty})\n`);
             text += `\n`;
         }
     });
-    if(!hasMissing) text += "אין מוצרים חסרים ברשימות שנבחרו! 🎉";
-    window.open("https://wa.me/?text=" + encodeURIComponent(text), '_blank');
+    window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
 }
 
 // ========== PDF & Print ==========
@@ -192,7 +194,7 @@ function preparePrint() {
     setTimeout(() => { window.print(); }, 600);
 }
 
-// ========== List Management, Import, Sync ==========
+// ========== UI Utilities & Sync ==========
 function saveNewList() {
     const input = document.getElementById('newListNameInput');
     const name = input.value.trim();
