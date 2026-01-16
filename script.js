@@ -51,7 +51,7 @@ function render() {
     
     let totalAll = 0, paidAll = 0;
 
-    // עדכון כפתורי הטאבים (צבע סגול לפעיל)
+    // עדכון טאבים פעילים (צבע סגול)
     document.getElementById('tabLists').className = `tab-btn ${activePage === 'lists' ? 'tab-active' : ''}`;
     document.getElementById('tabSummary').className = `tab-btn ${activePage === 'summary' ? 'tab-active' : ''}`;
 
@@ -76,7 +76,7 @@ function render() {
                         <input type="checkbox" ${item.checked ? 'checked' : ''} onchange="toggleItem(${idx})" class="w-7 h-7 accent-indigo-600">
                         <div class="flex-1 text-2xl font-bold ${item.checked ? 'line-through text-gray-300' : ''}" style="font-size: ${db.fontSize}px;">${item.name}</div>
                     </div>
-                    <button onclick="removeItem(${idx})" class="trash-btn" style="color: #ef4444; background: #fee2e2;">
+                    <button onclick="removeItem(${idx})" class="trash-btn" style="background: white !important;">
                         <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg>
                     </button>
                 </div>
@@ -121,12 +121,12 @@ function render() {
         });
     }
     
-    // עדכון מספרים בבר התחתון
+    // עדכון בר תחתון
     document.getElementById('displayTotal').innerText = totalAll.toFixed(2);
     document.getElementById('displayPaid').innerText = paidAll.toFixed(2);
     document.getElementById('displayLeft').innerText = (totalAll - paidAll).toFixed(2);
 
-    // עדכון כפתור הנעילה
+    // עדכון כפתור נעילה
     const lockBtn = document.getElementById('mainLockBtn');
     const lockPath = document.getElementById('lockIconPath');
     if(lockBtn) {
@@ -157,6 +157,30 @@ function addItem() {
     }
 }
 
+function changeQty(idx, d) { 
+    if(db.lists[db.currentId].items[idx].qty + d >= 1) { 
+        db.lists[db.currentId].items[idx].qty += d; 
+        save(); 
+    } 
+}
+
+function removeItem(idx) { 
+    db.lists[db.currentId].items.splice(idx, 1); 
+    save(); 
+}
+
+function saveNewList() {
+    const n = document.getElementById('newListNameInput').value.trim();
+    if(n) {
+        const id = 'L' + Date.now();
+        db.lists[id] = { name: n, items: [] };
+        db.currentId = id;
+        activePage = 'lists';
+        closeModal('newListModal');
+        save();
+    }
+}
+
 function executeClear() {
     db.lists[db.currentId].items = [];
     closeModal('confirmModal');
@@ -172,6 +196,29 @@ function saveListName() {
     closeModal('editListNameModal');
 }
 
+function openEditTotalModal(idx) { 
+    currentEditIdx = idx; 
+    document.getElementById('editTotalInput').value = (db.lists[db.currentId].items[idx].price * db.lists[db.currentId].items[idx].qty).toFixed(2); 
+    openModal('editTotalModal'); 
+}
+
+function saveTotal() {
+    const val = parseFloat(document.getElementById('editTotalInput').value);
+    if(!isNaN(val)) {
+        const item = db.lists[db.currentId].items[currentEditIdx];
+        item.price = val / item.qty;
+        save();
+    }
+    closeModal('editTotalModal');
+}
+
+function updateFontSize(size) {
+    db.fontSize = parseInt(size);
+    document.documentElement.style.setProperty('--base-font-size', size + 'px');
+    document.getElementById('fontSizeValue').textContent = size;
+    save();
+}
+
 function importFromText() {
     const text = document.getElementById('importText').value;
     if(!text) return;
@@ -184,8 +231,46 @@ function importFromText() {
     save();
 }
 
-// ========== UI Utilities ==========
-function toggleLock() { isLocked = !isLocked; render(); }
+// ========== PDF & UI Utilities ==========
+function preparePrint() { 
+    closeModal('settingsModal');
+    const printArea = document.getElementById('printArea');
+    let grandTotal = 0;
+    let html = `<h1 style="text-align:center; color:#7367f0;">דוח תקציב Vplus</h1>`;
+    
+    Object.keys(db.lists).forEach(id => {
+        const l = db.lists[id];
+        let listTotal = 0;
+        html += `
+            <div style="border: 2px solid #7367f0; border-radius:15px; padding:15px; margin-bottom:20px;">
+                <h2 style="margin-top:0;">${l.name}</h2>
+                <table style="width:100%; border-collapse:collapse;">
+                    <thead><tr style="background:#f3f4f6;">
+                        <th style="padding:8px; border-bottom:1px solid #eee; text-align:right;">מוצר</th>
+                        <th style="padding:8px; border-bottom:1px solid #eee; text-align:center;">כמות</th>
+                        <th style="padding:8px; border-bottom:1px solid #eee; text-align:left;">מחיר</th>
+                    </tr></thead><tbody>`;
+        
+        l.items.forEach(i => {
+            const sub = i.price * i.qty;
+            listTotal += sub;
+            html += `<tr>
+                <td style="padding:8px; border-bottom:1px solid #eee;">${i.name}</td>
+                <td style="padding:8px; border-bottom:1px solid #eee; text-align:center;">${i.qty}</td>
+                <td style="padding:8px; border-bottom:1px solid #eee; text-align:left;">₪${sub.toFixed(2)}</td>
+            </tr>`;
+        });
+        
+        html += `</tbody></table>
+            <div style="text-align:left; font-weight:bold; margin-top:10px;">סה"כ קטגוריה: ₪${listTotal.toFixed(2)}</div>
+        </div>`;
+        grandTotal += listTotal;
+    });
+    
+    html += `<div style="text-align:center; font-size:1.5em; font-weight:bold; margin-top:30px; border-top:4px double #7367f0; padding-top:10px;">סה"כ כולל: ₪${grandTotal.toFixed(2)}</div>`;
+    printArea.innerHTML = html;
+    window.print();
+}
 
 function initSortable() {
     const el = document.getElementById('itemsContainer');
@@ -212,29 +297,17 @@ function toggleBottomBar() {
 
 function openModal(id) { document.getElementById(id).classList.add('active'); }
 function closeModal(id) { document.getElementById(id).classList.remove('active'); }
+function showPage(p) { activePage = p; save(); }
+function toggleLock() { isLocked = !isLocked; render(); }
+function toggleDarkMode() { document.body.classList.toggle('dark-mode'); closeModal('settingsModal'); }
 
-function preparePrint() { 
-    closeModal('settingsModal');
-    const printArea = document.getElementById('printArea');
-    let html = `<h2 dir="rtl" style="text-align:center;">דוח תקציב - Vplus</h2>`;
-    Object.keys(db.lists).forEach(id => {
-        const l = db.lists[id];
-        html += `<div dir="rtl"><h3>${l.name}</h3><ul>`;
-        l.items.forEach(i => html += `<li>${i.name} - ${i.qty} יח' - ₪${(i.price*i.qty).toFixed(2)}</li>`);
-        html += `</ul></div>`;
-    });
-    printArea.innerHTML = html;
-    window.print();
-}
-
-// ========== Cloud (Fixed Syntax) ==========
+// ========== Cloud Sync Placeholder ==========
 async function syncToCloud() {
     if (!accessToken || isSyncing) return;
     isSyncing = true;
     updateCloudIndicator('syncing');
     try {
-        // לוגיקת סנכרון בסיסית
-        console.log("סנכרון לענן בוצע בהצלחה");
+        console.log("סנכרון ענן בוצע");
         updateCloudIndicator('connected');
     } catch (e) { console.error(e); }
     isSyncing = false;
@@ -255,7 +328,6 @@ function gisLoaded() {
 }
 
 window.onload = () => {
-    // הפעלת הבר התחתון בלחיצה על הפס
     document.querySelector('.bottom-bar').addEventListener('click', (e) => {
         if(e.offsetY < 25) toggleBottomBar();
     });
