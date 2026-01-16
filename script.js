@@ -116,16 +116,100 @@ function render() {
     initSortable();
 }
 
-// ========== Fix: Clear List ==========
-function executeClear() {
-    if (db.lists[db.currentId]) {
-        db.lists[db.currentId].items = [];
-        closeModal('confirmModal');
+// ========== Fix: Google Cloud Auth & Sync (From original files) ==========
+function gapiLoaded() {
+    gapi.load('client', async () => {
+        await gapi.client.init({
+            apiKey: GOOGLE_API_KEY,
+            discoveryDocs: [DISCOVERY_DOC],
+        });
+        gapiInited = true;
+        maybeEnableCloudButton();
+    });
+}
+
+function gisLoaded() {
+    tokenClient = google.accounts.oauth2.initTokenClient({
+        client_id: GOOGLE_CLIENT_ID,
+        scope: SCOPES,
+        callback: '', // יוגדר בזמן הלחיצה
+    });
+    gisInited = true;
+    maybeEnableCloudButton();
+}
+
+function maybeEnableCloudButton() {
+    if (gapiInited && gisInited) {
+        const btn = document.getElementById('cloudBtn');
+        if (btn) btn.onclick = handleCloudClick;
+    }
+}
+
+async function handleCloudClick() {
+    if (isConnected) {
+        await loadAndMerge();
+    } else {
+        tokenClient.callback = async (resp) => {
+            if (resp.error !== undefined) throw (resp);
+            accessToken = resp.access_token;
+            isConnected = true;
+            updateCloudIndicator('connected');
+            await loadAndMerge();
+        };
+        tokenClient.requestAccessToken({ prompt: 'consent' });
+    }
+}
+
+async function syncToCloud() {
+    if (!accessToken || isSyncing) return;
+    isSyncing = true;
+    updateCloudIndicator('syncing');
+    try {
+        const folderId = await findOrCreateFolder();
+        const fileList = await gapi.client.drive.files.list({ q: `name='${FILE_NAME}' and '${folderId}' in parents and trashed=false` });
+        const fileId = fileList.result.files.length > 0 ? fileList.result.files[0].id : null;
+        const content = JSON.stringify(db);
+        if (fileId) {
+            await fetch(`https://www.googleapis.com/upload/drive/v3/files/${fileId}?uploadType=media`, {
+                method: 'PATCH', headers: { 'Authorization': `Bearer ${accessToken}`, 'Content-Type': 'application/json' }, body: content
+            });
+        } else {
+            const metadata = { name: FILE_NAME, parents: [folderId] };
+            const form = new FormData();
+            form.append('metadata', new Blob([JSON.stringify(metadata)], { type: 'application/json' }));
+            form.append('file', new Blob([content], { type: 'application/json' }));
+            await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart', {
+                method: 'POST', headers: { 'Authorization': `Bearer ${accessToken}` }, body: form
+            });
+        }
+    } catch (e) { console.error(e); }
+    isSyncing = false;
+    updateCloudIndicator('connected');
+}
+
+async function findOrCreateFolder() {
+    const resp = await gapi.client.drive.files.list({ q: `name='${FOLDER_NAME}' and mimeType='application/vnd.google-apps.folder' and trashed=false` });
+    if (resp.result.files.length > 0) return resp.result.files[0].id;
+    const folder = await gapi.client.drive.files.create({ resource: { name: FOLDER_NAME, mimeType: 'application/vnd.google-apps.folder' } });
+    return folder.result.id;
+}
+
+async function loadAndMerge() {
+    const folderId = await findOrCreateFolder();
+    const res = await gapi.client.drive.files.list({ q: `name='${FILE_NAME}' and '${folderId}' in parents and trashed=false` });
+    if (res.result.files.length > 0) {
+        const fileId = res.result.files[0].id;
+        const response = await fetch(`https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`, { headers: { Authorization: `Bearer ${accessToken}` } });
+        const cloudDb = await response.json();
+        // מיזוג נתונים פשוט - הענן קובע
+        db = cloudDb;
         save();
     }
 }
 
-// ========== WhatsApp & PDF ==========
+// ========== Remaining Functions (All Fixes Preserved) ==========
+function executeClear() { if (db.lists[db.currentId]) { db.lists[db.currentId].items = []; closeModal('confirmModal'); save(); } }
+
 function shareFullToWhatsApp() {
     const list = db.lists[db.currentId];
     if (!list || list.items.length === 0) return;
@@ -183,7 +267,6 @@ function preparePrint() {
     setTimeout(() => { window.print(); }, 600);
 }
 
-// ========== Fix: Import & Creation ==========
 function importFromText() {
     const textarea = document.getElementById('importText');
     const text = textarea.value.trim();
@@ -212,9 +295,9 @@ function saveNewList() {
     }
 }
 
-// ========== UI & Navigation ==========
+// ========== UI Listeners ==========
 function openModal(id) { 
-    const m = document.getElementById(id);
+    const m = document.getElementById(id); 
     if(m) {
         m.classList.add('active');
         if(id==='inputForm'){ document.getElementById('itemName').value=''; document.getElementById('itemPrice').value=''; }
@@ -237,50 +320,10 @@ function addItem() {
     const p = parseFloat(document.getElementById('itemPrice').value) || 0;
     if (n) { db.lists[db.currentId].items.push({ name: n, price: p, qty: 1, checked: false }); closeModal('inputForm'); save(); }
 }
-
-// ========== Cloud Sync ==========
-async function syncToCloud() {
-    if (!accessToken || isSyncing) return;
-    isSyncing = true; updateCloudIndicator('syncing');
-    try {
-        const folderId = await findOrCreateFolder();
-        const fileList = await gapi.client.drive.files.list({ q: `name='${FILE_NAME}' and trashed=false` });
-        const fileId = fileList.result.files.length > 0 ? fileList.result.files[0].id : null;
-        const content = JSON.stringify(db);
-        if (fileId) {
-            await fetch(`https://www.googleapis.com/upload/drive/v3/files/${fileId}?uploadType=media`, {
-                method: 'PATCH', headers: { 'Authorization': `Bearer ${accessToken}`, 'Content-Type': 'application/json' }, body: content
-            });
-        }
-    } catch (e) { console.error(e); }
-    isSyncing = false; updateCloudIndicator('connected');
-}
-
-async function findOrCreateFolder() {
-    const resp = await gapi.client.drive.files.list({ q: `name='${FOLDER_NAME}' and trashed=false` });
-    if (resp.result.files.length > 0) return resp.result.files[0].id;
-    const folder = await gapi.client.drive.files.create({ resource: { name: FOLDER_NAME, mimeType: 'application/vnd.google-apps.folder' } });
-    return folder.result.id;
-}
-
-function handleCloudClick() {
-    if (!isConnected) tokenClient.requestAccessToken({ prompt: 'consent' });
-    else syncToCloud();
-}
-
-function gapiLoaded() { gapi.load('client', () => gapi.client.init({apiKey: GOOGLE_API_KEY, discoveryDocs: [DISCOVERY_DOC]})); }
-function gisLoaded() { 
-    tokenClient = google.accounts.oauth2.initTokenClient({
-        client_id: GOOGLE_CLIENT_ID, scope: SCOPES,
-        callback: (r) => { accessToken = r.access_token; isConnected = true; updateCloudIndicator('connected'); syncToCloud(); }
-    });
-}
 function updateCloudIndicator(s) {
     const i = document.getElementById('cloudIndicator');
     if(i) i.className = `w-2 h-2 rounded-full ${s === 'connected' ? 'bg-green-500' : 'bg-yellow-500 animate-pulse'}`;
 }
-
-// ========== Settings ==========
 function updateFontSize(s) { db.fontSize=parseInt(s); document.documentElement.style.setProperty('--base-font-size', s+'px'); document.getElementById('fontSizeValue').innerText=s; save(); }
 function toggleDarkMode() { document.body.classList.toggle('dark-mode'); closeModal('settingsModal'); }
 function saveListName() { const n = document.getElementById('editListNameInput').value.trim(); if(n) { db.lists[db.currentId].name = n; save(); } closeModal('editListNameModal'); }
@@ -305,8 +348,8 @@ function initSortable() {
 }
 
 window.onload = () => {
-    document.getElementById('cloudBtn').onclick = handleCloudClick;
+    // מניעת הפעלה כפולה של גוגל - הסקריפטים נטענים מה-HTML
+    render();
     const bar = document.querySelector('.bottom-bar');
     if(bar) bar.addEventListener('click', (e) => { if(e.offsetY < 35) bar.classList.toggle('collapsed'); });
-    render();
 };
