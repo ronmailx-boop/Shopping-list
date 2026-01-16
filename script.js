@@ -1,7 +1,7 @@
 // ========== Google Drive Configuration ==========
 const GOOGLE_CLIENT_ID = '151476121869-b5lbrt5t89s8d342ftd1cg1q926518pt.apps.googleusercontent.com';
 const GOOGLE_API_KEY = 'AIzaSyDIMiuwL-phvwI7iAUeMQmTOowWE96mP6I'; 
-const DISCOVERY_DOC = 'https://www.googleapis.com/discovery/v1/apis/drive/v3/rest';
+const DISCOVERY_DOC = 'https://www.googleapis.com/discovery/v1/apis/discovery/v3/rest';
 const SCOPES = 'https://www.googleapis.com/auth/drive.file';
 const FOLDER_NAME = 'Vplus_Budget_Data';
 const FILE_NAME = 'budget_data.json';
@@ -61,14 +61,15 @@ function render() {
             totalAll += sub; if (item.checked) paidAll += sub;
             const div = document.createElement('div'); 
             div.className = "item-card";
+            div.setAttribute('data-id', idx);
             div.innerHTML = `
                 <div class="flex justify-between items-start mb-4">
                     <div class="flex items-start gap-3 flex-1">
                         <input type="checkbox" ${item.checked ? 'checked' : ''} onchange="toggleItem(${idx})" class="w-7 h-7 accent-indigo-600">
                         <div class="flex-1 text-2xl font-bold ${item.checked ? 'line-through text-gray-300' : ''}" style="font-size: ${db.fontSize}px;">${item.name}</div>
                     </div>
-                    <button onclick="removeItem(${idx})" class="trash-btn" style="background: white !important; border: 1px solid #fee2e2; color: #ef4444; border-radius: 50%; width: 40px; height: 40px;">
-                        <svg class="w-6 h-6 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+                    <button onclick="removeItem(${idx})" class="trash-btn" style="background: white !important; border: 1px solid #fee2e2; color: #ef4444; border-radius: 50%; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center;">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg>
                     </button>
                 </div>
                 <div class="flex justify-between items-center">
@@ -85,7 +86,6 @@ function render() {
         document.getElementById('pageLists').classList.add('hidden');
         document.getElementById('pageSummary').classList.remove('hidden');
         
-        // עדכון מצב הצ'קבוקס "בחר הכל" לפי המציאות
         const selectAllCheckbox = document.getElementById('selectAllLists');
         if (selectAllCheckbox) {
             selectAllCheckbox.checked = db.selectedInSummary.length === Object.keys(db.lists).length && Object.keys(db.lists).length > 0;
@@ -95,16 +95,14 @@ function render() {
             const l = db.lists[id];
             let lT = 0, lP = 0;
             l.items.forEach(i => { lT += (i.price * i.qty); if(i.checked) lP += (i.price * i.qty); });
-            
             const isSel = db.selectedInSummary.includes(id); 
             if (isSel) { totalAll += lT; paidAll += lP; }
-            
             const div = document.createElement('div'); 
             div.className = "item-card p-4"; 
             div.innerHTML = `<div class="flex justify-between items-center">
                 <input type="checkbox" ${isSel ? 'checked' : ''} onchange="toggleSum('${id}')" class="w-7 h-7 accent-indigo-600">
                 <span class="font-bold text-xl flex-1 mr-3" onclick="db.currentId='${id}'; showPage('lists')">${l.name}</span>
-                <div class="text-left"><div class="text-indigo-600 font-bold">₪${lT.toFixed(2)}</div></div>
+                <div class="text-left font-bold text-indigo-600">₪${lT.toFixed(2)}</div>
             </div>`;
             container.appendChild(div);
         });
@@ -116,25 +114,45 @@ function render() {
     const lockBtn = document.getElementById('mainLockBtn');
     if(lockBtn) lockBtn.className = `bottom-circle-btn ${isLocked ? 'bg-blue-600' : 'bg-orange-400'}`;
     document.getElementById('statusTag').innerText = isLocked ? "נעול" : "עריכה (גרירה פעילה)";
+    
     initSortable();
 }
 
-// ========== Fix: SELECT ALL logic ==========
-function toggleSelectAll(checked) {
-    if (checked) {
-        db.selectedInSummary = Object.keys(db.lists);
-    } else {
-        db.selectedInSummary = [];
+// ========== Fix: Drag & Drop (Sortable) ==========
+function initSortable() {
+    const el = document.getElementById('itemsContainer');
+    if (sortableInstance) sortableInstance.destroy();
+    
+    // גרירה פעילה רק כשהמנעול פתוח (isLocked === false)
+    if (el && !isLocked && activePage === 'lists') {
+        sortableInstance = new Sortable(el, {
+            animation: 150,
+            ghostClass: 'bg-indigo-100',
+            onEnd: function (evt) {
+                const items = db.lists[db.currentId].items;
+                const movedItem = items.splice(evt.oldIndex, 1)[0];
+                items.splice(evt.newIndex, 0, movedItem);
+                save();
+            }
+        });
     }
+}
+
+// ========== Fix: Select All ==========
+function toggleSelectAll(checked) {
+    db.selectedInSummary = checked ? Object.keys(db.lists) : [];
     save();
 }
 
-// ========== Fix: ADD ITEM logic ==========
+// ========== Fix: Add Item ==========
 function addItem() {
-    const name = document.getElementById('itemName').value.trim();
-    const price = parseFloat(document.getElementById('itemPrice').value) || 0;
+    const nameInput = document.getElementById('itemName');
+    const priceInput = document.getElementById('itemPrice');
+    const name = nameInput.value.trim();
+    const price = parseFloat(priceInput.value) || 0;
     if (name) {
         db.lists[db.currentId].items.push({ name, price, qty: 1, checked: false });
+        nameInput.value = ''; priceInput.value = '';
         closeModal('inputForm');
         save();
     }
@@ -143,21 +161,21 @@ function addItem() {
 // ========== WhatsApp Share ==========
 function shareSummaryToWhatsApp() {
     const selectedIds = db.selectedInSummary;
-    if (selectedIds.length === 0) { alert("בחר לפחות רשימה אחת!"); return; }
-    let text = `📦 *ריכוז רשימות קנייה (חסרים):*\n\n`;
+    if (selectedIds.length === 0) { alert("בחר רשימות לשיתוף"); return; }
+    let text = `📦 *ריכוז חסרים:*\n\n`;
     selectedIds.forEach(id => {
         const l = db.lists[id];
         const missing = l.items.filter(i => !i.checked);
         if (missing.length > 0) {
             text += `🔹 *${l.name}:*\n`;
-            missing.forEach(i => text += `  - ${i.name} (x${i.qty})\n`);
+            missing.forEach(i => text += ` - ${i.name} (x${i.qty})\n`);
             text += `\n`;
         }
     });
     window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
 }
 
-// ========== Cloud Sync Implementation ==========
+// ========== Cloud Sync ==========
 async function syncToCloud() {
     if (!accessToken || isSyncing) return;
     isSyncing = true;
@@ -186,7 +204,7 @@ async function syncToCloud() {
 }
 
 async function findOrCreateFolder() {
-    const resp = await gapi.client.drive.files.list({ q: `name='${FOLDER_NAME}' and mimeType='application/vnd.google-apps.folder' and trashed=false` });
+    const resp = await gapi.client.drive.files.list({ q: `name='${FOLDER_NAME}' and trashed=false` });
     if (resp.result.files.length > 0) return resp.result.files[0].id;
     const folder = await gapi.client.drive.files.create({ resource: { name: FOLDER_NAME, mimeType: 'application/vnd.google-apps.folder' } });
     return folder.result.id;
@@ -197,7 +215,6 @@ function handleCloudClick() {
     else syncToCloud();
 }
 
-// ========== UI Utils ==========
 function gapiLoaded() { gapi.load('client', () => gapi.client.init({apiKey: GOOGLE_API_KEY, discoveryDocs: [DISCOVERY_DOC]})); }
 function gisLoaded() { 
     tokenClient = google.accounts.oauth2.initTokenClient({
@@ -206,13 +223,23 @@ function gisLoaded() {
     });
 }
 
+// ========== Init & Bar Control ==========
 window.onload = () => {
     document.getElementById('cloudBtn').onclick = handleCloudClick;
     const bar = document.querySelector('.bottom-bar');
-    if(bar) bar.addEventListener('click', (e) => { if(e.offsetY < 35) bar.classList.toggle('collapsed'); });
+    if(bar) {
+        bar.addEventListener('click', (e) => {
+            if(e.offsetY < 35) bar.classList.toggle('collapsed');
+        });
+    }
+    
+    const summaryShareBtn = document.querySelector('#pageSummary .whatsapp-share-btn');
+    if (summaryShareBtn) summaryShareBtn.onclick = shareSummaryToWhatsApp;
+    
     render();
 };
 
+// ========== Global Actions ==========
 function openModal(id) { 
     if(id==='inputForm'){ document.getElementById('itemName').value=''; document.getElementById('itemPrice').value=''; }
     document.getElementById(id).classList.add('active'); 
@@ -247,4 +274,7 @@ function updateCloudIndicator(s) {
     if(i) i.className = `w-2 h-2 rounded-full ${s === 'connected' ? 'bg-green-500' : 'bg-yellow-500 animate-pulse'}`;
 }
 function preparePrint() { closeModal('settingsModal'); setTimeout(() => { window.print(); }, 700); }
-function initSortable() {}
+
+// Load Google Scripts
+const script1 = document.createElement('script'); script1.src = 'https://apis.google.com/js/api.js'; script1.onload = gapiLoaded; document.head.appendChild(script1);
+const script2 = document.createElement('script'); script2.src = 'https://accounts.google.com/gsi/client'; script2.onload = gisLoaded; document.head.appendChild(script2);
