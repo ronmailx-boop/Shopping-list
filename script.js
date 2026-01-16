@@ -61,15 +61,14 @@ function render() {
             totalAll += sub; if (item.checked) paidAll += sub;
             const div = document.createElement('div'); 
             div.className = "item-card";
-            div.setAttribute('data-id', idx);
             div.innerHTML = `
                 <div class="flex justify-between items-start mb-4">
                     <div class="flex items-start gap-3 flex-1">
                         <input type="checkbox" ${item.checked ? 'checked' : ''} onchange="toggleItem(${idx})" class="w-7 h-7 accent-indigo-600">
                         <div class="flex-1 text-2xl font-bold ${item.checked ? 'line-through text-gray-300' : ''}" style="font-size: ${db.fontSize}px;">${item.name}</div>
                     </div>
-                    <button onclick="removeItem(${idx})" class="trash-btn" style="background: white !important; border: 1px solid #fee2e2; color: #ef4444; border-radius: 50%; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center;">
-                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+                    <button onclick="removeItem(${idx})" class="trash-btn" style="background: white !important; border: 1px solid #fee2e2; color: #ef4444; border-radius: 50%; width: 40px; height: 40px;">
+                        <svg class="w-6 h-6 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg>
                     </button>
                 </div>
                 <div class="flex justify-between items-center">
@@ -85,18 +84,27 @@ function render() {
     } else {
         document.getElementById('pageLists').classList.add('hidden');
         document.getElementById('pageSummary').classList.remove('hidden');
+        
+        // עדכון מצב הצ'קבוקס "בחר הכל" לפי המציאות
+        const selectAllCheckbox = document.getElementById('selectAllLists');
+        if (selectAllCheckbox) {
+            selectAllCheckbox.checked = db.selectedInSummary.length === Object.keys(db.lists).length && Object.keys(db.lists).length > 0;
+        }
+
         Object.keys(db.lists).forEach(id => {
             const l = db.lists[id];
             let lT = 0, lP = 0;
             l.items.forEach(i => { lT += (i.price * i.qty); if(i.checked) lP += (i.price * i.qty); });
+            
             const isSel = db.selectedInSummary.includes(id); 
             if (isSel) { totalAll += lT; paidAll += lP; }
+            
             const div = document.createElement('div'); 
             div.className = "item-card p-4"; 
             div.innerHTML = `<div class="flex justify-between items-center">
                 <input type="checkbox" ${isSel ? 'checked' : ''} onchange="toggleSum('${id}')" class="w-7 h-7 accent-indigo-600">
                 <span class="font-bold text-xl flex-1 mr-3" onclick="db.currentId='${id}'; showPage('lists')">${l.name}</span>
-                <div class="text-left font-bold text-indigo-600">₪${lT.toFixed(2)}</div>
+                <div class="text-left"><div class="text-indigo-600 font-bold">₪${lT.toFixed(2)}</div></div>
             </div>`;
             container.appendChild(div);
         });
@@ -111,28 +119,31 @@ function render() {
     initSortable();
 }
 
-// ========== Fix: ADD ITEM logic (No freezing) ==========
-function addItem() {
-    const nameInput = document.getElementById('itemName');
-    const priceInput = document.getElementById('itemPrice');
-    const name = nameInput.value.trim();
-    const price = parseFloat(priceInput.value) || 0;
+// ========== Fix: SELECT ALL logic ==========
+function toggleSelectAll(checked) {
+    if (checked) {
+        db.selectedInSummary = Object.keys(db.lists);
+    } else {
+        db.selectedInSummary = [];
+    }
+    save();
+}
 
+// ========== Fix: ADD ITEM logic ==========
+function addItem() {
+    const name = document.getElementById('itemName').value.trim();
+    const price = parseFloat(document.getElementById('itemPrice').value) || 0;
     if (name) {
         db.lists[db.currentId].items.push({ name, price, qty: 1, checked: false });
-        nameInput.value = ''; priceInput.value = '';
         closeModal('inputForm');
         save();
     }
 }
 
-// ========== Fix: WhatsApp Share for SUMMARY ==========
+// ========== WhatsApp Share ==========
 function shareSummaryToWhatsApp() {
     const selectedIds = db.selectedInSummary;
-    if (selectedIds.length === 0) {
-        alert("יש לבחור לפחות רשימה אחת לשיתוף");
-        return;
-    }
+    if (selectedIds.length === 0) { alert("בחר לפחות רשימה אחת!"); return; }
     let text = `📦 *ריכוז רשימות קנייה (חסרים):*\n\n`;
     selectedIds.forEach(id => {
         const l = db.lists[id];
@@ -146,7 +157,7 @@ function shareSummaryToWhatsApp() {
     window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
 }
 
-// ========== Fix: Cloud Sync & Auth ==========
+// ========== Cloud Sync Implementation ==========
 async function syncToCloud() {
     if (!accessToken || isSyncing) return;
     isSyncing = true;
@@ -174,11 +185,19 @@ async function syncToCloud() {
     isSyncing = false;
 }
 
+async function findOrCreateFolder() {
+    const resp = await gapi.client.drive.files.list({ q: `name='${FOLDER_NAME}' and mimeType='application/vnd.google-apps.folder' and trashed=false` });
+    if (resp.result.files.length > 0) return resp.result.files[0].id;
+    const folder = await gapi.client.drive.files.create({ resource: { name: FOLDER_NAME, mimeType: 'application/vnd.google-apps.folder' } });
+    return folder.result.id;
+}
+
 function handleCloudClick() {
     if (!isConnected) tokenClient.requestAccessToken({ prompt: 'consent' });
     else syncToCloud();
 }
 
+// ========== UI Utils ==========
 function gapiLoaded() { gapi.load('client', () => gapi.client.init({apiKey: GOOGLE_API_KEY, discoveryDocs: [DISCOVERY_DOC]})); }
 function gisLoaded() { 
     tokenClient = google.accounts.oauth2.initTokenClient({
@@ -187,24 +206,13 @@ function gisLoaded() {
     });
 }
 
-// ========== Fix: Bottom Bar Control ==========
 window.onload = () => {
     document.getElementById('cloudBtn').onclick = handleCloudClick;
     const bar = document.querySelector('.bottom-bar');
-    if(bar) {
-        bar.addEventListener('click', (e) => {
-            // הבר נסגר רק אם לוחצים על הפס העליון (35 פיקסלים ראשונים)
-            if(e.offsetY < 35) bar.classList.toggle('collapsed');
-        });
-    }
-    
-    const summaryShareBtn = document.querySelector('#pageSummary .whatsapp-share-btn');
-    if (summaryShareBtn) summaryShareBtn.onclick = shareSummaryToWhatsApp;
-    
+    if(bar) bar.addEventListener('click', (e) => { if(e.offsetY < 35) bar.classList.toggle('collapsed'); });
     render();
 };
 
-// ========== Global Handlers ==========
 function openModal(id) { 
     if(id==='inputForm'){ document.getElementById('itemName').value=''; document.getElementById('itemPrice').value=''; }
     document.getElementById(id).classList.add('active'); 
@@ -239,32 +247,4 @@ function updateCloudIndicator(s) {
     if(i) i.className = `w-2 h-2 rounded-full ${s === 'connected' ? 'bg-green-500' : 'bg-yellow-500 animate-pulse'}`;
 }
 function preparePrint() { closeModal('settingsModal'); setTimeout(() => { window.print(); }, 700); }
-async function findOrCreateFolder() {
-    const resp = await gapi.client.drive.files.list({ q: `name='${FOLDER_NAME}' and trashed=false` });
-    if (resp.result.files.length > 0) return resp.result.files[0].id;
-    const folder = await gapi.client.drive.files.create({ resource: { name: FOLDER_NAME, mimeType: 'application/vnd.google-apps.folder' } });
-    return folder.result.id;
-}
-function initSortable() {
-    const el = document.getElementById('itemsContainer');
-    if (sortableInstance) sortableInstance.destroy();
-    if (el && !isLocked) {
-        sortableInstance = Sortable.create(el, { animation: 150, onEnd: (evt) => {
-            const items = db.lists[db.currentId].items;
-            const moved = items.splice(evt.oldIndex, 1)[0];
-            items.splice(evt.newIndex, 0, moved);
-            save();
-        }});
-    }
-}
-
-// טעינת Google API
-const script1 = document.createElement('script');
-script1.src = 'https://apis.google.com/js/api.js';
-script1.onload = gapiLoaded;
-document.head.appendChild(script1);
-
-const script2 = document.createElement('script');
-script2.src = 'https://accounts.google.com/gsi/client';
-script2.onload = gisLoaded;
-document.head.appendChild(script2);
+function initSortable() {}
