@@ -10,6 +10,7 @@ let gapiInited = false;
 let gisInited = false;
 let tokenClient;
 let accessToken = null;
+let driveFileId = null;
 let syncTimeout = null;
 let isSyncing = false;
 let isConnected = false;
@@ -45,31 +46,40 @@ function render() {
     const container = document.getElementById(activePage === 'lists' ? 'itemsContainer' : 'summaryContainer');
     if (!container) return;
     container.innerHTML = '';
-    let totalAll = 0, paidAll = 0;
+    let total = 0, paid = 0;
 
     document.getElementById('tabLists').className = `tab-btn ${activePage === 'lists' ? 'tab-active' : ''}`;
     document.getElementById('tabSummary').className = `tab-btn ${activePage === 'summary' ? 'tab-active' : ''}`;
+
+    const lockBtn = document.getElementById('mainLockBtn');
+    const lockPath = document.getElementById('lockIconPath');
+    const statusTag = document.getElementById('statusTag');
+    
+    if (lockBtn && lockPath && statusTag) {
+        lockBtn.className = `bottom-circle-btn ${isLocked ? 'bg-blue-600' : 'bg-orange-400'}`;
+        lockPath.setAttribute('d', isLocked ? 'M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z' : 'M8 11V7a4 4 0 118 0m-4 8v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2z');
+        statusTag.innerText = isLocked ? "נעול" : "עריכה (גרירה פעילה)";
+    }
 
     if (activePage === 'lists') {
         document.getElementById('pageLists').classList.remove('hidden');
         document.getElementById('pageSummary').classList.add('hidden');
         const list = db.lists[db.currentId] || { name: 'רשימה', items: [] };
         document.getElementById('listNameDisplay').innerText = list.name;
-
+        
         list.items.forEach((item, idx) => {
             const sub = item.price * item.qty; 
-            totalAll += sub; if (item.checked) paidAll += sub;
+            total += sub; if (item.checked) paid += sub;
             const div = document.createElement('div'); 
             div.className = "item-card";
+            div.setAttribute('data-id', idx);
             div.innerHTML = `
                 <div class="flex justify-between items-start mb-4">
                     <div class="flex items-start gap-3 flex-1">
-                        <input type="checkbox" ${item.checked ? 'checked' : ''} onchange="toggleItem(${idx})" class="w-7 h-7">
+                        <input type="checkbox" ${item.checked ? 'checked' : ''} onchange="toggleItem(${idx})" class="w-7 h-7 accent-indigo-600">
                         <div class="flex-1 text-2xl font-bold ${item.checked ? 'line-through text-gray-300' : ''}" style="font-size: ${db.fontSize}px;">${item.name}</div>
                     </div>
-                    <button onclick="removeItem(${idx})" class="trash-btn" style="background: white !important; border: 1px solid #fee2e2; color: #ef4444; border-radius: 50%; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center;">
-                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg>
-                    </button>
+                    <button onclick="removeItem(${idx})" class="trash-btn">🗑️</button>
                 </div>
                 <div class="flex justify-between items-center">
                     <div class="flex items-center gap-3 border rounded-xl px-2 py-1">
@@ -89,56 +99,127 @@ function render() {
             let lT = 0, lP = 0;
             l.items.forEach(i => { lT += (i.price * i.qty); if(i.checked) lP += (i.price * i.qty); });
             const isSel = db.selectedInSummary.includes(id); 
-            if (isSel) { totalAll += lT; paidAll += lP; }
+            if (isSel) { total += lT; paid += lP; }
             const div = document.createElement('div'); 
             div.className = "item-card p-4"; 
             div.innerHTML = `<div class="flex justify-between items-center">
-                <input type="checkbox" ${isSel ? 'checked' : ''} onchange="toggleSum('${id}')" class="w-7 h-7">
+                <input type="checkbox" ${isSel ? 'checked' : ''} onchange="toggleSum('${id}')" class="w-7 h-7 accent-indigo-600">
                 <span class="font-bold text-xl flex-1 mr-3" onclick="db.currentId='${id}'; showPage('lists')">${l.name}</span>
                 <div class="text-left font-bold text-indigo-600">₪${lT.toFixed(2)}</div>
             </div>`;
             container.appendChild(div);
         });
     }
-    document.getElementById('displayTotal').innerText = totalAll.toFixed(2);
-    document.getElementById('displayPaid').innerText = paidAll.toFixed(2);
-    document.getElementById('displayLeft').innerText = (totalAll - paidAll).toFixed(2);
-
-    const lockBtn = document.getElementById('mainLockBtn');
-    if(lockBtn) lockBtn.className = `bottom-circle-btn ${isLocked ? 'bg-blue-600' : 'bg-orange-400'}`;
-    document.getElementById('statusTag').innerText = isLocked ? "נעול" : "עריכה (גרירה פעילה)";
+    document.getElementById('displayTotal').innerText = total.toFixed(2);
+    document.getElementById('displayPaid').innerText = paid.toFixed(2);
+    document.getElementById('displayLeft').innerText = (total - paid).toFixed(2);
     initSortable();
 }
 
-// ========== Fix: Cloud Sync Auth Logic ==========
-function gapiLoaded() {
-    gapi.load('client', async () => {
-        await gapi.client.init({ apiKey: GOOGLE_API_KEY, discoveryDocs: [DISCOVERY_DOC] });
-        gapiInited = true;
+// ========== WhatsApp & PDF Actions ==========
+function shareFullToWhatsApp() {
+    const list = db.lists[db.currentId];
+    if (!list || list.items.length === 0) return;
+    let text = `🛒 *${list.name} (רשימה מלאה):*\n\n`;
+    list.items.forEach(i => text += `${i.checked ? '✅' : '⬜'} *${i.name}* (x${i.qty}) - ₪${(i.price * i.qty).toFixed(2)}\n`);
+    text += `\n💰 *סה"כ: ₪${document.getElementById('displayTotal').innerText}*`;
+    window.open(`https://wa.me/?text=${encodeURIComponent(text)}`);
+    closeModal('shareListModal');
+}
+
+function shareMissingToWhatsApp() {
+    const list = db.lists[db.currentId];
+    const missing = list.items.filter(i => !i.checked);
+    if (missing.length === 0) { alert("אין מוצרים חסרים!"); return; }
+    let text = `⬜ *${list.name} (מוצרים חסרים):*\n\n`;
+    missing.forEach(i => text += `• *${i.name}* (x${i.qty})\n`);
+    window.open(`https://wa.me/?text=${encodeURIComponent(text)}`);
+    closeModal('shareListModal');
+}
+
+function shareSummaryToWhatsApp() {
+    const selectedIds = db.selectedInSummary;
+    if (selectedIds.length === 0) { alert("בחר לפחות רשימה אחת!"); return; }
+    let text = `📦 *ריכוז רשימות קנייה (חסרים):*\n\n`;
+    selectedIds.forEach(id => {
+        const l = db.lists[id];
+        const missing = l.items.filter(i => !i.checked);
+        if (missing.length > 0) {
+            text += `🔹 *${l.name}:*\n`;
+            missing.forEach(i => text += `  - ${i.name} (x${i.qty})\n`);
+            text += `\n`;
+        }
     });
+    window.open(`https://wa.me/?text=${encodeURIComponent(text)}`);
+}
+
+function preparePrint() { 
+    closeModal('settingsModal');
+    const printArea = document.getElementById('printArea');
+    let grandTotal = 0;
+    let html = `<div style="direction:rtl; padding:20px; font-family:sans-serif;">
+                <h1 style="text-align:center; color:#7367f0;">דוח קניות - Vplus</h1>`;
+    
+    const idsToPrint = db.selectedInSummary.length > 0 ? db.selectedInSummary : Object.keys(db.lists);
+    idsToPrint.forEach(id => {
+        const l = db.lists[id];
+        let listTotal = 0;
+        html += `<div style="margin-bottom:20px; border-bottom:1px solid #ddd;">
+                <h3>${l.name}</h3>
+                <table style="width:100%; border-collapse:collapse; margin-bottom:10px;">
+                <thead><tr style="background:#f8f9fa;">
+                <th style="padding:8px; border:1px solid #ddd; text-align:right;">מוצר</th>
+                <th style="padding:8px; border:1px solid #ddd; text-align:center;">כמות</th>
+                <th style="padding:8px; border:1px solid #ddd; text-align:left;">מחיר</th></tr></thead><tbody>`;
+        l.items.forEach(i => {
+            const sub = i.price * i.qty; listTotal += sub;
+            html += `<tr><td style="padding:8px; border:1px solid #ddd;">${i.name}</td>
+                <td style="padding:8px; border:1px solid #ddd; text-align:center;">${i.qty}</td>
+                <td style="padding:8px; border:1px solid #ddd; text-align:left;">₪${sub.toFixed(2)}</td></tr>`;
+        });
+        html += `</tbody></table><div style="text-align:left; font-weight:bold;">סה"כ: ₪${listTotal.toFixed(2)}</div></div>`;
+        grandTotal += listTotal;
+    });
+    html += `<h2 style="text-align:center; margin-top:30px; border-top:2px solid #333; padding-top:10px;">סה"כ כולל: ₪${grandTotal.toFixed(2)}</h2></div>`;
+    printArea.innerHTML = html;
+    setTimeout(() => { window.print(); }, 500);
+}
+
+// ========== Cloud Sync Logic ==========
+function gapiLoaded() { gapi.load('client', initializeGapiClient); }
+
+async function initializeGapiClient() {
+    await gapi.client.init({ apiKey: GOOGLE_API_KEY, discoveryDocs: [DISCOVERY_DOC] });
+    gapiInited = true;
+    maybeEnableButtons();
 }
 
 function gisLoaded() {
     tokenClient = google.accounts.oauth2.initTokenClient({
-        client_id: GOOGLE_CLIENT_ID,
-        scope: SCOPES,
-        callback: (resp) => {
-            if (resp.error !== undefined) throw (resp);
-            accessToken = resp.access_token;
-            isConnected = true;
-            updateCloudIndicator('connected');
-            syncToCloud();
-        },
+        client_id: GOOGLE_CLIENT_ID, scope: SCOPES, callback: ''
     });
     gisInited = true;
+    maybeEnableButtons();
+}
+
+function maybeEnableButtons() {
+    if (gapiInited && gisInited) { document.getElementById('cloudBtn').onclick = handleCloudClick; }
 }
 
 async function handleCloudClick() {
-    if (!isConnected) {
-        tokenClient.requestAccessToken({ prompt: 'consent' });
-    } else {
-        await syncToCloud();
-    }
+    if (isConnected) await loadAndMerge();
+    else handleAuthClick();
+}
+
+function handleAuthClick() {
+    tokenClient.callback = async (resp) => {
+        if (resp.error !== undefined) return;
+        accessToken = gapi.client.getToken().access_token;
+        isConnected = true;
+        updateCloudIndicator('connected');
+        await loadAndMerge();
+    };
+    tokenClient.requestAccessToken({prompt: gapi.client.getToken() === null ? 'consent' : ''});
 }
 
 async function syncToCloud() {
@@ -147,90 +228,104 @@ async function syncToCloud() {
     updateCloudIndicator('syncing');
     try {
         const folderId = await findOrCreateFolder();
-        const fileList = await gapi.client.drive.files.list({ q: `name='${FILE_NAME}' and '${folderId}' in parents` });
-        const fileId = fileList.result.files.length > 0 ? fileList.result.files[0].id : null;
-        const content = JSON.stringify(db);
+        const fileId = await findFileInFolder(folderId);
+        const data = JSON.stringify(db);
         if (fileId) {
             await fetch(`https://www.googleapis.com/upload/drive/v3/files/${fileId}?uploadType=media`, {
-                method: 'PATCH', headers: { 'Authorization': `Bearer ${accessToken}`, 'Content-Type': 'application/json' }, body: content
+                method: 'PATCH', headers: { 'Authorization': `Bearer ${accessToken}`, 'Content-Type': 'application/json' }, body: data
             });
         } else {
             const metadata = { name: FILE_NAME, parents: [folderId] };
             const form = new FormData();
             form.append('metadata', new Blob([JSON.stringify(metadata)], { type: 'application/json' }));
-            form.append('file', new Blob([content], { type: 'application/json' }));
+            form.append('file', new Blob([data], { type: 'application/json' }));
             await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart', {
                 method: 'POST', headers: { 'Authorization': `Bearer ${accessToken}` }, body: form
             });
         }
-        updateCloudIndicator('connected');
     } catch (e) { console.error(e); }
-    isSyncing = false;
+    finally { isSyncing = false; updateCloudIndicator('connected'); }
 }
 
 async function findOrCreateFolder() {
-    const resp = await gapi.client.drive.files.list({ q: `name='${FOLDER_NAME}' and mimeType='application/vnd.google-apps.folder'` });
-    if (resp.result.files.length > 0) return resp.result.files[0].id;
+    const res = await gapi.client.drive.files.list({ q: `name='${FOLDER_NAME}' and mimeType='application/vnd.google-apps.folder' and trashed=false` });
+    if (res.result.files.length > 0) return res.result.files[0].id;
     const folder = await gapi.client.drive.files.create({ resource: { name: FOLDER_NAME, mimeType: 'application/vnd.google-apps.folder' } });
     return folder.result.id;
 }
 
-// ========== Fix: Other Buttons logic ==========
-function addItem() {
-    const name = document.getElementById('itemName').value.trim();
-    const price = parseFloat(document.getElementById('itemPrice').value) || 0;
-    if (name) {
-        db.lists[db.currentId].items.push({ name, price, qty: 1, checked: false });
-        closeModal('inputForm');
-        save();
-    }
+async function findFileInFolder(fId) {
+    const res = await gapi.client.drive.files.list({ q: `name='${FILE_NAME}' and '${fId}' in parents and trashed=false` });
+    return res.result.files.length > 0 ? res.result.files[0].id : null;
 }
 
-function openEditTotalModal(idx) { 
-    currentEditIdx = idx; 
-    document.getElementById('editTotalInput').value = ''; 
-    openModal('editTotalModal'); 
+async function loadAndMerge() {
+    const fId = await findOrCreateFolder();
+    const fileId = await findFileInFolder(fId);
+    if (!fileId) { await syncToCloud(); return; }
+    const res = await fetch(`https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`, { headers: { 'Authorization': `Bearer ${accessToken}` } });
+    db = await res.json();
+    save();
 }
 
-function saveTotal() {
-    const v = parseFloat(document.getElementById('editTotalInput').value);
-    if (!isNaN(v)) {
-        const item = db.lists[db.currentId].items[currentEditIdx];
-        item.price = v / item.qty;
-        save();
-    }
-    closeModal('editTotalModal');
-}
-
-// ========== Lifecycle & Listeners ==========
-window.onload = () => {
-    document.getElementById('cloudBtn').onclick = handleCloudClick;
-    const bar = document.querySelector('.bottom-bar');
-    if(bar) bar.addEventListener('click', (e) => { if(e.offsetY < 35) bar.classList.toggle('collapsed'); });
-    
-    // Load external Google Scripts dynamically for better stability
-    const s1 = document.createElement('script'); s1.src = "https://apis.google.com/js/api.js"; s1.onload = gapiLoaded; document.head.appendChild(s1);
-    const s2 = document.createElement('script'); s2.src = "https://accounts.google.com/gsi/client"; s2.onload = gisLoaded; document.head.appendChild(s2);
-    
-    render();
-};
-
+// ========== UI Utilities ==========
 function updateCloudIndicator(s) {
     const i = document.getElementById('cloudIndicator');
-    if(i) i.className = `w-2 h-2 rounded-full ${s === 'connected' ? 'bg-green-500' : 'bg-yellow-500 animate-pulse'}`;
+    if(i) i.className = `w-2 h-2 rounded-full ${s === 'connected' ? 'bg-green-500' : s === 'syncing' ? 'bg-yellow-500 animate-pulse' : 'bg-gray-300'}`;
 }
 
-// Global functions for HTML onclick
-function toggleItem(i) { db.lists[db.currentId].items[i].checked = !db.lists[db.currentId].items[i].checked; save(); }
-function removeItem(i) { db.lists[db.currentId].items.splice(i, 1); save(); }
-function changeQty(i, d) { if(db.lists[db.currentId].items[i].qty+d >= 1){ db.lists[db.currentId].items[i].qty+=d; save(); } }
-function showPage(p) { activePage = p; save(); }
-function toggleLock() { isLocked = !isLocked; render(); }
-function openModal(id) { document.getElementById(id).classList.add('active'); }
+function openModal(id) { 
+    if(id==='inputForm'){ document.getElementById('itemName').value=''; document.getElementById('itemPrice').value=''; }
+    document.getElementById(id).classList.add('active'); 
+}
 function closeModal(id) { document.getElementById(id).classList.remove('active'); }
+function showPage(p) { activePage = p; render(); }
+function toggleLock() { isLocked = !isLocked; render(); }
+function toggleItem(idx) { db.lists[db.currentId].items[idx].checked = !db.lists[db.currentId].items[idx].checked; save(); }
+function removeItem(idx) { db.lists[db.currentId].items.splice(idx, 1); save(); }
+function changeQty(idx, d) { if(db.lists[db.currentId].items[idx].qty+d>=1){ db.lists[db.currentId].items[idx].qty+=d; save(); } }
 function toggleSum(id) {
     const i = db.selectedInSummary.indexOf(id);
     if (i > -1) db.selectedInSummary.splice(i, 1); else db.selectedInSummary.push(id);
     save();
 }
-function initSortable() {} // Logic for sorting
+function addItem() {
+    const n = document.getElementById('itemName').value.trim();
+    const p = parseFloat(document.getElementById('itemPrice').value) || 0;
+    if(n) { db.lists[db.currentId].items.push({name:n, price:p, qty:1, checked:false}); closeModal('inputForm'); save(); }
+}
+function executeClear() { db.lists[db.currentId].items = []; closeModal('confirmModal'); save(); }
+function saveNewList() {
+    const n = document.getElementById('newListNameInput').value.trim();
+    if(n) { const id = 'L' + Date.now(); db.lists[id] = { name: n, items: [] }; db.currentId = id; activePage = 'lists'; closeModal('newListModal'); save(); }
+}
+function updateFontSize(s) { db.fontSize=parseInt(s); document.documentElement.style.setProperty('--base-font-size', s+'px'); document.getElementById('fontSizeValue').innerText=s; save(); }
+function toggleDarkMode() { document.body.classList.toggle('dark-mode'); closeModal('settingsModal'); }
+function openEditTotalModal(i) { currentEditIdx=i; document.getElementById('editTotalInput').value=''; openModal('editTotalModal'); }
+function saveTotal() {
+    const v=parseFloat(document.getElementById('editTotalInput').value);
+    if(!isNaN(v)){ const item=db.lists[db.currentId].items[currentEditIdx]; item.price=v/item.qty; save(); }
+    closeModal('editTotalModal');
+}
+function initSortable() {
+    const el = document.getElementById('itemsContainer');
+    if (sortableInstance) sortableInstance.destroy();
+    if (el && !isLocked) {
+        sortableInstance = Sortable.create(el, { animation: 150, onEnd: () => {
+            const newOrder = Array.from(el.children).map(c => parseInt(c.getAttribute('data-id')));
+            const items = db.lists[db.currentId].items;
+            db.lists[db.currentId].items = newOrder.map(oldIdx => items[oldIdx]);
+            save();
+        }});
+    }
+}
+
+window.onload = () => {
+    const bar = document.querySelector('.bottom-bar');
+    if(bar) bar.addEventListener('click', (e) => { if(e.offsetY < 35) bar.classList.toggle('collapsed'); });
+    render();
+};
+
+// טעינת Google API דינמית
+const script1 = document.createElement('script'); script1.src = 'https://apis.google.com/js/api.js'; script1.onload = gapiLoaded; document.head.appendChild(script1);
+const script2 = document.createElement('script'); script2.src = 'https://accounts.google.com/gsi/client'; script2.onload = gisLoaded; document.head.appendChild(script2);
