@@ -1,60 +1,8 @@
 * { box-sizing: border-box; touch-action: manipulation; }
-body { font-family: system-ui, sans-serif; background: #f4f7fa; padding-bottom: 240px; min-height: 100vh; transition: background 0.3s; margin: 0; font-size: 16px; }
+body { font-family: system-ui, sans-serif; background: #f4f7fa; padding-bottom: 240px; min-height: 100vh; transition: background 0.3s; margin: 0; }
 
 .item-card { background: white; border-radius: 25px; padding: 15px; margin-bottom: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.03); display: flex; flex-direction: column; }
-.bottom-bar { 
-    position: fixed; 
-    bottom: 0; 
-    left: 0; 
-    right: 0; 
-    background: #7367f0; 
-    z-index: 1000; 
-    padding: 15px 15px 35px 15px; 
-    border-radius: 35px 35px 0 0; 
-    box-shadow: 0 -10px 25px rgba(0, 0, 0, 0.15);
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-/* מצב מכווץ של הבר */
-.bottom-bar.collapsed {
-    padding: 0 !important;
-    border-radius: 10px 10px 0 0;
-}
-
-/* פס מתכווץ */
-.collapse-strip {
-    width: 100%;
-    height: 8px;
-    background: rgba(255, 255, 255, 0.3);
-    border-radius: 10px 10px 0 0;
-    cursor: pointer;
-    position: relative;
-    transition: all 0.2s;
-}
-
-.collapse-strip:hover {
-    background: rgba(255, 255, 255, 0.5);
-}
-
-.collapse-strip::before {
-    content: '';
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    width: 40px;
-    height: 4px;
-    background: rgba(255, 255, 255, 0.6);
-    border-radius: 2px;
-}
-
-.bottom-bar.collapsed .collapse-strip {
-    height: 40px;
-}
-
-#bottomBarContent {
-    transition: opacity 0.2s;
-}
+.bottom-bar { position: fixed; bottom: 0; left: 0; right: 0; background: #7367f0; z-index: 1000; padding: 15px 15px 35px 15px; border-radius: 35px 35px 0 0; box-shadow: 0 -10px 25px rgba(0, 0, 0, 0.15); }
 
 .tab-btn { flex: 1; padding: 12px; border-radius: 15px; font-weight: bold; text-align: center; cursor: pointer; transition: 0.2s; background: white; color: #666; border: 1px solid #eee; }
 .tab-active { background: #7367f0 !important; color: white !important; }
@@ -84,38 +32,6 @@ body { font-family: system-ui, sans-serif; background: #f4f7fa; padding-bottom: 
 
 .trash-btn { width: 44px; height: 44px; background: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #ef4444; border: none; cursor: pointer; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
 .category-separator { background: #7367f0; color: white; border-radius: 20px; padding: 15px; margin-bottom: 20px; text-align: center; }
-
-/* עיצוב סליידר */
-input[type="range"] {
-    -webkit-appearance: none;
-    appearance: none;
-    width: 100%;
-    height: 8px;
-    background: #e5e7eb;
-    border-radius: 5px;
-    outline: none;
-}
-
-input[type="range"]::-webkit-slider-thumb {
-    -webkit-appearance: none;
-    appearance: none;
-    width: 24px;
-    height: 24px;
-    background: #7367f0;
-    border-radius: 50%;
-    cursor: pointer;
-    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-}
-
-input[type="range"]::-moz-range-thumb {
-    width: 24px;
-    height: 24px;
-    background: #7367f0;
-    border-radius: 50%;
-    cursor: pointer;
-    border: none;
-    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-}
 
 /* מצב לילה */
 body.dark-mode { background: #1a1a2e; color: #e0e0e0; }
