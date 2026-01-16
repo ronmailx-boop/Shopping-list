@@ -70,8 +70,7 @@ function render() {
         document.getElementById('listNameDisplay').innerText = list.name;
         list.items.forEach((item, idx) => {
             const sub = item.price * item.qty; 
-            total += sub; 
-            if (item.checked) paid += sub;
+            total += sub; if (item.checked) paid += sub;
             const div = document.createElement('div'); 
             div.className = "item-card";
             div.setAttribute('data-id', idx);
@@ -90,26 +89,25 @@ function render() {
                         <button onclick="changeQty(${idx}, -1)" class="text-red-500 text-2xl font-bold">-</button>
                     </div>
                     <span onclick="openEditTotalModal(${idx})" class="text-2xl font-black text-indigo-600">₪${sub.toFixed(2)}</span>
-                </div>
-            `;
+                </div>`;
             container.appendChild(div);
         });
     } else {
         document.getElementById('pageLists').classList.add('hidden');
         document.getElementById('pageSummary').classList.remove('hidden');
+        
+        // תיקון ויזואלי לכפתור "בחר הכל" בדף הריכוז
+        const selectAllCheckbox = document.getElementById('selectAllLists');
+        if (selectAllCheckbox) {
+            selectAllCheckbox.checked = db.selectedInSummary.length === Object.keys(db.lists).length && Object.keys(db.lists).length > 0;
+        }
+
         Object.keys(db.lists).forEach(id => {
             const l = db.lists[id];
             let lT = 0, lP = 0;
-            l.items.forEach(i => { 
-                const s = i.price * i.qty; 
-                lT += s; 
-                if(i.checked) lP += s; 
-            });
+            l.items.forEach(i => { lT += (i.price * i.qty); if(i.checked) lP += (i.price * i.qty); });
             const isSel = db.selectedInSummary.includes(id); 
-            if (isSel) { 
-                total += lT; 
-                paid += lP; 
-            }
+            if (isSel) { total += lT; paid += lP; }
             const div = document.createElement('div'); 
             div.className = "item-card p-4"; 
             div.dataset.id = id;
@@ -120,51 +118,76 @@ function render() {
                         <span class="font-bold text-xl cursor-pointer" onclick="db.currentId='${id}'; showPage('lists')">${l.name}</span>
                     </div>
                     <div class="text-indigo-600 font-black text-xl">₪${lT.toFixed(2)}</div>
-                </div>
-            `;
+                </div>`;
             container.appendChild(div);
         });
     }
-    
     document.getElementById('displayTotal').innerText = total.toFixed(2);
     document.getElementById('displayPaid').innerText = paid.toFixed(2);
     document.getElementById('displayLeft').innerText = (total - paid).toFixed(2);
     initSortable();
 }
 
-// ========== Fix: WhatsApp Share & PDF Logic ==========
-function shareFullToWhatsApp() {
-    const list = db.lists[db.currentId];
-    if (list.items.length === 0) return;
-    let text = `🛒 *${list.name} (רשימה מלאה):*\n\n`;
-    list.items.forEach(i => {
-        text += `${i.checked ? '✅' : '⬜'} *${i.name}* (x${i.qty}) - ₪${(i.price * i.qty).toFixed(2)}\n`;
-    });
-    text += `\n💰 *סה"כ: ₪${document.getElementById('displayTotal').innerText}*`;
-    window.open("https://wa.me/?text=" + encodeURIComponent(text));
-    closeModal('shareListModal');
+// ========== Fix: Select All Logic (from script 8) ==========
+function toggleSelectAll(checked) {
+    // עדכון המערך בבסיס הנתונים עבור כל המפתחות הקיימים
+    db.selectedInSummary = checked ? Object.keys(db.lists) : [];
+    save();
 }
 
-function shareMissingToWhatsApp() {
-    const list = db.lists[db.currentId];
-    const missing = list.items.filter(i => !i.checked);
-    if (missing.length === 0) { 
-        alert("אין מוצרים חסרים!"); 
-        return; 
+// ========== Fix: Import Logic (from script 9) ==========
+function importFromText() {
+    const text = document.getElementById('importText').value.trim();
+    if (!text) { alert('אנא הדבק טקסט לייבוא'); return; }
+
+    const lines = text.split('\n').filter(line => line.trim());
+    let listName = 'רשימה מיובאת';
+    let startIndex = 0;
+    
+    // זיהוי כותרת רשימה (למשל *שם רשימה*)
+    if (lines[0].includes('*')) {
+        const match = lines[0].match(/\*([^*]+)\*/);
+        if (match) { listName = match[1].trim(); startIndex = 1; }
     }
-    let text = `⬜ *${list.name} (מוצרים חסרים):*\n\n`;
-    missing.forEach(i => text += `• *${i.name}* (x${i.qty})\n`);
-    window.open("https://wa.me/?text=" + encodeURIComponent(text));
-    closeModal('shareListModal');
+
+    const newListId = 'L' + Date.now();
+    const items = [];
+
+    for (let i = startIndex; i < lines.length; i++) {
+        const line = lines[i].trim();
+        if (!line || line.includes('🛒') || line.includes('💰') || line.includes('סה"כ')) continue;
+
+        let itemAdded = false;
+
+        // פורמט 1: ⬜ *שם* (xכמות) - ₪מחיר
+        const fullMatch = line.match(/[⬜✅]\s*\*([^*]+)\*\s*\(x(\d+)\)\s*-\s*₪([\d.]+)/);
+        if (fullMatch) {
+            const qty = parseInt(fullMatch[2]);
+            items.push({ name: fullMatch[1].trim(), price: parseFloat(fullMatch[3])/qty, qty, checked: line.includes('✅') });
+            itemAdded = true;
+        }
+
+        // פורמט פשוט: • שם
+        if (!itemAdded) {
+            const name = line.replace(/^[•\-\*\s]+/, '').replace(/\*+$/, '').trim();
+            if (name) items.push({ name, price: 0, qty: 1, checked: false });
+        }
+    }
+
+    if (items.length > 0) {
+        db.lists[newListId] = { name: listName, items };
+        db.currentId = newListId;
+        activePage = 'lists';
+        closeModal('importModal');
+        save();
+    }
 }
 
+// ========== Fix: WhatsApp & PDF (Ensuring active buttons) ==========
 function shareSummaryToWhatsApp() {
     const selectedIds = db.selectedInSummary;
-    if (selectedIds.length === 0) { 
-        alert("בחר לפחות רשימה אחת לשיתוף!"); 
-        return; 
-    }
-    let text = `📦 *ריכוז רשימות קנייה (חסרים בלבד):*\n\n`;
+    if (selectedIds.length === 0) { alert("בחר לפחות רשימה אחת!"); return; }
+    let text = `📦 *ריכוז חסרים:*\n\n`;
     selectedIds.forEach(id => {
         const l = db.lists[id];
         const missing = l.items.filter(i => !i.checked);
@@ -179,223 +202,125 @@ function shareSummaryToWhatsApp() {
 
 function preparePrint() { 
     closeModal('settingsModal');
-    let printArea = document.getElementById('printArea');
+    const printArea = document.getElementById('printArea');
     let grandTotal = 0;
-    let html = `<h1 style="text-align:center; color:#7367f0;">דוח קניות מפורט - Vplus</h1>`;
-    const idsToPrint = db.selectedInSummary.length > 0 ? db.selectedInSummary : Object.keys(db.lists);
+    let html = `<div style="direction:rtl; padding:20px; font-family:sans-serif;">
+                <h1 style="text-align:center; color:#7367f0;">דוח קניות - Vplus</h1>`;
     
+    const idsToPrint = db.selectedInSummary.length > 0 ? db.selectedInSummary : Object.keys(db.lists);
     idsToPrint.forEach(id => {
-        const l = db.lists[id]; 
+        const l = db.lists[id];
         let listTotal = 0;
-        html += `
-            <div style="border-bottom: 2px solid #7367f0; margin-bottom: 20px; padding-bottom: 10px; direction: rtl;">
-                <h2>${l.name}</h2>
-                <table style="width:100%; border-collapse:collapse; border:1px solid #ddd; margin-bottom:10px;">
-                    <thead>
-                        <tr style="background:#f9fafb;">
-                            <th style="padding:8px; border:1px solid #ddd; text-align:right;">מוצר</th>
-                            <th style="padding:8px; border:1px solid #ddd; text-align:center;">כמות</th>
-                            <th style="padding:8px; border:1px solid #ddd; text-align:left;">סה"כ</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-        `;
-        
-        l.items.forEach(i => { 
-            const s = i.price * i.qty;
-            listTotal += s;
-            html += `
-                <tr>
-                    <td style="padding:8px; border:1px solid #ddd; text-align:right;">${i.name}</td>
-                    <td style="padding:8px; border:1px solid #ddd; text-align:center;">${i.qty}</td>
-                    <td style="padding:8px; border:1px solid #ddd; text-align:left;">₪${s.toFixed(2)}</td>
-                </tr>
-            `; 
+        html += `<h3>${l.name}</h3><table style="width:100%; border-collapse:collapse; margin-bottom:15px;">
+                <tr style="background:#eee;"><th>מוצר</th><th>כמות</th><th>סה"כ</th></tr>`;
+        l.items.forEach(i => {
+            const s = i.price * i.qty; listTotal += s;
+            html += `<tr><td style="border:1px solid #ddd; padding:8px;">${i.name}</td>
+                    <td style="border:1px solid #ddd; padding:8px; text-align:center;">${i.qty}</td>
+                    <td style="border:1px solid #ddd; padding:8px; text-align:left;">₪${s.toFixed(2)}</td></tr>`;
         });
-        
-        html += `
-                    </tbody>
-                </table>
-                <div style="text-align:left; font-weight:bold;">סיכום רשימה: ₪${listTotal.toFixed(2)}</div>
-            </div>
-        `;
+        html += `</table><div style="text-align:left; font-weight:bold;">סה"כ רשימה: ₪${listTotal.toFixed(2)}</div>`;
         grandTotal += listTotal;
     });
-    
-    html += `<div style="text-align:center; margin-top:30px; padding:15px; border:3px double #7367f0; font-size:1.5em; font-weight:900;">סה"כ כולל: ₪${grandTotal.toFixed(2)}</div>`;
+    html += `<h2 style="text-align:center; margin-top:30px;">סה"כ כולל: ₪${grandTotal.toFixed(2)}</h2></div>`;
     printArea.innerHTML = html;
-    setTimeout(() => { window.print(); }, 500); // השהייה קלה לרינדור לפני ההדפסה
+    setTimeout(() => { window.print(); }, 500);
 }
 
-// ========== Fix: Cloud Sync Logic ==========
-function gapiLoaded() {
-    gapi.load('client', initializeGapiClient);
-}
+// ========== Google Drive (Restoring from script 8) ==========
+function gapiLoaded() { gapi.load('client', initializeGapiClient); }
 
 async function initializeGapiClient() {
-    await gapi.client.init({
-        apiKey: GOOGLE_API_KEY,
-        discoveryDocs: [DISCOVERY_DOC],
-    });
+    await gapi.client.init({ apiKey: GOOGLE_API_KEY, discoveryDocs: [DISCOVERY_DOC] });
     gapiInited = true;
     maybeEnableButtons();
 }
 
 function gisLoaded() {
     tokenClient = google.accounts.oauth2.initTokenClient({
-        client_id: GOOGLE_CLIENT_ID,
-        scope: SCOPES,
-        callback: '',
+        client_id: GOOGLE_CLIENT_ID, scope: SCOPES, callback: ''
     });
     gisInited = true;
     maybeEnableButtons();
 }
 
 function maybeEnableButtons() {
-    if (gapiInited && gisInited) {
-        document.getElementById('cloudBtn').onclick = handleCloudClick;
-    }
+    if (gapiInited && gisInited) { document.getElementById('cloudBtn').onclick = handleCloudClick; }
 }
 
 function handleCloudClick() {
-    if (isConnected) {
-        manualSync();
-    } else {
-        handleAuthClick();
-    }
+    if (isConnected) syncToCloud();
+    else handleAuthClick();
 }
 
 function handleAuthClick() {
     tokenClient.callback = async (resp) => {
-        if (resp.error !== undefined) {
-            console.error('שגיאת התחברות:', resp);
-            return;
-        }
-        
         accessToken = gapi.client.getToken().access_token;
         isConnected = true;
         updateCloudIndicator('connected');
-        
         await loadAndMerge();
     };
-
-    if (gapi.client.getToken() === null) {
-        tokenClient.requestAccessToken({prompt: 'consent'});
-    } else {
-        tokenClient.requestAccessToken({prompt: ''});
-    }
+    tokenClient.requestAccessToken({prompt: 'consent'});
 }
 
 async function syncToCloud() {
     if (!accessToken || isSyncing) return;
-    
     isSyncing = true;
     updateCloudIndicator('syncing');
-
     try {
         const folderId = await findOrCreateFolder();
-        if (!folderId) return;
-
         const fileId = await findFileInFolder(folderId);
-        const dataToSave = JSON.stringify(db);
-
+        const data = JSON.stringify(db);
         if (fileId) {
             await fetch(`https://www.googleapis.com/upload/drive/v3/files/${fileId}?uploadType=media`, {
-                method: 'PATCH',
-                headers: {
-                    'Authorization': `Bearer ${accessToken}`,
-                    'Content-Type': 'application/json'
-                },
-                body: dataToSave
+                method: 'PATCH', headers: { 'Authorization': `Bearer ${accessToken}`, 'Content-Type': 'application/json' }, body: data
             });
         } else {
             const metadata = { name: FILE_NAME, parents: [folderId] };
             const form = new FormData();
             form.append('metadata', new Blob([JSON.stringify(metadata)], { type: 'application/json' }));
-            form.append('file', new Blob([dataToSave], { type: 'application/json' }));
-
+            form.append('file', new Blob([data], { type: 'application/json' }));
             await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart', {
-                method: 'POST',
-                headers: { 'Authorization': `Bearer ${accessToken}` },
-                body: form
+                method: 'POST', headers: { 'Authorization': `Bearer ${accessToken}` }, body: form
             });
         }
-    } catch (err) {
-        console.error('שגיאה בסינכרון:', err);
-    } finally {
-        isSyncing = false;
-        updateCloudIndicator('connected');
-    }
+    } catch (e) { console.error(e); }
+    finally { isSyncing = false; updateCloudIndicator('connected'); }
 }
 
 async function findOrCreateFolder() {
-    try {
-        const response = await gapi.client.drive.files.list({
-            q: `name='${FOLDER_NAME}' and mimeType='application/vnd.google-apps.folder' and trashed=false`,
-            fields: 'files(id, name)',
-            spaces: 'drive'
-        });
-
-        if (response.result.files.length > 0) return response.result.files[0].id;
-
-        const folder = await gapi.client.drive.files.create({
-            resource: { name: FOLDER_NAME, mimeType: 'application/vnd.google-apps.folder' },
-            fields: 'id'
-        });
-
-        return folder.result.id;
-    } catch (err) { return null; }
+    const res = await gapi.client.drive.files.list({ q: `name='${FOLDER_NAME}' and trashed=false` });
+    if (res.result.files.length > 0) return res.result.files[0].id;
+    const folder = await gapi.client.drive.files.create({ resource: { name: FOLDER_NAME, mimeType: 'application/vnd.google-apps.folder' } });
+    return folder.result.id;
 }
 
-async function findFileInFolder(folderId) {
-    try {
-        const response = await gapi.client.drive.files.list({
-            q: `name='${FILE_NAME}' and '${folderId}' in parents and trashed=false`,
-            fields: 'files(id, name)'
-        });
-        return response.result.files.length > 0 ? response.result.files[0].id : null;
-    } catch (err) { return null; }
+async function findFileInFolder(fId) {
+    const res = await gapi.client.drive.files.list({ q: `name='${FILE_NAME}' and '${fId}' in parents` });
+    return res.result.files.length > 0 ? res.result.files[0].id : null;
 }
 
 async function loadAndMerge() {
-    if (!accessToken || isSyncing) return;
-    isSyncing = true;
-    updateCloudIndicator('syncing');
+    const fId = await findOrCreateFolder();
+    const fileId = await findFileInFolder(fId);
+    if (!fileId) return;
+    const res = await fetch(`https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`, { headers: { Authorization: `Bearer ${accessToken}` } });
+    db = await res.json();
+    save();
+}
 
-    try {
-        const folderId = await findOrCreateFolder();
-        const fileId = await findFileInFolder(folderId);
-        
-        if (!fileId) {
-            isSyncing = false;
-            await syncToCloud();
-            return;
+// ========== UI Utilities & Helpers ==========
+function openModal(id) { 
+    const m = document.getElementById(id);
+    if(m) {
+        m.classList.add('active');
+        if(id === 'inputForm') {
+            document.getElementById('itemName').value = '';
+            document.getElementById('itemPrice').value = '';
         }
-
-        const response = await fetch(`https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`, {
-            headers: { 'Authorization': `Bearer ${accessToken}` }
-        });
-
-        db = await response.json();
-        localStorage.setItem('BUDGET_FINAL_V27', JSON.stringify(db));
-        render();
-    } catch (err) { console.error(err); } 
-    finally {
-        isSyncing = false;
-        updateCloudIndicator('connected');
     }
 }
-
-async function manualSync() { await loadAndMerge(); }
-
-// ========== UI Utilities ==========
-function updateCloudIndicator(status) {
-    const indicator = document.getElementById('cloudIndicator');
-    if (status === 'connected') indicator.className = 'w-2 h-2 bg-green-500 rounded-full';
-    else if (status === 'syncing') indicator.className = 'w-2 h-2 bg-yellow-500 rounded-full animate-pulse';
-    else indicator.className = 'w-2 h-2 bg-gray-300 rounded-full';
-}
-
+function closeModal(id) { const m = document.getElementById(id); if(m) m.classList.remove('active'); }
 function toggleItem(idx) { db.lists[db.currentId].items[idx].checked = !db.lists[db.currentId].items[idx].checked; save(); }
 function toggleSum(id) {
     const i = db.selectedInSummary.indexOf(id);
@@ -403,65 +328,49 @@ function toggleSum(id) {
     else db.selectedInSummary.push(id);
     save();
 }
-function toggleSelectAll(checked) { db.selectedInSummary = checked ? Object.keys(db.lists) : []; save(); }
-function showPage(p) { activePage = p; save(); }
 function addItem() { 
     const n = document.getElementById('itemName').value.trim();
     const p = parseFloat(document.getElementById('itemPrice').value) || 0;
-    if (n) { 
-        db.lists[db.currentId].items.push({ name: n, price: p, qty: 1, checked: false });
-        closeModal('inputForm');
-        save();
-    } 
+    if (n) { db.lists[db.currentId].items.push({ name: n, price: p, qty: 1, checked: false }); closeModal('inputForm'); save(); }
 }
-function changeQty(idx, d) { if(db.lists[db.currentId].items[idx].qty + d >= 1) { db.lists[db.currentId].items[idx].qty += d; save(); } }
+function changeQty(idx, d) { if(db.lists[db.currentId].items[idx].qty+d>=1) { db.lists[db.currentId].items[idx].qty+=d; save(); } }
 function removeItem(idx) { db.lists[db.currentId].items.splice(idx, 1); save(); }
 function toggleLock() { isLocked = !isLocked; render(); }
-function executeClear() { db.lists[db.currentId].items = []; closeModal('confirmModal'); save(); }
-function saveNewList() { 
-    const n = document.getElementById('newListNameInput').value.trim();
-    if(n) { 
-        const id = 'L' + Date.now();
-        db.lists[id] = { name: n, items: [] };
-        db.currentId = id; activePage = 'lists';
-        closeModal('newListModal'); save();
-    } 
+function showPage(p) { activePage = p; save(); }
+function updateCloudIndicator(s) {
+    const i = document.getElementById('cloudIndicator');
+    if(i) i.className = `w-2 h-2 rounded-full ${s === 'connected' ? 'bg-green-500' : 'bg-yellow-500 animate-pulse'}`;
 }
-function prepareDeleteList(id) { listToDelete = id; openModal('deleteListModal'); }
-function deleteFullList() { 
-    if (listToDelete) { 
-        delete db.lists[listToDelete];
-        const keys = Object.keys(db.lists);
-        if (db.currentId === listToDelete) db.currentId = keys[0] || (db.lists['L1'] = {name: 'הרשימה שלי', items: []}, 'L1');
-        closeModal('deleteListModal'); save();
-    } 
+function openEditTotalModal(i) { currentEditIdx = i; document.getElementById('editTotalInput').value = ''; openModal('editTotalModal'); }
+function saveTotal() {
+    const v = parseFloat(document.getElementById('editTotalInput').value);
+    if (!isNaN(v)) { const item = db.lists[db.currentId].items[currentEditIdx]; item.price = v/item.qty; save(); }
+    closeModal('editTotalModal');
 }
-
 function initSortable() {
     const el = document.getElementById(activePage === 'lists' ? 'itemsContainer' : 'summaryContainer');
     if (sortableInstance) sortableInstance.destroy();
     if (el && !isLocked) {
-        sortableInstance = Sortable.create(el, { 
-            animation: 150, 
-            onEnd: function() {
-                if (activePage === 'lists') {
-                    const newOrder = Array.from(el.children).map(c => parseInt(c.getAttribute('data-id')));
-                    const items = db.lists[db.currentId].items;
-                    db.lists[db.currentId].items = newOrder.map(oldIdx => items[oldIdx]);
-                } else {
-                    const newOrder = Array.from(el.children).map(c => c.getAttribute('data-id'));
-                    const newLists = {};
-                    newOrder.forEach(id => newLists[id] = db.lists[id]);
-                    db.lists = newLists;
-                }
-                save(); 
-            } 
-        });
+        sortableInstance = Sortable.create(el, { animation: 150, onEnd: () => {
+            const newOrder = Array.from(el.children).map(c => activePage === 'lists' ? parseInt(c.getAttribute('data-id')) : c.getAttribute('data-id'));
+            if (activePage === 'lists') {
+                const items = db.lists[db.currentId].items;
+                db.lists[db.currentId].items = newOrder.map(idx => items[idx]);
+            } else {
+                const newLists = {};
+                newOrder.forEach(id => newLists[id] = db.lists[id]);
+                db.lists = newLists;
+            }
+            save();
+        }});
     }
 }
 
-// ========== Lifecycle & API Load ==========
+window.onload = () => {
+    const bar = document.querySelector('.bottom-bar');
+    if(bar) bar.addEventListener('click', (e) => { if(e.offsetY < 35) bar.classList.toggle('collapsed'); });
+    render();
+};
+
 const script1 = document.createElement('script'); script1.src = 'https://apis.google.com/js/api.js'; script1.onload = gapiLoaded; document.head.appendChild(script1);
 const script2 = document.createElement('script'); script2.src = 'https://accounts.google.com/gsi/client'; script2.onload = gisLoaded; document.head.appendChild(script2);
-
-render(); // אתחול ראשוני
