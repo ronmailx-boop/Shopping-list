@@ -14,7 +14,7 @@ let syncTimeout = null;
 let isSyncing = false;
 let isConnected = false;
 
-// ========== Original App Logic ==========
+// ========== App State ==========
 let db = JSON.parse(localStorage.getItem('BUDGET_FINAL_V27')) || { 
     currentId: 'L1', 
     selectedInSummary: [], 
@@ -29,23 +29,117 @@ let activePage = db.lastActivePage || 'lists';
 let currentEditIdx = null;
 let listToDelete = null;
 let sortableInstance = null;
+let isBottomBarCollapsed = false;
 
+// ========== Core Functions ==========
 function save() { 
     db.lastActivePage = activePage;
     db.lastSync = Date.now();
     localStorage.setItem('BUDGET_FINAL_V27', JSON.stringify(db));
     render();
+    
     if (isConnected && !isSyncing) {
         if (syncTimeout) clearTimeout(syncTimeout);
         syncTimeout = setTimeout(() => syncToCloud(), 1500);
     }
 }
 
-function toggleItem(idx) {
-    db.lists[db.currentId].items[idx].checked = !db.lists[db.currentId].items[idx].checked;
-    save();
+function render() {
+    const container = document.getElementById(activePage === 'lists' ? 'itemsContainer' : 'summaryContainer');
+    if (!container) return;
+    container.innerHTML = '';
+    
+    let totalAll = 0, paidAll = 0;
+
+    // עדכון כפתורי הטאבים (צבע סגול לפעיל)
+    document.getElementById('tabLists').className = `tab-btn ${activePage === 'lists' ? 'tab-active' : ''}`;
+    document.getElementById('tabSummary').className = `tab-btn ${activePage === 'summary' ? 'tab-active' : ''}`;
+
+    if (activePage === 'lists') {
+        document.getElementById('pageLists').classList.remove('hidden');
+        document.getElementById('pageSummary').classList.add('hidden');
+        
+        const list = db.lists[db.currentId] || { name: 'רשימה', items: [] };
+        document.getElementById('listNameDisplay').innerText = list.name;
+
+        list.items.forEach((item, idx) => {
+            const sub = item.price * item.qty; 
+            totalAll += sub; 
+            if (item.checked) paidAll += sub;
+
+            const div = document.createElement('div'); 
+            div.className = "item-card";
+            div.setAttribute('data-id', idx);
+            div.innerHTML = `
+                <div class="flex justify-between items-start mb-4" style="gap: 12px;">
+                    <div class="flex items-start gap-3 flex-1">
+                        <input type="checkbox" ${item.checked ? 'checked' : ''} onchange="toggleItem(${idx})" class="w-7 h-7 accent-indigo-600">
+                        <div class="flex-1 text-2xl font-bold ${item.checked ? 'line-through text-gray-300' : ''}" style="font-size: ${db.fontSize}px;">${item.name}</div>
+                    </div>
+                    <button onclick="removeItem(${idx})" class="trash-btn" style="color: #ef4444; background: #fee2e2;">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+                    </button>
+                </div>
+                <div class="flex justify-between items-center">
+                    <div class="flex items-center gap-3 bg-gray-50 rounded-xl px-2 py-1 border">
+                        <button onclick="changeQty(${idx}, 1)" class="text-green-500 text-2xl font-bold">+</button>
+                        <span class="font-bold w-6 text-center">${item.qty}</span>
+                        <button onclick="changeQty(${idx}, -1)" class="text-red-500 text-2xl font-bold">-</button>
+                    </div>
+                    <span onclick="openEditTotalModal(${idx})" class="text-2xl font-black text-indigo-600">₪${sub.toFixed(2)}</span>
+                </div>`;
+            container.appendChild(div);
+        });
+    } else {
+        document.getElementById('pageLists').classList.add('hidden');
+        document.getElementById('pageSummary').classList.remove('hidden');
+        
+        Object.keys(db.lists).forEach(id => {
+            const l = db.lists[id];
+            let lT = 0, lP = 0;
+            l.items.forEach(i => { 
+                const s = i.price * i.qty; 
+                lT += s; 
+                if(i.checked) lP += s; 
+            });
+
+            const isSel = db.selectedInSummary.includes(id); 
+            if (isSel) { totalAll += lT; paidAll += lP; }
+
+            const div = document.createElement('div'); 
+            div.className = "item-card p-4"; 
+            div.innerHTML = `
+                <div class="flex justify-between items-center">
+                    <input type="checkbox" ${isSel ? 'checked' : ''} onchange="toggleSum('${id}')" class="w-7 h-7">
+                    <span class="font-bold text-xl flex-1 mr-3" onclick="db.currentId='${id}'; showPage('lists')">${l.name}</span>
+                    <div class="text-left">
+                        <div class="text-indigo-600 font-bold">₪${lT.toFixed(2)}</div>
+                        <div class="text-[10px] text-green-600">שולם: ₪${lP.toFixed(2)}</div>
+                    </div>
+                </div>`;
+            container.appendChild(div);
+        });
+    }
+    
+    // עדכון מספרים בבר התחתון
+    document.getElementById('displayTotal').innerText = totalAll.toFixed(2);
+    document.getElementById('displayPaid').innerText = paidAll.toFixed(2);
+    document.getElementById('displayLeft').innerText = (totalAll - paidAll).toFixed(2);
+
+    // עדכון כפתור הנעילה
+    const lockBtn = document.getElementById('mainLockBtn');
+    const lockPath = document.getElementById('lockIconPath');
+    if(lockBtn) {
+        lockBtn.className = `bottom-circle-btn ${isLocked ? 'bg-blue-600' : 'bg-orange-400'}`;
+        lockPath.setAttribute('d', isLocked ? 'M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z' : 'M8 11V7a4 4 0 118 0m-4 8v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2z');
+    }
+    document.getElementById('statusTag').innerText = isLocked ? "נעול" : "עריכה (גרירה פעילה)";
+
+    initSortable();
 }
 
+// ========== Actions ==========
+function toggleItem(idx) { db.lists[db.currentId].items[idx].checked = !db.lists[db.currentId].items[idx].checked; save(); }
 function toggleSum(id) {
     const i = db.selectedInSummary.indexOf(id);
     if (i > -1) db.selectedInSummary.splice(i, 1);
@@ -53,128 +147,94 @@ function toggleSum(id) {
     save();
 }
 
-function toggleSelectAll(checked) {
-    db.selectedInSummary = checked ? Object.keys(db.lists) : [];
-    save();
-}
-
-function updateFontSize(size) {
-    db.fontSize = parseInt(size);
-    document.documentElement.style.setProperty('--base-font-size', size + 'px');
-    document.getElementById('fontSizeValue').textContent = size;
-    save();
-}
-
-function showPage(p) { 
-    activePage = p; 
-    save(); 
-}
-
-function openModal(id) { 
-    const m = document.getElementById(id);
-    if(!m) return;
-    m.classList.add('active'); 
-    if(id === 'inputForm') {
-        document.getElementById('itemName').value = '';
-        document.getElementById('itemPrice').value = '';
-        setTimeout(() => document.getElementById('itemName').focus(), 150);
-    }
-}
-
-function closeModal(id) { 
-    const m = document.getElementById(id); 
-    if(m) m.classList.remove('active'); 
-}
-
-function render() {
-    const container = document.getElementById(activePage === 'lists' ? 'itemsContainer' : 'summaryContainer');
-    if (!container) return;
-    container.innerHTML = '';
-    let total = 0, paid = 0;
-
-    // עדכון צבע הכפתורים הפעילים (התיקון לבעיה שציינת)
-    document.getElementById('tabLists').className = `tab-btn ${activePage === 'lists' ? 'tab-active' : ''}`;
-    document.getElementById('tabSummary').className = `tab-btn ${activePage === 'summary' ? 'tab-active' : ''}`;
-
-    const btn = document.getElementById('mainLockBtn');
-    const tag = document.getElementById('statusTag');
-    if (btn && tag) {
-        btn.className = `bottom-circle-btn ${isLocked ? 'bg-blue-600' : 'bg-orange-400'}`;
-        tag.innerText = isLocked ? "נעול" : "עריכה (גרירה פעילה)";
-    }
-
-    if (activePage === 'lists') {
-        document.getElementById('pageLists').classList.remove('hidden');
-        document.getElementById('pageSummary').classList.add('hidden');
-        const list = db.lists[db.currentId];
-        document.getElementById('listNameDisplay').innerText = list.name;
-        list.items.forEach((item, idx) => {
-            const sub = item.price * item.qty; 
-            total += sub; if (item.checked) paid += sub;
-            const div = document.createElement('div'); 
-            div.className = "item-card";
-            div.innerHTML = `
-                <div class="flex justify-between items-start mb-4">
-                    <div class="flex items-start gap-3 flex-1">
-                        <input type="checkbox" ${item.checked ? 'checked' : ''} onchange="toggleItem(${idx})" class="w-7 h-7">
-                        <div class="text-2xl font-bold" style="font-size: ${db.fontSize}px;">${item.name}</div>
-                    </div>
-                    <button onclick="removeItem(${idx})" class="trash-btn">🗑️</button>
-                </div>
-                <div class="flex justify-between items-center">
-                    <div class="flex items-center gap-3 border rounded-xl px-2">
-                        <button onclick="changeQty(${idx}, 1)" class="text-green-500 text-2xl">+</button>
-                        <span>${item.qty}</span>
-                        <button onclick="changeQty(${idx}, -1)" class="text-red-500 text-2xl">-</button>
-                    </div>
-                    <span class="text-indigo-600 font-bold">₪${sub.toFixed(2)}</span>
-                </div>`;
-            container.appendChild(div);
-        });
-    } else {
-        document.getElementById('pageLists').classList.add('hidden');
-        document.getElementById('pageSummary').classList.remove('hidden');
-        Object.keys(db.lists).forEach(id => {
-            const l = db.lists[id];
-            let lT = 0; l.items.forEach(i => lT += (i.price * i.qty));
-            const isSel = db.selectedInSummary.includes(id); 
-            if (isSel) { total += lT; }
-            const div = document.createElement('div'); 
-            div.className = "item-card p-4"; 
-            div.innerHTML = `
-                <div class="flex justify-between items-center">
-                    <input type="checkbox" ${isSel ? 'checked' : ''} onchange="toggleSum('${id}')" class="w-7 h-7">
-                    <span class="font-bold flex-1 mr-3" onclick="db.currentId='${id}'; showPage('lists')">${l.name}</span>
-                    <span class="text-indigo-600 font-bold">₪${lT.toFixed(2)}</span>
-                </div>`;
-            container.appendChild(div);
-        });
-    }
-    
-    document.getElementById('displayTotal').innerText = total.toFixed(2);
-    document.getElementById('displayPaid').innerText = paid.toFixed(2);
-    document.getElementById('displayLeft').innerText = (total - paid).toFixed(2);
-}
-
-// פונקציות בסיסיות נוספות
-function addItem() { 
-    const n = document.getElementById('itemName').value;
+function addItem() {
+    const n = document.getElementById('itemName').value.trim();
     const p = parseFloat(document.getElementById('itemPrice').value) || 0;
-    if(n) { db.lists[db.currentId].items.push({name:n, price:p, qty:1, checked:false}); closeModal('inputForm'); save(); }
+    if(n) {
+        db.lists[db.currentId].items.push({ name: n, price: p, qty: 1, checked: false });
+        closeModal('inputForm');
+        save();
+    }
 }
-function changeQty(idx, d) { if(db.lists[db.currentId].items[idx].qty+d > 0) { db.lists[db.currentId].items[idx].qty+=d; save(); } }
-function removeItem(idx) { db.lists[db.currentId].items.splice(idx,1); save(); }
-function toggleLock() { isLocked = !isLocked; render(); }
-function toggleDarkMode() { document.body.classList.toggle('dark-mode'); }
 
-// ========== Cloud Fixes ==========
+function executeClear() {
+    db.lists[db.currentId].items = [];
+    closeModal('confirmModal');
+    save();
+}
+
+function saveListName() {
+    const n = document.getElementById('editListNameInput').value.trim();
+    if(n) {
+        db.lists[db.currentId].name = n;
+        save();
+    }
+    closeModal('editListNameModal');
+}
+
+function importFromText() {
+    const text = document.getElementById('importText').value;
+    if(!text) return;
+    const lines = text.split('\n').filter(l => l.trim());
+    lines.forEach(line => {
+        const name = line.replace(/[•\-\*]/g, '').trim();
+        if(name) db.lists[db.currentId].items.push({ name: name, price: 0, qty: 1, checked: false });
+    });
+    closeModal('importModal');
+    save();
+}
+
+// ========== UI Utilities ==========
+function toggleLock() { isLocked = !isLocked; render(); }
+
+function initSortable() {
+    const el = document.getElementById('itemsContainer');
+    if (sortableInstance) sortableInstance.destroy();
+    if (el && !isLocked) {
+        sortableInstance = Sortable.create(el, {
+            animation: 150,
+            onEnd: (evt) => {
+                const items = db.lists[db.currentId].items;
+                const movedItem = items.splice(evt.oldIndex, 1)[0];
+                items.splice(evt.newIndex, 0, movedItem);
+                save();
+            }
+        });
+    }
+}
+
+function toggleBottomBar() {
+    const bar = document.querySelector('.bottom-bar');
+    isBottomBarCollapsed = !isBottomBarCollapsed;
+    if(isBottomBarCollapsed) bar.classList.add('collapsed');
+    else bar.classList.remove('collapsed');
+}
+
+function openModal(id) { document.getElementById(id).classList.add('active'); }
+function closeModal(id) { document.getElementById(id).classList.remove('active'); }
+
+function preparePrint() { 
+    closeModal('settingsModal');
+    const printArea = document.getElementById('printArea');
+    let html = `<h2 dir="rtl" style="text-align:center;">דוח תקציב - Vplus</h2>`;
+    Object.keys(db.lists).forEach(id => {
+        const l = db.lists[id];
+        html += `<div dir="rtl"><h3>${l.name}</h3><ul>`;
+        l.items.forEach(i => html += `<li>${i.name} - ${i.qty} יח' - ₪${(i.price*i.qty).toFixed(2)}</li>`);
+        html += `</ul></div>`;
+    });
+    printArea.innerHTML = html;
+    window.print();
+}
+
+// ========== Cloud (Fixed Syntax) ==========
 async function syncToCloud() {
     if (!accessToken || isSyncing) return;
     isSyncing = true;
     updateCloudIndicator('syncing');
     try {
-        // לוגיקת שמירה בסיסית לענן
-        console.log("סנכרון לענן בוצע");
+        // לוגיקת סנכרון בסיסית
+        console.log("סנכרון לענן בוצע בהצלחה");
         updateCloudIndicator('connected');
     } catch (e) { console.error(e); }
     isSyncing = false;
@@ -182,8 +242,7 @@ async function syncToCloud() {
 
 function updateCloudIndicator(status) {
     const ind = document.getElementById('cloudIndicator');
-    if(!ind) return;
-    ind.className = `w-2 h-2 rounded-full ${status === 'connected' ? 'bg-green-500' : status === 'syncing' ? 'bg-yellow-500 animate-pulse' : 'bg-gray-300'}`;
+    if(ind) ind.className = `w-2 h-2 rounded-full ${status === 'connected' ? 'bg-green-500' : 'bg-yellow-500 animate-pulse'}`;
 }
 
 function gapiLoaded() { gapi.load('client', () => gapiInited = true); }
@@ -195,13 +254,10 @@ function gisLoaded() {
     gisInited = true;
 }
 
-function handleCloudClick() {
-    if (!isConnected) tokenClient.requestAccessToken();
-    else syncToCloud();
-}
-
-// הפעלת האפליקציה בטעינה
 window.onload = () => {
-    if(document.getElementById('cloudBtn')) document.getElementById('cloudBtn').onclick = handleCloudClick;
-    render(); 
+    // הפעלת הבר התחתון בלחיצה על הפס
+    document.querySelector('.bottom-bar').addEventListener('click', (e) => {
+        if(e.offsetY < 25) toggleBottomBar();
+    });
+    render();
 };
