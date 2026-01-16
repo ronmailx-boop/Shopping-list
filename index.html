@@ -85,22 +85,27 @@
     </div>
 
     <div class="bottom-bar text-white no-print">
-        <div class="flex items-center justify-between mb-4">
-            <div class="flex-1 text-center"><div class="text-[10px] opacity-70">סה"כ רשימה</div><div class="text-xl font-bold">₪<span id="displayTotal">0.00</span></div></div>
-            <div class="flex-shrink-0"><button onclick="openModal('inputForm')" class="w-16 h-16 bg-green-500 rounded-full flex items-center justify-center shadow-2xl border-4 border-white/20 text-white text-4xl font-bold">+</button></div>
-            <div class="flex-1 text-center"><div class="text-[10px] opacity-70">שולם ברשימה</div><div class="text-xl font-bold">₪<span id="displayPaid">0.00</span></div></div>
-        </div>
-        <div class="flex items-center justify-between gap-4">
-            <button id="mainLockBtn" onclick="toggleLock()" class="bottom-circle-btn bg-blue-600">
-                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path id="lockIconPath" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
-            </button>
-            <div class="text-center flex-1">
-                <div class="text-[10px] opacity-70">נשאר לשלם</div>
-                <div class="text-2xl font-black text-orange-300">₪<span id="displayLeft">0.00</span></div>
+        <!-- פס מתכווץ -->
+        <div id="collapseStrip" onclick="toggleBottomBar()" class="collapse-strip"></div>
+        
+        <div id="bottomBarContent">
+            <div class="flex items-center justify-between mb-4">
+                <div class="flex-1 text-center"><div class="text-[10px] opacity-70">סה"כ רשימה</div><div class="text-xl font-bold">₪<span id="displayTotal">0.00</span></div></div>
+                <div class="flex-shrink-0"><button onclick="openModal('inputForm')" class="w-16 h-16 bg-green-500 rounded-full flex items-center justify-center shadow-2xl border-4 border-white/20 text-white text-4xl font-bold">+</button></div>
+                <div class="flex-1 text-center"><div class="text-[10px] opacity-70">שולם ברשימה</div><div class="text-xl font-bold">₪<span id="displayPaid">0.00</span></div></div>
             </div>
-            <button onclick="openModal('confirmModal')" class="bottom-circle-btn bg-red-500">
-                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
-            </button>
+            <div class="flex items-center justify-between gap-4">
+                <button id="mainLockBtn" onclick="toggleLock()" class="bottom-circle-btn bg-blue-600">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path id="lockIconPath" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
+                </button>
+                <div class="text-center flex-1">
+                    <div class="text-[10px] opacity-70">נשאר לשלם</div>
+                    <div class="text-2xl font-black text-orange-300">₪<span id="displayLeft">0.00</span></div>
+                </div>
+                <button onclick="openModal('confirmModal')" class="bottom-circle-btn bg-red-500">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                </button>
+            </div>
         </div>
     </div>
 
@@ -126,7 +131,27 @@
     <div id="deleteListModal" class="modal-overlay no-print"><div class="edit-modal"><h2 class="text-red-600">מחיקת רשימה</h2><div class="flex gap-3"><button id="confirmDeleteListBtn" class="bg-red-500 text-white flex-1 py-4 rounded-xl font-bold" onclick="deleteFullList()">מחק</button><button class="bg-gray-100 flex-1 py-4 rounded-xl font-bold" onclick="closeModal('deleteListModal')">ביטול</button></div></div></div>
     <div id="editListNameModal" class="modal-overlay no-print"><div class="edit-modal"><h2>שינוי שם</h2><input type="text" id="editListNameInput" class="modal-input"><div class="flex gap-3"><button class="bg-indigo-600 text-white flex-1 py-4 rounded-xl font-bold" onclick="saveListName()">שמור</button><button class="bg-gray-100 flex-1 py-4 rounded-xl font-bold" onclick="closeModal('editListNameModal')">ביטול</button></div></div></div>
     <div id="editTotalModal" class="modal-overlay no-print"><div class="edit-modal"><h2>עדכון מחיר</h2><input type="number" id="editTotalInput" class="modal-input"><div class="flex gap-3"><button class="bg-indigo-600 text-white flex-1 py-4 rounded-xl font-bold" onclick="saveTotal()">עדכן</button><button class="bg-gray-100 flex-1 py-4 rounded-xl font-bold" onclick="closeModal('editTotalModal')">ביטול</button></div></div></div>
-    <div id="settingsModal" class="modal-overlay no-print"><div class="edit-modal"><h2>הגדרות</h2><button onclick="toggleDarkMode()" class="w-full bg-indigo-50 text-indigo-600 py-4 rounded-xl font-bold mb-4">מצב לילה 🌙</button><button onclick="preparePrint()" class="w-full bg-orange-500 text-white py-4 rounded-xl font-bold">הדפס PDF 🖨️</button><button onclick="closeModal('settingsModal')" class="mt-4 text-gray-400 block w-full">סגור</button></div></div>
+    
+    <div id="settingsModal" class="modal-overlay no-print">
+        <div class="edit-modal">
+            <h2>הגדרות</h2>
+            <button onclick="toggleDarkMode()" class="w-full bg-indigo-50 text-indigo-600 py-4 rounded-xl font-bold mb-4">מצב לילה 🌙</button>
+            
+            <!-- סליידר גודל טקסט -->
+            <div class="w-full bg-gray-50 py-4 px-5 rounded-xl mb-4 text-center">
+                <div class="font-bold text-gray-700 mb-3">גודל טקסט 📏</div>
+                <input type="range" id="fontSizeSlider" min="12" max="24" value="16" step="1" class="w-full accent-indigo-600" oninput="changeFontSize(this.value)">
+                <div class="text-xs text-gray-500 mt-2">
+                    <span>קטן</span>
+                    <span class="float-left">גדול</span>
+                </div>
+            </div>
+            
+            <button onclick="preparePrint()" class="w-full bg-orange-500 text-white py-4 rounded-xl font-bold">הדפס PDF 🖨️</button>
+            <button onclick="closeModal('settingsModal')" class="mt-4 text-gray-400 block w-full">סגור</button>
+        </div>
+    </div>
+    
     <div id="shareListModal" class="modal-overlay no-print"><div class="edit-modal"><h2 class="mb-6">מה לשלוח ב-WhatsApp?</h2><button onclick="shareFullToWhatsApp()" class="w-full bg-indigo-600 text-white py-4 rounded-xl font-bold mb-3 shadow-md">שיתוף רשימה מלאה 📋</button><button onclick="shareMissingToWhatsApp()" class="w-full bg-green-500 text-white py-4 rounded-xl font-bold mb-4 shadow-md">שיתוף מוצרים חסרים בלבד ⬜</button><button onclick="closeModal('shareListModal')" class="text-gray-400 font-bold block w-full mt-2">ביטול</button></div></div>
 
     <script src="script.js"></script>
