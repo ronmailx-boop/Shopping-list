@@ -63,7 +63,6 @@ function render() {
             div.className = "item-card";
             div.setAttribute('data-id', idx);
             
-            // עיצוב כפתור המחיקה מצד שמאל ללא רקע + תיקון צבע הכמות (text-gray-900)
             div.innerHTML = `
                 <div class="flex justify-between items-start mb-4">
                     <div class="flex items-start gap-3 flex-1">
@@ -85,9 +84,14 @@ function render() {
             container.appendChild(div);
         });
     } else {
-        // ... (קוד עמוד הסיכום ללא שינוי)
         document.getElementById('pageLists').classList.add('hidden');
         document.getElementById('pageSummary').classList.remove('hidden');
+        
+        const selectAllCheckbox = document.getElementById('selectAllLists');
+        if (selectAllCheckbox) {
+            selectAllCheckbox.checked = db.selectedInSummary.length === Object.keys(db.lists).length && Object.keys(db.lists).length > 0;
+        }
+
         Object.keys(db.lists).forEach(id => {
             const l = db.lists[id];
             let lT = 0, lP = 0;
@@ -114,7 +118,56 @@ function render() {
     initSortable();
 }
 
-// ========== PDF & Print (Fixed Data Logic) ==========
+// ========== שחזור פונקציות וואטסאפ ( WhatsApp Share Functions ) ==========
+function shareFullToWhatsApp() {
+    const list = db.lists[db.currentId];
+    if (!list || list.items.length === 0) return;
+    let text = `🛒 *${list.name} (רשימה מלאה):*\n\n`;
+    list.items.forEach(i => {
+        text += `${i.checked ? '✅' : '⬜'} *${i.name}* (x${i.qty}) - ₪${(i.price * i.qty).toFixed(2)}\n`;
+    });
+    text += `\n💰 *סה"כ: ₪${document.getElementById('displayTotal').innerText}*`;
+    window.open("https://wa.me/?text=" + encodeURIComponent(text));
+    closeModal('shareListModal');
+}
+
+function shareMissingToWhatsApp() {
+    const list = db.lists[db.currentId];
+    if (!list) return;
+    const missing = list.items.filter(i => !i.checked);
+    if (missing.length === 0) { 
+        alert("אין מוצרים חסרים!"); 
+        return; 
+    }
+    let text = `⬜ *${list.name} (מוצרים חסרים):*\n\n`;
+    missing.forEach(i => text += `• *${i.name}* (x${i.qty})\n`);
+    window.open("https://wa.me/?text=" + encodeURIComponent(text));
+    closeModal('shareListModal');
+}
+
+function shareSummaryToWhatsApp() {
+    const selectedIds = db.selectedInSummary;
+    if (selectedIds.length === 0) { 
+        alert("יש לבחור לפחות רשימה אחת לשיתוף (סמן ב-V את הרשימות)"); 
+        return; 
+    }
+    let text = `📦 *ריכוז רשימות קנייה (חסרים):*\n\n`;
+    let hasMissing = false;
+    selectedIds.forEach(id => {
+        const l = db.lists[id];
+        const missing = l.items.filter(i => !i.checked);
+        if (missing.length > 0) {
+            hasMissing = true;
+            text += `🔹 *${l.name}:*\n`;
+            missing.forEach(i => text += `  - ${i.name} (x${i.qty})\n`);
+            text += `\n`;
+        }
+    });
+    if(!hasMissing) text += "אין מוצרים חסרים ברשימות שנבחרו! 🎉";
+    window.open("https://wa.me/?text=" + encodeURIComponent(text), '_blank');
+}
+
+// ========== PDF & Print ==========
 function preparePrint() { 
     closeModal('settingsModal');
     const printArea = document.getElementById('printArea');
@@ -139,7 +192,7 @@ function preparePrint() {
     setTimeout(() => { window.print(); }, 600);
 }
 
-// ========== Remaining Functions (Lists, Import, Sync) ==========
+// ========== List Management, Import, Sync ==========
 function saveNewList() {
     const input = document.getElementById('newListNameInput');
     const name = input.value.trim();
@@ -196,7 +249,6 @@ function addItem() {
     if (n) { db.lists[db.currentId].items.push({ name: n, price: p, qty: 1, checked: false }); closeModal('inputForm'); save(); }
 }
 
-// ========== Cloud Sync ==========
 async function syncToCloud() {
     if (!accessToken || isSyncing) return;
     isSyncing = true; updateCloudIndicator('syncing');
@@ -253,26 +305,13 @@ function initSortable() {
 
 window.onload = () => {
     document.getElementById('cloudBtn').onclick = handleCloudClick;
+    const bar = document.querySelector('.bottom-bar');
+    if(bar) bar.addEventListener('click', (e) => { if(e.offsetY < 35) bar.classList.toggle('collapsed'); });
     const s1 = document.createElement('script'); s1.src = 'https://apis.google.com/js/api.js'; s1.onload = gapiLoaded; document.head.appendChild(s1);
     const s2 = document.createElement('script'); s2.src = 'https://accounts.google.com/gsi/client'; s2.onload = gisLoaded; document.head.appendChild(s2);
     render();
 };
 
-function shareSummaryToWhatsApp() {
-    const selectedIds = db.selectedInSummary;
-    if (selectedIds.length === 0) { alert("בחר רשימות בסיכום"); return; }
-    let text = `📦 *ריכוז חסרים:*\n\n`;
-    selectedIds.forEach(id => {
-        const l = db.lists[id];
-        const missing = l.items.filter(i => !i.checked);
-        if (missing.length > 0) {
-            text += `🔹 *${l.name}:*\n`;
-            missing.forEach(i => text += `  - ${i.name} (x${i.qty})\n`);
-            text += `\n`;
-        }
-    });
-    window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
-}
 function toggleDarkMode() { document.body.classList.toggle('dark-mode'); closeModal('settingsModal'); }
 function saveListName() { const n = document.getElementById('editListNameInput').value.trim(); if(n) { db.lists[db.currentId].name = n; save(); } closeModal('editListNameModal'); }
 function updateFontSize(s) { db.fontSize=parseInt(s); document.documentElement.style.setProperty('--base-font-size', s+'px'); document.getElementById('fontSizeValue').innerText=s; save(); }
