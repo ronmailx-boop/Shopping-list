@@ -1,7 +1,52 @@
 * { box-sizing: border-box; touch-action: manipulation; }
-body { font-family: system-ui, sans-serif; background: #f4f7fa; padding-bottom: 240px; min-height: 100vh; transition: background 0.3s, padding-bottom 0.4s ease; margin: 0; }
+body { 
+    font-family: system-ui, sans-serif; 
+    background: #f4f7fa; 
+    padding-bottom: 240px; 
+    min-height: 100vh; 
+    transition: background 0.3s, padding-bottom 0.4s ease; 
+    margin: 0;
+    font-size: 16px;
+}
 
-.item-card { background: white; border-radius: 25px; padding: 15px; margin-bottom: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.03); display: flex; flex-direction: column; }
+/* משתנה דינמי לגודל טקסט */
+:root {
+    --base-font-size: 16px;
+}
+
+body {
+    font-size: var(--base-font-size);
+}
+
+.item-card { 
+    background: white; 
+    border-radius: 25px; 
+    padding: 15px; 
+    margin-bottom: 12px; 
+    box-shadow: 0 4px 12px rgba(0,0,0,0.03); 
+    display: flex; 
+    flex-direction: column;
+    position: relative;
+    overflow: hidden;
+}
+
+/* תיקון פח אשפה - מניעת יציאה מהמסגרת */
+.trash-btn { 
+    width: 44px; 
+    height: 44px; 
+    background: white; 
+    border-radius: 50%; 
+    display: flex; 
+    align-items: center; 
+    justify-content: center; 
+    color: #ef4444; 
+    border: none; 
+    cursor: pointer; 
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    flex-shrink: 0;
+    position: relative;
+    z-index: 1;
+}
 
 .bottom-bar { 
     position: fixed; 
@@ -18,7 +63,7 @@ body { font-family: system-ui, sans-serif; background: #f4f7fa; padding-bottom: 
     height: 190px;
 }
 
-/* בר מכווץ - רק פס דק! */
+/* בר מכווץ - פס דק */
 .bottom-bar.collapsed {
     height: 25px !important;
     padding: 0 !important;
@@ -38,14 +83,14 @@ body { font-family: system-ui, sans-serif; background: #f4f7fa; padding-bottom: 
     transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-/* אינדיקטור גרירה - עכשיו גם כפתור! */
+/* אינדיקטור גרירה - פס לחיץ כפול */
 .bottom-bar::before {
     content: '';
     position: absolute;
     top: 5px;
     left: 50%;
     transform: translateX(-50%);
-    width: 80px;
+    width: 160px; /* פי 2 מהמקור */
     height: 5px;
     background: rgba(255, 255, 255, 0.5);
     border-radius: 3px;
@@ -58,13 +103,28 @@ body { font-family: system-ui, sans-serif; background: #f4f7fa; padding-bottom: 
     top: 50%;
     transform: translate(-50%, -50%);
     background: rgba(255, 255, 255, 0.9);
-    width: 120px;
+    width: 240px; /* פי 2 */
     height: 6px;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
 }
 
-.tab-btn { flex: 1; padding: 12px; border-radius: 15px; font-weight: bold; text-align: center; cursor: pointer; transition: 0.2s; background: white; color: #666; border: 1px solid #eee; }
-.tab-active { background: #7367f0 !important; color: white !important; }
+.tab-btn { 
+    flex: 1; 
+    padding: 12px; 
+    border-radius: 15px; 
+    font-weight: bold; 
+    text-align: center; 
+    cursor: pointer; 
+    transition: 0.2s; 
+    background: white; 
+    color: #666; 
+    border: 1px solid #eee; 
+}
+
+.tab-active { 
+    background: #7367f0 !important; 
+    color: white !important; 
+}
 
 /* כפתורי עיגול בבר התחתון */
 .bottom-circle-btn {
@@ -81,26 +141,156 @@ body { font-family: system-ui, sans-serif; background: #f4f7fa; padding-bottom: 
     transition: all 0.3s;
 }
 
-.modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.75); z-index: 7000; align-items: center; justify-content: center; backdrop-filter: blur(8px); }
-.modal-overlay.active { display: flex; }
-.edit-modal { width: 90%; max-width: 400px; background-color: #ffffff !important; border-radius: 40px; padding: 30px; text-align: center; color: #333; border: 2px solid #eee; box-shadow: 0 25px 50px rgba(0,0,0,0.5); }
-.modal-input { width: 100%; padding: 18px; border: 2px solid #f3f4f6; border-radius: 22px; font-size: 18px; text-align: center; outline: none; margin-bottom: 15px; font-weight: bold; background: #f9fafb !important; color: #333; }
+.modal-overlay { 
+    display: none; 
+    position: fixed; 
+    inset: 0; 
+    background: rgba(0,0,0,0.75); 
+    z-index: 7000; 
+    align-items: center; 
+    justify-content: center; 
+    backdrop-filter: blur(8px); 
+}
 
-.app-header { background: white; padding: 10px 20px; display: flex; flex-direction: row-reverse; justify-content: space-between; align-items: center; box-shadow: 0 2px 8px rgba(0,0,0,0.05); position: sticky; top: 0; z-index: 2000; height: 60px; }
-.header-controls { display: flex; align-items: center; gap: 8px; direction: rtl; }
-.gear-btn { flex-shrink: 0; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; }
+.modal-overlay.active { 
+    display: flex; 
+}
 
-.trash-btn { width: 44px; height: 44px; background: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #ef4444; border: none; cursor: pointer; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
-.category-separator { background: #7367f0; color: white; border-radius: 20px; padding: 15px; margin-bottom: 20px; text-align: center; }
+.edit-modal { 
+    width: 90%; 
+    max-width: 400px; 
+    background-color: #ffffff !important; 
+    border-radius: 40px; 
+    padding: 30px; 
+    text-align: center; 
+    color: #333; 
+    border: 2px solid #eee; 
+    box-shadow: 0 25px 50px rgba(0,0,0,0.5); 
+}
+
+.modal-input { 
+    width: 100%; 
+    padding: 18px; 
+    border: 2px solid #f3f4f6; 
+    border-radius: 22px; 
+    font-size: 18px; 
+    text-align: center; 
+    outline: none; 
+    margin-bottom: 15px; 
+    font-weight: bold; 
+    background: #f9fafb !important; 
+    color: #333; 
+}
+
+.app-header { 
+    background: white; 
+    padding: 10px 20px; 
+    display: flex; 
+    flex-direction: row-reverse; 
+    justify-content: space-between; 
+    align-items: center; 
+    box-shadow: 0 2px 8px rgba(0,0,0,0.05); 
+    position: sticky; 
+    top: 0; 
+    z-index: 2000; 
+    height: 60px; 
+}
+
+.header-controls { 
+    display: flex; 
+    align-items: center; 
+    gap: 8px; 
+    direction: rtl; 
+}
+
+/* תיקון סמל גוגל לעיגול מושלם */
+.header-controls > div:nth-child(2) {
+    width: 40px !important;
+    height: 40px !important;
+    border-radius: 50% !important;
+    overflow: hidden;
+}
+
+.gear-btn { 
+    flex-shrink: 0; 
+    width: 40px; 
+    height: 40px; 
+    display: flex; 
+    align-items: center; 
+    justify-content: center; 
+}
+
+.category-separator { 
+    background: #7367f0; 
+    color: white; 
+    border-radius: 20px; 
+    padding: 15px; 
+    margin-bottom: 20px; 
+    text-align: center; 
+}
 
 /* מצב לילה */
-body.dark-mode { background: #1a1a2e; color: #e0e0e0; }
-.dark-mode .app-header { background: #16213e; border-bottom: 1px solid #0f3460; }
-.dark-mode .item-card, .dark-mode .bg-white { background-color: #0f3460 !important; border-color: #1a1a2e; color: white; }
-.dark-mode #selectAllLabel { color: white !important; }
-.dark-mode .select-all-container { background-color: #0f3460 !important; }
+body.dark-mode { 
+    background: #1a1a2e; 
+    color: #e0e0e0; 
+}
+
+.dark-mode .app-header { 
+    background: #16213e; 
+    border-bottom: 1px solid #0f3460; 
+}
+
+.dark-mode .item-card, 
+.dark-mode .bg-white { 
+    background-color: #0f3460 !important; 
+    border-color: #1a1a2e; 
+    color: white; 
+}
+
+.dark-mode #selectAllLabel { 
+    color: white !important; 
+}
+
+.dark-mode .select-all-container { 
+    background-color: #0f3460 !important; 
+}
+
+/* סגנונות נוספים לסליידר */
+.mb-4 {
+    margin-bottom: 1rem;
+}
+
+.block {
+    display: block;
+}
+
+.text-gray-700 {
+    color: #374151;
+}
+
+.text-xs {
+    font-size: 0.75rem;
+}
+
+.text-sm {
+    font-size: 0.875rem;
+}
+
+.text-gray-500 {
+    color: #6b7280;
+}
+
+.mt-1 {
+    margin-top: 0.25rem;
+}
 
 @media print {
-    .no-print, .bottom-bar, .app-header, .tab-btn, .modal-overlay, .trash-btn, input, button { display: none !important; }
-    #printArea { display: block !important; width: 100%; direction: rtl; }
+    .no-print, .bottom-bar, .app-header, .tab-btn, .modal-overlay, .trash-btn, input, button { 
+        display: none !important; 
+    }
+    #printArea { 
+        display: block !important; 
+        width: 100%; 
+        direction: rtl; 
+    }
 }
