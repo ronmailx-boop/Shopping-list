@@ -10,6 +10,7 @@ let gapiInited = false;
 let gisInited = false;
 let tokenClient;
 let accessToken = null;
+let driveFileId = null;
 let syncTimeout = null;
 let isSyncing = false;
 let isConnected = false;
@@ -117,11 +118,36 @@ function render() {
     initSortable();
 }
 
+// ========== Fix: Create New List (No Freezing) ==========
+function saveNewList() {
+    const nameInput = document.getElementById('newListNameInput');
+    const name = nameInput.value.trim();
+    
+    if (name) {
+        const id = 'L' + Date.now();
+        // הגדרת הרשימה החדשה בתוך אובייקט ה-DB
+        db.lists[id] = { 
+            name: name, 
+            items: [] 
+        };
+        
+        // מעבר אוטומטי לרשימה החדשה
+        db.currentId = id;
+        activePage = 'lists';
+        
+        // ניקוי השדה וסגירת המודל
+        nameInput.value = '';
+        closeModal('newListModal');
+        
+        // שמירה ורינדור
+        save();
+    }
+}
+
 // ========== Fix: Import Logic ==========
 function importFromText() {
     const text = document.getElementById('importText').value.trim();
     if (!text) { closeModal('importModal'); return; }
-
     const lines = text.split('\n').filter(line => line.trim());
     lines.forEach(line => {
         const cleanName = line.replace(/[•\-\*⬜✅]/g, '').trim();
@@ -129,7 +155,6 @@ function importFromText() {
             db.lists[db.currentId].items.push({ name: cleanName, price: 0, qty: 1, checked: false });
         }
     });
-
     document.getElementById('importText').value = '';
     closeModal('importModal');
     save();
@@ -141,96 +166,30 @@ function toggleSelectAll(checked) {
     save();
 }
 
-// ========== Modals & Navigation ==========
+// ========== UI Utilities ==========
 function openModal(id) { 
-    const modal = document.getElementById(id);
-    if(modal) {
-        modal.classList.add('active');
-        if(id === 'inputForm') {
-            document.getElementById('itemName').value = '';
-            document.getElementById('itemPrice').value = '';
-        }
+    const m = document.getElementById(id);
+    if(m) {
+        m.classList.add('active');
+        if(id === 'inputForm') { document.getElementById('itemName').value = ''; document.getElementById('itemPrice').value = ''; }
+        if(id === 'newListModal') { document.getElementById('newListNameInput').value = ''; }
     }
 }
-
-function closeModal(id) { 
-    const modal = document.getElementById(id);
-    if(modal) modal.classList.remove('active'); 
-}
-
+function closeModal(id) { const m = document.getElementById(id); if(m) m.classList.remove('active'); }
 function showPage(p) { activePage = p; save(); }
-
-// ========== Item Actions ==========
-function addItem() {
-    const n = document.getElementById('itemName').value.trim();
-    const p = parseFloat(document.getElementById('itemPrice').value) || 0;
-    if (n) {
-        db.lists[db.currentId].items.push({ name: n, price: p, qty: 1, checked: false });
-        closeModal('inputForm');
-        save();
-    }
-}
-
+function toggleLock() { isLocked = !isLocked; render(); }
 function toggleItem(idx) { db.lists[db.currentId].items[idx].checked = !db.lists[db.currentId].items[idx].checked; save(); }
 function removeItem(idx) { db.lists[db.currentId].items.splice(idx, 1); save(); }
 function changeQty(idx, d) { if(db.lists[db.currentId].items[idx].qty + d >= 1) { db.lists[db.currentId].items[idx].qty += d; save(); } }
-
 function toggleSum(id) {
     const i = db.selectedInSummary.indexOf(id);
     if (i > -1) db.selectedInSummary.splice(i, 1); else db.selectedInSummary.push(id);
     save();
 }
-
-// ========== List Management ==========
-function saveNewList() {
-    const n = document.getElementById('newListNameInput').value.trim();
-    if(n) { 
-        const id = 'L' + Date.now(); 
-        db.lists[id] = { name: n, items: [] }; 
-        db.currentId = id; 
-        activePage = 'lists'; 
-        closeModal('newListModal'); 
-        save(); 
-    }
-}
-
-function saveListName() { 
-    const n = document.getElementById('editListNameInput').value.trim(); 
-    if(n) { db.lists[db.currentId].name = n; save(); } 
-    closeModal('editListNameModal'); 
-}
-
-// ========== Settings & UI ==========
-function updateFontSize(s) { 
-    db.fontSize = parseInt(s); 
-    document.documentElement.style.setProperty('--base-font-size', s + 'px'); 
-    document.getElementById('fontSizeValue').innerText = s; 
-    save(); 
-}
-
-function toggleDarkMode() { 
-    document.body.classList.toggle('dark-mode'); 
-    closeModal('settingsModal'); 
-}
-
-function toggleLock() { isLocked = !isLocked; render(); }
-
-function executeClear() { db.lists[db.currentId].items = []; closeModal('confirmModal'); save(); }
-
-function openEditTotalModal(i) { 
-    currentEditIdx = i; 
-    document.getElementById('editTotalInput').value = ''; 
-    openModal('editTotalModal'); 
-}
-
-function saveTotal() {
-    const v = parseFloat(document.getElementById('editTotalInput').value);
-    if(!isNaN(v)){ 
-        const item = db.lists[db.currentId].items[currentEditIdx]; 
-        item.price = v / item.qty; 
-        save(); 
-    }
-    closeModal('editTotalModal');
+function addItem() {
+    const n = document.getElementById('itemName').value.trim();
+    const p = parseFloat(document.getElementById('itemPrice').value) || 0;
+    if (n) { db.lists[db.currentId].items.push({ name: n, price: p, qty: 1, checked: false }); closeModal('inputForm'); save(); }
 }
 
 // ========== Cloud Sync ==========
@@ -273,15 +232,48 @@ function handleCloudClick() {
     else syncToCloud();
 }
 
+function gapiLoaded() { gapi.load('client', () => gapi.client.init({apiKey: GOOGLE_API_KEY, discoveryDocs: [DISCOVERY_DOC]})); }
+function gisLoaded() { 
+    tokenClient = google.accounts.oauth2.initTokenClient({
+        client_id: GOOGLE_CLIENT_ID, scope: SCOPES,
+        callback: (r) => { accessToken = r.access_token; isConnected = true; updateCloudIndicator('connected'); syncToCloud(); }
+    });
+}
+
 function updateCloudIndicator(s) {
     const i = document.getElementById('cloudIndicator');
     if(i) i.className = `w-2 h-2 rounded-full ${s === 'connected' ? 'bg-green-500' : 'bg-yellow-500 animate-pulse'}`;
 }
 
-// ========== WhatsApp & PDF ==========
+// ========== Sortable & Init ==========
+function initSortable() {
+    const el = document.getElementById('itemsContainer');
+    if (sortableInstance) sortableInstance.destroy();
+    if (el && !isLocked && activePage === 'lists') {
+        sortableInstance = Sortable.create(el, { animation: 150, onEnd: (evt) => {
+            const items = db.lists[db.currentId].items;
+            const moved = items.splice(evt.oldIndex, 1)[0];
+            items.splice(evt.newIndex, 0, moved);
+            save();
+        }});
+    }
+}
+
+window.onload = () => {
+    document.getElementById('cloudBtn').onclick = handleCloudClick;
+    const bar = document.querySelector('.bottom-bar');
+    if(bar) bar.addEventListener('click', (e) => { if(e.offsetY < 35) bar.classList.toggle('collapsed'); });
+    
+    // טעינת גוגל
+    const s1 = document.createElement('script'); s1.src = 'https://apis.google.com/js/api.js'; s1.onload = gapiLoaded; document.head.appendChild(s1);
+    const s2 = document.createElement('script'); s2.src = 'https://accounts.google.com/gsi/client'; s2.onload = gisLoaded; document.head.appendChild(s2);
+    
+    render();
+};
+
 function shareSummaryToWhatsApp() {
     const selectedIds = db.selectedInSummary;
-    if (selectedIds.length === 0) { alert("בחר לפחות רשימה אחת!"); return; }
+    if (selectedIds.length === 0) { alert("בחר רשימות לשיתוף"); return; }
     let text = `📦 *ריכוז חסרים:*\n\n`;
     selectedIds.forEach(id => {
         const l = db.lists[id];
@@ -294,46 +286,13 @@ function shareSummaryToWhatsApp() {
     });
     window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
 }
-
-function preparePrint() { 
-    closeModal('settingsModal'); 
-    setTimeout(() => { window.print(); }, 700); 
+function preparePrint() { closeModal('settingsModal'); setTimeout(() => { window.print(); }, 700); }
+function toggleDarkMode() { document.body.classList.toggle('dark-mode'); closeModal('settingsModal'); }
+function saveListName() { const n = document.getElementById('editListNameInput').value.trim(); if(n) { db.lists[db.currentId].name = n; save(); } closeModal('editListNameModal'); }
+function updateFontSize(s) { db.fontSize=parseInt(s); document.documentElement.style.setProperty('--base-font-size', s+'px'); document.getElementById('fontSizeValue').innerText=s; save(); }
+function openEditTotalModal(i) { currentEditIdx=i; document.getElementById('editTotalInput').value=''; openModal('editTotalModal'); }
+function saveTotal() {
+    const v=parseFloat(document.getElementById('editTotalInput').value);
+    if(!isNaN(v)){ const item=db.lists[db.currentId].items[currentEditIdx]; item.price=v/item.qty; save(); }
+    closeModal('editTotalModal');
 }
-
-// ========== Init ==========
-function initSortable() {
-    const el = document.getElementById('itemsContainer');
-    if (sortableInstance) sortableInstance.destroy();
-    if (el && !isLocked && activePage === 'lists') {
-        sortableInstance = new Sortable(el, {
-            animation: 150,
-            onEnd: (evt) => {
-                const items = db.lists[db.currentId].items;
-                const moved = items.splice(evt.oldIndex, 1)[0];
-                items.splice(evt.newIndex, 0, moved);
-                save();
-            }
-        });
-    }
-}
-
-function gapiLoaded() { gapi.load('client', () => gapi.client.init({apiKey: GOOGLE_API_KEY, discoveryDocs: [DISCOVERY_DOC]})); }
-function gisLoaded() { 
-    tokenClient = google.accounts.oauth2.initTokenClient({
-        client_id: GOOGLE_CLIENT_ID, scope: SCOPES,
-        callback: (r) => { accessToken = r.access_token; isConnected = true; updateCloudIndicator('connected'); syncToCloud(); }
-    });
-}
-
-window.onload = () => {
-    document.getElementById('cloudBtn').onclick = handleCloudClick;
-    const bar = document.querySelector('.bottom-bar');
-    if(bar) {
-        bar.addEventListener('click', (e) => {
-            if(e.offsetY < 35) bar.classList.toggle('collapsed');
-        });
-    }
-    const s1 = document.createElement('script'); s1.src = 'https://apis.google.com/js/api.js'; s1.onload = gapiLoaded; document.head.appendChild(s1);
-    const s2 = document.createElement('script'); s2.src = 'https://accounts.google.com/gsi/client'; s2.onload = gisLoaded; document.head.appendChild(s2);
-    render();
-};
