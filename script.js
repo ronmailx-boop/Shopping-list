@@ -96,7 +96,7 @@ function render() {
             div.innerHTML = `<div class="flex justify-between items-center">
                 <input type="checkbox" ${isSel ? 'checked' : ''} onchange="toggleSum('${id}')" class="w-7 h-7">
                 <span class="font-bold text-xl flex-1 mr-3" onclick="db.currentId='${id}'; showPage('lists')">${l.name}</span>
-                <div class="text-left"><div class="text-indigo-600 font-bold">₪${lT.toFixed(2)}</div><div class="text-green-600 text-xs">שולם: ₪${lP.toFixed(2)}</div></div>
+                <div class="text-left"><div class="text-indigo-600 font-bold">₪${lT.toFixed(2)}</div></div>
             </div>`;
             container.appendChild(div);
         });
@@ -140,24 +140,7 @@ function changeQty(idx, d) {
 
 function removeItem(idx) { db.lists[db.currentId].items.splice(idx, 1); save(); }
 
-function openEditTotalModal(idx) { 
-    currentEditIdx = idx; 
-    const item = db.lists[db.currentId].items[idx];
-    document.getElementById('editTotalInput').value = (item.price * item.qty).toFixed(2); 
-    openModal('editTotalModal'); 
-}
-
-function saveTotal() {
-    const val = parseFloat(document.getElementById('editTotalInput').value);
-    if(!isNaN(val)) {
-        const item = db.lists[db.currentId].items[currentEditIdx];
-        item.price = val / item.qty;
-        save();
-    }
-    closeModal('editTotalModal');
-}
-
-// ========== WhatsApp & PDF Logic ==========
+// ========== WhatsApp Logic ==========
 function shareFullToWhatsApp() {
     const list = db.lists[db.currentId];
     let text = `📋 *${list.name}*\n\n`;
@@ -174,34 +157,7 @@ function shareMissingToWhatsApp() {
     closeModal('shareListModal');
 }
 
-function preparePrint() {
-    closeModal('settingsModal');
-    const printArea = document.getElementById('printArea');
-    let grandTotal = 0;
-    let html = `<div style="padding:30px; direction:rtl; font-family:sans-serif;">
-                <h1 style="text-align:center; color:#7367f0;">דוח קניות - Vplus</h1>`;
-    
-    const idsToPrint = db.selectedInSummary.length > 0 ? db.selectedInSummary : Object.keys(db.lists);
-    idsToPrint.forEach(id => {
-        const l = db.lists[id];
-        let listTotal = 0;
-        html += `<div style="margin-bottom:25px;"><h3>${l.name}</h3><table style="width:100%; border:1px solid #ddd; border-collapse:collapse;">
-                <thead><tr style="background:#f8f9fa;">
-                <th style="padding:10px; border:1px solid #ddd; text-align:right;">מוצר</th>
-                <th style="padding:10px; border:1px solid #ddd; text-align:center;">סה"כ</th></tr></thead><tbody>`;
-        l.items.forEach(i => {
-            const sub = i.price * i.qty; listTotal += sub;
-            html += `<tr><td style="padding:10px; border:1px solid #ddd;">${i.name} (x${i.qty})</td>
-                         <td style="padding:10px; border:1px solid #ddd; text-align:center;">₪${sub.toFixed(2)}</td></tr>`;
-        });
-        html += `</tbody></table><div style="text-align:left; font-weight:bold; margin-top:5px;">₪${listTotal.toFixed(2)}</div></div>`;
-        grandTotal += listTotal;
-    });
-    html += `<div style="text-align:center; font-size:20px; font-weight:900; margin-top:40px; border-top:2px solid #333; padding-top:10px;">סה"כ כולל: ₪${grandTotal.toFixed(2)}</div></div>`;
-    printArea.innerHTML = html; window.print();
-}
-
-// ========== Cloud Sync Implementation (השלמה) ==========
+// ========== Cloud Sync Implementation ==========
 async function findOrCreateFolder() {
     try {
         const resp = await gapi.client.drive.files.list({
@@ -250,6 +206,7 @@ function handleCloudClick() {
     else syncToCloud();
 }
 
+// ========== Lifecycle & Init ==========
 function gapiLoaded() { gapi.load('client', () => gapi.client.init({apiKey: GOOGLE_API_KEY, discoveryDocs: [DISCOVERY_DOC]})); }
 function gisLoaded() { 
     tokenClient = google.accounts.oauth2.initTokenClient({
@@ -263,7 +220,6 @@ function updateCloudIndicator(s) {
     if(i) i.className = `w-2 h-2 rounded-full ${s === 'connected' ? 'bg-green-500' : 'bg-yellow-500 animate-pulse'}`;
 }
 
-// ========== Helpers & Init ==========
 function initSortable() {
     const el = document.getElementById('itemsContainer');
     if (sortableInstance) sortableInstance.destroy();
@@ -281,11 +237,6 @@ window.onload = () => {
     document.getElementById('cloudBtn').onclick = handleCloudClick;
     const bar = document.querySelector('.bottom-bar');
     if(bar) bar.addEventListener('click', (e) => { if(e.offsetY < 35) bar.classList.toggle('collapsed'); });
-    
-    // טעינת גוגל
-    if(typeof gapi !== 'undefined') gapiLoaded();
-    if(typeof google !== 'undefined') gisLoaded();
-    
     render();
 };
 
@@ -306,8 +257,18 @@ function saveNewList() {
 function saveListName() { const n = document.getElementById('editListNameInput').value.trim(); if(n) { db.lists[db.currentId].name = n; save(); } closeModal('editListNameModal'); }
 function updateFontSize(s) { db.fontSize=parseInt(s); document.documentElement.style.setProperty('--base-font-size', s+'px'); document.getElementById('fontSizeValue').innerText=s; save(); }
 function toggleDarkMode() { document.body.classList.toggle('dark-mode'); closeModal('settingsModal'); }
+function openEditTotalModal(i) { currentEditIdx=i; document.getElementById('editTotalInput').value=(db.lists[db.currentId].items[i].price*db.lists[db.currentId].items[i].qty).toFixed(2); openModal('editTotalModal'); }
+function saveTotal() {
+    const v=parseFloat(document.getElementById('editTotalInput').value);
+    if(!isNaN(v)){ const item=db.lists[db.currentId].items[currentEditIdx]; item.price=v/item.qty; save(); }
+    closeModal('editTotalModal');
+}
 function importFromText() {
     const text = document.getElementById('importText').value;
     text.split('\n').forEach(l => { if(l.trim()) db.lists[db.currentId].items.push({name: l.trim(), price: 0, qty: 1, checked: false}); });
     closeModal('importModal'); save();
+}
+function preparePrint() { 
+    closeModal('settingsModal');
+    window.print();
 }
