@@ -1,31 +1,14 @@
-/* הגדרות בסיס למצב לילה */
-body.dark-mode {
-    background-color: #121212 !important;
-    color: #e0e0e0 !important;
-}
+body { font-family: -apple-system, sans-serif; overflow-x: hidden; }
+.modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.4); display: none; align-items: center; justify-content: center; z-index: 100; backdrop-filter: blur(4px); padding: 20px; }
+.modal-overlay.active { display: flex; }
+.edit-modal { background: white; width: 100%; max-width: 380px; padding: 28px; border-radius: 30px; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1); }
+.modal-input { width: 100%; border: 2px solid #f3f4f6; padding: 14px; border-radius: 16px; margin-bottom: 12px; font-size: 18px; outline: none; }
+.item-card { border-radius: 20px !important; }
 
-.dark-mode .app-header, 
-.dark-mode .item-card, 
-.dark-mode .edit-modal,
-.dark-mode .bg-white {
-    background-color: #1e1e1e !important;
-    border-color: #333 !important;
-    color: white !important;
-}
-
-.dark-mode input, .dark-mode textarea {
-    background-color: #2d2d2d !important;
-    color: white !important;
-    border-color: #444 !important;
-}
-
-.dark-mode .text-gray-800, .dark-mode .text-gray-500 {
-    color: #bbb !important;
-}
-
-/* הגדרות להדפסה */
-@media print {
-    .no-print { display: none !important; }
-    #printArea { display: block !important; padding: 20px; direction: rtl; }
-    .print-item { border-bottom: 1px solid #ccc; padding: 10px 0; display: flex; justify-content: space-between; }
-}
+body.dark-mode { background: #121212 !important; color: white; }
+.dark-mode .app-header, .dark-mode .edit-modal, .dark-mode .item-card { background: #1e1e1e !important; color: white; border-color: #333; }
+.dark-mode .bg-white { background: #1e1e1e !important; border-color: #333 !important; }
+.dark-mode .text-gray-800 { color: #eee !important; }
+.dark-mode .bg-gray-200\/40 { background: rgba(255,255,255,0.05); }
+.dark-mode .modal-input { background: #2d2d2d; border-color: #444; color: white; }
+@media print { .no-print { display: none !important; } }
