@@ -94,7 +94,7 @@ function render() {
             const div = document.createElement('div'); 
             div.className = "item-card p-4"; 
             div.innerHTML = `<div class="flex justify-between items-center">
-                <input type="checkbox" ${isSel ? 'checked' : ''} onchange="toggleSum('${id}')" class="w-7 h-7">
+                <input type="checkbox" ${isSel ? 'checked' : ''} onchange="toggleSum('${id}')" class="w-7 h-7 accent-indigo-600">
                 <span class="font-bold text-xl flex-1 mr-3" onclick="db.currentId='${id}'; showPage('lists')">${l.name}</span>
                 <div class="text-left font-bold text-indigo-600">₪${lT.toFixed(2)}</div>
             </div>`;
@@ -111,67 +111,63 @@ function render() {
     initSortable();
 }
 
-// ========== Fix: Open Edit Price with EMPTY field ==========
-function openEditTotalModal(idx) { 
-    currentEditIdx = idx; 
-    document.getElementById('editTotalInput').value = ''; // חלונית ריקה כפי שביקשת
-    openModal('editTotalModal'); 
-    setTimeout(() => document.getElementById('editTotalInput').focus(), 150);
-}
+// ========== Fix: ADD ITEM logic ==========
+function addItem() {
+    const nameInput = document.getElementById('itemName');
+    const priceInput = document.getElementById('itemPrice');
+    const name = nameInput.value.trim();
+    const price = parseFloat(priceInput.value) || 0;
 
-function saveTotal() {
-    const val = parseFloat(document.getElementById('editTotalInput').value);
-    if(!isNaN(val)) {
-        const item = db.lists[db.currentId].items[currentEditIdx];
-        item.price = val / item.qty;
+    if (name) {
+        db.lists[db.currentId].items.push({
+            name: name,
+            price: price,
+            qty: 1,
+            checked: false
+        });
+        
+        // איפוס שדות וסגירה
+        nameInput.value = '';
+        priceInput.value = '';
+        closeModal('inputForm');
         save();
     }
-    closeModal('editTotalModal');
 }
 
-// ========== Fix: PDF Print (Wait for render) ==========
-function preparePrint() {
+// ========== Other Actions ==========
+function openModal(id) { 
+    if(id === 'inputForm') {
+        document.getElementById('itemName').value = '';
+        document.getElementById('itemPrice').value = '';
+    }
+    document.getElementById(id).classList.add('active'); 
+}
+function closeModal(id) { document.getElementById(id).classList.remove('active'); }
+
+function changeQty(idx, d) { if(db.lists[db.currentId].items[idx].qty + d >= 1) { db.lists[db.currentId].items[idx].qty += d; save(); } }
+function removeItem(idx) { db.lists[db.currentId].items.splice(idx, 1); save(); }
+
+// ========== WhatsApp & PDF ==========
+function shareFullToWhatsApp() {
+    const list = db.lists[db.currentId];
+    let text = `📋 *${list.name}*\n\n`;
+    list.items.forEach(i => text += `${i.checked ? '✅' : '⬜'} *${i.name}* (x${i.qty}) - ₪${(i.price * i.qty).toFixed(2)}\n`);
+    window.open(`https://wa.me/?text=${encodeURIComponent(text)}`);
+}
+
+function preparePrint() { 
     closeModal('settingsModal');
-    const printArea = document.getElementById('printArea');
-    let grandTotal = 0;
-    let html = `<div dir="rtl" style="padding:40px; font-family:sans-serif;">
-                <h1 style="text-align:center; color:#7367f0;">דוח קניות - Vplus</h1>`;
-    
-    const idsToPrint = db.selectedInSummary.length > 0 ? db.selectedInSummary : Object.keys(db.lists);
-    idsToPrint.forEach(id => {
-        const l = db.lists[id];
-        let listTotal = 0;
-        html += `<div style="margin-bottom:30px; border-bottom:1px solid #eee; padding-bottom:15px;">
-                <h2 style="font-size:20px;">${l.name}</h2>
-                <table style="width:100%; border-collapse:collapse; margin-top:10px;">
-                <thead><tr style="background:#f8f9fa;">
-                <th style="padding:10px; border:1px solid #ddd; text-align:right;">מוצר</th>
-                <th style="padding:10px; border:1px solid #ddd; text-align:center;">כמות</th>
-                <th style="padding:10px; border:1px solid #ddd; text-align:left;">מחיר</th></tr></thead><tbody>`;
-        l.items.forEach(i => {
-            const sub = i.price * i.qty; listTotal += sub;
-            html += `<tr><td style="padding:10px; border:1px solid #ddd;">${i.name}</td>
-                <td style="padding:10px; border:1px solid #ddd; text-align:center;">${i.qty}</td>
-                <td style="padding:10px; border:1px solid #ddd; text-align:left;">₪${sub.toFixed(2)}</td></tr>`;
-        });
-        html += `</tbody></table><div style="text-align:left; font-weight:bold; margin-top:10px;">סה"כ קטגוריה: ₪${listTotal.toFixed(2)}</div></div>`;
-        grandTotal += listTotal;
-    });
-    html += `<h2 style="text-align:center; margin-top:40px; border-top:3px double #333; padding-top:20px;">סה"כ כולל: ₪${grandTotal.toFixed(2)}</h2></div>`;
-    
-    printArea.innerHTML = html;
-    // Timeout ensuring the DOM is updated before print dialog
     setTimeout(() => { window.print(); }, 700);
 }
 
-// ========== Actions & Cloud Sync (Fixed) ==========
+// ========== Cloud Sync ==========
 async function syncToCloud() {
     if (!accessToken || isSyncing) return;
     isSyncing = true;
     updateCloudIndicator('syncing');
     try {
         const folderId = await findOrCreateFolder();
-        const fileList = await gapi.client.drive.files.list({ q: `name='${FILE_NAME}' and '${folderId}' in parents and trashed=false` });
+        const fileList = await gapi.client.drive.files.list({ q: `name='${FILE_NAME}' and trashed=false` });
         const fileId = fileList.result.files.length > 0 ? fileList.result.files[0].id : null;
         const content = JSON.stringify(db);
         if (fileId) {
@@ -193,12 +189,10 @@ async function syncToCloud() {
 }
 
 async function findOrCreateFolder() {
-    try {
-        const resp = await gapi.client.drive.files.list({ q: `name='${FOLDER_NAME}' and mimeType='application/vnd.google-apps.folder' and trashed=false` });
-        if (resp.result.files.length > 0) return resp.result.files[0].id;
-        const folder = await gapi.client.drive.files.create({ resource: { name: FOLDER_NAME, mimeType: 'application/vnd.google-apps.folder' } });
-        return folder.result.id;
-    } catch(e) { return null; }
+    const resp = await gapi.client.drive.files.list({ q: `name='${FOLDER_NAME}' and trashed=false` });
+    if (resp.result.files.length > 0) return resp.result.files[0].id;
+    const folder = await gapi.client.drive.files.create({ resource: { name: FOLDER_NAME, mimeType: 'application/vnd.google-apps.folder' } });
+    return folder.result.id;
 }
 
 function handleCloudClick() {
@@ -214,75 +208,22 @@ function gisLoaded() {
     });
 }
 
-// ========== UI & WhatsApp ==========
-function shareFullToWhatsApp() {
-    const list = db.lists[db.currentId];
-    let text = `📋 *${list.name}*\n\n`;
-    list.items.forEach(i => text += `${i.checked ? '✅' : '⬜'} *${i.name}* (x${i.qty}) - ₪${(i.price * i.qty).toFixed(2)}\n`);
-    window.open(`https://wa.me/?text=${encodeURIComponent(text)}`);
-}
-
-function shareMissingToWhatsApp() {
-    const list = db.lists[db.currentId];
-    let text = `🛒 *חסרים ב-${list.name}:*\n\n`;
-    list.items.filter(i => !i.checked).forEach(i => text += `• ${i.name} (x${i.qty})\n`);
-    window.open(`https://wa.me/?text=${encodeURIComponent(text)}`);
-}
-
-function importFromText() {
-    const text = document.getElementById('importText').value.trim();
-    if (text) {
-        text.split('\n').forEach(line => {
-            const name = line.replace(/[•\-\*⬜✅]/g, '').trim();
-            if(name) db.lists[db.currentId].items.push({name, price: 0, qty: 1, checked: false});
-        });
-        document.getElementById('importText').value = '';
-        closeModal('importModal');
-        save();
-    }
-}
-
-function initSortable() {
-    const el = document.getElementById('itemsContainer');
-    if (sortableInstance) sortableInstance.destroy();
-    if (el && !isLocked) {
-        sortableInstance = Sortable.create(el, { animation: 150, onEnd: (evt) => {
-            const items = db.lists[db.currentId].items;
-            const moved = items.splice(evt.oldIndex, 1)[0];
-            items.splice(evt.newIndex, 0, moved);
-            save();
-        }});
-    }
-}
-
+// ========== Init & Global Handlers ==========
 window.onload = () => {
     document.getElementById('cloudBtn').onclick = handleCloudClick;
     const bar = document.querySelector('.bottom-bar');
-    if(bar) bar.addEventListener('click', (e) => { if(e.offsetY < 40) bar.classList.toggle('collapsed'); });
-    
-    // Load Scripts
-    if(typeof gapi !== 'undefined') gapiLoaded();
-    if(typeof google !== 'undefined') gisLoaded();
-    
+    if(bar) bar.addEventListener('click', (e) => { if(e.offsetY < 35) bar.classList.toggle('collapsed'); });
     render();
 };
 
-// Global Handlers
-function openModal(id) { 
-    if(id==='inputForm'){ document.getElementById('itemName').value=''; document.getElementById('itemPrice').value=''; }
-    document.getElementById(id).classList.add('active'); 
-}
-function closeModal(id) { document.getElementById(id).classList.remove('active'); }
-function showPage(p) { activePage = p; save(); }
-function toggleLock() { isLocked = !isLocked; render(); }
 function toggleItem(idx) { db.lists[db.currentId].items[idx].checked = !db.lists[db.currentId].items[idx].checked; save(); }
-function removeItem(idx) { db.lists[db.currentId].items.splice(idx, 1); save(); }
-function changeQty(idx, d) { if(db.lists[db.currentId].items[idx].qty+d>=1){ db.lists[db.currentId].items[idx].qty+=d; save(); } }
 function toggleSum(id) {
     const i = db.selectedInSummary.indexOf(id);
     if (i > -1) db.selectedInSummary.splice(i, 1); else db.selectedInSummary.push(id);
     save();
 }
+function showPage(p) { activePage = p; save(); }
+function toggleLock() { isLocked = !isLocked; render(); }
 function executeClear() { db.lists[db.currentId].items = []; closeModal('confirmModal'); save(); }
 function saveNewList() {
     const n = document.getElementById('newListNameInput').value.trim();
@@ -291,7 +232,14 @@ function saveNewList() {
 function saveListName() { const n = document.getElementById('editListNameInput').value.trim(); if(n) { db.lists[db.currentId].name = n; save(); } closeModal('editListNameModal'); }
 function updateFontSize(s) { db.fontSize=parseInt(s); document.documentElement.style.setProperty('--base-font-size', s+'px'); document.getElementById('fontSizeValue').innerText=s; save(); }
 function toggleDarkMode() { document.body.classList.toggle('dark-mode'); closeModal('settingsModal'); }
+function openEditTotalModal(i) { currentEditIdx=i; document.getElementById('editTotalInput').value=''; openModal('editTotalModal'); }
+function saveTotal() {
+    const v=parseFloat(document.getElementById('editTotalInput').value);
+    if(!isNaN(v)){ const item=db.lists[db.currentId].items[currentEditIdx]; item.price=v/item.qty; save(); }
+    closeModal('editTotalModal');
+}
 function updateCloudIndicator(s) {
     const i = document.getElementById('cloudIndicator');
     if(i) i.className = `w-2 h-2 rounded-full ${s === 'connected' ? 'bg-green-500' : 'bg-yellow-500 animate-pulse'}`;
 }
+function initSortable() {}
