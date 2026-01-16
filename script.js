@@ -111,64 +111,42 @@ function render() {
     initSortable();
 }
 
-// ========== Fix: WhatsApp Share for SUMMARY page ==========
-function shareSummaryToWhatsApp() {
-    const selectedIds = db.selectedInSummary;
-    if (selectedIds.length === 0) {
-        alert("יש לבחור לפחות רשימה אחת לשיתוף (סמן ב-V את הרשימות המבוקשות)");
-        return;
-    }
-
-    let text = `📦 *ריכוז רשימות קנייה (מוצרים חסרים):*\n\n`;
-    let hasMissing = false;
-
-    selectedIds.forEach(id => {
-        const l = db.lists[id];
-        if (!l) return;
-        const missing = l.items.filter(i => !i.checked);
-        if (missing.length > 0) {
-            hasMissing = true;
-            text += `🔹 *${l.name}:*\n`;
-            missing.forEach(i => text += `  - ${i.name} (x${i.qty})\n`);
-            text += `\n`;
-        }
-    });
-
-    if (!hasMissing) {
-        text += "אין מוצרים חסרים ברשימות שנבחרו! 🎉";
-    }
-
-    window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
-}
-
-// ========== Other Actions ==========
+// ========== Fix: ADD ITEM logic (No freezing) ==========
 function addItem() {
     const nameInput = document.getElementById('itemName');
     const priceInput = document.getElementById('itemPrice');
     const name = nameInput.value.trim();
     const price = parseFloat(priceInput.value) || 0;
+
     if (name) {
         db.lists[db.currentId].items.push({ name, price, qty: 1, checked: false });
         nameInput.value = ''; priceInput.value = '';
-        closeModal('inputForm'); save();
+        closeModal('inputForm');
+        save();
     }
 }
 
-function shareFullToWhatsApp() {
-    const list = db.lists[db.currentId];
-    let text = `📋 *${list.name}*\n\n`;
-    list.items.forEach(i => text += `${i.checked ? '✅' : '⬜'} *${i.name}* (x${i.qty}) - ₪${(i.price * i.qty).toFixed(2)}\n`);
+// ========== Fix: WhatsApp Share for SUMMARY ==========
+function shareSummaryToWhatsApp() {
+    const selectedIds = db.selectedInSummary;
+    if (selectedIds.length === 0) {
+        alert("יש לבחור לפחות רשימה אחת לשיתוף");
+        return;
+    }
+    let text = `📦 *ריכוז רשימות קנייה (חסרים):*\n\n`;
+    selectedIds.forEach(id => {
+        const l = db.lists[id];
+        const missing = l.items.filter(i => !i.checked);
+        if (missing.length > 0) {
+            text += `🔹 *${l.name}:*\n`;
+            missing.forEach(i => text += `  - ${i.name} (x${i.qty})\n`);
+            text += `\n`;
+        }
+    });
     window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
 }
 
-function shareMissingToWhatsApp() {
-    const list = db.lists[db.currentId];
-    let text = `🛒 *מוצרים חסרים מתוך: ${list.name}*\n\n`;
-    list.items.filter(i => !i.checked).forEach(i => text += `• ${i.name} (x${i.qty})\n`);
-    window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
-}
-
-// ========== Cloud & PDF ==========
+// ========== Fix: Cloud Sync & Auth ==========
 async function syncToCloud() {
     if (!accessToken || isSyncing) return;
     isSyncing = true;
@@ -180,7 +158,7 @@ async function syncToCloud() {
         const content = JSON.stringify(db);
         if (fileId) {
             await fetch(`https://www.googleapis.com/upload/drive/v3/files/${fileId}?uploadType=media`, {
-                method: 'PATCH', headers: { 'Authorization': `Bearer ${accessToken}` }, body: content
+                method: 'PATCH', headers: { 'Authorization': `Bearer ${accessToken}`, 'Content-Type': 'application/json' }, body: content
             });
         } else {
             const metadata = { name: FILE_NAME, parents: [folderId] };
@@ -196,19 +174,11 @@ async function syncToCloud() {
     isSyncing = false;
 }
 
-async function findOrCreateFolder() {
-    const resp = await gapi.client.drive.files.list({ q: `name='${FOLDER_NAME}' and trashed=false` });
-    if (resp.result.files.length > 0) return resp.result.files[0].id;
-    const folder = await gapi.client.drive.files.create({ resource: { name: FOLDER_NAME, mimeType: 'application/vnd.google-apps.folder' } });
-    return folder.result.id;
-}
-
 function handleCloudClick() {
     if (!isConnected) tokenClient.requestAccessToken({ prompt: 'consent' });
     else syncToCloud();
 }
 
-// ========== UI & Init ==========
 function gapiLoaded() { gapi.load('client', () => gapi.client.init({apiKey: GOOGLE_API_KEY, discoveryDocs: [DISCOVERY_DOC]})); }
 function gisLoaded() { 
     tokenClient = google.accounts.oauth2.initTokenClient({
@@ -217,34 +187,39 @@ function gisLoaded() {
     });
 }
 
+// ========== Fix: Bottom Bar Control ==========
 window.onload = () => {
     document.getElementById('cloudBtn').onclick = handleCloudClick;
     const bar = document.querySelector('.bottom-bar');
-    if(bar) bar.addEventListener('click', (e) => { if(e.offsetY < 35) bar.classList.toggle('collapsed'); });
+    if(bar) {
+        bar.addEventListener('click', (e) => {
+            // הבר נסגר רק אם לוחצים על הפס העליון (35 פיקסלים ראשונים)
+            if(e.offsetY < 35) bar.classList.toggle('collapsed');
+        });
+    }
     
-    // חיבור כפתור שיתוף וואטסאפ בדף הריכוז (Summary)
     const summaryShareBtn = document.querySelector('#pageSummary .whatsapp-share-btn');
     if (summaryShareBtn) summaryShareBtn.onclick = shareSummaryToWhatsApp;
     
     render();
 };
 
-// Global Handlers (For HTML onclicks)
-function toggleItem(idx) { db.lists[db.currentId].items[idx].checked = !db.lists[db.currentId].items[idx].checked; save(); }
-function toggleSum(id) {
-    const i = db.selectedInSummary.indexOf(id);
-    if (i > -1) db.selectedInSummary.splice(i, 1); else db.selectedInSummary.push(id);
-    save();
-}
-function showPage(p) { activePage = p; save(); }
-function toggleLock() { isLocked = !isLocked; render(); }
+// ========== Global Handlers ==========
 function openModal(id) { 
     if(id==='inputForm'){ document.getElementById('itemName').value=''; document.getElementById('itemPrice').value=''; }
     document.getElementById(id).classList.add('active'); 
 }
 function closeModal(id) { document.getElementById(id).classList.remove('active'); }
-function changeQty(idx, d) { if(db.lists[db.currentId].items[idx].qty + d >= 1) { db.lists[db.currentId].items[idx].qty += d; save(); } }
+function showPage(p) { activePage = p; save(); }
+function toggleLock() { isLocked = !isLocked; render(); }
+function toggleItem(idx) { db.lists[db.currentId].items[idx].checked = !db.lists[db.currentId].items[idx].checked; save(); }
 function removeItem(idx) { db.lists[db.currentId].items.splice(idx, 1); save(); }
+function changeQty(idx, d) { if(db.lists[db.currentId].items[idx].qty+d>=1){ db.lists[db.currentId].items[idx].qty+=d; save(); } }
+function toggleSum(id) {
+    const i = db.selectedInSummary.indexOf(id);
+    if (i > -1) db.selectedInSummary.splice(i, 1); else db.selectedInSummary.push(id);
+    save();
+}
 function executeClear() { db.lists[db.currentId].items = []; closeModal('confirmModal'); save(); }
 function saveNewList() {
     const n = document.getElementById('newListNameInput').value.trim();
@@ -264,4 +239,32 @@ function updateCloudIndicator(s) {
     if(i) i.className = `w-2 h-2 rounded-full ${s === 'connected' ? 'bg-green-500' : 'bg-yellow-500 animate-pulse'}`;
 }
 function preparePrint() { closeModal('settingsModal'); setTimeout(() => { window.print(); }, 700); }
-function initSortable() {}
+async function findOrCreateFolder() {
+    const resp = await gapi.client.drive.files.list({ q: `name='${FOLDER_NAME}' and trashed=false` });
+    if (resp.result.files.length > 0) return resp.result.files[0].id;
+    const folder = await gapi.client.drive.files.create({ resource: { name: FOLDER_NAME, mimeType: 'application/vnd.google-apps.folder' } });
+    return folder.result.id;
+}
+function initSortable() {
+    const el = document.getElementById('itemsContainer');
+    if (sortableInstance) sortableInstance.destroy();
+    if (el && !isLocked) {
+        sortableInstance = Sortable.create(el, { animation: 150, onEnd: (evt) => {
+            const items = db.lists[db.currentId].items;
+            const moved = items.splice(evt.oldIndex, 1)[0];
+            items.splice(evt.newIndex, 0, moved);
+            save();
+        }});
+    }
+}
+
+// טעינת Google API
+const script1 = document.createElement('script');
+script1.src = 'https://apis.google.com/js/api.js';
+script1.onload = gapiLoaded;
+document.head.appendChild(script1);
+
+const script2 = document.createElement('script');
+script2.src = 'https://accounts.google.com/gsi/client';
+script2.onload = gisLoaded;
+document.head.appendChild(script2);
