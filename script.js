@@ -28,7 +28,6 @@ let db = JSON.parse(localStorage.getItem('BUDGET_FINAL_V27')) || {
 let isLocked = true;
 let activePage = db.lastActivePage || 'lists';
 let currentEditIdx = null;
-let listToDelete = null;
 let sortableInstance = null;
 
 // ========== Core Logic ==========
@@ -113,44 +112,93 @@ function render() {
     initSortable();
 }
 
-// ========== Fix: Import Text (No Freezing) ==========
-function importFromText() {
-    const textarea = document.getElementById('importText');
-    const text = textarea.value.trim();
-    if (!text) { closeModal('importModal'); return; }
-
-    const lines = text.split('\n').filter(line => line.trim());
-    lines.forEach(line => {
-        const cleanName = line.replace(/[•\-\*⬜✅]/g, '').trim();
-        if (cleanName && !line.includes('🛒') && !line.includes('💰')) {
-            db.lists[db.currentId].items.push({
-                name: cleanName,
-                price: 0,
-                qty: 1,
-                checked: false
-            });
-        }
-    });
-
-    textarea.value = '';
-    closeModal('importModal');
-    save();
+// ========== Fix: Add Item (No Freeze) ==========
+function addItem() {
+    const name = document.getElementById('itemName').value.trim();
+    const price = parseFloat(document.getElementById('itemPrice').value) || 0;
+    if (name) {
+        db.lists[db.currentId].items.push({ name, price, qty: 1, checked: false });
+        closeModal('inputForm');
+        save();
+    }
 }
 
-// ========== Fix: Cloud Sync (Full Code) ==========
+// ========== WhatsApp Share (From your original file) ==========
+function shareFullToWhatsApp() {
+    const list = db.lists[db.currentId];
+    let text = `📋 *${list.name}*\n\n`;
+    list.items.forEach(i => text += `${i.checked ? '✅' : '⬜'} *${i.name}* (x${i.qty}) - ₪${(i.price * i.qty).toFixed(2)}\n`);
+    window.open(`https://wa.me/?text=${encodeURIComponent(text)}`);
+}
+
+function shareSummaryToWhatsApp() {
+    const selectedIds = db.selectedInSummary;
+    if (selectedIds.length === 0) return;
+    let text = `📦 *ריכוז חסרים:*\n\n`;
+    selectedIds.forEach(id => {
+        const l = db.lists[id];
+        const missing = l.items.filter(i => !i.checked);
+        if (missing.length > 0) {
+            text += `🔹 *${l.name}:*\n`;
+            missing.forEach(i => text += `  - ${i.name} (x${i.qty})\n`);
+            text += `\n`;
+        }
+    });
+    window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
+}
+
+// ========== Google Drive Integration (Restored & Fixed) ==========
+function gapiLoaded() {
+    gapi.load('client', async () => {
+        await gapi.client.init({apiKey: GOOGLE_API_KEY, discoveryDocs: [DISCOVERY_DOC]});
+        gapiInited = true;
+        maybeEnableCloud();
+    });
+}
+
+function gisLoaded() {
+    tokenClient = google.accounts.oauth2.initTokenClient({
+        client_id: GOOGLE_CLIENT_ID, scope: SCOPES, callback: async (resp) => {
+            accessToken = resp.access_token;
+            isConnected = true;
+            updateCloudIndicator('connected');
+            await loadAndMerge();
+        }
+    });
+    gisInited = true;
+    maybeEnableCloud();
+}
+
+function maybeEnableCloud() {
+    if (gapiInited && gisInited) {
+        document.getElementById('cloudBtn').onclick = handleCloudClick;
+    }
+}
+
+function handleCloudClick() {
+    if (isConnected) syncToCloud();
+    else tokenClient.requestAccessToken({prompt: 'consent'});
+}
+
+async function findOrCreateFolder() {
+    const resp = await gapi.client.drive.files.list({ q: `name='${FOLDER_NAME}' and trashed=false` });
+    if (resp.result.files.length > 0) return resp.result.files[0].id;
+    const folder = await gapi.client.drive.files.create({ resource: { name: FOLDER_NAME, mimeType: 'application/vnd.google-apps.folder' } });
+    return folder.result.id;
+}
+
 async function syncToCloud() {
     if (!accessToken || isSyncing) return;
     isSyncing = true;
     updateCloudIndicator('syncing');
     try {
         const folderId = await findOrCreateFolder();
-        const fileList = await gapi.client.drive.files.list({ q: `name='${FILE_NAME}' and '${folderId}' in parents and trashed=false` });
+        const fileList = await gapi.client.drive.files.list({ q: `name='${FILE_NAME}' and '${folderId}' in parents` });
         const fileId = fileList.result.files.length > 0 ? fileList.result.files[0].id : null;
         const content = JSON.stringify(db);
-
         if (fileId) {
             await fetch(`https://www.googleapis.com/upload/drive/v3/files/${fileId}?uploadType=media`, {
-                method: 'PATCH', headers: { 'Authorization': `Bearer ${accessToken}`, 'Content-Type': 'application/json' }, body: content
+                method: 'PATCH', headers: { 'Authorization': `Bearer ${accessToken}` }, body: content
             });
         } else {
             const metadata = { name: FILE_NAME, parents: [folderId] };
@@ -162,46 +210,35 @@ async function syncToCloud() {
             });
         }
         updateCloudIndicator('connected');
-    } catch (e) { console.error('Sync error:', e); }
+    } catch (e) { console.error(e); }
     isSyncing = false;
 }
 
-async function findOrCreateFolder() {
-    const resp = await gapi.client.drive.files.list({ q: `name='${FOLDER_NAME}' and mimeType='application/vnd.google-apps.folder' and trashed=false` });
-    if (resp.result.files.length > 0) return resp.result.files[0].id;
-    const folder = await gapi.client.drive.files.create({ resource: { name: FOLDER_NAME, mimeType: 'application/vnd.google-apps.folder' } });
-    return folder.result.id;
+async function loadAndMerge() {
+    const folderId = await findOrCreateFolder();
+    const fileList = await gapi.client.drive.files.list({ q: `name='${FILE_NAME}' and '${folderId}' in parents` });
+    if (fileList.result.files.length > 0) {
+        const fileId = fileList.result.files[0].id;
+        const response = await fetch(`https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`, { headers: { Authorization: `Bearer ${accessToken}` } });
+        db = await response.json();
+        save();
+    }
 }
 
-function handleCloudClick() {
-    if (!isConnected) tokenClient.requestAccessToken({ prompt: 'consent' });
-    else syncToCloud();
-}
-
-// ========== Lifecycle & Handlers ==========
-function gapiLoaded() { gapi.load('client', () => gapi.client.init({apiKey: GOOGLE_API_KEY, discoveryDocs: [DISCOVERY_DOC]})); }
-function gisLoaded() { 
-    tokenClient = google.accounts.oauth2.initTokenClient({
-        client_id: GOOGLE_CLIENT_ID, scope: SCOPES,
-        callback: (r) => { accessToken = r.access_token; isConnected = true; updateCloudIndicator('connected'); syncToCloud(); }
-    });
-}
+// ========== UI Listeners & Init ==========
+window.onload = () => {
+    const bar = document.querySelector('.bottom-bar');
+    if(bar) bar.addEventListener('click', (e) => { if(e.offsetY < 35) bar.classList.toggle('collapsed'); });
+    render();
+};
 
 function updateCloudIndicator(s) {
     const i = document.getElementById('cloudIndicator');
     if(i) i.className = `w-2 h-2 rounded-full ${s === 'connected' ? 'bg-green-500' : 'bg-yellow-500 animate-pulse'}`;
 }
 
-window.onload = () => {
-    document.getElementById('cloudBtn').onclick = handleCloudClick;
-    const bar = document.querySelector('.bottom-bar');
-    if(bar) bar.addEventListener('click', (e) => { if(e.offsetY < 35) bar.classList.toggle('collapsed'); });
-    render();
-};
-
-// Global Handlers
 function openModal(id) { 
-    if(id === 'inputForm') { document.getElementById('itemName').value = ''; document.getElementById('itemPrice').value = ''; }
+    if(id==='inputForm'){ document.getElementById('itemName').value=''; document.getElementById('itemPrice').value=''; }
     document.getElementById(id).classList.add('active'); 
 }
 function closeModal(id) { document.getElementById(id).classList.remove('active'); }
@@ -209,16 +246,11 @@ function showPage(p) { activePage = p; save(); }
 function toggleLock() { isLocked = !isLocked; render(); }
 function toggleItem(idx) { db.lists[db.currentId].items[idx].checked = !db.lists[db.currentId].items[idx].checked; save(); }
 function removeItem(idx) { db.lists[db.currentId].items.splice(idx, 1); save(); }
-function changeQty(idx, d) { if(db.lists[db.currentId].items[idx].qty + d >= 1) { db.lists[db.currentId].items[idx].qty += d; save(); } }
+function changeQty(idx, d) { if(db.lists[db.currentId].items[idx].qty+d>=1){ db.lists[db.currentId].items[idx].qty+=d; save(); } }
 function toggleSum(id) {
     const i = db.selectedInSummary.indexOf(id);
     if (i > -1) db.selectedInSummary.splice(i, 1); else db.selectedInSummary.push(id);
     save();
-}
-function addItem() {
-    const name = document.getElementById('itemName').value.trim();
-    const price = parseFloat(document.getElementById('itemPrice').value) || 0;
-    if(name) { db.lists[db.currentId].items.push({name, price, qty: 1, checked: false}); closeModal('inputForm'); save(); }
 }
 function executeClear() { db.lists[db.currentId].items = []; closeModal('confirmModal'); save(); }
 function saveNewList() {
@@ -235,20 +267,17 @@ function saveTotal() {
     closeModal('editTotalModal');
 }
 function preparePrint() { closeModal('settingsModal'); setTimeout(() => { window.print(); }, 700); }
-function initSortable() {}
 function toggleSelectAll(checked) { db.selectedInSummary = checked ? Object.keys(db.lists) : []; save(); }
-function shareSummaryToWhatsApp() {
-    const selectedIds = db.selectedInSummary;
-    if (selectedIds.length === 0) return;
-    let text = `📦 *ריכוז חסרים:*\n\n`;
-    selectedIds.forEach(id => {
-        const l = db.lists[id];
-        const missing = l.items.filter(i => !i.checked);
-        if (missing.length > 0) {
-            text += `🔹 *${l.name}:*\n`;
-            missing.forEach(i => text += `  - ${i.name} (x${i.qty})\n`);
-            text += `\n`;
-        }
-    });
-    window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
+
+function initSortable() {
+    const el = document.getElementById('itemsContainer');
+    if (sortableInstance) sortableInstance.destroy();
+    if (el && !isLocked && activePage === 'lists') {
+        sortableInstance = new Sortable(el, { animation: 150, onEnd: (evt) => {
+            const items = db.lists[db.currentId].items;
+            const moved = items.splice(evt.oldIndex, 1)[0];
+            items.splice(evt.newIndex, 0, moved);
+            save();
+        }});
+    }
 }
