@@ -111,7 +111,28 @@ function render() {
     initSortable();
 }
 
-// ========== Actions & Modals ==========
+// ========== Fix for Price Edit (התיקון המבוקש) ==========
+function openEditTotalModal(idx) { 
+    currentEditIdx = idx; 
+    // מציג שדה ריק כפי שביקשת
+    document.getElementById('editTotalInput').value = ''; 
+    openModal('editTotalModal'); 
+    // מיקוד אוטומטי לשדה
+    setTimeout(() => document.getElementById('editTotalInput').focus(), 150);
+}
+
+function saveTotal() {
+    const val = parseFloat(document.getElementById('editTotalInput').value);
+    // אם המשתמש הכניס מספר תקין, נעדכן. אם השאיר ריק, לא נשנה כלום.
+    if(!isNaN(val)) {
+        const item = db.lists[db.currentId].items[currentEditIdx];
+        item.price = val / item.qty;
+        save();
+    }
+    closeModal('editTotalModal');
+}
+
+// ========== Other Actions ==========
 function openModal(id) { 
     if(id === 'inputForm') {
         document.getElementById('itemName').value = '';
@@ -140,7 +161,7 @@ function changeQty(idx, d) {
 
 function removeItem(idx) { db.lists[db.currentId].items.splice(idx, 1); save(); }
 
-// ========== WhatsApp Logic ==========
+// ========== WhatsApp & PDF ==========
 function shareFullToWhatsApp() {
     const list = db.lists[db.currentId];
     let text = `📋 *${list.name}*\n\n`;
@@ -151,13 +172,18 @@ function shareFullToWhatsApp() {
 
 function shareMissingToWhatsApp() {
     const list = db.lists[db.currentId];
-    let text = `🛒 *מוצרים חסרים מתוך: ${list.name}*\n\n`;
+    let text = `🛒 *מוצרים חסרים ב-${list.name}:*\n\n`;
     list.items.filter(i => !i.checked).forEach(i => text += `• ${i.name} (x${i.qty})\n`);
     window.open(`https://wa.me/?text=${encodeURIComponent(text)}`);
     closeModal('shareListModal');
 }
 
-// ========== Cloud Sync Implementation ==========
+function preparePrint() {
+    closeModal('settingsModal');
+    window.print();
+}
+
+// ========== Cloud Sync ==========
 async function findOrCreateFolder() {
     try {
         const resp = await gapi.client.drive.files.list({
@@ -240,7 +266,7 @@ window.onload = () => {
     render();
 };
 
-// Global Handlers
+// Global Handlers for HTML
 function toggleItem(idx) { db.lists[db.currentId].items[idx].checked = !db.lists[db.currentId].items[idx].checked; save(); }
 function toggleSum(id) {
     const i = db.selectedInSummary.indexOf(id);
@@ -257,18 +283,8 @@ function saveNewList() {
 function saveListName() { const n = document.getElementById('editListNameInput').value.trim(); if(n) { db.lists[db.currentId].name = n; save(); } closeModal('editListNameModal'); }
 function updateFontSize(s) { db.fontSize=parseInt(s); document.documentElement.style.setProperty('--base-font-size', s+'px'); document.getElementById('fontSizeValue').innerText=s; save(); }
 function toggleDarkMode() { document.body.classList.toggle('dark-mode'); closeModal('settingsModal'); }
-function openEditTotalModal(i) { currentEditIdx=i; document.getElementById('editTotalInput').value=(db.lists[db.currentId].items[i].price*db.lists[db.currentId].items[i].qty).toFixed(2); openModal('editTotalModal'); }
-function saveTotal() {
-    const v=parseFloat(document.getElementById('editTotalInput').value);
-    if(!isNaN(v)){ const item=db.lists[db.currentId].items[currentEditIdx]; item.price=v/item.qty; save(); }
-    closeModal('editTotalModal');
-}
 function importFromText() {
     const text = document.getElementById('importText').value;
     text.split('\n').forEach(l => { if(l.trim()) db.lists[db.currentId].items.push({name: l.trim(), price: 0, qty: 1, checked: false}); });
     closeModal('importModal'); save();
-}
-function preparePrint() { 
-    closeModal('settingsModal');
-    window.print();
 }
