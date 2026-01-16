@@ -74,8 +74,8 @@ function render() {
                         <input type="checkbox" ${item.checked ? 'checked' : ''} onchange="toggleItem(${idx})" class="w-7 h-7 accent-indigo-600">
                         <div class="flex-1 text-2xl font-bold ${item.checked ? 'line-through text-gray-300' : ''}" style="font-size: ${db.fontSize}px;">${item.name}</div>
                     </div>
-                    <button onclick="removeItem(${idx})" class="trash-btn">
-                        <svg class="w-6 h-6 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+                    <button onclick="removeItem(${idx})" class="trash-btn" style="background: white !important; border: 1px solid #fee2e2; color: #ef4444; border-radius: 50%; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center;">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg>
                     </button>
                 </div>
                 <div class="flex justify-between items-center">
@@ -132,55 +132,7 @@ function render() {
     initSortable();
 }
 
-// ========== WhatsApp Logic (שחזור מלא) ==========
-function shareFullToWhatsApp() {
-    const list = db.lists[db.currentId];
-    if (!list || list.items.length === 0) return;
-    let text = `📋 *${list.name}*\n\n`;
-    list.items.forEach(item => {
-        text += `${item.checked ? '✅' : '⬜'} *${item.name}* (x${item.qty}) - ₪${(item.price * item.qty).toFixed(2)}\n`;
-    });
-    text += `\n💰 *סה"כ: ₪${(list.items.reduce((acc, i) => acc + (i.price * i.qty), 0)).toFixed(2)}*`;
-    window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
-    closeModal('shareListModal');
-}
-
-function shareMissingToWhatsApp() {
-    const list = db.lists[db.currentId];
-    if (!list) return;
-    let text = `🛒 *מוצרים חסרים מתוך: ${list.name}*\n\n`;
-    const missing = list.items.filter(i => !i.checked);
-    if (missing.length === 0) {
-        text += "הכל כבר נקנה! 🎉";
-    } else {
-        missing.forEach(item => {
-            text += `• *${item.name}* (x${item.qty})\n`;
-        });
-    }
-    window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
-    closeModal('shareListModal');
-}
-
-function shareSummaryToWhatsApp() {
-    const selectedIds = db.selectedInSummary;
-    if (selectedIds.length === 0) { 
-        alert("בחר לפחות רשימה אחת לשיתוף!"); 
-        return; 
-    }
-    let text = `📦 *ריכוז רשימות קנייה (חסרים בלבד):*\n\n`;
-    selectedIds.forEach(id => {
-        const l = db.lists[id];
-        const missing = l.items.filter(i => !i.checked);
-        if (missing.length > 0) {
-            text += `🔹 *${l.name}:*\n`;
-            missing.forEach(i => text += `  - ${i.name} (x${i.qty})\n`);
-            text += `\n`;
-        }
-    });
-    window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
-}
-
-// ========== App Actions ==========
+// ========== Actions ==========
 function toggleItem(idx) { db.lists[db.currentId].items[idx].checked = !db.lists[db.currentId].items[idx].checked; save(); }
 function toggleSum(id) {
     const i = db.selectedInSummary.indexOf(id);
@@ -245,6 +197,21 @@ function updateFontSize(size) {
     save();
 }
 
+function openModal(id) { 
+    const modal = document.getElementById(id);
+    if (!modal) return;
+    
+    // ניקוי שדות בהוספת מוצר חדש (התיקון שביקשת)
+    if (id === 'inputForm') {
+        document.getElementById('itemName').value = '';
+        document.getElementById('itemPrice').value = '';
+    }
+    
+    modal.classList.add('active'); 
+}
+
+function closeModal(id) { document.getElementById(id).classList.remove('active'); }
+
 function openEditTotalModal(idx) { 
     currentEditIdx = idx; 
     document.getElementById('editTotalInput').value = (db.lists[db.currentId].items[idx].price * db.lists[db.currentId].items[idx].qty).toFixed(2); 
@@ -273,46 +240,89 @@ function importFromText() {
     save();
 }
 
-// ========== Professional PDF (שחזור פורמט תמונה) ==========
+// ========== PDF Format (התיקון שביקשת - ללא פס סגול) ==========
 function preparePrint() { 
     closeModal('settingsModal');
     const printArea = document.getElementById('printArea');
     let grandTotal = 0;
-    let html = `<div style="padding:40px; font-family:system-ui; direction:rtl;">
-                <h1 style="text-align:center; color:#7367f0; font-size:24px; margin-bottom:40px;">דוח קניות - Vplus</h1>`;
+    let html = `<div style="padding:30px; font-family:system-ui; direction:rtl;">
+                <h1 style="text-align:center; color:#7367f0; font-size:22px; margin-bottom:30px;">דוח קניות - Vplus</h1>`;
     
     const idsToPrint = db.selectedInSummary.length > 0 ? db.selectedInSummary : Object.keys(db.lists);
 
     idsToPrint.forEach(id => {
         const l = db.lists[id];
         let listTotal = 0;
-        html += `<div style="margin-bottom:30px;">
-                <h2 style="font-size:18px; margin-bottom:10px; border-bottom:1px solid #eee; padding-bottom:5px; text-align:right;">${l.name}</h2>
+        html += `<div style="margin-bottom:25px;">
+                <h2 style="font-size:16px; margin-bottom:8px; text-align:right;">${l.name}</h2>
                 <table style="width:100%; border-collapse:collapse; border:1px solid #ddd;">
-                    <thead><tr style="background:#fcfcfc;">
-                        <th style="padding:12px; border:1px solid #ddd; text-align:right; width:70%;">מוצר</th>
-                        <th style="padding:12px; border:1px solid #ddd; text-align:center;">סה"כ</th>
+                    <thead><tr style="background:#f8f9fa;">
+                        <th style="padding:10px; border:1px solid #ddd; text-align:right; width:75%;">מוצר</th>
+                        <th style="padding:10px; border:1px solid #ddd; text-align:center;">סה"כ</th>
                     </tr></thead><tbody>`;
         
         l.items.forEach(i => {
             const sub = i.price * i.qty;
             listTotal += sub;
             html += `<tr>
-                <td style="padding:12px; border:1px solid #ddd; text-align:right;">${i.name} (x${i.qty})</td>
-                <td style="padding:12px; border:1px solid #ddd; text-align:center;">₪${sub.toFixed(2)}</td>
+                <td style="padding:10px; border:1px solid #ddd; text-align:right;">${i.name} (x${i.qty})</td>
+                <td style="padding:10px; border:1px solid #ddd; text-align:center;">₪${sub.toFixed(2)}</td>
             </tr>`;
         });
         
         html += `</tbody></table>
-            <div style="text-align:left; font-weight:bold; margin-top:8px; font-size:14px;">₪${listTotal.toFixed(2)}</div>
+            <div style="text-align:left; font-weight:bold; margin-top:5px; font-size:13px;">₪${listTotal.toFixed(2)}</div>
         </div>`;
         grandTotal += listTotal;
     });
     
-    html += `<div style="text-align:center; font-size:22px; font-weight:900; margin-top:50px; border-top:4px double #7367f0; padding-top:15px;">סה"כ כולל: ₪${grandTotal.toFixed(2)}</div></div>`;
+    html += `<div style="text-align:center; font-size:20px; font-weight:900; margin-top:40px; border-top:2px solid #333; padding-top:10px;">סה"כ כולל: ₪${grandTotal.toFixed(2)}</div></div>`;
     
     printArea.innerHTML = html;
     window.print();
+}
+
+// ========== WhatsApp Logic ==========
+function shareFullToWhatsApp() {
+    const list = db.lists[db.currentId];
+    if (!list || list.items.length === 0) return;
+    let text = `📋 *${list.name}*\n\n`;
+    list.items.forEach(item => {
+        text += `${item.checked ? '✅' : '⬜'} *${item.name}* (x${item.qty}) - ₪${(item.price * item.qty).toFixed(2)}\n`;
+    });
+    text += `\n💰 *סה"כ: ₪${(list.items.reduce((acc, i) => acc + (i.price * i.qty), 0)).toFixed(2)}*`;
+    window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
+    closeModal('shareListModal');
+}
+
+function shareMissingToWhatsApp() {
+    const list = db.lists[db.currentId];
+    if (!list) return;
+    let text = `🛒 *מוצרים חסרים מתוך: ${list.name}*\n\n`;
+    const missing = list.items.filter(i => !i.checked);
+    if (missing.length === 0) {
+        text += "הכל כבר נקנה! 🎉";
+    } else {
+        missing.forEach(item => { text += `• *${item.name}* (x${item.qty})\n`; });
+    }
+    window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
+    closeModal('shareListModal');
+}
+
+function shareSummaryToWhatsApp() {
+    const selectedIds = db.selectedInSummary;
+    if (selectedIds.length === 0) { alert("בחר לפחות רשימה אחת לשיתוף!"); return; }
+    let text = `📦 *ריכוז רשימות קנייה (חסרים בלבד):*\n\n`;
+    selectedIds.forEach(id => {
+        const l = db.lists[id];
+        const missing = l.items.filter(i => !i.checked);
+        if (missing.length > 0) {
+            text += `🔹 *${l.name}:*\n`;
+            missing.forEach(i => text += `  - ${i.name} (x${i.qty})\n`);
+            text += `\n`;
+        }
+    });
+    window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
 }
 
 // ========== UI Utilities ==========
@@ -339,15 +349,13 @@ function toggleBottomBar() {
     else bar.classList.remove('collapsed');
 }
 
-function openModal(id) { document.getElementById(id).classList.add('active'); }
-function closeModal(id) { document.getElementById(id).classList.remove('active'); }
 function showPage(p) { activePage = p; save(); }
 function toggleLock() { isLocked = !isLocked; render(); }
 function toggleDarkMode() { document.body.classList.toggle('dark-mode'); closeModal('settingsModal'); }
 
-// ========== Google Cloud ==========
+// ========== Cloud Sync (Mock) ==========
 async function syncToCloud() {
-    if (!accessToken || isSyncing) return;
+    if (!isConnected || isSyncing) return;
     isSyncing = true;
     updateCloudIndicator('syncing');
     try {
