@@ -27,7 +27,6 @@ let db = JSON.parse(localStorage.getItem('BUDGET_FINAL_V27')) || {
 let isLocked = true;
 let activePage = db.lastActivePage || 'lists';
 let currentEditIdx = null;
-let listToDelete = null;
 let sortableInstance = null;
 let isBottomBarCollapsed = false;
 
@@ -51,7 +50,6 @@ function render() {
     
     let totalAll = 0, paidAll = 0;
 
-    // עדכון טאבים פעילים (צבע סגול)
     document.getElementById('tabLists').className = `tab-btn ${activePage === 'lists' ? 'tab-active' : ''}`;
     document.getElementById('tabSummary').className = `tab-btn ${activePage === 'summary' ? 'tab-active' : ''}`;
 
@@ -71,13 +69,13 @@ function render() {
             div.className = "item-card";
             div.setAttribute('data-id', idx);
             div.innerHTML = `
-                <div class="flex justify-between items-start mb-4" style="gap: 12px;">
+                <div class="flex justify-between items-start mb-4">
                     <div class="flex items-start gap-3 flex-1">
                         <input type="checkbox" ${item.checked ? 'checked' : ''} onchange="toggleItem(${idx})" class="w-7 h-7 accent-indigo-600">
                         <div class="flex-1 text-2xl font-bold ${item.checked ? 'line-through text-gray-300' : ''}" style="font-size: ${db.fontSize}px;">${item.name}</div>
                     </div>
-                    <button onclick="removeItem(${idx})" class="trash-btn" style="background: white !important;">
-                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+                    <button onclick="removeItem(${idx})" class="trash-btn" style="background: white !important; border: 1px solid #fee2e2; color: #ef4444; border-radius: 50%; width: 40px; height: 40px;">
+                        <svg class="w-6 h-6 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg>
                     </button>
                 </div>
                 <div class="flex justify-between items-center">
@@ -121,24 +119,46 @@ function render() {
         });
     }
     
-    // עדכון בר תחתון
     document.getElementById('displayTotal').innerText = totalAll.toFixed(2);
     document.getElementById('displayPaid').innerText = paidAll.toFixed(2);
     document.getElementById('displayLeft').innerText = (totalAll - paidAll).toFixed(2);
 
-    // עדכון כפתור נעילה
     const lockBtn = document.getElementById('mainLockBtn');
-    const lockPath = document.getElementById('lockIconPath');
     if(lockBtn) {
         lockBtn.className = `bottom-circle-btn ${isLocked ? 'bg-blue-600' : 'bg-orange-400'}`;
-        lockPath.setAttribute('d', isLocked ? 'M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z' : 'M8 11V7a4 4 0 118 0m-4 8v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2z');
     }
     document.getElementById('statusTag').innerText = isLocked ? "נעול" : "עריכה (גרירה פעילה)";
 
     initSortable();
 }
 
-// ========== Actions ==========
+// ========== WhatsApp Logic (שחזור מלא) ==========
+function shareFullToWhatsApp() {
+    const list = db.lists[db.currentId];
+    let text = `📋 *${list.name}*\n\n`;
+    list.items.forEach(item => {
+        text += `${item.checked ? '✅' : '⬜'} ${item.name} (${item.qty})\n`;
+    });
+    window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
+    closeModal('shareListModal');
+}
+
+function shareMissingToWhatsApp() {
+    const list = db.lists[db.currentId];
+    let text = `🛒 *מוצרים חסרים מתוך: ${list.name}*\n\n`;
+    const missing = list.items.filter(i => !i.checked);
+    if (missing.length === 0) {
+        text += "הכל כבר נקנה! 🎉";
+    } else {
+        missing.forEach(item => {
+            text += `• ${item.name} (${item.qty})\n`;
+        });
+    }
+    window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
+    closeModal('shareListModal');
+}
+
+// ========== App Actions ==========
 function toggleItem(idx) { db.lists[db.currentId].items[idx].checked = !db.lists[db.currentId].items[idx].checked; save(); }
 function toggleSum(id) {
     const i = db.selectedInSummary.indexOf(id);
@@ -181,12 +201,6 @@ function saveNewList() {
     }
 }
 
-function executeClear() {
-    db.lists[db.currentId].items = [];
-    closeModal('confirmModal');
-    save();
-}
-
 function saveListName() {
     const n = document.getElementById('editListNameInput').value.trim();
     if(n) {
@@ -194,6 +208,19 @@ function saveListName() {
         save();
     }
     closeModal('editListNameModal');
+}
+
+function executeClear() {
+    db.lists[db.currentId].items = [];
+    closeModal('confirmModal');
+    save();
+}
+
+function updateFontSize(size) {
+    db.fontSize = parseInt(size);
+    document.documentElement.style.setProperty('--base-font-size', size + 'px');
+    document.getElementById('fontSizeValue').textContent = size;
+    save();
 }
 
 function openEditTotalModal(idx) { 
@@ -210,13 +237,6 @@ function saveTotal() {
         save();
     }
     closeModal('editTotalModal');
-}
-
-function updateFontSize(size) {
-    db.fontSize = parseInt(size);
-    document.documentElement.style.setProperty('--base-font-size', size + 'px');
-    document.getElementById('fontSizeValue').textContent = size;
-    save();
 }
 
 function importFromText() {
@@ -241,14 +261,13 @@ function preparePrint() {
     Object.keys(db.lists).forEach(id => {
         const l = db.lists[id];
         let listTotal = 0;
-        html += `
-            <div style="border: 2px solid #7367f0; border-radius:15px; padding:15px; margin-bottom:20px;">
-                <h2 style="margin-top:0;">${l.name}</h2>
+        html += `<div style="border: 2px solid #7367f0; border-radius:15px; padding:15px; margin-bottom:20px; direction:rtl;">
+                <h3>${l.name}</h3>
                 <table style="width:100%; border-collapse:collapse;">
                     <thead><tr style="background:#f3f4f6;">
-                        <th style="padding:8px; border-bottom:1px solid #eee; text-align:right;">מוצר</th>
-                        <th style="padding:8px; border-bottom:1px solid #eee; text-align:center;">כמות</th>
-                        <th style="padding:8px; border-bottom:1px solid #eee; text-align:left;">מחיר</th>
+                        <th style="padding:8px; text-align:right;">מוצר</th>
+                        <th style="padding:8px; text-align:center;">כמות</th>
+                        <th style="padding:8px; text-align:left;">מחיר</th>
                     </tr></thead><tbody>`;
         
         l.items.forEach(i => {
@@ -301,7 +320,7 @@ function showPage(p) { activePage = p; save(); }
 function toggleLock() { isLocked = !isLocked; render(); }
 function toggleDarkMode() { document.body.classList.toggle('dark-mode'); closeModal('settingsModal'); }
 
-// ========== Cloud Sync Placeholder ==========
+// ========== Cloud Placeholder ==========
 async function syncToCloud() {
     if (!accessToken || isSyncing) return;
     isSyncing = true;
@@ -328,8 +347,11 @@ function gisLoaded() {
 }
 
 window.onload = () => {
-    document.querySelector('.bottom-bar').addEventListener('click', (e) => {
-        if(e.offsetY < 25) toggleBottomBar();
-    });
+    const bottomBar = document.querySelector('.bottom-bar');
+    if(bottomBar) {
+        bottomBar.addEventListener('click', (e) => {
+            if(e.offsetY < 30) toggleBottomBar();
+        });
+    }
     render();
 };
