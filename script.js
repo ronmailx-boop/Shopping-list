@@ -29,16 +29,12 @@ let activePage = db.lastActivePage || 'lists';
 let currentEditIdx = null;
 let sortableInstance = null;
 
-// ========== Initialization & Google Auth (THE FIX) ==========
+// ========== Google Auth & Sync Logic (From script 8) ==========
 
 function gapiLoaded() {
     gapi.load('client', async () => {
-        await gapi.client.init({
-            apiKey: GOOGLE_API_KEY,
-            discoveryDocs: [DISCOVERY_DOC],
-        });
+        await gapi.client.init({ apiKey: GOOGLE_API_KEY, discoveryDocs: [DISCOVERY_DOC] });
         gapiInited = true;
-        console.log("GAPI Inited");
     });
 }
 
@@ -46,23 +42,19 @@ function gisLoaded() {
     tokenClient = google.accounts.oauth2.initTokenClient({
         client_id: GOOGLE_CLIENT_ID,
         scope: SCOPES,
-        callback: '', // יוגדר בזמן לחיצה
+        callback: '', 
     });
     gisInited = true;
-    console.log("GIS Inited");
 }
 
-// פונקציית הלחיצה - מטפלת גם בחיבור ראשוני וגם בסנכרון
 async function handleCloudClick() {
-    console.log("Cloud button clicked. Status:", {isConnected, gapiInited, gisInited});
-    
     if (!gapiInited || !gisInited) {
-        alert("מערכת גוגל עדיין נטענת, אנא נסה שוב בעוד רגע...");
+        console.log("Still loading Google services...");
         return;
     }
 
     if (isConnected) {
-        await loadAndMerge();
+        await manualSync();
     } else {
         tokenClient.callback = async (resp) => {
             if (resp.error !== undefined) throw (resp);
@@ -76,7 +68,71 @@ async function handleCloudClick() {
     }
 }
 
-// ========== Core Logic & Render ==========
+async function syncToCloud() {
+    if (!accessToken || isSyncing) return;
+    isSyncing = true;
+    updateCloudIndicator('syncing');
+    try {
+        const folderId = await findOrCreateFolder();
+        const response = await gapi.client.drive.files.list({ q: `name='${FILE_NAME}' and '${folderId}' in parents and trashed=false` });
+        const fileId = response.result.files.length > 0 ? response.result.files[0].id : null;
+        const content = JSON.stringify(db);
+
+        if (fileId) {
+            await fetch(`https://www.googleapis.com/upload/drive/v3/files/${fileId}?uploadType=media`, {
+                method: 'PATCH', headers: { 'Authorization': `Bearer ${accessToken}`, 'Content-Type': 'application/json' }, body: content
+            });
+        } else {
+            const metadata = { name: FILE_NAME, parents: [folderId] };
+            const form = new FormData();
+            form.append('metadata', new Blob([JSON.stringify(metadata)], { type: 'application/json' }));
+            form.append('file', new Blob([content], { type: 'application/json' }));
+            await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart', {
+                method: 'POST', headers: { 'Authorization': `Bearer ${accessToken}` }, body: form
+            });
+        }
+    } catch (e) { console.error(e); }
+    isSyncing = false;
+    updateCloudIndicator('connected');
+}
+
+async function loadAndMerge() {
+    if (!accessToken) return;
+    updateCloudIndicator('syncing');
+    try {
+        const folderId = await findOrCreateFolder();
+        const response = await gapi.client.drive.files.list({ q: `name='${FILE_NAME}' and '${folderId}' in parents and trashed=false` });
+        const fileId = response.result.files.length > 0 ? response.result.files[0].id : null;
+        
+        if (fileId) {
+            const res = await fetch(`https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`, {
+                headers: { 'Authorization': `Bearer ${accessToken}` }
+            });
+            db = await res.json();
+            save();
+        } else {
+            await syncToCloud();
+        }
+    } catch (e) { console.error(e); }
+    updateCloudIndicator('connected');
+}
+
+async function findOrCreateFolder() {
+    const resp = await gapi.client.drive.files.list({ q: `name='${FOLDER_NAME}' and mimeType='application/vnd.google-apps.folder' and trashed=false` });
+    if (resp.result.files.length > 0) return resp.result.files[0].id;
+    const folder = await gapi.client.drive.files.create({ resource: { name: FOLDER_NAME, mimeType: 'application/vnd.google-apps.folder' } });
+    return folder.result.id;
+}
+
+async function manualSync() { await loadAndMerge(); }
+
+function updateCloudIndicator(s) {
+    const i = document.getElementById('cloudIndicator');
+    if(i) i.className = `w-2 h-2 rounded-full ${s === 'connected' ? 'bg-green-500' : 'bg-yellow-500 animate-pulse'}`;
+}
+
+// ========== Core App Functions ==========
+
 function save() { 
     db.lastActivePage = activePage;
     db.lastSync = Date.now();
@@ -163,64 +219,17 @@ function render() {
     initSortable();
 }
 
-// ========== Cloud Sync Logic (From original files) ==========
-
-async function loadAndMerge() {
-    if (!isConnected) return;
-    updateCloudIndicator('syncing');
-    try {
-        const folderId = await findOrCreateFolder();
-        const fileList = await gapi.client.drive.files.list({ q: `name='${FILE_NAME}' and '${folderId}' in parents and trashed=false` });
-        if (fileList.result.files.length > 0) {
-            const fileId = fileList.result.files[0].id;
-            const response = await fetch(`https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`, {
-                headers: { 'Authorization': `Bearer ${accessToken}` }
-            });
-            const cloudDb = await response.json();
-            db = cloudDb;
-            save();
-        } else { await syncToCloud(); }
-    } catch (e) { console.error(e); }
-    updateCloudIndicator('connected');
-}
-
-async function syncToCloud() {
-    if (!accessToken || isSyncing) return;
-    isSyncing = true;
-    updateCloudIndicator('syncing');
-    try {
-        const folderId = await findOrCreateFolder();
-        const fileList = await gapi.client.drive.files.list({ q: `name='${FILE_NAME}' and '${folderId}' in parents and trashed=false` });
-        const fileId = fileList.result.files.length > 0 ? fileList.result.files[0].id : null;
-        const content = JSON.stringify(db);
-        if (fileId) {
-            await fetch(`https://www.googleapis.com/upload/drive/v3/files/${fileId}?uploadType=media`, {
-                method: 'PATCH', headers: { 'Authorization': `Bearer ${accessToken}`, 'Content-Type': 'application/json' }, body: content
-            });
-        } else {
-            const metadata = { name: FILE_NAME, parents: [folderId] };
-            const form = new FormData();
-            form.append('metadata', new Blob([JSON.stringify(metadata)], { type: 'application/json' }));
-            form.append('file', new Blob([content], { type: 'application/json' }));
-            await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart', {
-                method: 'POST', headers: { 'Authorization': `Bearer ${accessToken}` }, body: form
-            });
-        }
-    } catch (e) { console.error(e); }
-    isSyncing = false;
-    updateCloudIndicator('connected');
-}
-
-async function findOrCreateFolder() {
-    const resp = await gapi.client.drive.files.list({ q: `name='${FOLDER_NAME}' and mimeType='application/vnd.google-apps.folder' and trashed=false` });
-    if (resp.result.files.length > 0) return resp.result.files[0].id;
-    const folder = await gapi.client.drive.files.create({ resource: { name: FOLDER_NAME, mimeType: 'application/vnd.google-apps.folder' } });
-    return folder.result.id;
-}
-
-// ========== שאר הפונקציות (ללא שינוי) ==========
-
 function executeClear() { if (db.lists[db.currentId]) { db.lists[db.currentId].items = []; closeModal('confirmModal'); save(); } }
+
+function shareFullToWhatsApp() {
+    const list = db.lists[db.currentId];
+    if (!list) return;
+    let text = `📋 *${list.name}*\n\n`;
+    list.items.forEach(i => text += `${i.checked ? '✅' : '⬜'} *${i.name}* (x${i.qty}) - ₪${(i.price * i.qty).toFixed(2)}\n`);
+    text += `\n💰 *סה"כ לתשלום: ₪${document.getElementById('displayTotal').innerText}*`;
+    window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
+    closeModal('shareListModal');
+}
 
 function shareSummaryToWhatsApp() {
     const selectedIds = db.selectedInSummary;
@@ -235,23 +244,6 @@ function shareSummaryToWhatsApp() {
             text += `\n`;
         }
     });
-    window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
-}
-
-function shareFullToWhatsApp() {
-    const list = db.lists[db.currentId];
-    if (!list || list.items.length === 0) return;
-    let text = `🛒 *${list.name}*\n\n`;
-    list.items.forEach(i => text += `${i.checked ? '✅' : '⬜'} *${i.name}* (x${i.qty}) - ₪${(i.price * i.qty).toFixed(2)}\n`);
-    window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
-}
-
-function shareMissingToWhatsApp() {
-    const list = db.lists[db.currentId];
-    const missing = list.items.filter(i => !i.checked);
-    if (missing.length === 0) { alert("אין מוצרים חסרים!"); return; }
-    let text = `⬜ *חסרים ב-${list.name}:*\n\n`;
-    missing.forEach(i => text += `• *${i.name}* (x${i.qty})\n`);
     window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
 }
 
@@ -277,87 +269,42 @@ function preparePrint() {
     setTimeout(() => { window.print(); }, 600);
 }
 
-function saveNewList() {
-    const input = document.getElementById('newListNameInput');
-    const name = input.value.trim();
-    if (name) {
-        const id = 'L' + Date.now();
-        db.lists[id] = { name: name, items: [] };
-        db.currentId = id; activePage = 'lists';
-        input.value = ''; closeModal('newListModal'); save();
-    }
-}
+// ========== Lifecycle & API Load ==========
 
-function importFromText() {
-    const textarea = document.getElementById('importText');
-    const text = textarea.value.trim();
-    if (!text) { closeModal('importModal'); return; }
-    const lines = text.split('\n').filter(line => line.trim());
-    lines.forEach(line => {
-        const clean = line.replace(/[•\-\*⬜✅]/g, '').trim();
-        if (clean) db.lists[db.currentId].items.push({ name: clean, price: 0, qty: 1, checked: false });
-    });
-    textarea.value = ''; closeModal('importModal'); save();
-}
+const script1 = document.createElement('script');
+script1.src = 'https://apis.google.com/js/api.js';
+script1.onload = gapiLoaded;
+document.head.appendChild(script1);
 
-// ========== UI Listeners ==========
-function openModal(id) { 
-    const m = document.getElementById(id); 
-    if(m) {
-        m.classList.add('active');
-        if(id==='inputForm'){ document.getElementById('itemName').value=''; document.getElementById('itemPrice').value=''; }
-    }
-}
+const script2 = document.createElement('script');
+script2.src = 'https://accounts.google.com/gsi/client';
+script2.onload = gisLoaded;
+document.head.appendChild(script2);
+
+window.onload = () => {
+    document.getElementById('cloudBtn').onclick = handleCloudClick;
+    render();
+    const bar = document.querySelector('.bottom-bar');
+    if(bar) bar.addEventListener('click', (e) => { if(e.offsetY < 35) bar.classList.toggle('collapsed'); });
+};
+
+// Global Handlers
+function openModal(id) { const m = document.getElementById(id); if(m) { m.classList.add('active'); if(id==='inputForm'){ document.getElementById('itemName').value=''; document.getElementById('itemPrice').value=''; } } }
 function closeModal(id) { const m = document.getElementById(id); if(m) m.classList.remove('active'); }
 function showPage(p) { activePage = p; render(); }
 function toggleLock() { isLocked = !isLocked; render(); }
 function toggleItem(idx) { db.lists[db.currentId].items[idx].checked = !db.lists[db.currentId].items[idx].checked; save(); }
 function removeItem(idx) { db.lists[db.currentId].items.splice(idx, 1); save(); }
 function changeQty(idx, d) { if(db.lists[db.currentId].items[idx].qty + d >= 1) { db.lists[db.currentId].items[idx].qty += d; save(); } }
-function toggleSum(id) {
-    const i = db.selectedInSummary.indexOf(id);
-    if (i > -1) db.selectedInSummary.splice(i, 1); else db.selectedInSummary.push(id);
-    save();
-}
+function toggleSum(id) { const i = db.selectedInSummary.indexOf(id); if (i > -1) db.selectedInSummary.splice(i, 1); else db.selectedInSummary.push(id); save(); }
 function toggleSelectAll(checked) { db.selectedInSummary = checked ? Object.keys(db.lists) : []; save(); }
-function addItem() {
-    const n = document.getElementById('itemName').value.trim();
-    const p = parseFloat(document.getElementById('itemPrice').value) || 0;
-    if (n) { db.lists[db.currentId].items.push({ name: n, price: p, qty: 1, checked: false }); closeModal('inputForm'); save(); }
-}
-function updateCloudIndicator(s) {
-    const i = document.getElementById('cloudIndicator');
-    if(i) i.className = `w-2 h-2 rounded-full ${s === 'connected' ? 'bg-green-500' : 'bg-yellow-500 animate-pulse'}`;
-}
+function addItem() { const n = document.getElementById('itemName').value.trim(); const p = parseFloat(document.getElementById('itemPrice').value) || 0; if (n) { db.lists[db.currentId].items.push({ name: n, price: p, qty: 1, checked: false }); closeModal('inputForm'); save(); } }
+function saveNewList() { const n = document.getElementById('newListNameInput').value.trim(); if (n) { const id = 'L' + Date.now(); db.lists[id] = { name: n, items: [] }; db.currentId = id; activePage = 'lists'; closeModal('newListModal'); save(); } }
+function importFromText() { const t = document.getElementById('importText').value.trim(); if (!t) { closeModal('importModal'); return; } const lines = t.split('\n').filter(l => l.trim()); lines.forEach(l => { const clean = l.replace(/[•\-\*⬜✅]/g, '').trim(); if (clean) db.lists[db.currentId].items.push({ name: clean, price: 0, qty: 1, checked: false }); }); document.getElementById('importText').value = ''; closeModal('importModal'); save(); }
 function updateFontSize(s) { db.fontSize=parseInt(s); document.documentElement.style.setProperty('--base-font-size', s+'px'); document.getElementById('fontSizeValue').innerText=s; save(); }
 function toggleDarkMode() { document.body.classList.toggle('dark-mode'); closeModal('settingsModal'); }
 function saveListName() { const n = document.getElementById('editListNameInput').value.trim(); if(n) { db.lists[db.currentId].name = n; save(); } closeModal('editListNameModal'); }
 function openEditTotalModal(i) { currentEditIdx=i; document.getElementById('editTotalInput').value=''; openModal('editTotalModal'); }
-function saveTotal() {
-    const v=parseFloat(document.getElementById('editTotalInput').value);
-    if(!isNaN(v)){ const item=db.lists[db.currentId].items[currentEditIdx]; item.price=v/item.qty; save(); }
-    closeModal('editTotalModal');
-}
-
-function initSortable() {
-    const el = document.getElementById('itemsContainer');
-    if (sortableInstance) sortableInstance.destroy();
-    if (el && !isLocked && activePage === 'lists') {
-        sortableInstance = Sortable.create(el, { animation: 150, onEnd: (evt) => {
-            const items = db.lists[db.currentId].items;
-            const moved = items.splice(evt.oldIndex, 1)[0];
-            items.splice(evt.newIndex, 0, moved);
-            save();
-        }});
-    }
-}
-
-window.onload = () => {
-    // חיבור הכפתור מיד בטעינה
-    const cloudBtn = document.getElementById('cloudBtn');
-    if (cloudBtn) cloudBtn.onclick = handleCloudClick;
-    
-    render();
-    const bar = document.querySelector('.bottom-bar');
-    if(bar) bar.addEventListener('click', (e) => { if(e.offsetY < 35) bar.classList.toggle('collapsed'); });
-};
+function saveTotal() { const v=parseFloat(document.getElementById('editTotalInput').value); if(!isNaN(v)){ const item=db.lists[db.currentId].items[currentEditIdx]; item.price=v/item.qty; save(); } closeModal('editTotalModal'); }
+function initSortable() { const el = document.getElementById('itemsContainer'); if (sortableInstance) sortableInstance.destroy(); if (el && !isLocked && activePage === 'lists') { sortableInstance = Sortable.create(el, { animation: 150, onEnd: (evt) => { const items = db.lists[db.currentId].items; const moved = items.splice(evt.oldIndex, 1)[0]; items.splice(evt.newIndex, 0, moved); save(); } }); } }
+function shareMissingToWhatsApp() { const list = db.lists[db.currentId]; const missing = list.items.filter(i => !i.checked); if (missing.length === 0) { alert("אין מוצרים חסרים!"); return; } let text = `⬜ *חסרים ב-${list.name}:*\n\n`; missing.forEach(i => text += `• *${i.name}* (x${i.qty})\n`); window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank'); closeModal('shareListModal'); }
