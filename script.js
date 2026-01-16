@@ -658,6 +658,62 @@ async function syncToCloud() {
                 body: dataToSave
             });
             driveFileId = fileId;
+        } else {
+            const metadata = {
+                name: FILE_NAME,
+                parents: [folderId]
+            };
+
+            const form = new FormData();
+            form.append('metadata', new Blob([JSON.stringify(metadata)], { type: 'application/json' }));
+            form.append('file', new Blob([dataToSave], { type: 'application/json' }));
+
+            const response = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id', {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${accessToken}`
+                },
+                body: form
+            });
+
+            const result = await response.json();
+            driveFileId = result.id;
+        }
+
+        console.log('✅ סונכרן לענן');
+    } catch (err) {
+        console.error('❌ שגיאה בסינכרון:', err);
+    } finally {
+        isSyncing = false;
+        updateCloudIndicator('connected');
+    }
+}
+
+async function loadAndMerge() {
+    if (!accessToken || isSyncing) return;
+    
+    isSyncing = true;
+    updateCloudIndicator('syncing');
+
+    try {
+        const folderId = await findOrCreateFolder();
+        if (!folderId) {
+            isSyncing = false;
+            updateCloudIndicator('connected');
+            return;
+        }
+
+        const fileId = await findFileInFolder(folderId);
+        
+        if (!fileId) {
+            console.log('📁 אין קובץ בענן - שומר נתונים מקומיים');
+            isSyncing = false;
+            updateCloudIndicator('connected');
+            await syncToCloud();
+            return;
+        }
+
+        driveFileId = fileId;
 
         const response = await fetch(`https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`, {
             headers: {
@@ -715,7 +771,6 @@ function initBottomBarGesture() {
     const bottomBar = document.querySelector('.bottom-bar');
     if (!bottomBar) return;
 
-    // גרירה
     bottomBar.addEventListener('touchstart', (e) => {
         touchStartY = e.touches[0].clientY;
     }, { passive: true });
@@ -727,23 +782,18 @@ function initBottomBarGesture() {
     bottomBar.addEventListener('touchend', () => {
         const swipeDistance = touchStartY - touchEndY;
         
-        // גרירה למטה (מעל 50 פיקסלים)
         if (swipeDistance < -50 && !isBottomBarCollapsed) {
             collapseBottomBar();
         }
-        // גרירה למעלה (מעל 50 פיקסלים)
         else if (swipeDistance > 50 && isBottomBarCollapsed) {
             expandBottomBar();
         }
     });
 
-    // לחיצה על הקו (::before)
     bottomBar.addEventListener('click', (e) => {
-        // בדיקה אם לחצו על החלק העליון של הבר (איפה שהקו נמצא)
         const rect = bottomBar.getBoundingClientRect();
         const clickY = e.clientY - rect.top;
         
-        // אם לחצו על 25 הפיקסלים העליונים
         if (clickY < 25) {
             toggleBottomBar();
             e.stopPropagation();
@@ -786,60 +836,4 @@ document.head.appendChild(script2);
 
 // אתחול ראשוני
 render();
-setTimeout(initBottomBarGesture, 500);d;
-        } else {
-            const metadata = {
-                name: FILE_NAME,
-                parents: [folderId]
-            };
-
-            const form = new FormData();
-            form.append('metadata', new Blob([JSON.stringify(metadata)], { type: 'application/json' }));
-            form.append('file', new Blob([dataToSave], { type: 'application/json' }));
-
-            const response = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id', {
-                method: 'POST',
-                headers: {
-                    'Authorization': `Bearer ${accessToken}`
-                },
-                body: form
-            });
-
-            const result = await response.json();
-            driveFileId = result.id;
-        }
-
-        console.log('✅ סונכרן לענן');
-    } catch (err) {
-        console.error('❌ שגיאה בסינכרון:', err);
-    } finally {
-        isSyncing = false;
-        updateCloudIndicator('connected');
-    }
-}
-
-async function loadAndMerge() {
-    if (!accessToken || isSyncing) return;
-    
-    isSyncing = true;
-    updateCloudIndicator('syncing');
-
-    try {
-        const folderId = await findOrCreateFolder();
-        if (!folderId) {
-            isSyncing = false;
-            updateCloudIndicator('connected');
-            return;
-        }
-
-        const fileId = await findFileInFolder(folderId);
-        
-        if (!fileId) {
-            console.log('📁 אין קובץ בענן - שומר נתונים מקומיים');
-            isSyncing = false;
-            updateCloudIndicator('connected');
-            await syncToCloud();
-            return;
-        }
-
-        driveFileId = fileI
+setTimeout(initBottomBarGesture, 500);
