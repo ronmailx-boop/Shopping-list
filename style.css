@@ -1,14 +1,106 @@
-body { font-family: -apple-system, sans-serif; overflow-x: hidden; }
-.modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.4); display: none; align-items: center; justify-content: center; z-index: 100; backdrop-filter: blur(4px); padding: 20px; }
-.modal-overlay.active { display: flex; }
-.edit-modal { background: white; width: 100%; max-width: 380px; padding: 28px; border-radius: 30px; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1); }
-.modal-input { width: 100%; border: 2px solid #f3f4f6; padding: 14px; border-radius: 16px; margin-bottom: 12px; font-size: 18px; outline: none; }
-.item-card { border-radius: 20px !important; }
+/* Base Styles */
+body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    overflow-x: hidden;
+    transition: background-color 0.3s ease;
+}
 
-body.dark-mode { background: #121212 !important; color: white; }
-.dark-mode .app-header, .dark-mode .edit-modal, .dark-mode .item-card { background: #1e1e1e !important; color: white; border-color: #333; }
-.dark-mode .bg-white { background: #1e1e1e !important; border-color: #333 !important; }
-.dark-mode .text-gray-800 { color: #eee !important; }
-.dark-mode .bg-gray-200\/40 { background: rgba(255,255,255,0.05); }
-.dark-mode .modal-input { background: #2d2d2d; border-color: #444; color: white; }
-@media print { .no-print { display: none !important; } }
+/* Modals */
+.modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.5);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+    backdrop-filter: blur(5px);
+    padding: 20px;
+}
+
+.modal-overlay.active {
+    display: flex;
+}
+
+.edit-modal {
+    background: white;
+    width: 100%;
+    max-width: 400px;
+    padding: 30px;
+    border-radius: 35px;
+    text-align: center;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+}
+
+.modal-input {
+    width: 100%;
+    border: 2.5px solid #f3f4f6;
+    padding: 16px;
+    border-radius: 20px;
+    margin-bottom: 15px;
+    font-size: 18px;
+    outline: none;
+    text-align: right;
+    transition: border-color 0.2s;
+}
+
+.modal-input:focus {
+    border-color: #4f46e5;
+}
+
+h2 {
+    font-size: 24px;
+    font-weight: 900;
+    margin-bottom: 20px;
+}
+
+/* Items */
+.item-card {
+    transition: transform 0.1s ease;
+}
+
+.item-card:active {
+    transform: scale(0.98);
+}
+
+/* Dark Mode Implementation */
+body.dark-mode {
+    background-color: #121212 !important;
+    color: #f3f4f6 !important;
+}
+
+.dark-mode .bg-white,
+.dark-mode .app-header {
+    background-color: #1e1e1e !important;
+    border-color: #333 !important;
+}
+
+.dark-mode .edit-modal {
+    background-color: #1e1e1e !important;
+    color: white;
+}
+
+.dark-mode .text-slate-800,
+.dark-mode .text-gray-800 {
+    color: white !important;
+}
+
+.dark-mode .bg-slate-50,
+.dark-mode .bg-gray-100 {
+    background-color: #2d2d2d !important;
+}
+
+.dark-mode .modal-input {
+    background-color: #2d2d2d;
+    border-color: #444;
+    color: white;
+}
+
+.dark-mode .tab-btn:not(.bg-white) {
+    color: #666;
+}
+
+/* Print Styles */
+@media print {
+    .no-print { display: none !important; }
+}
