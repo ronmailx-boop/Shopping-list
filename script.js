@@ -116,7 +116,7 @@ function render() {
     initSortable();
 }
 
-// ========== Fix: WhatsApp Share (Strictly from original files) ==========
+// ========== WhatsApp Share ==========
 function shareFullToWhatsApp() {
     const list = db.lists[db.currentId];
     if (!list) return;
@@ -159,19 +159,19 @@ function shareSummaryToWhatsApp() {
     window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
 }
 
-// ========== Fix: Google Drive Sync ==========
+// ========== Google Drive Sync - REBUILT & IMPROVED ==========
 function gapiLoaded() {
     gapi.load('client', async () => {
         try {
             await gapi.client.init({
-                apiKey: GOOGLE_API_KEY, 
+                apiKey: GOOGLE_API_KEY,
                 discoveryDocs: [DISCOVERY_DOC]
             });
             gapiInited = true;
-            console.log('GAPI initialized successfully');
-            maybeEnableCloudSync();
+            console.log('✅ GAPI initialized');
+            maybeEnableSync();
         } catch (error) {
-            console.error('Error initializing GAPI:', error);
+            console.error('❌ GAPI init error:', error);
         }
     });
 }
@@ -181,146 +181,197 @@ function gisLoaded() {
         tokenClient = google.accounts.oauth2.initTokenClient({
             client_id: GOOGLE_CLIENT_ID,
             scope: SCOPES,
-            callback: (resp) => {
-                if (resp.error) {
-                    console.error('Token error:', resp.error);
+            callback: async (response) => {
+                if (response.error) {
+                    console.error('❌ Token error:', response.error);
                     return;
                 }
-                accessToken = resp.access_token;
+                accessToken = response.access_token;
                 isConnected = true;
                 updateCloudIndicator('connected');
-                console.log('Connected to Google Drive');
-                loadAndMerge();
+                console.log('✅ Connected to Google Drive');
+                await loadFromCloud();
             }
         });
         gisInited = true;
-        console.log('GIS initialized successfully');
-        maybeEnableCloudSync();
+        console.log('✅ GIS initialized');
+        maybeEnableSync();
     } catch (error) {
-        console.error('Error initializing GIS:', error);
+        console.error('❌ GIS init error:', error);
     }
 }
 
-function maybeEnableCloudSync() {
+function maybeEnableSync() {
     if (gapiInited && gisInited) {
-        console.log('Both APIs ready - cloud sync enabled');
+        const btn = document.getElementById('cloudBtn');
+        if (btn) {
+            btn.style.opacity = '1';
+            btn.style.cursor = 'pointer';
+        }
+        console.log('✅ Cloud sync ready');
     }
 }
 
 async function handleCloudClick() {
-    console.log('Cloud button clicked');
-    console.log('GAPI ready:', gapiInited, 'GIS ready:', gisInited, 'Connected:', isConnected);
+    console.log('☁️ Cloud button clicked');
     
     if (!gapiInited || !gisInited) {
-        alert('מערכת הענן עדיין נטענת, אנא נסה שוב בעוד רגע');
+        alert('⏳ מערכת הענן עדיין נטענת, אנא המתן רגע...');
         return;
     }
     
     if (isConnected) {
-        console.log('Already connected - syncing...');
-        await manualSync();
+        // כבר מחובר - סנכרן מיידית
+        console.log('🔄 Already connected, syncing...');
+        await loadFromCloud();
+        alert('✅ הסנכרון הושלם בהצלחה!');
     } else {
-        console.log('Not connected - requesting access...');
+        // לא מחובר - בקש הרשאה
+        console.log('🔑 Requesting access...');
         try {
-            tokenClient.requestAccessToken({ prompt: 'consent' });
+            tokenClient.requestAccessToken({ prompt: '' });
         } catch (error) {
-            console.error('Error requesting token:', error);
-            alert('שגיאה בהתחברות לענן. אנא נסה שוב.');
+            console.error('❌ Access error:', error);
+            alert('שגיאה בהתחברות. אנא נסה שוב.');
         }
     }
-}
-
-async function manualSync() {
-    await loadAndMerge();
-    alert('הסנכרון הושלם בהצלחה!');
 }
 
 async function syncToCloud() {
     if (!accessToken || isSyncing) return;
+    
     isSyncing = true;
     updateCloudIndicator('syncing');
-    console.log('Syncing to cloud...');
+    console.log('⬆️ Uploading to cloud...');
+    
     try {
-        const folderId = await findOrCreateFolder();
-        const fileList = await gapi.client.drive.files.list({ 
-            q: `name='${FILE_NAME}' and '${folderId}' in parents and trashed=false` 
-        });
-        const fileId = fileList.result.files.length > 0 ? fileList.result.files[0].id : null;
+        const folderId = await getOrCreateFolder();
+        const existingFile = await findFile(folderId);
         const content = JSON.stringify(db);
         
-        if (fileId) {
-            console.log('Updating existing file:', fileId);
-            await fetch(`https://www.googleapis.com/upload/drive/v3/files/${fileId}?uploadType=media`, {
-                method: 'PATCH', 
-                headers: { 
-                    'Authorization': `Bearer ${accessToken}`, 
-                    'Content-Type': 'application/json' 
-                }, 
+        if (existingFile) {
+            // עדכן קובץ קיים
+            await fetch(`https://www.googleapis.com/upload/drive/v3/files/${existingFile.id}?uploadType=media`, {
+                method: 'PATCH',
+                headers: {
+                    'Authorization': `Bearer ${accessToken}`,
+                    'Content-Type': 'application/json'
+                },
                 body: content
             });
+            console.log('✅ File updated');
         } else {
-            console.log('Creating new file');
-            const metadata = { name: FILE_NAME, parents: [folderId] };
+            // צור קובץ חדש
+            const metadata = {
+                name: FILE_NAME,
+                parents: [folderId],
+                mimeType: 'application/json'
+            };
+            
             const form = new FormData();
             form.append('metadata', new Blob([JSON.stringify(metadata)], { type: 'application/json' }));
             form.append('file', new Blob([content], { type: 'application/json' }));
+            
             await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart', {
-                method: 'POST', 
-                headers: { 'Authorization': `Bearer ${accessToken}` }, 
+                method: 'POST',
+                headers: { 'Authorization': `Bearer ${accessToken}` },
                 body: form
             });
+            console.log('✅ New file created');
         }
-        console.log('Sync to cloud completed');
-    } catch (e) { 
-        console.error('Sync error:', e); 
+        
+        updateCloudIndicator('connected');
+    } catch (error) {
+        console.error('❌ Sync error:', error);
+        updateCloudIndicator('error');
+    } finally {
+        isSyncing = false;
     }
-    isSyncing = false;
-    updateCloudIndicator('connected');
 }
 
-async function loadAndMerge() {
-    if (!isConnected) return;
+async function loadFromCloud() {
+    if (!accessToken) return;
+    
     updateCloudIndicator('syncing');
-    console.log('Loading from cloud...');
+    console.log('⬇️ Loading from cloud...');
+    
     try {
-        const folderId = await findOrCreateFolder();
-        const fileList = await gapi.client.drive.files.list({ 
-            q: `name='${FILE_NAME}' and '${folderId}' in parents and trashed=false` 
-        });
-        if (fileList.result.files.length > 0) {
-            const response = await fetch(`https://www.googleapis.com/drive/v3/files/${fileList.result.files[0].id}?alt=media`, {
+        const folderId = await getOrCreateFolder();
+        const existingFile = await findFile(folderId);
+        
+        if (existingFile) {
+            // טען קובץ קיים
+            const response = await fetch(`https://www.googleapis.com/drive/v3/files/${existingFile.id}?alt=media`, {
                 headers: { 'Authorization': `Bearer ${accessToken}` }
             });
+            
             const cloudData = await response.json();
-            db = cloudData;
-            save();
-            console.log('Data loaded from cloud');
-        } else { 
-            console.log('No cloud file found - creating new one');
-            await syncToCloud(); 
+            
+            // מיזוג חכם - בחר את הנתונים העדכניים יותר
+            if (!db.lastSync || cloudData.lastSync > db.lastSync) {
+                db = cloudData;
+                localStorage.setItem('BUDGET_FINAL_V27', JSON.stringify(db));
+                render();
+                console.log('✅ Data loaded from cloud');
+            } else {
+                console.log('ℹ️ Local data is newer, uploading...');
+                await syncToCloud();
+            }
+        } else {
+            // אין קובץ בענן - העלה את הנתונים המקומיים
+            console.log('ℹ️ No cloud file, creating...');
+            await syncToCloud();
         }
-    } catch (e) { 
-        console.error('Load error:', e); 
+        
+        updateCloudIndicator('connected');
+    } catch (error) {
+        console.error('❌ Load error:', error);
+        updateCloudIndicator('error');
     }
-    updateCloudIndicator('connected');
 }
 
-async function findOrCreateFolder() {
-    const resp = await gapi.client.drive.files.list({ 
-        q: `name='${FOLDER_NAME}' and mimeType='application/vnd.google-apps.folder' and trashed=false` 
+async function getOrCreateFolder() {
+    const response = await gapi.client.drive.files.list({
+        q: `name='${FOLDER_NAME}' and mimeType='application/vnd.google-apps.folder' and trashed=false`,
+        fields: 'files(id, name)',
+        spaces: 'drive'
     });
-    if (resp.result.files.length > 0) {
-        console.log('Folder found:', resp.result.files[0].id);
-        return resp.result.files[0].id;
+    
+    if (response.result.files && response.result.files.length > 0) {
+        console.log('📁 Folder found:', response.result.files[0].id);
+        return response.result.files[0].id;
     }
-    console.log('Creating new folder');
-    const folder = await gapi.client.drive.files.create({ 
-        resource: { 
-            name: FOLDER_NAME, 
-            mimeType: 'application/vnd.google-apps.folder' 
-        } 
+    
+    // צור תיקייה חדשה
+    const folderMetadata = {
+        name: FOLDER_NAME,
+        mimeType: 'application/vnd.google-apps.folder'
+    };
+    
+    const folder = await gapi.client.drive.files.create({
+        resource: folderMetadata,
+        fields: 'id'
     });
+    
+    console.log('📁 Folder created:', folder.result.id);
     return folder.result.id;
+}
+
+async function findFile(folderId) {
+    const response = await gapi.client.drive.files.list({
+        q: `name='${FILE_NAME}' and '${folderId}' in parents and trashed=false`,
+        fields: 'files(id, name)',
+        pageSize: 1,
+        spaces: 'drive'
+    });
+    
+    if (response.result.files && response.result.files.length > 0) {
+        console.log('📄 File found:', response.result.files[0].id);
+        return response.result.files[0];
+    }
+    
+    console.log('📄 No file found');
+    return null;
 }
 
 // ========== UI Utilities ==========
@@ -425,7 +476,7 @@ function importFromText() {
     save();
 }
 
-// ========== Init & PDF ==========
+// ========== Init & Utilities ==========
 function preparePrint() { 
     closeModal('settingsModal');
     const printArea = document.getElementById('printArea');
@@ -449,9 +500,19 @@ function preparePrint() {
     setTimeout(() => { window.print(); }, 600);
 }
 
-function updateCloudIndicator(s) {
-    const i = document.getElementById('cloudIndicator');
-    if(i) i.className = `w-2 h-2 rounded-full ${s === 'connected' ? 'bg-green-500' : 'bg-yellow-500 animate-pulse'}`;
+function updateCloudIndicator(status) {
+    const indicator = document.getElementById('cloudIndicator');
+    if (!indicator) return;
+    
+    if (status === 'connected') {
+        indicator.className = 'w-2 h-2 bg-green-500 rounded-full';
+    } else if (status === 'syncing') {
+        indicator.className = 'w-2 h-2 bg-yellow-500 rounded-full animate-pulse';
+    } else if (status === 'error') {
+        indicator.className = 'w-2 h-2 bg-red-500 rounded-full';
+    } else {
+        indicator.className = 'w-2 h-2 bg-gray-300 rounded-full';
+    }
 }
 
 function updateFontSize(s) { 
@@ -507,26 +568,29 @@ function initSortable() {
     }
 }
 
+// ========== App Initialization ==========
 window.onload = () => {
-    console.log('App loading...');
+    console.log('🚀 Vplus App Loading...');
     
     // חיבור כפתור הענן
     const cloudBtn = document.getElementById('cloudBtn');
     if (cloudBtn) {
         cloudBtn.onclick = handleCloudClick;
-        console.log('Cloud button connected');
-    } else {
-        console.error('Cloud button not found!');
+        cloudBtn.style.opacity = '0.5'; // מתחיל כהה עד שה-API נטען
+        console.log('☁️ Cloud button connected');
     }
     
     // התקנת מאזין לכווץ הבר התחתון
     const bar = document.querySelector('.bottom-bar');
-    if(bar) {
+    if (bar) {
         bar.addEventListener('click', (e) => { 
-            if(e.offsetY < 35) bar.classList.toggle('collapsed'); 
+            if (e.offsetY < 35) {
+                bar.classList.toggle('collapsed');
+            }
         });
     }
     
+    // טעינה ראשונית
     render();
-    console.log('App loaded successfully');
+    console.log('✅ App loaded successfully');
 };
