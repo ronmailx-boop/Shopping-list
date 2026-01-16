@@ -124,6 +124,7 @@ body {
 .tab-active { 
     background: #7367f0 !important; 
     color: white !important; 
+    border-color: #7367f0 !important;
 }
 
 /* כפתורי עיגול בבר התחתון */
