@@ -111,56 +111,64 @@ function render() {
     initSortable();
 }
 
-// ========== Fix: ADD ITEM logic ==========
+// ========== Fix: WhatsApp Share for SUMMARY page ==========
+function shareSummaryToWhatsApp() {
+    const selectedIds = db.selectedInSummary;
+    if (selectedIds.length === 0) {
+        alert("יש לבחור לפחות רשימה אחת לשיתוף (סמן ב-V את הרשימות המבוקשות)");
+        return;
+    }
+
+    let text = `📦 *ריכוז רשימות קנייה (מוצרים חסרים):*\n\n`;
+    let hasMissing = false;
+
+    selectedIds.forEach(id => {
+        const l = db.lists[id];
+        if (!l) return;
+        const missing = l.items.filter(i => !i.checked);
+        if (missing.length > 0) {
+            hasMissing = true;
+            text += `🔹 *${l.name}:*\n`;
+            missing.forEach(i => text += `  - ${i.name} (x${i.qty})\n`);
+            text += `\n`;
+        }
+    });
+
+    if (!hasMissing) {
+        text += "אין מוצרים חסרים ברשימות שנבחרו! 🎉";
+    }
+
+    window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
+}
+
+// ========== Other Actions ==========
 function addItem() {
     const nameInput = document.getElementById('itemName');
     const priceInput = document.getElementById('itemPrice');
     const name = nameInput.value.trim();
     const price = parseFloat(priceInput.value) || 0;
-
     if (name) {
-        db.lists[db.currentId].items.push({
-            name: name,
-            price: price,
-            qty: 1,
-            checked: false
-        });
-        
-        // איפוס שדות וסגירה
-        nameInput.value = '';
-        priceInput.value = '';
-        closeModal('inputForm');
-        save();
+        db.lists[db.currentId].items.push({ name, price, qty: 1, checked: false });
+        nameInput.value = ''; priceInput.value = '';
+        closeModal('inputForm'); save();
     }
 }
 
-// ========== Other Actions ==========
-function openModal(id) { 
-    if(id === 'inputForm') {
-        document.getElementById('itemName').value = '';
-        document.getElementById('itemPrice').value = '';
-    }
-    document.getElementById(id).classList.add('active'); 
-}
-function closeModal(id) { document.getElementById(id).classList.remove('active'); }
-
-function changeQty(idx, d) { if(db.lists[db.currentId].items[idx].qty + d >= 1) { db.lists[db.currentId].items[idx].qty += d; save(); } }
-function removeItem(idx) { db.lists[db.currentId].items.splice(idx, 1); save(); }
-
-// ========== WhatsApp & PDF ==========
 function shareFullToWhatsApp() {
     const list = db.lists[db.currentId];
     let text = `📋 *${list.name}*\n\n`;
     list.items.forEach(i => text += `${i.checked ? '✅' : '⬜'} *${i.name}* (x${i.qty}) - ₪${(i.price * i.qty).toFixed(2)}\n`);
-    window.open(`https://wa.me/?text=${encodeURIComponent(text)}`);
+    window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
 }
 
-function preparePrint() { 
-    closeModal('settingsModal');
-    setTimeout(() => { window.print(); }, 700);
+function shareMissingToWhatsApp() {
+    const list = db.lists[db.currentId];
+    let text = `🛒 *מוצרים חסרים מתוך: ${list.name}*\n\n`;
+    list.items.filter(i => !i.checked).forEach(i => text += `• ${i.name} (x${i.qty})\n`);
+    window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
 }
 
-// ========== Cloud Sync ==========
+// ========== Cloud & PDF ==========
 async function syncToCloud() {
     if (!accessToken || isSyncing) return;
     isSyncing = true;
@@ -200,6 +208,7 @@ function handleCloudClick() {
     else syncToCloud();
 }
 
+// ========== UI & Init ==========
 function gapiLoaded() { gapi.load('client', () => gapi.client.init({apiKey: GOOGLE_API_KEY, discoveryDocs: [DISCOVERY_DOC]})); }
 function gisLoaded() { 
     tokenClient = google.accounts.oauth2.initTokenClient({
@@ -208,14 +217,19 @@ function gisLoaded() {
     });
 }
 
-// ========== Init & Global Handlers ==========
 window.onload = () => {
     document.getElementById('cloudBtn').onclick = handleCloudClick;
     const bar = document.querySelector('.bottom-bar');
     if(bar) bar.addEventListener('click', (e) => { if(e.offsetY < 35) bar.classList.toggle('collapsed'); });
+    
+    // חיבור כפתור שיתוף וואטסאפ בדף הריכוז (Summary)
+    const summaryShareBtn = document.querySelector('#pageSummary .whatsapp-share-btn');
+    if (summaryShareBtn) summaryShareBtn.onclick = shareSummaryToWhatsApp;
+    
     render();
 };
 
+// Global Handlers (For HTML onclicks)
 function toggleItem(idx) { db.lists[db.currentId].items[idx].checked = !db.lists[db.currentId].items[idx].checked; save(); }
 function toggleSum(id) {
     const i = db.selectedInSummary.indexOf(id);
@@ -224,6 +238,13 @@ function toggleSum(id) {
 }
 function showPage(p) { activePage = p; save(); }
 function toggleLock() { isLocked = !isLocked; render(); }
+function openModal(id) { 
+    if(id==='inputForm'){ document.getElementById('itemName').value=''; document.getElementById('itemPrice').value=''; }
+    document.getElementById(id).classList.add('active'); 
+}
+function closeModal(id) { document.getElementById(id).classList.remove('active'); }
+function changeQty(idx, d) { if(db.lists[db.currentId].items[idx].qty + d >= 1) { db.lists[db.currentId].items[idx].qty += d; save(); } }
+function removeItem(idx) { db.lists[db.currentId].items.splice(idx, 1); save(); }
 function executeClear() { db.lists[db.currentId].items = []; closeModal('confirmModal'); save(); }
 function saveNewList() {
     const n = document.getElementById('newListNameInput').value.trim();
@@ -242,4 +263,5 @@ function updateCloudIndicator(s) {
     const i = document.getElementById('cloudIndicator');
     if(i) i.className = `w-2 h-2 rounded-full ${s === 'connected' ? 'bg-green-500' : 'bg-yellow-500 animate-pulse'}`;
 }
+function preparePrint() { closeModal('settingsModal'); setTimeout(() => { window.print(); }, 700); }
 function initSortable() {}
