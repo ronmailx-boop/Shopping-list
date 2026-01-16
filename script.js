@@ -29,7 +29,7 @@ let activePage = db.lastActivePage || 'lists';
 let currentEditIdx = null;
 let sortableInstance = null;
 
-// ========== Core Logic ==========
+// ========== Core Logic & Render ==========
 function save() { 
     db.lastActivePage = activePage;
     db.lastSync = Date.now();
@@ -62,14 +62,13 @@ function render() {
             const div = document.createElement('div'); 
             div.className = "item-card";
             div.setAttribute('data-id', idx);
-            
             div.innerHTML = `
                 <div class="flex justify-between items-start mb-4">
                     <div class="flex items-start gap-3 flex-1">
                         <input type="checkbox" ${item.checked ? 'checked' : ''} onchange="toggleItem(${idx})" class="w-7 h-7 accent-indigo-600">
                         <div class="flex-1 text-2xl font-bold ${item.checked ? 'line-through text-gray-300' : ''}" style="font-size: ${db.fontSize}px;">${item.name}</div>
                     </div>
-                    <button onclick="removeItem(${idx})" class="text-red-500 hover:text-red-700 bg-transparent p-0 border-none">
+                    <button onclick="removeItem(${idx})" class="text-red-500 bg-transparent p-0 border-none">
                         <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg>
                     </button>
                 </div>
@@ -86,12 +85,10 @@ function render() {
     } else {
         document.getElementById('pageLists').classList.add('hidden');
         document.getElementById('pageSummary').classList.remove('hidden');
-        
         const selectAllCheckbox = document.getElementById('selectAllLists');
         if (selectAllCheckbox) {
             selectAllCheckbox.checked = db.selectedInSummary.length === Object.keys(db.lists).length && Object.keys(db.lists).length > 0;
         }
-
         Object.keys(db.lists).forEach(id => {
             const l = db.lists[id];
             let lT = 0, lP = 0;
@@ -114,49 +111,44 @@ function render() {
     
     const lockBtn = document.getElementById('mainLockBtn');
     if(lockBtn) lockBtn.className = `bottom-circle-btn ${isLocked ? 'bg-blue-600' : 'bg-orange-400'}`;
-    document.getElementById('statusTag').innerText = isLocked ? "נעול" : "עריכה (גרירה פעילה)";
+    const statusTag = document.getElementById('statusTag');
+    if(statusTag) statusTag.innerText = isLocked ? "נעול" : "עריכה (גרירה פעילה)";
     initSortable();
 }
 
-// ========== Fix: Clear Current List (executeClear) ==========
+// ========== Fix: Clear List ==========
 function executeClear() {
-    // מחיקת כל המוצרים ברשימה הפעילה
     if (db.lists[db.currentId]) {
         db.lists[db.currentId].items = [];
         closeModal('confirmModal');
         save();
-        console.log("✅ הרשימה נוקתה בהצלחה");
     }
 }
 
-// ========== WhatsApp Share ==========
+// ========== WhatsApp & PDF ==========
 function shareFullToWhatsApp() {
     const list = db.lists[db.currentId];
     if (!list || list.items.length === 0) return;
     let text = `🛒 *${list.name} (רשימה מלאה):*\n\n`;
-    list.items.forEach(i => {
-        text += `${i.checked ? '✅' : '⬜'} *${i.name}* (x${i.qty}) - ₪${(i.price * i.qty).toFixed(2)}\n`;
-    });
-    text += `\n💰 *סה"כ: ₪${document.getElementById('displayTotal').innerText}*`;
-    window.open("https://wa.me/?text=" + encodeURIComponent(text));
+    list.items.forEach(i => text += `${i.checked ? '✅' : '⬜'} *${i.name}* (x${i.qty}) - ₪${(i.price * i.qty).toFixed(2)}\n`);
+    window.open(`https://wa.me/?text=${encodeURIComponent(text)}`);
     closeModal('shareListModal');
 }
 
 function shareMissingToWhatsApp() {
     const list = db.lists[db.currentId];
-    if (!list) return;
     const missing = list.items.filter(i => !i.checked);
     if (missing.length === 0) { alert("אין מוצרים חסרים!"); return; }
     let text = `⬜ *${list.name} (מוצרים חסרים):*\n\n`;
     missing.forEach(i => text += `• *${i.name}* (x${i.qty})\n`);
-    window.open("https://wa.me/?text=" + encodeURIComponent(text));
+    window.open(`https://wa.me/?text=${encodeURIComponent(text)}`);
     closeModal('shareListModal');
 }
 
 function shareSummaryToWhatsApp() {
     const selectedIds = db.selectedInSummary;
-    if (selectedIds.length === 0) { alert("יש לבחור לפחות רשימה אחת לשיתוף"); return; }
-    let text = `📦 *ריכוז רשימות קנייה (חסרים):*\n\n`;
+    if (selectedIds.length === 0) { alert("בחר רשימות בסיכום"); return; }
+    let text = `📦 *ריכוז חסרים:*\n\n`;
     selectedIds.forEach(id => {
         const l = db.lists[id];
         const missing = l.items.filter(i => !i.checked);
@@ -169,17 +161,14 @@ function shareSummaryToWhatsApp() {
     window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
 }
 
-// ========== PDF & Print ==========
 function preparePrint() { 
     closeModal('settingsModal');
     const printArea = document.getElementById('printArea');
-    if (!printArea) return;
     let grandTotal = 0;
     let html = `<div dir="rtl" style="padding:30px; font-family:sans-serif;"><h1 style="text-align:center; color:#7367f0;">דוח קניות - Vplus</h1>`;
     const idsToPrint = db.selectedInSummary.length > 0 ? db.selectedInSummary : Object.keys(db.lists);
     idsToPrint.forEach(id => {
         const l = db.lists[id];
-        if (!l || l.items.length === 0) return;
         let listTotal = 0;
         html += `<h3 style="background:#f3f2fe; padding:8px; border-right:5px solid #7367f0;">${l.name}</h3><table style="width:100%; border-collapse:collapse; margin-bottom:15px;">`;
         l.items.forEach(i => {
@@ -194,7 +183,21 @@ function preparePrint() {
     setTimeout(() => { window.print(); }, 600);
 }
 
-// ========== UI Utilities & Sync ==========
+// ========== Fix: Import & Creation ==========
+function importFromText() {
+    const textarea = document.getElementById('importText');
+    const text = textarea.value.trim();
+    if (!text) { closeModal('importModal'); return; }
+    const lines = text.split('\n').filter(line => line.trim());
+    lines.forEach(line => {
+        const clean = line.replace(/[•\-\*⬜✅]/g, '').trim();
+        if (clean) db.lists[db.currentId].items.push({ name: clean, price: 0, qty: 1, checked: false });
+    });
+    textarea.value = '';
+    closeModal('importModal');
+    save();
+}
+
 function saveNewList() {
     const input = document.getElementById('newListNameInput');
     const name = input.value.trim();
@@ -209,33 +212,16 @@ function saveNewList() {
     }
 }
 
-function importFromText() {
-    const text = document.getElementById('importText').value.trim();
-    if (!text) { closeModal('importModal'); return; }
-    const lines = text.split('\n').filter(line => line.trim());
-    lines.forEach(line => {
-        const clean = line.replace(/[•\-\*⬜✅]/g, '').trim();
-        if (clean) db.lists[db.currentId].items.push({ name: clean, price: 0, qty: 1, checked: false });
-    });
-    document.getElementById('importText').value = '';
-    closeModal('importModal');
-    save();
-}
-
-function toggleSelectAll(checked) {
-    db.selectedInSummary = checked ? Object.keys(db.lists) : [];
-    save();
-}
-
+// ========== UI & Navigation ==========
 function openModal(id) { 
-    const m = document.getElementById(id); 
+    const m = document.getElementById(id);
     if(m) {
         m.classList.add('active');
         if(id==='inputForm'){ document.getElementById('itemName').value=''; document.getElementById('itemPrice').value=''; }
     }
 }
 function closeModal(id) { const m = document.getElementById(id); if(m) m.classList.remove('active'); }
-function showPage(p) { activePage = p; save(); }
+function showPage(p) { activePage = p; render(); }
 function toggleLock() { isLocked = !isLocked; render(); }
 function toggleItem(idx) { db.lists[db.currentId].items[idx].checked = !db.lists[db.currentId].items[idx].checked; save(); }
 function removeItem(idx) { db.lists[db.currentId].items.splice(idx, 1); save(); }
@@ -245,12 +231,14 @@ function toggleSum(id) {
     if (i > -1) db.selectedInSummary.splice(i, 1); else db.selectedInSummary.push(id);
     save();
 }
+function toggleSelectAll(checked) { db.selectedInSummary = checked ? Object.keys(db.lists) : []; save(); }
 function addItem() {
     const n = document.getElementById('itemName').value.trim();
     const p = parseFloat(document.getElementById('itemPrice').value) || 0;
     if (n) { db.lists[db.currentId].items.push({ name: n, price: p, qty: 1, checked: false }); closeModal('inputForm'); save(); }
 }
 
+// ========== Cloud Sync ==========
 async function syncToCloud() {
     if (!accessToken || isSyncing) return;
     isSyncing = true; updateCloudIndicator('syncing');
@@ -292,6 +280,17 @@ function updateCloudIndicator(s) {
     if(i) i.className = `w-2 h-2 rounded-full ${s === 'connected' ? 'bg-green-500' : 'bg-yellow-500 animate-pulse'}`;
 }
 
+// ========== Settings ==========
+function updateFontSize(s) { db.fontSize=parseInt(s); document.documentElement.style.setProperty('--base-font-size', s+'px'); document.getElementById('fontSizeValue').innerText=s; save(); }
+function toggleDarkMode() { document.body.classList.toggle('dark-mode'); closeModal('settingsModal'); }
+function saveListName() { const n = document.getElementById('editListNameInput').value.trim(); if(n) { db.lists[db.currentId].name = n; save(); } closeModal('editListNameModal'); }
+function openEditTotalModal(i) { currentEditIdx=i; document.getElementById('editTotalInput').value=''; openModal('editTotalModal'); }
+function saveTotal() {
+    const v=parseFloat(document.getElementById('editTotalInput').value);
+    if(!isNaN(v)){ const item=db.lists[db.currentId].items[currentEditIdx]; item.price=v/item.qty; save(); }
+    closeModal('editTotalModal');
+}
+
 function initSortable() {
     const el = document.getElementById('itemsContainer');
     if (sortableInstance) sortableInstance.destroy();
@@ -309,17 +308,5 @@ window.onload = () => {
     document.getElementById('cloudBtn').onclick = handleCloudClick;
     const bar = document.querySelector('.bottom-bar');
     if(bar) bar.addEventListener('click', (e) => { if(e.offsetY < 35) bar.classList.toggle('collapsed'); });
-    const s1 = document.createElement('script'); s1.src = 'https://apis.google.com/js/api.js'; s1.onload = gapiLoaded; document.head.appendChild(s1);
-    const s2 = document.createElement('script'); s2.src = 'https://accounts.google.com/gsi/client'; s2.onload = gisLoaded; document.head.appendChild(s2);
     render();
 };
-
-function toggleDarkMode() { document.body.classList.toggle('dark-mode'); closeModal('settingsModal'); }
-function saveListName() { const n = document.getElementById('editListNameInput').value.trim(); if(n) { db.lists[db.currentId].name = n; save(); } closeModal('editListNameModal'); }
-function updateFontSize(s) { db.fontSize=parseInt(s); document.documentElement.style.setProperty('--base-font-size', s+'px'); document.getElementById('fontSizeValue').innerText=s; save(); }
-function openEditTotalModal(i) { currentEditIdx=i; document.getElementById('editTotalInput').value=''; openModal('editTotalModal'); }
-function saveTotal() {
-    const v=parseFloat(document.getElementById('editTotalInput').value);
-    if(!isNaN(v)){ const item=db.lists[db.currentId].items[currentEditIdx]; item.price=v/item.qty; save(); }
-    closeModal('editTotalModal');
-}
