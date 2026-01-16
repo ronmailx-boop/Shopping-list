@@ -111,48 +111,72 @@ function render() {
     initSortable();
 }
 
-// ========== Fix for Import (התיקון המבוקש) ==========
-function importFromText() {
-    const text = document.getElementById('importText').value.trim();
-    if (!text) { closeModal('importModal'); return; }
-    
-    const lines = text.split('\n').filter(line => line.trim());
-    lines.forEach(line => {
-        // ניקוי סימני בולטים (נקודות, מקפים וכו')
-        const cleanName = line.replace(/[•\-\*⬜✅]/g, '').trim();
-        if (cleanName) {
-            db.lists[db.currentId].items.push({
-                name: cleanName,
-                price: 0,
-                qty: 1,
-                checked: false
-            });
-        }
-    });
-    
-    document.getElementById('importText').value = '';
-    closeModal('importModal');
-    save();
+// ========== Fix: Open Edit Price with EMPTY field ==========
+function openEditTotalModal(idx) { 
+    currentEditIdx = idx; 
+    document.getElementById('editTotalInput').value = ''; // חלונית ריקה כפי שביקשת
+    openModal('editTotalModal'); 
+    setTimeout(() => document.getElementById('editTotalInput').focus(), 150);
 }
 
-// ========== Fix for Cloud Sync (התיקון המבוקש) ==========
+function saveTotal() {
+    const val = parseFloat(document.getElementById('editTotalInput').value);
+    if(!isNaN(val)) {
+        const item = db.lists[db.currentId].items[currentEditIdx];
+        item.price = val / item.qty;
+        save();
+    }
+    closeModal('editTotalModal');
+}
+
+// ========== Fix: PDF Print (Wait for render) ==========
+function preparePrint() {
+    closeModal('settingsModal');
+    const printArea = document.getElementById('printArea');
+    let grandTotal = 0;
+    let html = `<div dir="rtl" style="padding:40px; font-family:sans-serif;">
+                <h1 style="text-align:center; color:#7367f0;">דוח קניות - Vplus</h1>`;
+    
+    const idsToPrint = db.selectedInSummary.length > 0 ? db.selectedInSummary : Object.keys(db.lists);
+    idsToPrint.forEach(id => {
+        const l = db.lists[id];
+        let listTotal = 0;
+        html += `<div style="margin-bottom:30px; border-bottom:1px solid #eee; padding-bottom:15px;">
+                <h2 style="font-size:20px;">${l.name}</h2>
+                <table style="width:100%; border-collapse:collapse; margin-top:10px;">
+                <thead><tr style="background:#f8f9fa;">
+                <th style="padding:10px; border:1px solid #ddd; text-align:right;">מוצר</th>
+                <th style="padding:10px; border:1px solid #ddd; text-align:center;">כמות</th>
+                <th style="padding:10px; border:1px solid #ddd; text-align:left;">מחיר</th></tr></thead><tbody>`;
+        l.items.forEach(i => {
+            const sub = i.price * i.qty; listTotal += sub;
+            html += `<tr><td style="padding:10px; border:1px solid #ddd;">${i.name}</td>
+                <td style="padding:10px; border:1px solid #ddd; text-align:center;">${i.qty}</td>
+                <td style="padding:10px; border:1px solid #ddd; text-align:left;">₪${sub.toFixed(2)}</td></tr>`;
+        });
+        html += `</tbody></table><div style="text-align:left; font-weight:bold; margin-top:10px;">סה"כ קטגוריה: ₪${listTotal.toFixed(2)}</div></div>`;
+        grandTotal += listTotal;
+    });
+    html += `<h2 style="text-align:center; margin-top:40px; border-top:3px double #333; padding-top:20px;">סה"כ כולל: ₪${grandTotal.toFixed(2)}</h2></div>`;
+    
+    printArea.innerHTML = html;
+    // Timeout ensuring the DOM is updated before print dialog
+    setTimeout(() => { window.print(); }, 700);
+}
+
+// ========== Actions & Cloud Sync (Fixed) ==========
 async function syncToCloud() {
     if (!accessToken || isSyncing) return;
     isSyncing = true;
     updateCloudIndicator('syncing');
     try {
         const folderId = await findOrCreateFolder();
-        const fileList = await gapi.client.drive.files.list({ 
-            q: `name='${FILE_NAME}' and '${folderId}' in parents and trashed=false` 
-        });
+        const fileList = await gapi.client.drive.files.list({ q: `name='${FILE_NAME}' and '${folderId}' in parents and trashed=false` });
         const fileId = fileList.result.files.length > 0 ? fileList.result.files[0].id : null;
         const content = JSON.stringify(db);
-        
         if (fileId) {
             await fetch(`https://www.googleapis.com/upload/drive/v3/files/${fileId}?uploadType=media`, {
-                method: 'PATCH', 
-                headers: { 'Authorization': `Bearer ${accessToken}`, 'Content-Type': 'application/json' }, 
-                body: content
+                method: 'PATCH', headers: { 'Authorization': `Bearer ${accessToken}` }, body: content
             });
         } else {
             const metadata = { name: FILE_NAME, parents: [folderId] };
@@ -160,21 +184,21 @@ async function syncToCloud() {
             form.append('metadata', new Blob([JSON.stringify(metadata)], { type: 'application/json' }));
             form.append('file', new Blob([content], { type: 'application/json' }));
             await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart', {
-                method: 'POST', 
-                headers: { 'Authorization': `Bearer ${accessToken}` }, 
-                body: form
+                method: 'POST', headers: { 'Authorization': `Bearer ${accessToken}` }, body: form
             });
         }
         updateCloudIndicator('connected');
-    } catch (e) { console.error('Sync Error:', e); }
+    } catch (e) { console.error(e); }
     isSyncing = false;
 }
 
 async function findOrCreateFolder() {
-    const resp = await gapi.client.drive.files.list({ q: `name='${FOLDER_NAME}' and mimeType='application/vnd.google-apps.folder' and trashed=false` });
-    if (resp.result.files.length > 0) return resp.result.files[0].id;
-    const folder = await gapi.client.drive.files.create({ resource: { name: FOLDER_NAME, mimeType: 'application/vnd.google-apps.folder' } });
-    return folder.result.id;
+    try {
+        const resp = await gapi.client.drive.files.list({ q: `name='${FOLDER_NAME}' and mimeType='application/vnd.google-apps.folder' and trashed=false` });
+        if (resp.result.files.length > 0) return resp.result.files[0].id;
+        const folder = await gapi.client.drive.files.create({ resource: { name: FOLDER_NAME, mimeType: 'application/vnd.google-apps.folder' } });
+        return folder.result.id;
+    } catch(e) { return null; }
 }
 
 function handleCloudClick() {
@@ -190,26 +214,62 @@ function gisLoaded() {
     });
 }
 
-// ========== Other Functions & Helpers ==========
-function updateCloudIndicator(s) {
-    const i = document.getElementById('cloudIndicator');
-    if(i) i.className = `w-2 h-2 rounded-full ${s === 'connected' ? 'bg-green-500' : 'bg-yellow-500 animate-pulse'}`;
+// ========== UI & WhatsApp ==========
+function shareFullToWhatsApp() {
+    const list = db.lists[db.currentId];
+    let text = `📋 *${list.name}*\n\n`;
+    list.items.forEach(i => text += `${i.checked ? '✅' : '⬜'} *${i.name}* (x${i.qty}) - ₪${(i.price * i.qty).toFixed(2)}\n`);
+    window.open(`https://wa.me/?text=${encodeURIComponent(text)}`);
+}
+
+function shareMissingToWhatsApp() {
+    const list = db.lists[db.currentId];
+    let text = `🛒 *חסרים ב-${list.name}:*\n\n`;
+    list.items.filter(i => !i.checked).forEach(i => text += `• ${i.name} (x${i.qty})\n`);
+    window.open(`https://wa.me/?text=${encodeURIComponent(text)}`);
+}
+
+function importFromText() {
+    const text = document.getElementById('importText').value.trim();
+    if (text) {
+        text.split('\n').forEach(line => {
+            const name = line.replace(/[•\-\*⬜✅]/g, '').trim();
+            if(name) db.lists[db.currentId].items.push({name, price: 0, qty: 1, checked: false});
+        });
+        document.getElementById('importText').value = '';
+        closeModal('importModal');
+        save();
+    }
+}
+
+function initSortable() {
+    const el = document.getElementById('itemsContainer');
+    if (sortableInstance) sortableInstance.destroy();
+    if (el && !isLocked) {
+        sortableInstance = Sortable.create(el, { animation: 150, onEnd: (evt) => {
+            const items = db.lists[db.currentId].items;
+            const moved = items.splice(evt.oldIndex, 1)[0];
+            items.splice(evt.newIndex, 0, moved);
+            save();
+        }});
+    }
 }
 
 window.onload = () => {
     document.getElementById('cloudBtn').onclick = handleCloudClick;
     const bar = document.querySelector('.bottom-bar');
-    if(bar) bar.addEventListener('click', (e) => { if(e.offsetY < 35) bar.classList.toggle('collapsed'); });
+    if(bar) bar.addEventListener('click', (e) => { if(e.offsetY < 40) bar.classList.toggle('collapsed'); });
     
-    // טעינת גוגל
-    const s1 = document.createElement('script'); s1.src="https://apis.google.com/js/api.js"; s1.onload=gapiLoaded; document.head.appendChild(s1);
-    const s2 = document.createElement('script'); s2.src="https://accounts.google.com/gsi/client"; s2.onload=gisLoaded; document.head.appendChild(s2);
+    // Load Scripts
+    if(typeof gapi !== 'undefined') gapiLoaded();
+    if(typeof google !== 'undefined') gisLoaded();
     
     render();
 };
 
+// Global Handlers
 function openModal(id) { 
-    if(id === 'inputForm') { document.getElementById('itemName').value = ''; document.getElementById('itemPrice').value = ''; }
+    if(id==='inputForm'){ document.getElementById('itemName').value=''; document.getElementById('itemPrice').value=''; }
     document.getElementById(id).classList.add('active'); 
 }
 function closeModal(id) { document.getElementById(id).classList.remove('active'); }
@@ -217,16 +277,11 @@ function showPage(p) { activePage = p; save(); }
 function toggleLock() { isLocked = !isLocked; render(); }
 function toggleItem(idx) { db.lists[db.currentId].items[idx].checked = !db.lists[db.currentId].items[idx].checked; save(); }
 function removeItem(idx) { db.lists[db.currentId].items.splice(idx, 1); save(); }
-function changeQty(idx, d) { if(db.lists[db.currentId].items[idx].qty + d >= 1) { db.lists[db.currentId].items[idx].qty += d; save(); } }
+function changeQty(idx, d) { if(db.lists[db.currentId].items[idx].qty+d>=1){ db.lists[db.currentId].items[idx].qty+=d; save(); } }
 function toggleSum(id) {
     const i = db.selectedInSummary.indexOf(id);
     if (i > -1) db.selectedInSummary.splice(i, 1); else db.selectedInSummary.push(id);
     save();
-}
-function addItem() {
-    const n = document.getElementById('itemName').value.trim();
-    const p = parseFloat(document.getElementById('itemPrice').value) || 0;
-    if(n) { db.lists[db.currentId].items.push({ name: n, price: p, qty: 1, checked: false }); closeModal('inputForm'); save(); }
 }
 function executeClear() { db.lists[db.currentId].items = []; closeModal('confirmModal'); save(); }
 function saveNewList() {
@@ -236,11 +291,7 @@ function saveNewList() {
 function saveListName() { const n = document.getElementById('editListNameInput').value.trim(); if(n) { db.lists[db.currentId].name = n; save(); } closeModal('editListNameModal'); }
 function updateFontSize(s) { db.fontSize=parseInt(s); document.documentElement.style.setProperty('--base-font-size', s+'px'); document.getElementById('fontSizeValue').innerText=s; save(); }
 function toggleDarkMode() { document.body.classList.toggle('dark-mode'); closeModal('settingsModal'); }
-function openEditTotalModal(i) { currentEditIdx=i; document.getElementById('editTotalInput').value=''; openModal('editTotalModal'); }
-function saveTotal() {
-    const v=parseFloat(document.getElementById('editTotalInput').value);
-    if(!isNaN(v)){ const item=db.lists[db.currentId].items[currentEditIdx]; item.price=v/item.qty; save(); }
-    closeModal('editTotalModal');
+function updateCloudIndicator(s) {
+    const i = document.getElementById('cloudIndicator');
+    if(i) i.className = `w-2 h-2 rounded-full ${s === 'connected' ? 'bg-green-500' : 'bg-yellow-500 animate-pulse'}`;
 }
-function preparePrint() { closeModal('settingsModal'); setTimeout(() => { window.print(); }, 500); }
-function initSortable() {}
