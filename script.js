@@ -26,16 +26,20 @@ let db = JSON.parse(localStorage.getItem('BUDGET_FINAL_V27')) || {
 let isLocked = true;
 let activePage = db.lastActivePage || 'lists';
 let currentEditIdx = null;
+let listToDelete = null;
 let sortableInstance = null;
 let isBottomBarCollapsed = false;
 
-// ========== Core Actions ==========
+// ========== Core Logic ==========
 function save() { 
     db.lastActivePage = activePage;
     db.lastSync = Date.now();
     localStorage.setItem('BUDGET_FINAL_V27', JSON.stringify(db));
     render();
-    if (isConnected && !isSyncing) syncToCloud();
+    if (isConnected && !isSyncing) {
+        if (syncTimeout) clearTimeout(syncTimeout);
+        syncTimeout = setTimeout(() => syncToCloud(), 1500);
+    }
 }
 
 function render() {
@@ -61,7 +65,7 @@ function render() {
             div.innerHTML = `
                 <div class="flex justify-between items-start mb-4">
                     <div class="flex items-start gap-3 flex-1">
-                        <input type="checkbox" ${item.checked ? 'checked' : ''} onchange="toggleItem(${idx})" class="w-7 h-7">
+                        <input type="checkbox" ${item.checked ? 'checked' : ''} onchange="toggleItem(${idx})" class="w-7 h-7 accent-indigo-600">
                         <div class="flex-1 text-2xl font-bold ${item.checked ? 'line-through text-gray-300' : ''}" style="font-size: ${db.fontSize}px;">${item.name}</div>
                     </div>
                     <button onclick="removeItem(${idx})" class="trash-btn" style="background: white !important; border: 1px solid #fee2e2; color: #ef4444; border-radius: 50%; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center;">
@@ -101,108 +105,43 @@ function render() {
     document.getElementById('displayPaid').innerText = paidAll.toFixed(2);
     document.getElementById('displayLeft').innerText = (totalAll - paidAll).toFixed(2);
     
-    // עדכון כפתור מנעול
     const lockBtn = document.getElementById('mainLockBtn');
     if(lockBtn) lockBtn.className = `bottom-circle-btn ${isLocked ? 'bg-blue-600' : 'bg-orange-400'}`;
     document.getElementById('statusTag').innerText = isLocked ? "נעול" : "עריכה (גרירה פעילה)";
-
     initSortable();
 }
 
-// ========== Actions (Fixed Locks) ==========
+// ========== Fixes for Buttons & Bottom Bar ==========
 function executeClear() { 
-    if(db.lists[db.currentId]) {
-        db.lists[db.currentId].items = []; 
-        closeModal('confirmModal'); 
-        save(); 
-    }
+    db.lists[db.currentId].items = []; 
+    closeModal('confirmModal'); 
+    save(); 
 }
 
 function importFromText() {
-    const text = document.getElementById('importText').value;
-    if(!text) { closeModal('importModal'); return; }
+    const text = document.getElementById('importText').value.trim();
+    if (!text) { closeModal('importModal'); return; }
     const lines = text.split('\n').filter(l => l.trim());
     lines.forEach(line => {
         const name = line.replace(/[•\-\*⬜✅]/g, '').trim();
-        if(name) db.lists[db.currentId].items.push({ name: name, price: 0, qty: 1, checked: false });
+        if(name && !line.includes('🛒') && !line.includes('💰')) {
+            db.lists[db.currentId].items.push({ name, price: 0, qty: 1, checked: false });
+        }
     });
     document.getElementById('importText').value = '';
     closeModal('importModal');
     save();
 }
 
-function toggleLock() { 
-    isLocked = !isLocked; 
-    render(); 
-}
-
 function toggleBottomBar() {
     const bar = document.querySelector('.bottom-bar');
-    if(!bar) return;
     isBottomBarCollapsed = !isBottomBarCollapsed;
     bar.classList.toggle('collapsed', isBottomBarCollapsed);
 }
 
-// ========== Professional Print (Clean) ==========
-function preparePrint() { 
-    closeModal('settingsModal');
-    const printArea = document.getElementById('printArea');
-    let grandTotal = 0;
-    let html = `<div style="padding:30px; direction:rtl; font-family:sans-serif;">
-                <h1 style="text-align:center; color:#7367f0;">דוח קניות - Vplus</h1>`;
-    Object.keys(db.lists).forEach(id => {
-        const l = db.lists[id];
-        let listTotal = 0;
-        html += `<div style="margin-bottom:20px;"><h3>${l.name}</h3><table style="width:100%; border-collapse:collapse; border:1px solid #ddd;">`;
-        l.items.forEach(i => {
-            const sub = i.price * i.qty; listTotal += sub;
-            html += `<tr><td style="padding:8px; border:1px solid #ddd;">${i.name} (x${i.qty})</td><td style="padding:8px; border:1px solid #ddd; text-align:center;">₪${sub.toFixed(2)}</td></tr>`;
-        });
-        html += `</table><div style="text-align:left; font-weight:bold; padding:5px;">סה"כ: ₪${listTotal.toFixed(2)}</div></div>`;
-        grandTotal += listTotal;
-    });
-    html += `<h2 style="text-align:center; border-top:2px solid #333; padding-top:10px;">סה"כ כולל: ₪${grandTotal.toFixed(2)}</h2></div>`;
-    printArea.innerHTML = html; window.print();
-}
-
-// ========== Cloud Sync ==========
-async function handleCloudClick() {
-    if (!isConnected) tokenClient.requestAccessToken({ prompt: 'consent' });
-    else await syncToCloud();
-}
-
-async function syncToCloud() {
-    if (!accessToken || isSyncing) return;
-    isSyncing = true;
-    updateCloudIndicator('syncing');
-    try {
-        const resp = await gapi.client.drive.files.list({ q: `name='${FOLDER_NAME}' and mimeType='application/vnd.google-apps.folder' and trashed=false` });
-        let folderId = resp.result.files.length > 0 ? resp.result.files[0].id : null;
-        if (!folderId) {
-            const folder = await gapi.client.drive.files.create({ resource: { name: FOLDER_NAME, mimeType: 'application/vnd.google-apps.folder' }, fields: 'id' });
-            folderId = folder.result.id;
-        }
-        const fileList = await gapi.client.drive.files.list({ q: `name='${FILE_NAME}' and '${folderId}' in parents and trashed=false` });
-        const fileId = fileList.result.files.length > 0 ? fileList.result.files[0].id : null;
-        const content = JSON.stringify(db);
-        if (fileId) {
-            await fetch(`https://www.googleapis.com/upload/drive/v3/files/${fileId}?uploadType=media`, { method: 'PATCH', headers: { 'Authorization': `Bearer ${accessToken}`, 'Content-Type': 'application/json' }, body: content });
-        } else {
-            const metadata = { name: FILE_NAME, parents: [folderId] };
-            const form = new FormData();
-            form.append('metadata', new Blob([JSON.stringify(metadata)], { type: 'application/json' }));
-            form.append('file', new Blob([content], { type: 'application/json' }));
-            await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart', { method: 'POST', headers: { 'Authorization': `Bearer ${accessToken}` }, body: form });
-        }
-        updateCloudIndicator('connected');
-    } catch (e) { console.error(e); }
-    isSyncing = false;
-}
-
-// ========== Helpers & Init ==========
-function updateCloudIndicator(s) {
-    const i = document.getElementById('cloudIndicator');
-    if(i) i.className = `w-2 h-2 rounded-full ${s === 'connected' ? 'bg-green-500' : 'bg-yellow-500 animate-pulse'}`;
+function toggleLock() { 
+    isLocked = !isLocked; 
+    render(); 
 }
 
 function initSortable() {
@@ -221,51 +160,104 @@ function initSortable() {
     }
 }
 
-function gapiLoaded() { gapi.load('client', async () => { await gapi.client.init({ apiKey: GOOGLE_API_KEY, discoveryDocs: [DISCOVERY_DOC] }); gapiInited = true; }); }
-function gisLoaded() { tokenClient = google.accounts.oauth2.initTokenClient({ client_id: GOOGLE_CLIENT_ID, scope: SCOPES, callback: (r) => { accessToken = r.access_token; isConnected = true; updateCloudIndicator('connected'); syncToCloud(); } }); gisInited = true; }
-
-window.onload = () => {
-    document.getElementById('cloudBtn').onclick = handleCloudClick;
-    const bar = document.querySelector('.bottom-bar');
-    if(bar) bar.addEventListener('click', (e) => { if(e.offsetY < 40) toggleBottomBar(); });
-    
-    // טעינת ספריות גוגל אם לא נטענו
-    if(typeof gapi === 'undefined') {
-        const s1 = document.createElement('script'); s1.src="https://apis.google.com/js/api.js"; s1.onload=gapiLoaded; document.head.appendChild(s1);
-        const s2 = document.createElement('script'); s2.src="https://accounts.google.com/gsi/client"; s2.onload=gisLoaded; document.head.appendChild(s2);
-    }
-    render();
-};
-
-// Functions for HTML onclicks
-function toggleItem(idx) { db.lists[db.currentId].items[idx].checked = !db.lists[db.currentId].items[idx].checked; save(); }
-function toggleSum(id) {
-    const i = db.selectedInSummary.indexOf(id);
-    if (i > -1) db.selectedInSummary.splice(i, 1); else db.selectedInSummary.push(id);
-    save();
+// ========== Cloud Sync Implementation ==========
+async function syncToCloud() {
+    if (!accessToken || isSyncing) return;
+    isSyncing = true;
+    updateCloudIndicator('syncing');
+    try {
+        const folderId = await findOrCreateFolder();
+        const fileId = await findFileInFolder(folderId);
+        const content = JSON.stringify(db);
+        const url = fileId ? `https://www.googleapis.com/upload/drive/v3/files/${fileId}?uploadType=media` : `https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart`;
+        const method = fileId ? 'PATCH' : 'POST';
+        
+        await fetch(url, {
+            method,
+            headers: { 'Authorization': `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
+            body: content
+        });
+        updateCloudIndicator('connected');
+    } catch (e) { console.error(e); }
+    isSyncing = false;
 }
-function addItem() {
-    const n = document.getElementById('itemName').value.trim();
-    const p = parseFloat(document.getElementById('itemPrice').value) || 0;
-    if(n) { db.lists[db.currentId].items.push({ name: n, price: p, qty: 1, checked: false }); closeModal('inputForm'); save(); }
+
+async function handleCloudClick() {
+    if (!isConnected) tokenClient.requestAccessToken({ prompt: 'consent' });
+    else await syncToCloud();
 }
-function changeQty(idx, d) { if(db.lists[db.currentId].items[idx].qty + d >= 1) { db.lists[db.currentId].items[idx].qty += d; save(); } }
-function removeItem(idx) { db.lists[db.currentId].items.splice(idx, 1); save(); }
-function showPage(p) { activePage = p; save(); }
+
+function gapiLoaded() { gapi.load('client', () => gapi.client.init({apiKey: GOOGLE_API_KEY, discoveryDocs: [DISCOVERY_DOC]})); }
+function gisLoaded() { 
+    tokenClient = google.accounts.oauth2.initTokenClient({
+        client_id: GOOGLE_CLIENT_ID, scope: SCOPES,
+        callback: (r) => { accessToken = r.access_token; isConnected = true; updateCloudIndicator('connected'); syncToCloud(); }
+    });
+}
+
+function updateCloudIndicator(s) {
+    const i = document.getElementById('cloudIndicator');
+    if(i) i.className = `w-2 h-2 rounded-full ${s === 'connected' ? 'bg-green-500' : 'bg-yellow-500 animate-pulse'}`;
+}
+
+// ========== UI Actions ==========
 function openModal(id) { 
     if(id==='inputForm'){document.getElementById('itemName').value=''; document.getElementById('itemPrice').value='';}
     document.getElementById(id).classList.add('active'); 
 }
 function closeModal(id) { document.getElementById(id).classList.remove('active'); }
+function showPage(p) { activePage = p; save(); }
+function toggleItem(idx) { db.lists[db.currentId].items[idx].checked = !db.lists[db.currentId].items[idx].checked; save(); }
+function removeItem(idx) { db.lists[db.currentId].items.splice(idx, 1); save(); }
+function changeQty(idx, d) { if(db.lists[db.currentId].items[idx].qty+d >= 1){ db.lists[db.currentId].items[idx].qty+=d; save(); } }
+function toggleSum(id) {
+    const i = db.selectedInSummary.indexOf(id);
+    if (i > -1) db.selectedInSummary.splice(i, 1); else db.selectedInSummary.push(id);
+    save();
+}
 function saveNewList() {
     const n = document.getElementById('newListNameInput').value.trim();
     if(n) { const id = 'L' + Date.now(); db.lists[id] = { name: n, items: [] }; db.currentId = id; activePage = 'lists'; closeModal('newListModal'); save(); }
 }
+function saveListName() { const n = document.getElementById('editListNameInput').value.trim(); if(n) { db.lists[db.currentId].name = n; save(); } closeModal('editListNameModal'); }
 function updateFontSize(s) { db.fontSize=parseInt(s); document.documentElement.style.setProperty('--base-font-size', s+'px'); document.getElementById('fontSizeValue').innerText=s; save(); }
-function openEditTotalModal(i) { currentEditIdx=i; document.getElementById('editTotalInput').value=(db.lists[db.currentId].items[i].price*db.lists[db.currentId].items[i].qty).toFixed(2); openModal('editTotalModal'); }
+function toggleDarkMode() { document.body.classList.toggle('dark-mode'); closeModal('settingsModal'); }
+
+function openEditTotalModal(i) { 
+    currentEditIdx=i; 
+    document.getElementById('editTotalInput').value=(db.lists[db.currentId].items[i].price*db.lists[db.currentId].items[i].qty).toFixed(2); 
+    openModal('editTotalModal'); 
+}
 function saveTotal() {
     const v=parseFloat(document.getElementById('editTotalInput').value);
     if(!isNaN(v)){ const item=db.lists[db.currentId].items[currentEditIdx]; item.price=v/item.qty; save(); }
     closeModal('editTotalModal');
 }
-function toggleDarkMode() { document.body.classList.toggle('dark-mode'); closeModal('settingsModal'); }
+
+// PDF Function
+function preparePrint() { 
+    closeModal('settingsModal');
+    const printArea = document.getElementById('printArea');
+    let grandTotal = 0;
+    let html = `<div style="padding:30px; direction:rtl; font-family:sans-serif;">
+                <h1 style="text-align:center; color:#7367f0;">דוח קניות - Vplus</h1>`;
+    Object.keys(db.lists).forEach(id => {
+        const l = db.lists[id]; let listTotal = 0;
+        html += `<div style="margin-bottom:20px;"><h3>${l.name}</h3><table style="width:100%; border-collapse:collapse; border:1px solid #ddd;">`;
+        l.items.forEach(i => {
+            const sub = i.price * i.qty; listTotal += sub;
+            html += `<tr><td style="padding:8px; border:1px solid #ddd;">${i.name} (x${i.qty})</td><td style="padding:8px; border:1px solid #ddd; text-align:center;">₪${sub.toFixed(2)}</td></tr>`;
+        });
+        html += `</table><div style="text-align:left; font-weight:bold; padding:5px;">סה"כ: ₪${listTotal.toFixed(2)}</div></div>`;
+        grandTotal += listTotal;
+    });
+    html += `<h2 style="text-align:center; border-top:2px solid #333; padding-top:10px;">סה"כ כולל: ₪${grandTotal.toFixed(2)}</h2></div>`;
+    printArea.innerHTML = html; window.print();
+}
+
+window.onload = () => {
+    document.getElementById('cloudBtn').onclick = handleCloudClick;
+    const bar = document.querySelector('.bottom-bar');
+    if(bar) bar.addEventListener('click', (e) => { if(e.offsetY < 40) toggleBottomBar(); });
+    render();
+};
