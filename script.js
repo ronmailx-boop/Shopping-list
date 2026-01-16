@@ -1,4 +1,4 @@
-// ========== Google Drive Config ==========
+// ========== הגדרות גוגל דרייב ==========
 const GOOGLE_CLIENT_ID = '151476121869-b5lbrt5t89s8d342ftd1cg1q926518pt.apps.googleusercontent.com';
 const GOOGLE_API_KEY = 'AIzaSyDIMiuwL-phvwI7iAUeMQmTOowWE96mP6I'; 
 const DISCOVERY_DOC = 'https://www.googleapis.com/discovery/v1/apis/drive/v3/rest';
@@ -12,63 +12,68 @@ let tokenClient;
 let accessToken = null;
 let isConnected = false;
 
-// ========== App State ==========
+// ========== מצב האפליקציה (Database) ==========
 let db = JSON.parse(localStorage.getItem('VPLUS_DB_V1')) || { 
     currentId: 'L1', 
     selectedInSummary: [], 
     lists: { 'L1': { name: 'הרשימה שלי', items: [] } },
-    lastActivePage: 'lists',
     fontSize: 16
 };
 
 let isLocked = true;
 let activePage = 'lists';
 
-// ========== Auth Logic (The fix for the button) ==========
-async function handleCloudClick() {
-    console.log("Cloud button clicked"); // בדיקה בקונסול
-    if (!gapiInited || !gisInited) {
-        alert("ספריות גוגל עדיין נטענות, נסה שוב בעוד רגע");
-        return;
-    }
-
-    if (isConnected) {
-        await loadAndMerge();
-    } else {
-        tokenClient.callback = async (resp) => {
-            if (resp.error !== undefined) {
-                console.error(resp);
-                return;
-            }
-            accessToken = resp.access_token;
-            gapi.client.setToken(resp); 
-            isConnected = true;
-            document.getElementById('cloudIndicator').style.backgroundColor = '#22c55e'; // ירוק
-            await loadAndMerge();
-            render();
-        };
-        tokenClient.requestAccessToken({ prompt: 'consent' });
-    }
-}
-
-// פונקציות הטעינה שגוגל מחפשת ב-HTML (בשורות ה-script בסוף ה-body)
-function gapiLoaded() {
+// ========== פונקציות אתחול גלובליות (חשוב מאוד!) ==========
+window.gapiLoaded = function() {
     gapi.load('client', async () => {
         await gapi.client.init({ apiKey: GOOGLE_API_KEY, discoveryDocs: [DISCOVERY_DOC] });
         gapiInited = true;
+        console.log("GAPI loaded");
     });
-}
+};
 
-function gisLoaded() {
+window.gisLoaded = function() {
     tokenClient = google.accounts.oauth2.initTokenClient({
         client_id: GOOGLE_CLIENT_ID,
         scope: SCOPES,
         callback: '', 
     });
     gisInited = true;
-}
+    console.log("GIS loaded");
+};
 
-// ========== Google Drive Operations ==========
+// ========== לוגיקת כפתור הסנכרון ==========
+window.handleCloudClick = async function() {
+    console.log("Cloud button clicked");
+    
+    if (!gapiInited || !gisInited) {
+        alert("המערכת עדיין בטעינה, אנא המתן מספר שניות.");
+        return;
+    }
+
+    if (isConnected) {
+        // אם כבר מחובר, בצע טעינה ומיזוג נתונים
+        await loadAndMerge();
+    } else {
+        // בקשת התחברות
+        tokenClient.callback = async (resp) => {
+            if (resp.error !== undefined) throw (resp);
+            accessToken = resp.access_token;
+            gapi.client.setToken(resp); 
+            isConnected = true;
+            
+            // עדכון חזותי שהסנכרון פעיל
+            const indicator = document.getElementById('cloudIndicator');
+            if(indicator) indicator.style.backgroundColor = '#22c55e'; 
+            
+            await loadAndMerge();
+            render();
+        };
+        tokenClient.requestAccessToken({ prompt: 'consent' });
+    }
+};
+
+// ========== פעולות מול Google Drive ==========
 async function findOrCreateFolder() {
     const resp = await gapi.client.drive.files.list({ 
         q: `name='${FOLDER_NAME}' and mimeType='application/vnd.google-apps.folder' and trashed=false` 
@@ -107,6 +112,7 @@ async function syncToCloud() {
                 body: form
             });
         }
+        console.log("Synced successfully");
     } catch (e) { console.error('Sync failed:', e); }
 }
 
@@ -121,13 +127,14 @@ async function loadAndMerge() {
             const response = await fetch(`https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`, {
                 headers: { Authorization: `Bearer ${accessToken}` }
             });
-            db = await response.json();
+            const cloudDb = await response.json();
+            db = cloudDb; // מחליף את הנתונים המקומיים בנתוני הענן
             save();
         }
     } catch (e) { console.error('Load failed:', e); }
 }
 
-// ========== Core UI Logic (Matched to your style.css) ==========
+// ========== לוגיקה פנימית ורינדור (מותאם ל-style.css שלך) ==========
 function save() { 
     localStorage.setItem('VPLUS_DB_V1', JSON.stringify(db));
     render();
@@ -135,11 +142,11 @@ function save() {
 }
 
 function render() {
-    // עדכון עמודים
+    // החלפת עמודים
     document.getElementById('pageLists').classList.toggle('hidden', activePage !== 'lists');
     document.getElementById('pageSummary').classList.toggle('hidden', activePage !== 'summary');
     
-    // עדכון טאבים
+    // סגנון טאבים
     document.getElementById('tabLists').className = `tab-btn ${activePage === 'lists' ? 'tab-active' : ''}`;
     document.getElementById('tabSummary').className = `tab-btn ${activePage === 'summary' ? 'tab-active' : ''}`;
 
@@ -158,20 +165,20 @@ function render() {
         if (item.checked) paid += sub;
 
         const div = document.createElement('div');
-        div.className = "item-card bg-white p-4 mb-3 rounded-2xl shadow-sm";
+        div.className = "item-card bg-white";
         div.innerHTML = `
             <div class="flex justify-between items-center">
                 <div class="flex items-center gap-3">
-                    <input type="checkbox" ${item.checked ? 'checked' : ''} onchange="toggleItem(${idx})" class="w-6 h-6 rounded">
+                    <input type="checkbox" ${item.checked ? 'checked' : ''} onchange="toggleItem(${idx})" class="w-6 h-6">
                     <span class="${item.checked ? 'line-through text-gray-400' : ''}" style="font-size:${db.fontSize}px">${item.name}</span>
                 </div>
                 ${!isLocked ? `<button onclick="removeItem(${idx})" class="text-red-500">🗑️</button>` : ''}
             </div>
-            <div class="flex justify-between mt-2">
+            <div class="flex justify-between mt-3">
                 <div class="flex items-center gap-2 bg-gray-100 rounded-lg px-2">
-                    <button onclick="changeQty(${idx}, 1)" class="font-bold">+</button>
-                    <span>${item.qty}</span>
-                    <button onclick="changeQty(${idx}, -1)" class="font-bold">-</button>
+                    <button onclick="changeQty(${idx}, 1)" class="text-xl font-bold text-green-600">+</button>
+                    <span class="font-bold">${item.qty}</span>
+                    <button onclick="changeQty(${idx}, -1)" class="text-xl font-bold text-red-600">-</button>
                 </div>
                 <span class="font-bold text-indigo-600">₪${sub.toFixed(2)}</span>
             </div>
@@ -184,37 +191,32 @@ function render() {
     document.getElementById('displayLeft').innerText = (total - paid).toFixed(2);
 }
 
-// Actions
-function toggleItem(idx) { db.lists[db.currentId].items[idx].checked = !db.lists[db.currentId].items[idx].checked; save(); }
-function removeItem(idx) { db.lists[db.currentId].items.splice(idx, 1); save(); }
-function changeQty(idx, d) { 
+// פונקציות עזר שנקראות מה-HTML
+window.toggleItem = (idx) => { db.lists[db.currentId].items[idx].checked = !db.lists[db.currentId].items[idx].checked; save(); };
+window.removeItem = (idx) => { db.lists[db.currentId].items.splice(idx, 1); save(); };
+window.changeQty = (idx, d) => { 
     if(db.lists[db.currentId].items[idx].qty + d > 0) {
         db.lists[db.currentId].items[idx].qty += d; save(); 
     }
-}
-function toggleLock() { isLocked = !isLocked; render(); }
-function showPage(p) { activePage = p; render(); }
+};
+window.toggleLock = () => { isLocked = !isLocked; render(); };
+window.showPage = (p) => { activePage = p; render(); };
+window.openModal = (id) => document.getElementById(id).classList.add('active');
+window.closeModal = (id) => document.getElementById(id).classList.remove('active');
 
-// Modal Logic
-function openModal(id) { document.getElementById(id).classList.add('active'); }
-function closeModal(id) { document.getElementById(id).classList.remove('active'); }
-
-function addItem() {
+window.addItem = () => {
     const n = document.getElementById('itemName').value;
     const p = parseFloat(document.getElementById('itemPrice').value) || 0;
     if(n) {
         db.lists[db.currentId].items.push({name: n, price: p, qty: 1, checked: false});
-        closeModal('inputForm');
+        document.getElementById('itemName').value = '';
+        document.getElementById('itemPrice').value = '';
+        window.closeModal('inputForm');
         save();
     }
-}
+};
 
-// Init
 window.onload = () => {
+    console.log("App started");
     render();
-    // חיבור ידני של כפתור הענן למקרה שה-onclick ב-HTML לא תופס
-    const cloudBtn = document.querySelector('button[onclick="handleCloudClick()"]');
-    if(cloudBtn) {
-        cloudBtn.onclick = handleCloudClick;
-    }
 };
