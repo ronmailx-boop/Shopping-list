@@ -1,25 +1,343 @@
 * { box-sizing: border-box; touch-action: manipulation; }
-body { font-family: system-ui, sans-serif; background: #f4f7fa; padding-bottom: 240px; min-height: 100vh; transition: background 0.3s; margin: 0; }
-
-.item-card { background: white; border-radius: 25px; padding: 15px; margin-bottom: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.03); display: flex; flex-direction: column; }
-.bottom-bar { position: fixed; bottom: 0; left: 0; right: 0; background: #7367f0; z-index: 1000; padding: 15px 15px 35px 15px; border-radius: 35px 35px 0 0; box-shadow: 0 -10px 25px rgba(0, 0, 0, 0.15); }
-
-.tab-btn { flex: 1; padding: 12px; border-radius: 15px; font-weight: bold; text-align: center; cursor: pointer; transition: 0.2s; background: white; color: #666; border: 1px solid #eee; }
-.tab-active { background: #7367f0 !important; color: white !important; }
-
-.bottom-circle-btn {
-    width: 48px; height: 48px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
-    border: none; box-shadow: 0 4px 10px rgba(0,0,0,0.2); cursor: pointer;
+body { 
+    font-family: system-ui, sans-serif; 
+    background: #f4f7fa; 
+    padding-bottom: 200px; 
+    min-height: 100vh; 
+    transition: background 0.3s, padding-bottom 0.4s ease; 
+    margin: 0;
+    font-size: 16px;
 }
 
-.modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 5000; align-items: center; justify-content: center; backdrop-filter: blur(5px); }
-.modal-overlay.active { display: flex; }
-.edit-modal { background: white; width: 90%; max-width: 400px; padding: 25px; border-radius: 30px; text-align: center; }
-.modal-input { width: 100%; border: 1px solid #ddd; padding: 12px; border-radius: 12px; margin-bottom: 15px; font-size: 16px; outline: none; }
+/* משתנה דינמי לגודל טקסט */
+:root {
+    --base-font-size: 16px;
+}
 
-.app-header { background: white; padding: 10px 20px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 8px rgba(0,0,0,0.05); position: sticky; top: 0; z-index: 2000; }
-.category-separator { background: #7367f0; color: white; border-radius: 20px; padding: 15px; margin-bottom: 20px; text-align: center; }
+body {
+    font-size: var(--base-font-size);
+}
+
+/* תיקון טקסט מוצרים - מספר שורות במקום 3 נקודות */
+.item-card { 
+    background: white; 
+    border-radius: 25px; 
+    padding: 15px; 
+    margin-bottom: 12px; 
+    box-shadow: 0 4px 12px rgba(0,0,0,0.03); 
+    display: flex; 
+    flex-direction: column;
+    position: relative;
+    overflow: visible;
+}
+
+/* תיקון שם המוצר - מספר שורות */
+.item-card .item-name {
+    overflow: visible !important;
+    text-overflow: clip !important;
+    white-space: normal !important;
+    word-wrap: break-word !important;
+    word-break: break-word !important;
+    line-height: 1.3 !important;
+}
+
+/* תיקון שם רשימה בסיכום */
+.summary-list-name {
+    overflow: visible !important;
+    text-overflow: clip !important;
+    white-space: normal !important;
+    word-wrap: break-word !important;
+    word-break: break-word !important;
+}
+
+/* תיקון פח אשפה */
+.trash-btn { 
+    width: 44px; 
+    height: 44px; 
+    background: white; 
+    border-radius: 50%; 
+    display: flex; 
+    align-items: center; 
+    justify-content: center; 
+    color: #ef4444; 
+    border: none; 
+    cursor: pointer; 
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    flex-shrink: 0;
+    position: relative;
+    z-index: 1;
+}
+
+.bottom-bar { 
+    position: fixed; 
+    bottom: 0; 
+    left: 0; 
+    right: 0; 
+    background: #7367f0; 
+    z-index: 1000; 
+    padding: 15px 15px 25px 15px; 
+    border-radius: 35px 35px 0 0; 
+    box-shadow: 0 -10px 25px rgba(0, 0, 0, 0.15);
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    overflow: hidden;
+    height: 160px;
+}
+
+/* בר מכווץ - פס דק */
+.bottom-bar.collapsed {
+    height: 25px !important;
+    padding: 0 !important;
+    border-radius: 15px 15px 0 0;
+    box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1);
+}
+
+.bottom-bar.collapsed > *:not(.collapse-indicator) {
+    opacity: 0 !important;
+    visibility: hidden !important;
+    pointer-events: none !important;
+    transform: translateY(20px);
+    transition: all 0.3s;
+}
+
+.bottom-bar > * {
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* אינדיקטור גרירה - פס רגיש ללחיצה */
+.bottom-bar::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 25px;
+    width: 100%;
+    background: transparent;
+    cursor: pointer;
+    z-index: 10;
+}
+
+.bottom-bar::after {
+    content: '';
+    position: absolute;
+    top: 8px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 160px;
+    height: 5px;
+    background: rgba(255, 255, 255, 0.5);
+    border-radius: 3px;
+    transition: all 0.3s;
+    z-index: 5;
+    pointer-events: none;
+}
+
+.bottom-bar.collapsed::after {
+    top: 50%;
+    transform: translate(-50%, -50%);
+    background: rgba(255, 255, 255, 0.9);
+    width: 240px;
+    height: 6px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.tab-btn { 
+    flex: 1; 
+    padding: 12px; 
+    border-radius: 15px; 
+    font-weight: bold; 
+    text-align: center; 
+    cursor: pointer; 
+    transition: 0.2s; 
+    background: white; 
+    color: #666; 
+    border: 1px solid #eee; 
+}
+
+.tab-active { 
+    background: #7367f0 !important; 
+    color: white !important; 
+    border-color: #7367f0 !important;
+}
+
+/* כפתורי עיגול בבר התחתון */
+.bottom-circle-btn {
+    width: 48px !important;
+    height: 48px !important;
+    flex-shrink: 0 !important;
+    border-radius: 50% !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    border: 2px solid rgba(255,255,255,0.2) !important;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.2) !important;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.modal-overlay { 
+    display: none; 
+    position: fixed; 
+    inset: 0; 
+    background: rgba(0,0,0,0.75); 
+    z-index: 7000; 
+    align-items: center; 
+    justify-content: center; 
+    backdrop-filter: blur(8px); 
+}
+
+.modal-overlay.active { 
+    display: flex; 
+}
+
+.edit-modal { 
+    width: 90%; 
+    max-width: 400px; 
+    background-color: #ffffff !important; 
+    border-radius: 40px; 
+    padding: 30px; 
+    text-align: center; 
+    color: #333; 
+    border: 2px solid #eee; 
+    box-shadow: 0 25px 50px rgba(0,0,0,0.5); 
+}
+
+.modal-input { 
+    width: 100%; 
+    padding: 18px; 
+    border: 2px solid #f3f4f6; 
+    border-radius: 22px; 
+    font-size: 18px; 
+    text-align: center; 
+    outline: none; 
+    margin-bottom: 15px; 
+    font-weight: bold; 
+    background: #f9fafb !important; 
+    color: #333; 
+}
+
+.app-header { 
+    background: white; 
+    padding: 10px 20px; 
+    display: flex; 
+    flex-direction: row-reverse; 
+    justify-content: space-between; 
+    align-items: center; 
+    box-shadow: 0 2px 8px rgba(0,0,0,0.05); 
+    position: sticky; 
+    top: 0; 
+    z-index: 2000; 
+    height: 60px; 
+}
+
+.header-controls { 
+    display: flex; 
+    align-items: center; 
+    gap: 8px; 
+    direction: rtl; 
+}
+
+/* תיקון סמל גוגל - עיגול מושלם */
+.header-controls > div:nth-child(2) {
+    width: 40px !important;
+    height: 40px !important;
+    min-width: 40px !important;
+    min-height: 40px !important;
+    max-width: 40px !important;
+    max-height: 40px !important;
+    border-radius: 50% !important;
+    overflow: hidden !important;
+    flex-shrink: 0 !important;
+}
+
+.gear-btn { 
+    flex-shrink: 0; 
+    width: 40px; 
+    height: 40px; 
+    display: flex; 
+    align-items: center; 
+    justify-content: center; 
+}
+
+.category-separator { 
+    background: #7367f0; 
+    color: white; 
+    border-radius: 20px; 
+    padding: 15px; 
+    margin-bottom: 20px; 
+    text-align: center; 
+}
 
 /* מצב לילה */
-body.dark-mode { background: #1a1a2e; color: #e0e0e0; }
-.dark-mode .app-header, .dark-mode .item-card, .dark-mode .edit-modal { background: #16213e !important; color: white; border-color: #0f3460; }
+body.dark-mode { 
+    background: #1a1a2e; 
+    color: #e0e0e0; 
+}
+
+.dark-mode .app-header { 
+    background: #16213e; 
+    border-bottom: 1px solid #0f3460; 
+}
+
+.dark-mode .item-card, 
+.dark-mode .bg-white { 
+    background-color: #0f3460 !important; 
+    border-color: #1a1a2e; 
+    color: white; 
+}
+
+.dark-mode #selectAllLabel { 
+    color: white !important; 
+}
+
+.dark-mode .select-all-container { 
+    background-color: #0f3460 !important; 
+}
+
+/* תיקון כמות מוצר במצב לילה */
+.dark-mode .qty-display {
+    color: #1a1a2e !important;
+    background: white;
+    padding: 0 6px;
+    border-radius: 6px;
+}
+
+/* סגנונות נוספים לסליידר */
+.mb-4 {
+    margin-bottom: 1rem;
+}
+
+.block {
+    display: block;
+}
+
+.text-gray-700 {
+    color: #374151;
+}
+
+.text-xs {
+    font-size: 0.75rem;
+}
+
+.text-sm {
+    font-size: 0.875rem;
+}
+
+.text-gray-500 {
+    color: #6b7280;
+}
+
+.mt-1 {
+    margin-top: 0.25rem;
+}
+
+@media print {
+    .no-print, .bottom-bar, .app-header, .tab-btn, .modal-overlay, .trash-btn, input, button { 
+        display: none !important; 
+    }
+    #printArea { 
+        display: block !important; 
+        width: 100%; 
+        direction: rtl; 
+    }
+}
