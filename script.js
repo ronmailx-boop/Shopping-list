@@ -21,7 +21,9 @@ let db = JSON.parse(localStorage.getItem('BUDGET_FINAL_V27')) || {
     selectedInSummary: [], 
     lists: { 'L1': { name: 'הרשימה שלי', items: [] } },
     lastActivePage: 'lists',
-    lastSync: 0
+    lastSync: 0,
+    fontSize: 16,
+    bottomBarCollapsed: false
 };
 
 let isLocked = true;
@@ -29,6 +31,48 @@ let activePage = db.lastActivePage || 'lists';
 let currentEditIdx = null;
 let listToDelete = null;
 let sortableInstance = null;
+
+// ========== פונקציית שינוי גודל טקסט ==========
+function changeFontSize(size) {
+    db.fontSize = parseInt(size);
+    document.body.style.fontSize = size + 'px';
+    localStorage.setItem('BUDGET_FINAL_V27', JSON.stringify(db));
+}
+
+// ========== פונקציית כיווץ/הרחבת בר תחתון ==========
+function toggleBottomBar() {
+    db.bottomBarCollapsed = !db.bottomBarCollapsed;
+    const bar = document.querySelector('.bottom-bar');
+    const content = document.getElementById('bottomBarContent');
+    
+    if (db.bottomBarCollapsed) {
+        bar.classList.add('collapsed');
+        content.style.display = 'none';
+    } else {
+        bar.classList.remove('collapsed');
+        content.style.display = 'block';
+    }
+    
+    localStorage.setItem('BUDGET_FINAL_V27', JSON.stringify(db));
+}
+
+// ========== אתחול הגדרות בטעינת הדף ==========
+window.addEventListener('DOMContentLoaded', () => {
+    // שחזור גודל טקסט
+    if (db.fontSize) {
+        document.body.style.fontSize = db.fontSize + 'px';
+        const slider = document.getElementById('fontSizeSlider');
+        if (slider) slider.value = db.fontSize;
+    }
+    
+    // שחזור מצב בר תחתון
+    if (db.bottomBarCollapsed) {
+        const bar = document.querySelector('.bottom-bar');
+        const content = document.getElementById('bottomBarContent');
+        bar.classList.add('collapsed');
+        content.style.display = 'none';
+    }
+});
 
 function save() { 
     db.lastActivePage = activePage;
@@ -86,6 +130,10 @@ function openModal(id) {
     if(id === 'importModal') {
         document.getElementById('importText').value = '';
         setTimeout(() => document.getElementById('importText').focus(), 150);
+    }
+    if(id === 'settingsModal') {
+        const slider = document.getElementById('fontSizeSlider');
+        if (slider) slider.value = db.fontSize || 16;
     }
 }
 
@@ -630,162 +678,4 @@ async function findFileInFolder(folderId) {
     try {
         const response = await gapi.client.drive.files.list({
             q: `name='${FILE_NAME}' and '${folderId}' in parents and trashed=false`,
-            fields: 'files(id, name)',
-            spaces: 'drive'
-        });
-
-        return response.result.files.length > 0 ? response.result.files[0].id : null;
-    } catch (err) {
-        console.error('שגיאה באיתור קובץ:', err);
-        return null;
-    }
-}
-
-async function syncToCloud() {
-    if (!accessToken || isSyncing) return;
-    
-    isSyncing = true;
-    updateCloudIndicator('syncing');
-
-    try {
-        const folderId = await findOrCreateFolder();
-        if (!folderId) {
-            isSyncing = false;
-            updateCloudIndicator('connected');
-            return;
-        }
-
-        const fileId = await findFileInFolder(folderId);
-        const dataToSave = JSON.stringify(db);
-
-        if (fileId) {
-            await fetch(`https://www.googleapis.com/upload/drive/v3/files/${fileId}?uploadType=media`, {
-                method: 'PATCH',
-                headers: {
-                    'Authorization': `Bearer ${accessToken}`,
-                    'Content-Type': 'application/json'
-                },
-                body: dataToSave
-            });
-            driveFileId = fileId;
-        } else {
-            const metadata = {
-                name: FILE_NAME,
-                parents: [folderId]
-            };
-
-            const form = new FormData();
-            form.append('metadata', new Blob([JSON.stringify(metadata)], { type: 'application/json' }));
-            form.append('file', new Blob([dataToSave], { type: 'application/json' }));
-
-            const response = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id', {
-                method: 'POST',
-                headers: {
-                    'Authorization': `Bearer ${accessToken}`
-                },
-                body: form
-            });
-
-            const result = await response.json();
-            driveFileId = result.id;
-        }
-
-        console.log('✅ סונכרן לענן');
-    } catch (err) {
-        console.error('❌ שגיאה בסינכרון:', err);
-    } finally {
-        isSyncing = false;
-        updateCloudIndicator('connected');
-    }
-}
-
-async function loadAndMerge() {
-    if (!accessToken || isSyncing) return;
-    
-    isSyncing = true;
-    updateCloudIndicator('syncing');
-
-    try {
-        const folderId = await findOrCreateFolder();
-        if (!folderId) {
-            isSyncing = false;
-            updateCloudIndicator('connected');
-            return;
-        }
-
-        const fileId = await findFileInFolder(folderId);
-        
-        if (!fileId) {
-            console.log('📁 אין קובץ בענן - שומר נתונים מקומיים');
-            isSyncing = false;
-            updateCloudIndicator('connected');
-            await syncToCloud();
-            return;
-        }
-
-        driveFileId = fileId;
-
-        const response = await fetch(`https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`, {
-            headers: {
-                'Authorization': `Bearer ${accessToken}`
-            }
-        });
-
-        const cloudData = await response.json();
-        
-        const localItems = db.lists[db.currentId] ? [...db.lists[db.currentId].items] : [];
-        
-        db = cloudData;
-        
-        if (localItems.length > 0) {
-            const currentListId = db.currentId || 'L1';
-            if (!db.lists[currentListId]) {
-                db.lists[currentListId] = { name: 'הרשימה שלי', items: [] };
-            }
-            
-            const cloudItemNames = db.lists[currentListId].items.map(i => i.name);
-            const newItems = localItems.filter(localItem => 
-                !cloudItemNames.includes(localItem.name)
-            );
-            
-            if (newItems.length > 0) {
-                db.lists[currentListId].items.push(...newItems);
-                console.log(`✅ צורפו ${newItems.length} מוצרים חדשים`);
-            }
-        }
-        
-        localStorage.setItem('BUDGET_FINAL_V27', JSON.stringify(db));
-        render();
-        
-        if (localItems.length > 0) {
-            isSyncing = false;
-            updateCloudIndicator('connected');
-            await syncToCloud();
-        }
-        
-        console.log('✅ טעינה מהענן הושלמה');
-    } catch (err) {
-        console.error('❌ שגיאה בטעינה:', err);
-    } finally {
-        isSyncing = false;
-        updateCloudIndicator('connected');
-    }
-}
-
-async function manualSync() {
-    await loadAndMerge();
-}
-
-// טעינת Google API
-const script1 = document.createElement('script');
-script1.src = 'https://apis.google.com/js/api.js';
-script1.onload = gapiLoaded;
-document.head.appendChild(script1);
-
-const script2 = document.createElement('script');
-script2.src = 'https://accounts.google.com/gsi/client';
-script2.onload = gisLoaded;
-document.head.appendChild(script2);
-
-// אתחול ראשוני
-render();
+            fields: 'files
