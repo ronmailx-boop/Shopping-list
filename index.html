@@ -31,7 +31,7 @@
                 <div id="cloudIndicator" class="w-2 h-2 bg-gray-300 rounded-full"></div>
             </div>
             
-            <div class="w-10 h-10 rounded-full border border-gray-200 flex items-center justify-center bg-white shadow-sm cursor-pointer overflow-hidden">
+            <div class="w-10 h-10 rounded-full border border-gray-200 flex items-center justify-center bg-white shadow-sm cursor-pointer" style="min-width: 40px; min-height: 40px; max-width: 40px; max-height: 40px;">
                 <svg class="w-6 h-6" viewBox="0 0 24 24">
                     <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
                     <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-1 .67-2.28 1.07-3.71 1.07-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
@@ -106,15 +106,54 @@
 
     <div id="printArea" class="hidden"></div>
 
+    <!-- Modals -->
     <div id="inputForm" class="modal-overlay no-print"><div class="edit-modal"><h2>הוספת מוצר</h2><input type="text" id="itemName" placeholder="שם המוצר" class="modal-input"><input type="number" id="itemPrice" inputmode="decimal" placeholder="מחיר" class="modal-input"><div class="flex gap-3"><button class="bg-green-500 text-white flex-1 py-4 rounded-xl font-bold shadow-md" onclick="addItem()">הוסף</button><button class="bg-gray-100 text-gray-500 flex-1 py-4 rounded-xl font-bold" onclick="closeModal('inputForm')">ביטול</button></div></div></div>
-    <div id="importModal" class="modal-overlay no-print"><div class="edit-modal"><h2 class="mb-2">ייבוא רשימה</h2><textarea id="importText" placeholder="הדבק כאן טקסט..." class="modal-input" rows="8"></textarea><div class="flex gap-3"><button class="bg-green-500 text-white flex-1 py-4 rounded-xl font-bold shadow-md" onclick="importFromText()">ייבא</button><button class="bg-gray-100 flex-1 py-4 rounded-xl font-bold" onclick="closeModal('importModal')">ביטול</button></div></div></div>
+    
+    <div id="importModal" class="modal-overlay no-print">
+        <div class="edit-modal">
+            <h2 class="mb-2">ייבוא רשימה מטקסט</h2>
+            <p class="text-sm text-gray-500 mb-4">הדבק טקסט מוואטסאפ או כל רשימה</p>
+            <textarea id="importText" placeholder="הדבק כאן טקסט לייבוא..." class="modal-input" rows="8" style="resize: vertical; min-height: 150px;"></textarea>
+            <div class="flex gap-3">
+                <button class="bg-green-500 text-white flex-1 py-4 rounded-xl font-bold shadow-md" onclick="importFromText()">ייבא</button>
+                <button class="bg-gray-100 flex-1 py-4 rounded-xl font-bold" onclick="closeModal('importModal')">ביטול</button>
+            </div>
+        </div>
+    </div>
+    
     <div id="newListModal" class="modal-overlay no-print"><div class="edit-modal"><h2>רשימה חדשה</h2><input type="text" id="newListNameInput" placeholder="שם הרשימה" class="modal-input"><div class="flex gap-3"><button class="bg-indigo-600 text-white flex-1 py-4 rounded-xl font-bold shadow-md" onclick="saveNewList()">צור</button><button class="bg-gray-100 flex-1 py-4 rounded-xl font-bold" onclick="closeModal('newListModal')">ביטול</button></div></div></div>
+    
     <div id="confirmModal" class="modal-overlay no-print"><div class="edit-modal"><h2 class="text-red-600">ניקוי מוצרים</h2><p class="mb-6">למחוק את כל המוצרים?</p><div class="flex gap-3"><button class="bg-red-500 text-white flex-1 py-4 rounded-xl font-bold shadow-lg" onclick="executeClear()">נקה</button><button class="bg-gray-100 flex-1 py-4 rounded-xl font-bold" onclick="closeModal('confirmModal')">ביטול</button></div></div></div>
-    <div id="settingsModal" class="modal-overlay no-print"><div class="edit-modal"><h2>הגדרות</h2><button onclick="toggleDarkMode()" class="w-full bg-indigo-50 text-indigo-600 py-4 rounded-xl font-bold mb-4">מצב לילה 🌙</button><button onclick="preparePrint()" class="w-full bg-orange-500 text-white py-4 rounded-xl font-bold">הדפס PDF 🖨️</button><button onclick="closeModal('settingsModal')" class="mt-4 text-gray-400 block w-full">סגור</button></div></div>
-    <div id="shareListModal" class="modal-overlay no-print"><div class="edit-modal"><h2 class="mb-6">מה לשלוח ב-WhatsApp?</h2><button onclick="shareFullToWhatsApp()" class="w-full bg-indigo-600 text-white py-4 rounded-xl font-bold mb-3 shadow-md">שיתוף רשימה מלאה 📋</button><button onclick="shareMissingToWhatsApp()" class="w-full bg-green-500 text-white py-4 rounded-xl font-bold mb-4 shadow-md">שיתוף מוצרים חסרים בלבד ⬜</button><button onclick="closeModal('shareListModal')" class="text-gray-400 font-bold block w-full mt-2">ביטול</button></div></div>
+    
+    <div id="deleteListModal" class="modal-overlay no-print"><div class="edit-modal"><h2 class="text-red-600">מחיקת רשימה</h2><div class="flex gap-3"><button id="confirmDeleteListBtn" class="bg-red-500 text-white flex-1 py-4 rounded-xl font-bold" onclick="deleteFullList()">מחק</button><button class="bg-gray-100 flex-1 py-4 rounded-xl font-bold" onclick="closeModal('deleteListModal')">ביטול</button></div></div></div>
+    
     <div id="editListNameModal" class="modal-overlay no-print"><div class="edit-modal"><h2>שינוי שם</h2><input type="text" id="editListNameInput" class="modal-input"><div class="flex gap-3"><button class="bg-indigo-600 text-white flex-1 py-4 rounded-xl font-bold" onclick="saveListName()">שמור</button><button class="bg-gray-100 flex-1 py-4 rounded-xl font-bold" onclick="closeModal('editListNameModal')">ביטול</button></div></div></div>
+    
     <div id="editTotalModal" class="modal-overlay no-print"><div class="edit-modal"><h2>עדכון מחיר</h2><input type="number" id="editTotalInput" class="modal-input"><div class="flex gap-3"><button class="bg-indigo-600 text-white flex-1 py-4 rounded-xl font-bold" onclick="saveTotal()">עדכן</button><button class="bg-gray-100 flex-1 py-4 rounded-xl font-bold" onclick="closeModal('editTotalModal')">ביטול</button></div></div></div>
+    
+    <div id="settingsModal" class="modal-overlay no-print">
+        <div class="edit-modal">
+            <h2>הגדרות</h2>
+            
+            <div style="margin-bottom: 1rem; text-align: right;">
+                <label style="display: block; color: #374151; font-weight: bold; margin-bottom: 0.5rem; font-size: 0.875rem;">גודל טקסט</label>
+                <input type="range" id="fontSizeSlider" min="12" max="20" value="16" step="1" 
+                       style="width: 100%; accent-color: #7367f0;" oninput="updateFontSize(this.value)">
+                <div style="font-size: 0.75rem; color: #6b7280; margin-top: 0.25rem; text-align: center;">
+                    גודל נוכחי: <span id="fontSizeValue">16</span>px
+                </div>
+            </div>
+            
+            <button onclick="toggleDarkMode()" class="w-full bg-indigo-50 text-indigo-600 py-4 rounded-xl font-bold mb-4">מצב לילה 🌙</button>
+            <button onclick="preparePrint()" class="w-full bg-orange-500 text-white py-4 rounded-xl font-bold">הדפס PDF 🖨️</button>
+            <button onclick="closeModal('settingsModal')" class="mt-4 text-gray-400 block w-full">סגור</button>
+        </div>
+    </div>
+    
+    <div id="shareListModal" class="modal-overlay no-print"><div class="edit-modal"><h2 class="mb-6">מה לשלוח ב-WhatsApp?</h2><button onclick="shareFullToWhatsApp()" class="w-full bg-indigo-600 text-white py-4 rounded-xl font-bold mb-3 shadow-md">שיתוף רשימה מלאה 📋</button><button onclick="shareMissingToWhatsApp()" class="w-full bg-green-500 text-white py-4 rounded-xl font-bold mb-4 shadow-md">שיתוף מוצרים חסרים בלבד ⬜</button><button onclick="closeModal('shareListModal')" class="text-gray-400 font-bold block w-full mt-2">ביטול</button></div></div>
 
+    <script src="https://apis.google.com/js/api.js" onload="gapiLoaded()"></script>
+    <script src="https://accounts.google.com/gsi/client" onload="gisLoaded()"></script>
     <script src="script.js"></script>
 </body>
 </html>
