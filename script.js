@@ -1,19 +1,17 @@
-/* Base Styles */
-body { font-family: -apple-system, sans-serif; overflow-x: hidden; }
+// ... (כל שאר הקוד של ה-DB והסנכרון נשאר זהה) ...
 
-/* Modals */
-.modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.4); display: none; align-items: center; justify-content: center; z-index: 100; backdrop-filter: blur(4px); padding: 20px; }
-.modal-overlay.active { display: flex; }
-.edit-modal { background: white; width: 100%; max-width: 380px; padding: 28px; border-radius: 30px; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1); }
-.modal-input { width: 100%; border: 2px solid #f3f4f6; padding: 14px; border-radius: 16px; margin-bottom: 12px; font-size: 18px; outline: none; }
-
-/* Dark Mode */
-body.dark-mode { background: #121212 !important; color: white; }
-.dark-mode .app-header, .dark-mode .edit-modal { background: #1e1e1e !important; color: white; border-color: #333; }
-.dark-mode .bg-white { background: #1e1e1e !important; border-color: #333 !important; }
-.dark-mode .text-gray-800 { color: #eee !important; }
-.dark-mode .bg-gray-200\/40 { background: rgba(255,255,255,0.05); }
-.dark-mode .modal-input { background: #2d2d2d; border-color: #444; color: white; }
-
-/* Print */
-@media print { .no-print { display: none !important; } }
+function render() {
+    // ... (לוגיקה קיימת) ...
+    
+    // עדכון סמל המנעול ב-SVG
+    const lockBtn = document.getElementById('mainLockBtn');
+    const lockIconSvg = document.getElementById('lockIconSvg');
+    
+    if (isLocked) {
+        lockBtn.className = "w-12 h-12 bg-[#42a5f5] rounded-full flex items-center justify-center shadow-lg active:scale-90";
+        lockIconSvg.innerHTML = '<rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path>';
+    } else {
+        lockBtn.className = "w-12 h-12 bg-orange-400 rounded-full flex items-center justify-center shadow-lg active:scale-90";
+        lockIconSvg.innerHTML = '<rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path><line x1="12" y1="11" x2="12" y2="17"></line>'; // גרסה של מנעול פתוח
+    }
+}
