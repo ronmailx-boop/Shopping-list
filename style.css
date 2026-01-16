@@ -10,7 +10,7 @@ body { font-family: system-ui, sans-serif; background: #f4f7fa; padding-bottom: 
     right: 0; 
     background: #7367f0; 
     z-index: 1000; 
-    padding: 35px 15px 35px 15px; 
+    padding: 15px 15px 35px 15px; 
     border-radius: 35px 35px 0 0; 
     box-shadow: 0 -10px 25px rgba(0, 0, 0, 0.15);
     transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
@@ -38,39 +38,29 @@ body { font-family: system-ui, sans-serif; background: #f4f7fa; padding-bottom: 
     transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-/* אינדיקטור גרירה - כפתור ארוך לחיצה */
-.collapse-indicator {
+/* אינדיקטור גרירה - עכשיו גם כפתור! */
+.bottom-bar::before {
+    content: '';
     position: absolute;
-    top: 8px;
+    top: 5px;
     left: 50%;
     transform: translateX(-50%);
-    width: 140px;
-    height: 18px;
+    width: 80px;
+    height: 5px;
     background: rgba(255, 255, 255, 0.5);
-    border-radius: 10px;
-    z-index: 11;
-    cursor: pointer;
+    border-radius: 3px;
     transition: all 0.3s;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    z-index: 10;
+    cursor: pointer;
 }
 
-.collapse-indicator:hover {
-    background: rgba(255, 255, 255, 0.7);
-}
-
-.collapse-indicator:active {
-    background: rgba(255, 255, 255, 0.9);
-    transform: translateX(-50%) scale(0.98);
-}
-
-/* כששורת הכפתור מכווצת - הפס במרכז */
-.bottom-bar.collapsed .collapse-indicator {
+.bottom-bar.collapsed::before {
     top: 50%;
     transform: translate(-50%, -50%);
-    background: rgba(255, 255, 255, 0.8);
-    height: 5px;
+    background: rgba(255, 255, 255, 0.9);
+    width: 120px;
+    height: 6px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
 }
 
 .tab-btn { flex: 1; padding: 12px; border-radius: 15px; font-weight: bold; text-align: center; cursor: pointer; transition: 0.2s; background: white; color: #666; border: 1px solid #eee; }
