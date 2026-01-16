@@ -1,4 +1,4 @@
-// ========== Google Drive Configuration (מתוך הקבצים המקוריים) ==========
+// ========== Google Drive Configuration ==========
 const GOOGLE_CLIENT_ID = '151476121869-b5lbrt5t89s8d342ftd1cg1q926518pt.apps.googleusercontent.com';
 const GOOGLE_API_KEY = 'AIzaSyDIMiuwL-phvwI7iAUeMQmTOowWE96mP6I'; 
 const DISCOVERY_DOC = 'https://www.googleapis.com/discovery/v1/apis/drive/v3/rest';
@@ -29,7 +29,54 @@ let activePage = db.lastActivePage || 'lists';
 let currentEditIdx = null;
 let sortableInstance = null;
 
-// ========== Core Logic ==========
+// ========== Initialization & Google Auth (THE FIX) ==========
+
+function gapiLoaded() {
+    gapi.load('client', async () => {
+        await gapi.client.init({
+            apiKey: GOOGLE_API_KEY,
+            discoveryDocs: [DISCOVERY_DOC],
+        });
+        gapiInited = true;
+        console.log("GAPI Inited");
+    });
+}
+
+function gisLoaded() {
+    tokenClient = google.accounts.oauth2.initTokenClient({
+        client_id: GOOGLE_CLIENT_ID,
+        scope: SCOPES,
+        callback: '', // יוגדר בזמן לחיצה
+    });
+    gisInited = true;
+    console.log("GIS Inited");
+}
+
+// פונקציית הלחיצה - מטפלת גם בחיבור ראשוני וגם בסנכרון
+async function handleCloudClick() {
+    console.log("Cloud button clicked. Status:", {isConnected, gapiInited, gisInited});
+    
+    if (!gapiInited || !gisInited) {
+        alert("מערכת גוגל עדיין נטענת, אנא נסה שוב בעוד רגע...");
+        return;
+    }
+
+    if (isConnected) {
+        await loadAndMerge();
+    } else {
+        tokenClient.callback = async (resp) => {
+            if (resp.error !== undefined) throw (resp);
+            accessToken = resp.access_token;
+            gapi.client.setToken(resp);
+            isConnected = true;
+            updateCloudIndicator('connected');
+            await loadAndMerge();
+        };
+        tokenClient.requestAccessToken({ prompt: 'consent' });
+    }
+}
+
+// ========== Core Logic & Render ==========
 function save() { 
     db.lastActivePage = activePage;
     db.lastSync = Date.now();
@@ -116,62 +163,23 @@ function render() {
     initSortable();
 }
 
-// ========== Fix: שחזור סנכרון גוגל (מתוך קבצי המקור 8 ו-9) ==========
-
-function gapiLoaded() {
-    gapi.load('client', async () => {
-        await gapi.client.init({ apiKey: GOOGLE_API_KEY, discoveryDocs: [DISCOVERY_DOC] });
-        gapiInited = true;
-    });
-}
-
-function gisLoaded() {
-    tokenClient = google.accounts.oauth2.initTokenClient({
-        client_id: GOOGLE_CLIENT_ID,
-        scope: SCOPES,
-        callback: '', // יוגדר בלחיצה
-    });
-    gisInited = true;
-}
-
-// פונקציית הלחיצה המרכזית
-async function handleCloudClick() {
-    if (isConnected) {
-        await manualSync();
-    } else {
-        tokenClient.callback = async (resp) => {
-            if (resp.error !== undefined) throw (resp);
-            accessToken = resp.access_token;
-            gapi.client.setToken(resp);
-            isConnected = true;
-            updateCloudIndicator('connected');
-            await loadAndMerge();
-        };
-        tokenClient.requestAccessToken({ prompt: 'consent' });
-    }
-}
+// ========== Cloud Sync Logic (From original files) ==========
 
 async function loadAndMerge() {
-    if (!accessToken) return;
+    if (!isConnected) return;
     updateCloudIndicator('syncing');
     try {
         const folderId = await findOrCreateFolder();
-        const response = await gapi.client.drive.files.list({
-            q: `name='${FILE_NAME}' and '${folderId}' in parents and trashed=false`,
-            fields: 'files(id, name)'
-        });
-        
-        const fileId = response.result.files.length > 0 ? response.result.files[0].id : null;
-        if (fileId) {
-            const res = await fetch(`https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`, {
+        const fileList = await gapi.client.drive.files.list({ q: `name='${FILE_NAME}' and '${folderId}' in parents and trashed=false` });
+        if (fileList.result.files.length > 0) {
+            const fileId = fileList.result.files[0].id;
+            const response = await fetch(`https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`, {
                 headers: { 'Authorization': `Bearer ${accessToken}` }
             });
-            const cloudDb = await res.json();
-            db = cloudDb; // הענן קובע
+            const cloudDb = await response.json();
+            db = cloudDb;
             save();
-        } else {
-            await syncToCloud(); // אם אין קובץ בענן, ניצור אחד
-        }
+        } else { await syncToCloud(); }
     } catch (e) { console.error(e); }
     updateCloudIndicator('connected');
 }
@@ -182,12 +190,9 @@ async function syncToCloud() {
     updateCloudIndicator('syncing');
     try {
         const folderId = await findOrCreateFolder();
-        const response = await gapi.client.drive.files.list({
-            q: `name='${FILE_NAME}' and '${folderId}' in parents and trashed=false`
-        });
-        const fileId = response.result.files.length > 0 ? response.result.files[0].id : null;
+        const fileList = await gapi.client.drive.files.list({ q: `name='${FILE_NAME}' and '${folderId}' in parents and trashed=false` });
+        const fileId = fileList.result.files.length > 0 ? fileList.result.files[0].id : null;
         const content = JSON.stringify(db);
-
         if (fileId) {
             await fetch(`https://www.googleapis.com/upload/drive/v3/files/${fileId}?uploadType=media`, {
                 method: 'PATCH', headers: { 'Authorization': `Bearer ${accessToken}`, 'Content-Type': 'application/json' }, body: content
@@ -213,11 +218,8 @@ async function findOrCreateFolder() {
     return folder.result.id;
 }
 
-async function manualSync() {
-    await loadAndMerge();
-}
-
 // ========== שאר הפונקציות (ללא שינוי) ==========
+
 function executeClear() { if (db.lists[db.currentId]) { db.lists[db.currentId].items = []; closeModal('confirmModal'); save(); } }
 
 function shareSummaryToWhatsApp() {
@@ -233,6 +235,23 @@ function shareSummaryToWhatsApp() {
             text += `\n`;
         }
     });
+    window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
+}
+
+function shareFullToWhatsApp() {
+    const list = db.lists[db.currentId];
+    if (!list || list.items.length === 0) return;
+    let text = `🛒 *${list.name}*\n\n`;
+    list.items.forEach(i => text += `${i.checked ? '✅' : '⬜'} *${i.name}* (x${i.qty}) - ₪${(i.price * i.qty).toFixed(2)}\n`);
+    window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
+}
+
+function shareMissingToWhatsApp() {
+    const list = db.lists[db.currentId];
+    const missing = list.items.filter(i => !i.checked);
+    if (missing.length === 0) { alert("אין מוצרים חסרים!"); return; }
+    let text = `⬜ *חסרים ב-${list.name}:*\n\n`;
+    missing.forEach(i => text += `• *${i.name}* (x${i.qty})\n`);
     window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
 }
 
@@ -281,8 +300,9 @@ function importFromText() {
     textarea.value = ''; closeModal('importModal'); save();
 }
 
+// ========== UI Listeners ==========
 function openModal(id) { 
-    const m = document.getElementById(id);
+    const m = document.getElementById(id); 
     if(m) {
         m.classList.add('active');
         if(id==='inputForm'){ document.getElementById('itemName').value=''; document.getElementById('itemPrice').value=''; }
@@ -299,6 +319,7 @@ function toggleSum(id) {
     if (i > -1) db.selectedInSummary.splice(i, 1); else db.selectedInSummary.push(id);
     save();
 }
+function toggleSelectAll(checked) { db.selectedInSummary = checked ? Object.keys(db.lists) : []; save(); }
 function addItem() {
     const n = document.getElementById('itemName').value.trim();
     const p = parseFloat(document.getElementById('itemPrice').value) || 0;
@@ -331,28 +352,11 @@ function initSortable() {
     }
 }
 
-function shareFullToWhatsApp() {
-    const list = db.lists[db.currentId];
-    if (!list || list.items.length === 0) return;
-    let text = `🛒 *${list.name} (רשימה מלאה):*\n\n`;
-    list.items.forEach(i => text += `${i.checked ? '✅' : '⬜'} *${i.name}* (x${i.qty}) - ₪${(i.price * i.qty).toFixed(2)}\n`);
-    window.open(`https://wa.me/?text=${encodeURIComponent(text)}`);
-    closeModal('shareListModal');
-}
-
-function shareMissingToWhatsApp() {
-    const list = db.lists[db.currentId];
-    const missing = list.items.filter(i => !i.checked);
-    if (missing.length === 0) { alert("אין מוצרים חסרים!"); return; }
-    let text = `⬜ *${list.name} (מוצרים חסרים):*\n\n`;
-    missing.forEach(i => text += `• *${i.name}* (x${i.qty})\n`);
-    window.open(`https://wa.me/?text=${encodeURIComponent(text)}`);
-    closeModal('shareListModal');
-}
-
 window.onload = () => {
-    // הכפתור מקבל את הפונקציה ב-HTML דרך הקוד מעלה
-    document.getElementById('cloudBtn').onclick = handleCloudClick;
+    // חיבור הכפתור מיד בטעינה
+    const cloudBtn = document.getElementById('cloudBtn');
+    if (cloudBtn) cloudBtn.onclick = handleCloudClick;
+    
     render();
     const bar = document.querySelector('.bottom-bar');
     if(bar) bar.addEventListener('click', (e) => { if(e.offsetY < 35) bar.classList.toggle('collapsed'); });
