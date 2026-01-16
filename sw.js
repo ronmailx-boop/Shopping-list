@@ -1,15 +1,13 @@
-const CACHE_NAME = 'vplus-final-fix';
+const CACHE_NAME = 'vplus-final-fix-v2';
 const assets = [
     './',
     './index.html',
-    './style.css',
-    './script.js',
     './manifest.json',
     './icon.png'
 ];
 
 self.addEventListener('install', (e) => {
-    self.skipWaiting(); // גורם לגרסה החדשה להיכנס לתוקף מיד
+    self.skipWaiting();
     e.waitUntil(
         caches.open(CACHE_NAME).then(cache => cache.addAll(assets))
     );
