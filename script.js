@@ -10,7 +10,6 @@ let gapiInited = false;
 let gisInited = false;
 let tokenClient;
 let accessToken = null;
-let driveFileId = null;
 let syncTimeout = null;
 let isSyncing = false;
 let isConnected = false;
@@ -69,9 +68,7 @@ function render() {
                         <input type="checkbox" ${item.checked ? 'checked' : ''} onchange="toggleItem(${idx})" class="w-7 h-7 accent-indigo-600">
                         <div class="flex-1 text-2xl font-bold ${item.checked ? 'line-through text-gray-300' : ''}" style="font-size: ${db.fontSize}px;">${item.name}</div>
                     </div>
-                    <button onclick="removeItem(${idx})" class="trash-btn" style="background: white !important; border: 1px solid #fee2e2; color: #ef4444; border-radius: 50%; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center;">
-                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg>
-                    </button>
+                    <button onclick="removeItem(${idx})" class="trash-btn">🗑️</button>
                 </div>
                 <div class="flex justify-between items-center">
                     <div class="flex items-center gap-3 bg-gray-50 rounded-xl px-2 py-1 border">
@@ -120,59 +117,84 @@ function render() {
 
 // ========== Fix: Create New List (No Freezing) ==========
 function saveNewList() {
-    const nameInput = document.getElementById('newListNameInput');
-    const name = nameInput.value.trim();
-    
+    const input = document.getElementById('newListNameInput');
+    const name = input.value.trim();
     if (name) {
         const id = 'L' + Date.now();
-        // הגדרת הרשימה החדשה בתוך אובייקט ה-DB
-        db.lists[id] = { 
-            name: name, 
-            items: [] 
-        };
-        
-        // מעבר אוטומטי לרשימה החדשה
+        db.lists[id] = { name: name, items: [] };
         db.currentId = id;
         activePage = 'lists';
-        
-        // ניקוי השדה וסגירת המודל
-        nameInput.value = '';
+        input.value = '';
         closeModal('newListModal');
-        
-        // שמירה ורינדור
         save();
     }
 }
 
-// ========== Fix: Import Logic ==========
+// ========== Fix: PDF with Data ==========
+function preparePrint() { 
+    closeModal('settingsModal');
+    const printArea = document.getElementById('printArea');
+    if (!printArea) return;
+
+    let grandTotal = 0;
+    let html = `<div dir="rtl" style="padding:30px; font-family:sans-serif;">
+                <h1 style="text-align:center; color:#7367f0; border-bottom:2px solid #7367f0;">דוח קניות - Vplus</h1>`;
+    
+    const idsToPrint = db.selectedInSummary.length > 0 ? db.selectedInSummary : Object.keys(db.lists);
+    
+    idsToPrint.forEach(id => {
+        const l = db.lists[id];
+        if (!l || l.items.length === 0) return;
+        let listTotal = 0;
+        html += `<h3 style="background:#f3f2fe; padding:8px;">${l.name}</h3>
+                <table style="width:100%; border-collapse:collapse; margin-bottom:15px;">
+                <tr style="background:#eee;">
+                    <th style="border:1px solid #ddd; padding:8px; text-align:right;">מוצר</th>
+                    <th style="border:1px solid #ddd; padding:8px; text-align:center;">כמות</th>
+                    <th style="border:1px solid #ddd; padding:8px; text-align:left;">סה"כ</th>
+                </tr>`;
+        l.items.forEach(i => {
+            const s = i.price * i.qty; listTotal += s;
+            html += `<tr>
+                    <td style="border:1px solid #ddd; padding:8px;">${i.name}</td>
+                    <td style="border:1px solid #ddd; padding:8px; text-align:center;">${i.qty}</td>
+                    <td style="border:1px solid #ddd; padding:8px; text-align:left;">₪${s.toFixed(2)}</td>
+                </tr>`;
+        });
+        html += `</table><div style="text-align:left; font-weight:bold;">סה"כ רשימה: ₪${listTotal.toFixed(2)}</div><br>`;
+        grandTotal += listTotal;
+    });
+    html += `<h2 style="text-align:center; border-top:2px solid #333; padding-top:10px;">סה"כ כולל: ₪${grandTotal.toFixed(2)}</h2></div>`;
+    
+    printArea.innerHTML = html;
+    setTimeout(() => { window.print(); }, 500);
+}
+
+// ========== Fix: Import & Select All ==========
 function importFromText() {
     const text = document.getElementById('importText').value.trim();
     if (!text) { closeModal('importModal'); return; }
     const lines = text.split('\n').filter(line => line.trim());
     lines.forEach(line => {
-        const cleanName = line.replace(/[•\-\*⬜✅]/g, '').trim();
-        if (cleanName) {
-            db.lists[db.currentId].items.push({ name: cleanName, price: 0, qty: 1, checked: false });
-        }
+        const clean = line.replace(/[•\-\*⬜✅]/g, '').trim();
+        if (clean) db.lists[db.currentId].items.push({ name: clean, price: 0, qty: 1, checked: false });
     });
     document.getElementById('importText').value = '';
     closeModal('importModal');
     save();
 }
 
-// ========== Fix: Select All ==========
 function toggleSelectAll(checked) {
     db.selectedInSummary = checked ? Object.keys(db.lists) : [];
     save();
 }
 
-// ========== UI Utilities ==========
+// ========== UI & Modals ==========
 function openModal(id) { 
-    const m = document.getElementById(id);
+    const m = document.getElementById(id); 
     if(m) {
         m.classList.add('active');
-        if(id === 'inputForm') { document.getElementById('itemName').value = ''; document.getElementById('itemPrice').value = ''; }
-        if(id === 'newListModal') { document.getElementById('newListNameInput').value = ''; }
+        if(id==='inputForm'){ document.getElementById('itemName').value=''; document.getElementById('itemPrice').value=''; }
     }
 }
 function closeModal(id) { const m = document.getElementById(id); if(m) m.classList.remove('active'); }
@@ -192,11 +214,10 @@ function addItem() {
     if (n) { db.lists[db.currentId].items.push({ name: n, price: p, qty: 1, checked: false }); closeModal('inputForm'); save(); }
 }
 
-// ========== Cloud Sync ==========
+// ========== Cloud & Storage ==========
 async function syncToCloud() {
     if (!accessToken || isSyncing) return;
-    isSyncing = true;
-    updateCloudIndicator('syncing');
+    isSyncing = true; updateCloudIndicator('syncing');
     try {
         const folderId = await findOrCreateFolder();
         const fileList = await gapi.client.drive.files.list({ q: `name='${FILE_NAME}' and trashed=false` });
@@ -239,13 +260,38 @@ function gisLoaded() {
         callback: (r) => { accessToken = r.access_token; isConnected = true; updateCloudIndicator('connected'); syncToCloud(); }
     });
 }
-
 function updateCloudIndicator(s) {
     const i = document.getElementById('cloudIndicator');
     if(i) i.className = `w-2 h-2 rounded-full ${s === 'connected' ? 'bg-green-500' : 'bg-yellow-500 animate-pulse'}`;
 }
 
-// ========== Sortable & Init ==========
+// ========== Extra Functions ==========
+function shareSummaryToWhatsApp() {
+    const selectedIds = db.selectedInSummary;
+    if (selectedIds.length === 0) { alert("בחר רשימות בסיכום"); return; }
+    let text = `📦 *ריכוז חסרים:*\n\n`;
+    selectedIds.forEach(id => {
+        const l = db.lists[id];
+        const missing = l.items.filter(i => !i.checked);
+        if (missing.length > 0) {
+            text += `🔹 *${l.name}:*\n`;
+            missing.forEach(i => text += `  - ${i.name} (x${i.qty})\n`);
+            text += `\n`;
+        }
+    });
+    window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
+}
+
+function toggleDarkMode() { document.body.classList.toggle('dark-mode'); closeModal('settingsModal'); }
+function saveListName() { const n = document.getElementById('editListNameInput').value.trim(); if(n) { db.lists[db.currentId].name = n; save(); } closeModal('editListNameModal'); }
+function updateFontSize(s) { db.fontSize=parseInt(s); document.documentElement.style.setProperty('--base-font-size', s+'px'); document.getElementById('fontSizeValue').innerText=s; save(); }
+function openEditTotalModal(i) { currentEditIdx=i; document.getElementById('editTotalInput').value=''; openModal('editTotalModal'); }
+function saveTotal() {
+    const v=parseFloat(document.getElementById('editTotalInput').value);
+    if(!isNaN(v)){ const item=db.lists[db.currentId].items[currentEditIdx]; item.price=v/item.qty; save(); }
+    closeModal('editTotalModal');
+}
+
 function initSortable() {
     const el = document.getElementById('itemsContainer');
     if (sortableInstance) sortableInstance.destroy();
@@ -263,36 +309,7 @@ window.onload = () => {
     document.getElementById('cloudBtn').onclick = handleCloudClick;
     const bar = document.querySelector('.bottom-bar');
     if(bar) bar.addEventListener('click', (e) => { if(e.offsetY < 35) bar.classList.toggle('collapsed'); });
-    
-    // טעינת גוגל
     const s1 = document.createElement('script'); s1.src = 'https://apis.google.com/js/api.js'; s1.onload = gapiLoaded; document.head.appendChild(s1);
     const s2 = document.createElement('script'); s2.src = 'https://accounts.google.com/gsi/client'; s2.onload = gisLoaded; document.head.appendChild(s2);
-    
     render();
 };
-
-function shareSummaryToWhatsApp() {
-    const selectedIds = db.selectedInSummary;
-    if (selectedIds.length === 0) { alert("בחר רשימות לשיתוף"); return; }
-    let text = `📦 *ריכוז חסרים:*\n\n`;
-    selectedIds.forEach(id => {
-        const l = db.lists[id];
-        const missing = l.items.filter(i => !i.checked);
-        if (missing.length > 0) {
-            text += `🔹 *${l.name}:*\n`;
-            missing.forEach(i => text += `  - ${i.name} (x${i.qty})\n`);
-            text += `\n`;
-        }
-    });
-    window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
-}
-function preparePrint() { closeModal('settingsModal'); setTimeout(() => { window.print(); }, 700); }
-function toggleDarkMode() { document.body.classList.toggle('dark-mode'); closeModal('settingsModal'); }
-function saveListName() { const n = document.getElementById('editListNameInput').value.trim(); if(n) { db.lists[db.currentId].name = n; save(); } closeModal('editListNameModal'); }
-function updateFontSize(s) { db.fontSize=parseInt(s); document.documentElement.style.setProperty('--base-font-size', s+'px'); document.getElementById('fontSizeValue').innerText=s; save(); }
-function openEditTotalModal(i) { currentEditIdx=i; document.getElementById('editTotalInput').value=''; openModal('editTotalModal'); }
-function saveTotal() {
-    const v=parseFloat(document.getElementById('editTotalInput').value);
-    if(!isNaN(v)){ const item=db.lists[db.currentId].items[currentEditIdx]; item.price=v/item.qty; save(); }
-    closeModal('editTotalModal');
-}
