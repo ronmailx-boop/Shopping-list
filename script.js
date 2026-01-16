@@ -10,7 +10,6 @@ let gapiInited = false;
 let gisInited = false;
 let tokenClient;
 let accessToken = null;
-let driveFileId = null;
 let syncTimeout = null;
 let isSyncing = false;
 let isConnected = false;
@@ -86,6 +85,10 @@ function render() {
     } else {
         document.getElementById('pageLists').classList.add('hidden');
         document.getElementById('pageSummary').classList.remove('hidden');
+        const selectAllCheckbox = document.getElementById('selectAllLists');
+        if (selectAllCheckbox) {
+            selectAllCheckbox.checked = db.selectedInSummary.length === Object.keys(db.lists).length && Object.keys(db.lists).length > 0;
+        }
         Object.keys(db.lists).forEach(id => {
             const l = db.lists[id];
             let lT = 0, lP = 0;
@@ -113,16 +116,54 @@ function render() {
     initSortable();
 }
 
-// ========== Google Drive: THE FIX (Restored from your files) ==========
+// ========== Fix: WhatsApp Share (Strictly from original files) ==========
+function shareFullToWhatsApp() {
+    const list = db.lists[db.currentId];
+    if (!list) return;
+    let text = `📋 *${list.name}*\n\n`;
+    list.items.forEach(i => {
+        text += `${i.checked ? '✅' : '⬜'} *${i.name}* (x${i.qty}) - ₪${(i.price * i.qty).toFixed(2)}\n`;
+    });
+    const total = document.getElementById('displayTotal').innerText;
+    text += `\n💰 *סה"כ לתשלום: ₪${total}*`;
+    window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
+    closeModal('shareListModal');
+}
 
+function shareMissingToWhatsApp() {
+    const list = db.lists[db.currentId];
+    if (!list) return;
+    const missing = list.items.filter(i => !i.checked);
+    if (missing.length === 0) { alert("אין מוצרים חסרים!"); return; }
+    let text = `🛒 *מוצרים חסרים ב-${list.name}:*\n\n`;
+    missing.forEach(i => {
+        text += `• ${i.name} (x${i.qty})\n`;
+    });
+    window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
+    closeModal('shareListModal');
+}
+
+function shareSummaryToWhatsApp() {
+    const selectedIds = db.selectedInSummary;
+    if (selectedIds.length === 0) { alert("יש לבחור לפחות רשימה אחת!"); return; }
+    let text = `📦 *ריכוז רשימות קנייה (חסרים):*\n\n`;
+    selectedIds.forEach(id => {
+        const l = db.lists[id];
+        const missing = l.items.filter(i => !i.checked);
+        if (missing.length > 0) {
+            text += `🔹 *${l.name}:*\n`;
+            missing.forEach(i => text += `  - ${i.name} (x${i.qty})\n`);
+            text += `\n`;
+        }
+    });
+    window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
+}
+
+// ========== Fix: Google Drive Sync (Strictly from original files) ==========
 function gapiLoaded() {
     gapi.load('client', async () => {
-        await gapi.client.init({
-            apiKey: GOOGLE_API_KEY,
-            discoveryDocs: [DISCOVERY_DOC],
-        });
+        await gapi.client.init({apiKey: GOOGLE_API_KEY, discoveryDocs: [DISCOVERY_DOC]});
         gapiInited = true;
-        checkAuthInited();
     });
 }
 
@@ -130,35 +171,21 @@ function gisLoaded() {
     tokenClient = google.accounts.oauth2.initTokenClient({
         client_id: GOOGLE_CLIENT_ID,
         scope: SCOPES,
-        callback: '', // defined in handleAuthClick
+        callback: (resp) => {
+            if (resp.error) return;
+            accessToken = resp.access_token;
+            isConnected = true;
+            updateCloudIndicator('connected');
+            loadAndMerge();
+        }
     });
     gisInited = true;
-    checkAuthInited();
-}
-
-function checkAuthInited() {
-    if (gapiInited && gisInited) {
-        // חיבור הכפתור רק כשהספריות נטענו
-        const cloudBtn = document.getElementById('cloudBtn');
-        if (cloudBtn) {
-            cloudBtn.onclick = handleCloudClick;
-            console.log("✅ Google Auth Systems Ready");
-        }
-    }
 }
 
 async function handleCloudClick() {
     if (isConnected) {
         await manualSync();
     } else {
-        tokenClient.callback = async (resp) => {
-            if (resp.error !== undefined) throw (resp);
-            accessToken = resp.access_token;
-            gapi.client.setToken(resp);
-            isConnected = true;
-            updateCloudIndicator('connected');
-            await loadAndMerge();
-        };
         tokenClient.requestAccessToken({ prompt: 'consent' });
     }
 }
@@ -167,35 +194,14 @@ async function manualSync() {
     await loadAndMerge();
 }
 
-async function loadAndMerge() {
-    if (!isConnected) return;
-    updateCloudIndicator('syncing');
-    try {
-        const folderId = await findOrCreateFolder();
-        const fileId = await findFileInFolder(folderId);
-        if (fileId) {
-            const response = await fetch(`https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`, {
-                headers: { 'Authorization': `Bearer ${accessToken}` }
-            });
-            const cloudDb = await response.json();
-            // מיזוג נתונים (הענן קובע)
-            db = cloudDb;
-            save();
-        } else {
-            // אם אין קובץ, ניצור אחד עם הנתונים המקומיים
-            await syncToCloud();
-        }
-    } catch (e) { console.error(e); }
-    updateCloudIndicator('connected');
-}
-
 async function syncToCloud() {
     if (!accessToken || isSyncing) return;
     isSyncing = true;
     updateCloudIndicator('syncing');
     try {
         const folderId = await findOrCreateFolder();
-        const fileId = await findFileInFolder(folderId);
+        const fileList = await gapi.client.drive.files.list({ q: `name='${FILE_NAME}' and '${folderId}' in parents` });
+        const fileId = fileList.result.files.length > 0 ? fileList.result.files[0].id : null;
         const content = JSON.stringify(db);
         if (fileId) {
             await fetch(`https://www.googleapis.com/upload/drive/v3/files/${fileId}?uploadType=media`, {
@@ -215,6 +221,23 @@ async function syncToCloud() {
     updateCloudIndicator('connected');
 }
 
+async function loadAndMerge() {
+    if (!isConnected) return;
+    updateCloudIndicator('syncing');
+    try {
+        const folderId = await findOrCreateFolder();
+        const fileList = await gapi.client.drive.files.list({ q: `name='${FILE_NAME}' and '${folderId}' in parents` });
+        if (fileList.result.files.length > 0) {
+            const response = await fetch(`https://www.googleapis.com/drive/v3/files/${fileList.result.files[0].id}?alt=media`, {
+                headers: { 'Authorization': `Bearer ${accessToken}` }
+            });
+            db = await response.json();
+            save();
+        } else { await syncToCloud(); }
+    } catch (e) { console.error(e); }
+    updateCloudIndicator('connected');
+}
+
 async function findOrCreateFolder() {
     const resp = await gapi.client.drive.files.list({ q: `name='${FOLDER_NAME}' and mimeType='application/vnd.google-apps.folder' and trashed=false` });
     if (resp.result.files.length > 0) return resp.result.files[0].id;
@@ -222,80 +245,7 @@ async function findOrCreateFolder() {
     return folder.result.id;
 }
 
-async function findFileInFolder(folderId) {
-    const resp = await gapi.client.drive.files.list({ q: `name='${FILE_NAME}' and '${folderId}' in parents and trashed=false` });
-    return resp.result.files.length > 0 ? resp.result.files[0].id : null;
-}
-
-function updateCloudIndicator(s) {
-    const i = document.getElementById('cloudIndicator');
-    if(i) i.className = `w-2 h-2 rounded-full ${s === 'connected' ? 'bg-green-500' : 'bg-yellow-500 animate-pulse'}`;
-}
-
-// ========== Other Functions (Import, Select, UI) ==========
-
-function executeClear() { if (db.lists[db.currentId]) { db.lists[db.currentId].items = []; closeModal('confirmModal'); save(); } }
-
-function shareSummaryToWhatsApp() {
-    const selectedIds = db.selectedInSummary;
-    if (selectedIds.length === 0) { alert("בחר רשימות בסיכום"); return; }
-    let text = `📦 *ריכוז חסרים:*\n\n`;
-    selectedIds.forEach(id => {
-        const l = db.lists[id];
-        const missing = l.items.filter(i => !i.checked);
-        if (missing.length > 0) {
-            text += `🔹 *${l.name}:*\n`;
-            missing.forEach(i => text += `  - ${i.name} (x${i.qty})\n`);
-            text += `\n`;
-        }
-    });
-    window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
-}
-
-function preparePrint() { 
-    closeModal('settingsModal');
-    const printArea = document.getElementById('printArea');
-    let grandTotal = 0;
-    let html = `<div dir="rtl" style="padding:30px; font-family:sans-serif;"><h1 style="text-align:center; color:#7367f0;">דוח קניות - Vplus</h1>`;
-    const idsToPrint = db.selectedInSummary.length > 0 ? db.selectedInSummary : Object.keys(db.lists);
-    idsToPrint.forEach(id => {
-        const l = db.lists[id];
-        let listTotal = 0;
-        html += `<h3 style="background:#f3f2fe; padding:8px; border-right:5px solid #7367f0;">${l.name}</h3><table style="width:100%; border-collapse:collapse; margin-bottom:15px;">`;
-        l.items.forEach(i => {
-            const s = i.price * i.qty; listTotal += s;
-            html += `<tr><td style="border:1px solid #ddd; padding:8px;">${i.name}</td><td style="border:1px solid #ddd; padding:8px; text-align:center;">${i.qty}</td><td style="border:1px solid #ddd; padding:8px; text-align:left;">₪${s.toFixed(2)}</td></tr>`;
-        });
-        html += `</table><div style="text-align:left; font-weight:bold;">סה"כ: ₪${listTotal.toFixed(2)}</div><br>`;
-        grandTotal += listTotal;
-    });
-    html += `<h2 style="text-align:center; border-top:2px solid #333;">סה"כ כללי: ₪${grandTotal.toFixed(2)}</h2></div>`;
-    printArea.innerHTML = html;
-    setTimeout(() => { window.print(); }, 600);
-}
-
-function saveNewList() {
-    const input = document.getElementById('newListNameInput');
-    const name = input.value.trim();
-    if (name) {
-        const id = 'L' + Date.now();
-        db.lists[id] = { name: name, items: [] };
-        db.currentId = id; activePage = 'lists';
-        input.value = ''; closeModal('newListModal'); save();
-    }
-}
-
-function importFromText() {
-    const text = document.getElementById('importText').value.trim();
-    if (!text) { closeModal('importModal'); return; }
-    const lines = text.split('\n').filter(line => line.trim());
-    lines.forEach(line => {
-        const clean = line.replace(/[•\-\*⬜✅]/g, '').trim();
-        if (clean) db.lists[db.currentId].items.push({ name: clean, price: 0, qty: 1, checked: false });
-    });
-    document.getElementById('importText').value = ''; closeModal('importModal'); save();
-}
-
+// ========== UI Utilities ==========
 function openModal(id) { 
     const m = document.getElementById(id);
     if(m) {
@@ -304,7 +254,7 @@ function openModal(id) {
     }
 }
 function closeModal(id) { const m = document.getElementById(id); if(m) m.classList.remove('active'); }
-function showPage(p) { activePage = p; save(); }
+function showPage(p) { activePage = p; render(); }
 function toggleLock() { isLocked = !isLocked; render(); }
 function toggleItem(idx) { db.lists[db.currentId].items[idx].checked = !db.lists[db.currentId].items[idx].checked; save(); }
 function removeItem(idx) { db.lists[db.currentId].items.splice(idx, 1); save(); }
@@ -320,6 +270,56 @@ function addItem() {
     const p = parseFloat(document.getElementById('itemPrice').value) || 0;
     if (n) { db.lists[db.currentId].items.push({ name: n, price: p, qty: 1, checked: false }); closeModal('inputForm'); save(); }
 }
+function executeClear() { if (db.lists[db.currentId]) { db.lists[db.currentId].items = []; closeModal('confirmModal'); save(); } }
+function saveNewList() {
+    const input = document.getElementById('newListNameInput');
+    const name = input.value.trim();
+    if (name) {
+        const id = 'L' + Date.now();
+        db.lists[id] = { name: name, items: [] };
+        db.currentId = id; activePage = 'lists';
+        input.value = ''; closeModal('newListModal'); save();
+    }
+}
+function importFromText() {
+    const textarea = document.getElementById('importText');
+    const text = textarea.value.trim();
+    if (!text) { closeModal('importModal'); return; }
+    const lines = text.split('\n').filter(line => line.trim());
+    lines.forEach(line => {
+        const clean = line.replace(/[•\-\*⬜✅]/g, '').trim();
+        if (clean) db.lists[db.currentId].items.push({ name: clean, price: 0, qty: 1, checked: false });
+    });
+    textarea.value = ''; closeModal('importModal'); save();
+}
+
+// ========== Init & PDF ==========
+function preparePrint() { 
+    closeModal('settingsModal');
+    const printArea = document.getElementById('printArea');
+    let grandTotal = 0;
+    let html = `<div dir="rtl" style="padding:30px;"><h1 style="text-align:center; color:#7367f0;">דוח קניות - Vplus</h1>`;
+    const idsToPrint = db.selectedInSummary.length > 0 ? db.selectedInSummary : Object.keys(db.lists);
+    idsToPrint.forEach(id => {
+        const l = db.lists[id];
+        let listTotal = 0;
+        html += `<h3>${l.name}</h3><table style="width:100%; border-collapse:collapse; margin-bottom:15px;">`;
+        l.items.forEach(i => {
+            const s = i.price * i.qty; listTotal += s;
+            html += `<tr><td style="border:1px solid #ddd; padding:8px;">${i.name}</td><td style="border:1px solid #ddd; padding:8px; text-align:center;">${i.qty}</td><td style="border:1px solid #ddd; padding:8px; text-align:left;">₪${s.toFixed(2)}</td></tr>`;
+        });
+        html += `</table><div style="text-align:left; font-weight:bold;">סה"כ: ₪${listTotal.toFixed(2)}</div><br>`;
+        grandTotal += listTotal;
+    });
+    html += `<h2 style="text-align:center; border-top:2px solid #333;">סה"כ כללי: ₪${grandTotal.toFixed(2)}</h2></div>`;
+    printArea.innerHTML = html;
+    setTimeout(() => { window.print(); }, 600);
+}
+
+function updateCloudIndicator(s) {
+    const i = document.getElementById('cloudIndicator');
+    if(i) i.className = `w-2 h-2 rounded-full ${s === 'connected' ? 'bg-green-500' : 'bg-yellow-500 animate-pulse'}`;
+}
 function updateFontSize(s) { db.fontSize=parseInt(s); document.documentElement.style.setProperty('--base-font-size', s+'px'); document.getElementById('fontSizeValue').innerText=s; save(); }
 function toggleDarkMode() { document.body.classList.toggle('dark-mode'); closeModal('settingsModal'); }
 function saveListName() { const n = document.getElementById('editListNameInput').value.trim(); if(n) { db.lists[db.currentId].name = n; save(); } closeModal('editListNameModal'); }
@@ -329,7 +329,6 @@ function saveTotal() {
     if(!isNaN(v)){ const item=db.lists[db.currentId].items[currentEditIdx]; item.price=v/item.qty; save(); }
     closeModal('editTotalModal');
 }
-
 function initSortable() {
     const el = document.getElementById('itemsContainer');
     if (sortableInstance) sortableInstance.destroy();
@@ -344,7 +343,8 @@ function initSortable() {
 }
 
 window.onload = () => {
-    render();
+    document.getElementById('cloudBtn').onclick = handleCloudClick;
     const bar = document.querySelector('.bottom-bar');
     if(bar) bar.addEventListener('click', (e) => { if(e.offsetY < 35) bar.classList.toggle('collapsed'); });
+    render();
 };
