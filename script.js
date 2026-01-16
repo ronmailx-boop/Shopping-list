@@ -71,7 +71,7 @@ function toggleDarkMode() {
     closeModal('settingsModal');
 }
 
-// פונקציה חדשה לשינוי גודל טקסט
+// פונקציה לשינוי גודל טקסט
 function updateFontSize(size) {
     db.fontSize = parseInt(size);
     document.documentElement.style.setProperty('--base-font-size', size + 'px');
@@ -695,4 +695,185 @@ async function syncToCloud() {
             });
 
             const result = await response.json();
-            drive
+            driveFileId = result.id;
+        }
+
+        console.log('✅ סונכרן לענן');
+    } catch (err) {
+        console.error('❌ שגיאה בסינכרון:', err);
+    } finally {
+        isSyncing = false;
+        updateCloudIndicator('connected');
+    }
+}
+
+async function loadAndMerge() {
+    if (!accessToken || isSyncing) return;
+    
+    isSyncing = true;
+    updateCloudIndicator('syncing');
+
+    try {
+        const folderId = await findOrCreateFolder();
+        if (!folderId) {
+            isSyncing = false;
+            updateCloudIndicator('connected');
+            return;
+        }
+
+        const fileId = await findFileInFolder(folderId);
+        
+        if (!fileId) {
+            console.log('📁 אין קובץ בענן - שומר נתונים מקומיים');
+            isSyncing = false;
+            updateCloudIndicator('connected');
+            await syncToCloud();
+            return;
+        }
+
+        driveFileId = fileId;
+
+        const response = await fetch(`https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`, {
+            headers: {
+                'Authorization': `Bearer ${accessToken}`
+            }
+        });
+
+        const cloudData = await response.json();
+        
+        // שמירת מצב תיבות הסימון הנוכחי לפני המיזוג
+        const currentCheckedState = {};
+        if (db.lists[db.currentId]) {
+            db.lists[db.currentId].items.forEach(item => {
+                currentCheckedState[item.name] = item.checked;
+            });
+        }
+        
+        const localItems = db.lists[db.currentId] ? [...db.lists[db.currentId].items] : [];
+        
+        db = cloudData;
+        
+        // שחזור מצב תיבות הסימון
+        if (db.lists[db.currentId]) {
+            db.lists[db.currentId].items.forEach(item => {
+                if (currentCheckedState.hasOwnProperty(item.name)) {
+                    item.checked = currentCheckedState[item.name];
+                }
+            });
+        }
+        
+        if (localItems.length > 0) {
+            const currentListId = db.currentId || 'L1';
+            if (!db.lists[currentListId]) {
+                db.lists[currentListId] = { name: 'הרשימה שלי', items: [] };
+            }
+            
+            const cloudItemNames = db.lists[currentListId].items.map(i => i.name);
+            const newItems = localItems.filter(localItem => 
+                !cloudItemNames.includes(localItem.name)
+            );
+            
+            if (newItems.length > 0) {
+                db.lists[currentListId].items.push(...newItems);
+                console.log(`✅ צורפו ${newItems.length} מוצרים חדשים`);
+            }
+        }
+        
+        localStorage.setItem('BUDGET_FINAL_V27', JSON.stringify(db));
+        render();
+        
+        if (localItems.length > 0 || Object.keys(currentCheckedState).length > 0) {
+            isSyncing = false;
+            updateCloudIndicator('connected');
+            await syncToCloud();
+        }
+        
+        console.log('✅ טעינה מהענן הושלמה');
+    } catch (err) {
+        console.error('❌ שגיאה בטעינה:', err);
+    } finally {
+        isSyncing = false;
+        updateCloudIndicator('connected');
+    }
+}
+
+async function manualSync() {
+    await loadAndMerge();
+}
+
+// ========== מחווה גרירה לבר התחתון ==========
+function initBottomBarGesture() {
+    const bottomBar = document.querySelector('.bottom-bar');
+    if (!bottomBar) return;
+
+    bottomBar.addEventListener('touchstart', (e) => {
+        touchStartY = e.touches[0].clientY;
+    }, { passive: true });
+
+    bottomBar.addEventListener('touchmove', (e) => {
+        touchEndY = e.touches[0].clientY;
+    }, { passive: true });
+
+    bottomBar.addEventListener('touchend', () => {
+        const swipeDistance = touchStartY - touchEndY;
+        
+        if (swipeDistance < -50 && !isBottomBarCollapsed) {
+            collapseBottomBar();
+        }
+        else if (swipeDistance > 50 && isBottomBarCollapsed) {
+            expandBottomBar();
+        }
+    });
+
+    // טיפול בלחיצה על הפס העליון
+    bottomBar.addEventListener('click', (e) => {
+        const rect = bottomBar.getBoundingClientRect();
+        const clickY = e.clientY - rect.top;
+        
+        // אם לחצו על הפס העליון (25 פיקסלים ראשונים)
+        if (clickY < 25) {
+            toggleBottomBar();
+            e.stopPropagation();
+        }
+    });
+}
+
+function collapseBottomBar() {
+    isBottomBarCollapsed = true;
+    const bottomBar = document.querySelector('.bottom-bar');
+    bottomBar.classList.add('collapsed');
+    document.body.style.paddingBottom = '35px';
+}
+
+function expandBottomBar() {
+    isBottomBarCollapsed = false;
+    const bottomBar = document.querySelector('.bottom-bar');
+    bottomBar.classList.remove('collapsed');
+    document.body.style.paddingBottom = '240px';
+}
+
+function toggleBottomBar() {
+    if (isBottomBarCollapsed) {
+        expandBottomBar();
+    } else {
+        collapseBottomBar();
+    }
+}
+
+// טעינת Google API
+const script1 = document.createElement('script');
+script1.src = 'https://apis.google.com/js/api.js';
+script1.onload = gapiLoaded;
+document.head.appendChild(script1);
+
+const script2 = document.createElement('script');
+script2.src = 'https://accounts.google.com/gsi/client';
+script2.onload = gisLoaded;
+document.head.appendChild(script2);
+
+// אתחול ראשוני - רץ מיד כשהדף נטען
+if (db.fontSize) {
+    updateFontSize(db.fontSize);
+}
+render();
+setTimeout(initBottomBarGesture, 500);
