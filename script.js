@@ -786,7 +786,7 @@ async function manualSync() {
     await loadAndMerge();
 }
 
-// אתחול והוספת מאזין לבר הסגול
+// אתחול והוספת מאזינים
 window.addEventListener('DOMContentLoaded', () => {
     const bottomBar = document.querySelector('.bottom-bar');
     if (bottomBar) {
@@ -796,6 +796,28 @@ window.addEventListener('DOMContentLoaded', () => {
         const interactiveElements = bottomBar.querySelectorAll('button, input');
         interactiveElements.forEach(el => {
             el.addEventListener('click', (e) => e.stopPropagation());
+        });
+    }
+
+    // --- הוספת אפשרות Enter למעבר בין שדות והוספה ---
+    const itemNameInput = document.getElementById('itemName');
+    const itemPriceInput = document.getElementById('itemPrice');
+
+    if (itemNameInput && itemPriceInput) {
+        // מעבר משם המוצר למחיר
+        itemNameInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                itemPriceInput.focus();
+            }
+        });
+
+        // הוספת המוצר בלחיצה על Enter בשדה המחיר
+        itemPriceInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                addItem();
+            }
         });
     }
 });
