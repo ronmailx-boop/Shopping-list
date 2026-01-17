@@ -36,6 +36,7 @@ function save() {
     localStorage.setItem('BUDGET_FINAL_V27', JSON.stringify(db));
     render();
     
+    // סנכרון אוטומטי רק כשמחובר
     if (isConnected && !isSyncing) {
         if (syncTimeout) clearTimeout(syncTimeout);
         syncTimeout = setTimeout(() => {
@@ -526,7 +527,7 @@ function saveTotal() {
     closeModal('editTotalModal');
 }
 
-// ========== Google Drive Integration ==========
+// ========== Google Drive Integration - IMPROVED ==========
 
 function gapiLoaded() {
     gapi.load('client', initializeGapiClient);
@@ -576,7 +577,8 @@ function handleAuthClick() {
         isConnected = true;
         updateCloudIndicator('connected');
         
-        await loadAndMerge();
+        // טעינה ומיזוג חכם
+        await smartLoadAndMerge();
     };
 
     if (gapi.client.getToken() === null) {
@@ -679,113 +681,4 @@ async function syncToCloud() {
             form.append('file', new Blob([dataToSave], { type: 'application/json' }));
 
             const response = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id', {
-                method: 'POST',
-                headers: {
-                    'Authorization': `Bearer ${accessToken}`
-                },
-                body: form
-            });
-
-            const result = await response.json();
-            driveFileId = result.id;
-        }
-
-        console.log('✅ סונכרן לענן');
-    } catch (err) {
-        console.error('❌ שגיאה בסינכרון:', err);
-    } finally {
-        isSyncing = false;
-        updateCloudIndicator('connected');
-    }
-}
-
-async function loadAndMerge() {
-    if (!accessToken || isSyncing) return;
-    
-    isSyncing = true;
-    updateCloudIndicator('syncing');
-
-    try {
-        const folderId = await findOrCreateFolder();
-        if (!folderId) {
-            isSyncing = false;
-            updateCloudIndicator('connected');
-            return;
-        }
-
-        const fileId = await findFileInFolder(folderId);
-        
-        if (!fileId) {
-            console.log('📁 אין קובץ בענן - שומר נתונים מקומיים');
-            isSyncing = false;
-            updateCloudIndicator('connected');
-            await syncToCloud();
-            return;
-        }
-
-        driveFileId = fileId;
-
-        const response = await fetch(`https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`, {
-            headers: {
-                'Authorization': `Bearer ${accessToken}`
-            }
-        });
-
-        const cloudData = await response.json();
-        
-        const localItems = db.lists[db.currentId] ? [...db.lists[db.currentId].items] : [];
-        
-        db = cloudData;
-        
-        if (localItems.length > 0) {
-            const currentListId = db.currentId || 'L1';
-            if (!db.lists[currentListId]) {
-                db.lists[currentListId] = { name: 'הרשימה שלי', items: [] };
-            }
-            
-            const cloudItemNames = db.lists[currentListId].items.map(i => i.name);
-            const newItems = localItems.filter(localItem => 
-                !cloudItemNames.includes(localItem.name)
-            );
-            
-            if (newItems.length > 0) {
-                db.lists[currentListId].items.push(...newItems);
-                console.log(`✅ צורפו ${newItems.length} מוצרים חדשים`);
-            }
-        }
-        
-        localStorage.setItem('BUDGET_FINAL_V27', JSON.stringify(db));
-        render();
-        
-        if (localItems.length > 0) {
-            isSyncing = false;
-            updateCloudIndicator('connected');
-            await syncToCloud();
-        }
-        
-        console.log('✅ טעינה מהענן הושלמה');
-    } catch (err) {
-        console.error('❌ שגיאה בטעינה:', err);
-    } finally {
-        isSyncing = false;
-        updateCloudIndicator('connected');
-    }
-}
-
-async function manualSync() {
-    await loadAndMerge();
-}
-
-// טעינת Google API
-const script1 = document.createElement('script');
-script1.src = 'https://apis.google.com/js/api.js';
-script1.onload = gapiLoaded;
-document.head.appendChild(script1);
-
-const script2 = document.createElement('script');
-script2.src = 'https://accounts.google.com/gsi/client';
-script2.onload = gisLoaded;
-document.head.appendChild(script2);
-
-// אתחול ראשוני
-render();
+                method: '
