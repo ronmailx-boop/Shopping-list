@@ -28,20 +28,20 @@ body { font-family: system-ui, sans-serif; background: #f4f7fa; padding-bottom: 
     inset: 0; 
     background: rgba(0,0,0,0.75); 
     z-index: 7000; 
-    align-items: flex-start; /* מוצמד לקצה העליון */
+    align-items: flex-start; 
     justify-content: center; 
     backdrop-filter: blur(8px); 
-    padding-top: 0; /* ללא רווח עליון */
+    padding-top: 0; 
 }
 .modal-overlay.active { display: flex; }
 
-/* קיצור גובה ב-20% נוספים ע"י הידוק המבנה */
+/* הידוק גובה החלונית ב-20% נוספים */
 .edit-modal { 
     width: 90%; 
     max-width: 400px; 
     background-color: #ffffff !important; 
     border-radius: 0 0 30px 30px; 
-    padding: 12px 25px; /* צמצום padding עליון ותחתון (היה 18px) */
+    padding: 8px 25px; /* צמצום padding (היה 12px) */
     text-align: center; 
     color: #333; 
     border: 2px solid #eee; 
@@ -50,23 +50,29 @@ body { font-family: system-ui, sans-serif; background: #f4f7fa; padding-bottom: 
 
 .modal-input { 
     width: 100%; 
-    padding: 10px; /* צמצום גובה השדה (היה 14px) */
+    padding: 8px; /* צמצום גובה השדה (היה 10px) */
     border: 2px solid #f3f4f6; 
-    border-radius: 18px; 
-    font-size: 17px; 
+    border-radius: 16px; 
+    font-size: 16px; 
     text-align: center; 
     outline: none; 
-    margin-bottom: 8px; /* צמצום רווח בין שדות (היה 10px) */
+    margin-bottom: 6px; /* צמצום רווח בין אלמנטים (היה 8px) */
     font-weight: bold; 
     background: #f9fafb !important; 
     color: #333; 
 }
 
-/* התאמת כותרת המודאל */
+/* התאמת כותרת המודאל למבנה קומפקטי */
 .edit-modal h2 {
-    margin-top: 5px;
-    margin-bottom: 10px;
-    font-size: 1.25rem;
+    margin-top: 2px;
+    margin-bottom: 8px;
+    font-size: 1.15rem;
+}
+
+/* התאמת כפתורי המודאל */
+.edit-modal .flex button {
+    padding-top: 10px;
+    padding-bottom: 10px;
 }
 
 .app-header { background: white; padding: 10px 20px; display: flex; flex-direction: row-reverse; justify-content: space-between; align-items: center; box-shadow: 0 2px 8px rgba(0,0,0,0.05); position: sticky; top: 0; z-index: 2000; height: 60px; }
