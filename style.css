@@ -2,7 +2,26 @@
 body { font-family: system-ui, sans-serif; background: #f4f7fa; padding-bottom: 240px; min-height: 100vh; transition: background 0.3s; margin: 0; }
 
 .item-card { background: white; border-radius: 25px; padding: 15px; margin-bottom: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.03); display: flex; flex-direction: column; }
-.bottom-bar { position: fixed; bottom: 0; left: 0; right: 0; background: #7367f0; z-index: 1000; padding: 15px 15px 35px 15px; border-radius: 35px 35px 0 0; box-shadow: 0 -10px 25px rgba(0, 0, 0, 0.15); }
+
+/* הגדרות הבר התחתון עם אנימציה */
+.bottom-bar { 
+    position: fixed; 
+    bottom: 0; 
+    left: 0; 
+    right: 0; 
+    background: #7367f0; 
+    z-index: 1000; 
+    padding: 15px 15px 35px 15px; 
+    border-radius: 35px 35px 0 0; 
+    box-shadow: 0 -10px 25px rgba(0, 0, 0, 0.15); 
+    transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    cursor: pointer;
+}
+
+/* מצב מוסתר - משאיר פס דק למעלה */
+.bottom-bar.minimized {
+    transform: translateY(calc(100% - 8px));
+}
 
 .tab-btn { flex: 1; padding: 12px; border-radius: 15px; font-weight: bold; text-align: center; cursor: pointer; transition: 0.2s; background: white; color: #666; border: 1px solid #eee; }
 .tab-active { background: #7367f0 !important; color: white !important; }
@@ -41,7 +60,7 @@ body { font-family: system-ui, sans-serif; background: #f4f7fa; padding-bottom: 
     max-width: 400px; 
     background-color: #ffffff !important; 
     border-radius: 0 0 30px 30px; 
-    padding: 6px 25px; /* הוקטן מ-8px לטובת קיצור גובה */
+    padding: 6px 25px; 
     text-align: center; 
     color: #333; 
     border: 2px solid #eee; 
@@ -50,13 +69,13 @@ body { font-family: system-ui, sans-serif; background: #f4f7fa; padding-bottom: 
 
 .modal-input { 
     width: 100%; 
-    padding: 6px; /* הוקטן מ-8px לטובת קיצור גובה */
+    padding: 6px; 
     border: 2px solid #f3f4f6; 
     border-radius: 16px; 
     font-size: 16px; 
     text-align: center; 
     outline: none; 
-    margin-bottom: 5px; /* הוקטן מ-6px לטובת קיצור גובה */
+    margin-bottom: 5px; 
     font-weight: bold; 
     background: #f9fafb !important; 
     color: #333; 
@@ -67,12 +86,6 @@ body { font-family: system-ui, sans-serif; background: #f4f7fa; padding-bottom: 
     margin-top: 2px;
     margin-bottom: 8px;
     font-size: 1.15rem;
-}
-
-/* התאמת כפתורי המודאל */
-.edit-modal .flex button {
-    padding-top: 10px;
-    padding-bottom: 10px;
 }
 
 .app-header { background: white; padding: 10px 20px; display: flex; flex-direction: row-reverse; justify-content: space-between; align-items: center; box-shadow: 0 2px 8px rgba(0,0,0,0.05); position: sticky; top: 0; z-index: 2000; height: 60px; }
