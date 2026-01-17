@@ -36,7 +36,6 @@ function save() {
     localStorage.setItem('BUDGET_FINAL_V27', JSON.stringify(db));
     render();
     
-    // סנכרון אוטומטי רק כשמחובר
     if (isConnected && !isSyncing) {
         if (syncTimeout) clearTimeout(syncTimeout);
         syncTimeout = setTimeout(() => {
@@ -263,7 +262,6 @@ function prepareDeleteList(id) {
     openModal('deleteListModal'); 
 }
 
-// ========== ייבוא טקסט ==========
 function importFromText() {
     const text = document.getElementById('importText').value.trim();
     if (!text) {
@@ -271,7 +269,6 @@ function importFromText() {
         return;
     }
 
-    // חילוץ שם רשימה מהשורה הראשונה
     const lines = text.split('\n').filter(line => line.trim());
     let listName = 'רשימה מיובאת';
     let startIndex = 0;
@@ -281,11 +278,10 @@ function importFromText() {
         const match = firstLine.match(/\*([^*]+)\*/);
         if (match) {
             listName = match[1].trim();
-            startIndex = 1; // דילוג על שורת הכותרת
+            startIndex = 1;
         }
     }
 
-    // בדיקה אם השם כבר קיים והוספת מספר
     let finalName = listName;
     let counter = 1;
     const existingNames = Object.values(db.lists).map(l => l.name);
@@ -294,22 +290,18 @@ function importFromText() {
         finalName = `${listName} ${counter}`;
     }
 
-    // יצירת רשימה חדשה
     const newListId = 'L' + Date.now();
     const items = [];
 
-    // ניתוח שורות
     for (let i = startIndex; i < lines.length; i++) {
         const line = lines[i].trim();
         
-        // דילוג על שורות ריקות, אימוג'י בלבד, וסיכומים
         if (!line || line.includes('🛒') || line.includes('💰') || line.includes('סה"כ') || line === '---') {
             continue;
         }
 
         let itemAdded = false;
 
-        // 1. פורמט מלא: ⬜ *שם* (xכמות) - ₪מחיר
         const fullMatch = line.match(/[⬜✅]\s*\*([^*]+)\*\s*\(x(\d+)\)\s*-\s*₪([\d.]+)/);
         if (fullMatch) {
             const name = fullMatch[1].trim();
@@ -321,7 +313,6 @@ function importFromText() {
             itemAdded = true;
         }
 
-        // 2. פורמט עם נקודה וכמות: • שם (xכמות)
         if (!itemAdded) {
             const bulletQtyMatch = line.match(/^[•\-]\s*\*?([^(]+)\*?\s*\(x(\d+)\)/);
             if (bulletQtyMatch) {
@@ -334,7 +325,6 @@ function importFromText() {
             }
         }
 
-        // 3. פורמט עם נקודה: • שם
         if (!itemAdded) {
             const bulletMatch = line.match(/^[•\-]\s*\*?(.+?)\*?$/);
             if (bulletMatch) {
@@ -346,7 +336,6 @@ function importFromText() {
             }
         }
 
-        // 4. פורמט עם כוכביות: *שם*
         if (!itemAdded) {
             const starMatch = line.match(/^\*([^*]+)\*$/);
             if (starMatch) {
@@ -358,11 +347,8 @@ function importFromText() {
             }
         }
 
-        // 5. פורמט פשוט: כל שורה היא מוצר (אם אין תו מיוחד בהתחלה)
         if (!itemAdded && line.length > 0) {
-            // ניקוי תווים מיוחדים אפשריים
             const name = line.replace(/^[\d\.\)\-\s]+/, '').trim();
-            // וידוא שזה לא מספר בלבד
             if (name && !/^\d+$/.test(name)) {
                 items.push({ name, price: 0, qty: 1, checked: false });
             }
@@ -374,7 +360,6 @@ function importFromText() {
         return;
     }
 
-    // הוספת הרשימה
     db.lists[newListId] = { name: finalName, items };
     db.currentId = newListId;
     activePage = 'lists';
@@ -418,38 +403,15 @@ function preparePrint() {
     idsToPrint.forEach(id => {
         const l = db.lists[id]; 
         let listTotal = 0;
-        html += `
-            <div style="border-bottom: 2px solid #7367f0; margin-bottom: 20px; padding-bottom: 10px;">
-                <h2>${l.name}</h2>
-                <table style="width:100%; border-collapse:collapse; border:1px solid #ddd; margin-bottom:10px;">
-                    <thead>
-                        <tr style="background:#f9fafb;">
-                            <th style="padding:8px; border:1px solid #ddd; text-align:right;">מוצר</th>
-                            <th style="padding:8px; border:1px solid #ddd; text-align:center;">כמות</th>
-                            <th style="padding:8px; border:1px solid #ddd; text-align:left;">סה"כ</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-        `;
+        html += `<div style="border-bottom: 2px solid #7367f0; margin-bottom: 20px; padding-bottom: 10px;"><h2>${l.name}</h2><table style="width:100%; border-collapse:collapse; border:1px solid #ddd; margin-bottom:10px;"><thead><tr style="background:#f9fafb;"><th style="padding:8px; border:1px solid #ddd; text-align:right;">מוצר</th><th style="padding:8px; border:1px solid #ddd; text-align:center;">כמות</th><th style="padding:8px; border:1px solid #ddd; text-align:left;">סה"כ</th></tr></thead><tbody>`;
         
         l.items.forEach(i => { 
             const s = i.price * i.qty; 
             listTotal += s; 
-            html += `
-                <tr>
-                    <td style="padding:8px; border:1px solid #ddd; text-align:right;">${i.name}</td>
-                    <td style="padding:8px; border:1px solid #ddd; text-align:center;">${i.qty}</td>
-                    <td style="padding:8px; border:1px solid #ddd; text-align:left;">₪${s.toFixed(2)}</td>
-                </tr>
-            `; 
+            html += `<tr><td style="padding:8px; border:1px solid #ddd; text-align:right;">${i.name}</td><td style="padding:8px; border:1px solid #ddd; text-align:center;">${i.qty}</td><td style="padding:8px; border:1px solid #ddd; text-align:left;">₪${s.toFixed(2)}</td></tr>`; 
         });
         
-        html += `
-                    </tbody>
-                </table>
-                <div style="text-align:left; font-weight:bold;">סיכום רשימה: ₪${listTotal.toFixed(2)}</div>
-            </div>
-        `;
+        html += `</tbody></table><div style="text-align:left; font-weight:bold;">סיכום רשימה: ₪${listTotal.toFixed(2)}</div></div>`;
         grandTotal += listTotal;
     });
     
@@ -527,34 +489,43 @@ function saveTotal() {
     closeModal('editTotalModal');
 }
 
-// ========== Google Drive Integration - IMPROVED ==========
-
 function gapiLoaded() {
     gapi.load('client', initializeGapiClient);
 }
 
 async function initializeGapiClient() {
-    await gapi.client.init({
-        apiKey: GOOGLE_API_KEY,
-        discoveryDocs: [DISCOVERY_DOC],
-    });
-    gapiInited = true;
-    maybeEnableButtons();
+    try {
+        await gapi.client.init({
+            apiKey: GOOGLE_API_KEY,
+            discoveryDocs: [DISCOVERY_DOC],
+        });
+        gapiInited = true;
+        maybeEnableButtons();
+    } catch (err) {
+        console.error('שגיאה באתחול GAPI:', err);
+    }
 }
 
 function gisLoaded() {
-    tokenClient = google.accounts.oauth2.initTokenClient({
-        client_id: GOOGLE_CLIENT_ID,
-        scope: SCOPES,
-        callback: '',
-    });
-    gisInited = true;
-    maybeEnableButtons();
+    try {
+        tokenClient = google.accounts.oauth2.initTokenClient({
+            client_id: GOOGLE_CLIENT_ID,
+            scope: SCOPES,
+            callback: '',
+        });
+        gisInited = true;
+        maybeEnableButtons();
+    } catch (err) {
+        console.error('שגיאה באתחול GIS:', err);
+    }
 }
 
 function maybeEnableButtons() {
     if (gapiInited && gisInited) {
-        document.getElementById('cloudBtn').onclick = handleCloudClick;
+        const cloudBtn = document.getElementById('cloudBtn');
+        if (cloudBtn) {
+            cloudBtn.onclick = handleCloudClick;
+        }
     }
 }
 
@@ -577,7 +548,6 @@ function handleAuthClick() {
         isConnected = true;
         updateCloudIndicator('connected');
         
-        // טעינה ומיזוג חכם
         await smartLoadAndMerge();
     };
 
@@ -590,6 +560,8 @@ function handleAuthClick() {
 
 function updateCloudIndicator(status) {
     const indicator = document.getElementById('cloudIndicator');
+    if (!indicator) return;
+    
     if (status === 'connected') {
         indicator.className = 'w-2 h-2 bg-green-500 rounded-full';
     } else if (status === 'syncing') {
@@ -681,4 +653,135 @@ async function syncToCloud() {
             form.append('file', new Blob([dataToSave], { type: 'application/json' }));
 
             const response = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id', {
-                method: '
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${accessToken}`
+                },
+                body: form
+            });
+
+            const result = await response.json();
+            driveFileId = result.id;
+        }
+
+        console.log('✅ סונכרן לענן');
+    } catch (err) {
+        console.error('❌ שגיאה בסינכרון:', err);
+    } finally {
+        isSyncing = false;
+        updateCloudIndicator('connected');
+    }
+}
+
+async function smartLoadAndMerge() {
+    if (!accessToken || isSyncing) return;
+    
+    isSyncing = true;
+    updateCloudIndicator('syncing');
+
+    try {
+        const folderId = await findOrCreateFolder();
+        if (!folderId) {
+            isSyncing = false;
+            updateCloudIndicator('connected');
+            return;
+        }
+
+        const fileId = await findFileInFolder(folderId);
+        
+        if (!fileId) {
+            console.log('📁 אין קובץ בענן - מעלה נתונים מקומיים');
+            isSyncing = false;
+            updateCloudIndicator('connected');
+            await syncToCloud();
+            return;
+        }
+
+        driveFileId = fileId;
+
+        const response = await fetch(`https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`, {
+            headers: {
+                'Authorization': `Bearer ${accessToken}`
+            }
+        });
+
+        const cloudData = await response.json();
+        
+        const localData = localStorage.getItem('BUDGET_FINAL_V27');
+        let isLocalEmpty = false;
+        
+        try {
+            if (!localData) {
+                isLocalEmpty = true;
+            } else {
+                const parsed = JSON.parse(localData);
+                isLocalEmpty = !parsed.lists || Object.keys(parsed.lists).length === 0;
+            }
+        } catch (e) {
+            isLocalEmpty = true;
+        }
+        
+        if (isLocalEmpty) {
+            console.log('📥 localStorage ריק - טוען הכל מהענן');
+            db = cloudData;
+            localStorage.setItem('BUDGET_FINAL_V27', JSON.stringify(db));
+            render();
+        } else {
+            console.log('🔄 מבצע מיזוג חכם');
+            
+            const localLists = {...db.lists};
+            const cloudLists = cloudData.lists;
+            
+            Object.keys(cloudLists).forEach(listId => {
+                if (!localLists[listId]) {
+                    localLists[listId] = cloudLists[listId];
+                    console.log(`➕ הוספה מהענן: ${cloudLists[listId].name}`);
+                } else {
+                    const localItems = [...localLists[listId].items];
+                    const cloudItems = cloudLists[listId].items;
+                    
+                    const localItemNames = new Set(localItems.map(i => i.name));
+                    
+                    cloudItems.forEach(cloudItem => {
+                        if (!localItemNames.has(cloudItem.name)) {
+                            localLists[listId].items.push(cloudItem);
+                            console.log(`➕ הוספת מוצר מהענן: ${cloudItem.name}`);
+                        }
+                    });
+                    
+                    localLists[listId].name = cloudLists[listId].name;
+                }
+            });
+            
+            db.lists = localLists;
+            
+            localStorage.setItem('BUDGET_FINAL_V27', JSON.stringify(db));
+            render();
+            
+            await syncToCloud();
+        }
+        
+        console.log('✅ טעינה ומיזוג הושלמו');
+    } catch (err) {
+        console.error('❌ שגיאה בטעינה:', err);
+    } finally {
+        isSyncing = false;
+        updateCloudIndicator('connected');
+    }
+}
+
+async function manualSync() {
+    await smartLoadAndMerge();
+}
+
+const script1 = document.createElement('script');
+script1.src = 'https://apis.google.com/js/api.js';
+script1.onload = gapiLoaded;
+document.head.appendChild(script1);
+
+const script2 = document.createElement('script');
+script2.src = 'https://accounts.google.com/gsi/client';
+script2.onload = gisLoaded;
+document.head.appendChild(script2);
+
+render();
