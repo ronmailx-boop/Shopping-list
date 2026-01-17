@@ -164,22 +164,22 @@ function render() {
                 paid += lP; 
             }
             const div = document.createElement('div'); 
-            div.className = "item-card p-4"; 
+            div.className = "item-card"; // שימוש במחלקה הזהה למוצר
             div.dataset.id = id;
             div.innerHTML = `
-                <div class="flex justify-between items-center">
-                    <div class="flex items-center gap-4">
+                <div class="flex justify-between items-center mb-4">
+                    <div class="flex items-center gap-3 flex-1">
                         <input type="checkbox" ${isSel ? 'checked' : ''} onchange="toggleSum('${id}')" class="w-7 h-7 accent-indigo-600">
-                        <span class="font-bold text-xl cursor-pointer" onclick="db.currentId='${id}'; showPage('lists')">${l.name}</span>
+                        <div class="flex-1 text-2xl font-bold cursor-pointer" onclick="db.currentId='${id}'; showPage('lists')">${l.name}</div>
                     </div>
-                    <div class="flex items-center gap-3">
-                        <div class="text-indigo-600 font-black text-xl">₪${lT.toFixed(2)}</div>
-                        <button onclick="prepareDeleteList('${id}')" class="text-red-400 p-1">
-                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" stroke-width="2"></path>
-                            </svg>
-                        </button>
-                    </div>
+                    <button onclick="prepareDeleteList('${id}')" class="trash-btn">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path>
+                        </svg>
+                    </button>
+                </div>
+                <div class="flex justify-end items-center">
+                    <span class="text-2xl font-black text-indigo-600">₪${lT.toFixed(2)}</span>
                 </div>
             `;
             container.appendChild(div);
