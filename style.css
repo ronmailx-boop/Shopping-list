@@ -35,13 +35,13 @@ body { font-family: system-ui, sans-serif; background: #f4f7fa; padding-bottom: 
 }
 .modal-overlay.active { display: flex; }
 
-/* קיצור גובה ב-20% ע"י צמצום מרווחים */
+/* קיצור גובה ב-20% נוספים ע"י הידוק המבנה */
 .edit-modal { 
     width: 90%; 
     max-width: 400px; 
     background-color: #ffffff !important; 
-    border-radius: 0 0 30px 30px; /* פינות מעוגלות רק למטה למראה צמוד */
-    padding: 18px 25px; /* צמצום padding (היה 30px) */
+    border-radius: 0 0 30px 30px; 
+    padding: 12px 25px; /* צמצום padding עליון ותחתון (היה 18px) */
     text-align: center; 
     color: #333; 
     border: 2px solid #eee; 
@@ -50,16 +50,23 @@ body { font-family: system-ui, sans-serif; background: #f4f7fa; padding-bottom: 
 
 .modal-input { 
     width: 100%; 
-    padding: 14px; /* צמצום (היה 18px) */
+    padding: 10px; /* צמצום גובה השדה (היה 14px) */
     border: 2px solid #f3f4f6; 
     border-radius: 18px; 
     font-size: 17px; 
     text-align: center; 
     outline: none; 
-    margin-bottom: 10px; /* צמצום (היה 15px) */
+    margin-bottom: 8px; /* צמצום רווח בין שדות (היה 10px) */
     font-weight: bold; 
     background: #f9fafb !important; 
     color: #333; 
+}
+
+/* התאמת כותרת המודאל */
+.edit-modal h2 {
+    margin-top: 5px;
+    margin-bottom: 10px;
+    font-size: 1.25rem;
 }
 
 .app-header { background: white; padding: 10px 20px; display: flex; flex-direction: row-reverse; justify-content: space-between; align-items: center; box-shadow: 0 2px 8px rgba(0,0,0,0.05); position: sticky; top: 0; z-index: 2000; height: 60px; }
