@@ -90,6 +90,7 @@ function openModal(id) {
     
     if(id === 'newListModal') {
         document.getElementById('newListNameInput').value = '';
+        document.getElementById('newListUrlInput').value = '';
         setTimeout(() => document.getElementById('newListNameInput').focus(), 150);
     }
     
@@ -98,7 +99,6 @@ function openModal(id) {
         setTimeout(() => document.getElementById('editListNameInput').focus(), 150);
     }
     
-    // תיקון: פתיחת מקלדת אוטומטית בעדכון מחיר
     if(id === 'editTotalModal') {
         setTimeout(() => document.getElementById('editTotalInput').focus(), 150);
     }
@@ -186,17 +186,30 @@ function render() {
             const div = document.createElement('div'); 
             div.className = "item-card"; 
             div.dataset.id = id;
+
+            // בניית כפתור אתר אינטרנט אם קיים לינק
+            const webBtn = l.url ? `
+                <button onclick="window.location.href='${l.url.startsWith('http') ? l.url : 'https://' + l.url}'" class="w-10 h-10 rounded-full bg-indigo-50 text-indigo-600 flex items-center justify-center border border-indigo-100 shadow-sm ml-2">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9"></path>
+                    </svg>
+                </button>
+            ` : '';
+
             div.innerHTML = `
                 <div class="flex justify-between items-center mb-4">
                     <div class="flex items-center gap-3 flex-1">
                         <input type="checkbox" ${isSel ? 'checked' : ''} onchange="toggleSum('${id}')" class="w-7 h-7 accent-indigo-600">
                         <div class="flex-1 text-2xl font-bold cursor-pointer" onclick="db.currentId='${id}'; showPage('lists')">${l.name}</div>
                     </div>
-                    <button onclick="prepareDeleteList('${id}')" class="trash-btn">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path>
-                        </svg>
-                    </button>
+                    <div class="flex items-center">
+                        ${webBtn}
+                        <button onclick="prepareDeleteList('${id}')" class="trash-btn">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path>
+                            </svg>
+                        </button>
+                    </div>
                 </div>
                 <div class="flex justify-end items-center">
                     <span class="text-2xl font-black text-indigo-600">₪${lT.toFixed(2)}</span>
@@ -252,10 +265,12 @@ function executeClear() {
 
 function saveNewList() { 
     const n = document.getElementById('newListNameInput').value.trim(); 
+    const u = document.getElementById('newListUrlInput').value.trim();
     if(n) { 
         const id = 'L' + Date.now(); 
         db.lists[id] = {
             name: n, 
+            url: u, // שמירת האתר
             items: []
         }; 
         db.currentId = id; 
@@ -817,6 +832,24 @@ window.addEventListener('DOMContentLoaded', () => {
             if (e.key === 'Enter') {
                 e.preventDefault();
                 addItem();
+            }
+        });
+    }
+
+    // --- Enter למעבר בטופס רשימה חדשה ---
+    const listNameInput = document.getElementById('newListNameInput');
+    const listUrlInput = document.getElementById('newListUrlInput');
+    if (listNameInput && listUrlInput) {
+        listNameInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                listUrlInput.focus();
+            }
+        });
+        listUrlInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                saveNewList();
             }
         });
     }
