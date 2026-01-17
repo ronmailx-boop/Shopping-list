@@ -41,7 +41,7 @@ body { font-family: system-ui, sans-serif; background: #f4f7fa; padding-bottom: 
     max-width: 400px; 
     background-color: #ffffff !important; 
     border-radius: 0 0 30px 30px; 
-    padding: 8px 25px; /* צמצום padding (היה 12px) */
+    padding: 6px 25px; /* הוקטן מ-8px לטובת קיצור גובה */
     text-align: center; 
     color: #333; 
     border: 2px solid #eee; 
@@ -50,13 +50,13 @@ body { font-family: system-ui, sans-serif; background: #f4f7fa; padding-bottom: 
 
 .modal-input { 
     width: 100%; 
-    padding: 8px; /* צמצום גובה השדה (היה 10px) */
+    padding: 6px; /* הוקטן מ-8px לטובת קיצור גובה */
     border: 2px solid #f3f4f6; 
     border-radius: 16px; 
     font-size: 16px; 
     text-align: center; 
     outline: none; 
-    margin-bottom: 6px; /* צמצום רווח בין אלמנטים (היה 8px) */
+    margin-bottom: 5px; /* הוקטן מ-6px לטובת קיצור גובה */
     font-weight: bold; 
     background: #f9fafb !important; 
     color: #333; 
