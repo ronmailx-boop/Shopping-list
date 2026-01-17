@@ -40,6 +40,10 @@ body.dark-mode { background: #1a1a2e; color: #e0e0e0; }
 .dark-mode #selectAllLabel { color: white !important; }
 .dark-mode .select-all-container { background-color: #0f3460 !important; }
 
+/* תיקון נראות מספר הכמות במצב לילה */
+.dark-mode .item-card span.font-bold { color: white !important; }
+.dark-mode .item-card .bg-gray-50 { background-color: rgba(255,255,255,0.1) !important; border-color: rgba(255,255,255,0.2); }
+
 @media print {
     .no-print, .bottom-bar, .app-header, .tab-btn, .modal-overlay, .trash-btn, input, button { display: none !important; }
     #printArea { display: block !important; width: 100%; direction: rtl; }
