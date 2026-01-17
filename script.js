@@ -879,3 +879,4 @@ script2.onload = gisLoaded;
 document.head.appendChild(script2);
 
 render();
+
