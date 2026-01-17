@@ -44,6 +44,12 @@ function save() {
     }
 }
 
+// לוגיקה להסתרה/גילוי הבר התחתון
+function toggleBottomBar() {
+    const bar = document.querySelector('.bottom-bar');
+    bar.classList.toggle('minimized');
+}
+
 function toggleItem(idx) {
     db.lists[db.currentId].items[idx].checked = !db.lists[db.currentId].items[idx].checked;
     save();
@@ -82,7 +88,6 @@ function openModal(id) {
         setTimeout(() => document.getElementById('itemName').focus(), 150);
     }
     
-    // תיקון: הוספת פוקוס אוטומטי לפתיחת המקלדת ברשימה חדשה
     if(id === 'newListModal') {
         document.getElementById('newListNameInput').value = '';
         setTimeout(() => document.getElementById('newListNameInput').focus(), 150);
@@ -775,6 +780,20 @@ async function loadAndMerge() {
 async function manualSync() {
     await loadAndMerge();
 }
+
+// אתחול והוספת מאזין לבר הסגול
+window.addEventListener('DOMContentLoaded', () => {
+    const bottomBar = document.querySelector('.bottom-bar');
+    if (bottomBar) {
+        bottomBar.addEventListener('click', toggleBottomBar);
+        
+        // מניעת סגירה כאשר לוחצים על אלמנטים אינטראקטיביים בתוך הבר
+        const interactiveElements = bottomBar.querySelectorAll('button, input');
+        interactiveElements.forEach(el => {
+            el.addEventListener('click', (e) => e.stopPropagation());
+        });
+    }
+});
 
 // טעינת Google API
 const script1 = document.createElement('script');
