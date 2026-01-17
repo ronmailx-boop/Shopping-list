@@ -10,6 +10,7 @@ let gapiInited = false;
 let gisInited = false;
 let tokenClient;
 let accessToken = null;
+let driveFileId = null;
 let syncTimeout = null;
 let isSyncing = false;
 let isConnected = false;
@@ -29,7 +30,6 @@ let currentEditIdx = null;
 let listToDelete = null;
 let sortableInstance = null;
 
-// פונקציית שמירה מרכזית
 function save() { 
     db.lastActivePage = activePage;
     db.lastSync = Date.now();
@@ -40,12 +40,11 @@ function save() {
         if (syncTimeout) clearTimeout(syncTimeout);
         syncTimeout = setTimeout(() => {
             syncToCloud();
-        }, 2000);
+        }, 1500);
     }
 }
 
 function toggleItem(idx) {
-    if(!db.lists[db.currentId]) return;
     db.lists[db.currentId].items[idx].checked = !db.lists[db.currentId].items[idx].checked;
     save();
 }
@@ -69,7 +68,7 @@ function toggleDarkMode() {
 
 function showPage(p) { 
     activePage = p; 
-    render();
+    save(); 
 }
 
 function openModal(id) { 
@@ -80,6 +79,9 @@ function openModal(id) {
         document.getElementById('itemName').value = '';
         document.getElementById('itemPrice').value = '';
         setTimeout(() => document.getElementById('itemName').focus(), 150);
+    }
+    if(id === 'editListNameModal') {
+        document.getElementById('editListNameInput').value = db.lists[db.currentId].name;
     }
 }
 
@@ -94,13 +96,9 @@ function render() {
     container.innerHTML = '';
     let total = 0, paid = 0;
 
-    // עדכון טאבים
-    const tabLists = document.getElementById('tabLists');
-    const tabSummary = document.getElementById('tabSummary');
-    if(tabLists) tabLists.className = `tab-btn ${activePage === 'lists' ? 'tab-active' : ''}`;
-    if(tabSummary) tabSummary.className = `tab-btn ${activePage === 'summary' ? 'tab-active' : ''}`;
+    document.getElementById('tabLists').className = `tab-btn ${activePage === 'lists' ? 'tab-active' : ''}`;
+    document.getElementById('tabSummary').className = `tab-btn ${activePage === 'summary' ? 'tab-active' : ''}`;
 
-    // עדכון כפתור נעילה
     const btn = document.getElementById('mainLockBtn');
     const path = document.getElementById('lockIconPath');
     const tag = document.getElementById('statusTag');
@@ -113,9 +111,8 @@ function render() {
     if (activePage === 'lists') {
         document.getElementById('pageLists').classList.remove('hidden');
         document.getElementById('pageSummary').classList.add('hidden');
-        const list = db.lists[db.currentId] || {name: 'רשימה', items: []};
+        const list = db.lists[db.currentId];
         document.getElementById('listNameDisplay').innerText = list.name;
-        
         list.items.forEach((item, idx) => {
             const sub = item.price * item.qty; 
             total += sub; 
@@ -140,7 +137,8 @@ function render() {
                         <button onclick="changeQty(${idx}, -1)" class="text-red-500 text-2xl font-bold">-</button>
                     </div>
                     <span onclick="openEditTotalModal(${idx})" class="text-2xl font-black text-indigo-600">₪${sub.toFixed(2)}</span>
-                </div>`;
+                </div>
+            `;
             container.appendChild(div);
         });
     } else {
@@ -151,7 +149,8 @@ function render() {
             let lT = 0, lP = 0;
             l.items.forEach(i => { 
                 const s = i.price * i.qty; 
-                lT += s; if(i.checked) lP += s; 
+                lT += s; 
+                if(i.checked) lP += s; 
             });
             const isSel = db.selectedInSummary.includes(id); 
             if (isSel) { total += lT; paid += lP; }
@@ -162,7 +161,7 @@ function render() {
                 <div class="flex justify-between items-center">
                     <div class="flex items-center gap-4">
                         <input type="checkbox" ${isSel ? 'checked' : ''} onchange="toggleSum('${id}')" class="w-7 h-7 accent-indigo-600">
-                        <span class="font-bold text-xl cursor-pointer" onclick="db.currentId='${id}'; activePage='lists'; render();">${l.name}</span>
+                        <span class="font-bold text-xl cursor-pointer" onclick="db.currentId='${id}'; showPage('lists')">${l.name}</span>
                     </div>
                     <div class="flex items-center gap-3">
                         <div class="text-indigo-600 font-black text-xl">₪${lT.toFixed(2)}</div>
@@ -170,7 +169,8 @@ function render() {
                             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" stroke-width="2"></path></svg>
                         </button>
                     </div>
-                </div>`;
+                </div>
+            `;
             container.appendChild(div);
         });
     }
@@ -266,41 +266,74 @@ function initSortable() {
     }
 }
 
-// ========== Google Drive Integration ==========
+// ========== תיקון פונקציית הדפסה ==========
+function preparePrint() { 
+    closeModal('settingsModal');
+    let printArea = document.getElementById('printArea');
+    if (!printArea) return;
 
-async function gapiLoaded() {
-    try {
-        await gapi.load('client', async () => {
-            await gapi.client.init({
-                apiKey: GOOGLE_API_KEY,
-                discoveryDocs: [DISCOVERY_DOC],
-            });
-            gapiInited = true;
-            maybeEnableButtons();
+    let grandTotal = 0;
+    let html = `<h1 style="text-align:center; color:#7367f0;">דוח קניות מפורט - Vplus</h1>`;
+    const idsToPrint = db.selectedInSummary.length > 0 ? db.selectedInSummary : Object.keys(db.lists);
+    
+    idsToPrint.forEach(id => {
+        const l = db.lists[id]; 
+        let listTotal = 0;
+        html += `<div style="border-bottom: 2px solid #7367f0; margin-bottom: 20px; padding-bottom: 10px;">`;
+        html += `<h2>${l.name}</h2>`;
+        html += `<table style="width:100%; border-collapse:collapse; border:1px solid #ddd; margin-bottom:10px;">`;
+        html += `<thead><tr style="background:#f9fafb;"><th style="padding:8px; border:1px solid #ddd; text-align:right;">מוצר</th><th style="padding:8px; border:1px solid #ddd; text-align:center;">כמות</th><th style="padding:8px; border:1px solid #ddd; text-align:left;">סה"כ</th></tr></thead>`;
+        html += `<tbody>`;
+        
+        l.items.forEach(i => { 
+            const s = i.price * i.qty; 
+            listTotal += s; 
+            html += `<tr><td style="padding:8px; border:1px solid #ddd; text-align:right;">${i.name}</td><td style="padding:8px; border:1px solid #ddd; text-align:center;">${i.qty}</td><td style="padding:8px; border:1px solid #ddd; text-align:left;">₪${s.toFixed(2)}</td></tr>`; 
         });
-    } catch(e) { console.error("GAPI Load Error", e); }
+        
+        html += `</tbody></table><div style="text-align:left; font-weight:bold;">סיכום רשימה: ₪${listTotal.toFixed(2)}</div></div>`;
+        grandTotal += listTotal;
+    });
+    
+    html += `<div style="text-align:center; margin-top:30px; padding:15px; border:3px double #7367f0; font-size:1.5em; font-weight:900;">סה"כ כולל: ₪${grandTotal.toFixed(2)}</div>`;
+    printArea.innerHTML = html; 
+    window.print();
+}
+
+// ========== Google Drive Configuration ==========
+
+function gapiLoaded() {
+    gapi.load('client', initializeGapiClient);
+}
+
+async function initializeGapiClient() {
+    await gapi.client.init({
+        apiKey: GOOGLE_API_KEY,
+        discoveryDocs: [DISCOVERY_DOC],
+    });
+    gapiInited = true;
+    maybeEnableButtons();
 }
 
 function gisLoaded() {
     tokenClient = google.accounts.oauth2.initTokenClient({
         client_id: GOOGLE_CLIENT_ID,
         scope: SCOPES,
-        callback: '', 
+        callback: '',
     });
     gisInited = true;
     maybeEnableButtons();
 }
 
 function maybeEnableButtons() {
-    const cloudBtn = document.getElementById('cloudBtn');
-    if (gapiInited && gisInited && cloudBtn) {
-        cloudBtn.onclick = handleCloudClick;
+    if (gapiInited && gisInited) {
+        document.getElementById('cloudBtn').onclick = handleCloudClick;
     }
 }
 
 function handleCloudClick() {
     if (isConnected) {
-        smartLoadAndMerge();
+        manualSync();
     } else {
         handleAuthClick();
     }
@@ -325,7 +358,9 @@ function handleAuthClick() {
 function updateCloudIndicator(status) {
     const indicator = document.getElementById('cloudIndicator');
     if (!indicator) return;
-    indicator.className = `w-2 h-2 rounded-full ${status === 'connected' ? 'bg-green-500' : status === 'syncing' ? 'bg-yellow-500 animate-pulse' : 'bg-gray-300'}`;
+    if (status === 'connected') indicator.className = 'w-2 h-2 bg-green-500 rounded-full';
+    else if (status === 'syncing') indicator.className = 'w-2 h-2 bg-yellow-500 rounded-full animate-pulse';
+    else indicator.className = 'w-2 h-2 bg-gray-300 rounded-full';
 }
 
 async function findOrCreateFolder() {
@@ -370,7 +405,7 @@ async function syncToCloud() {
                 body: form
             });
         }
-    } catch (e) { console.error("Sync Error", e); }
+    } catch (e) { console.error(e); }
     isSyncing = false;
     updateCloudIndicator('connected');
 }
@@ -388,26 +423,24 @@ async function smartLoadAndMerge() {
                 headers: { 'Authorization': `Bearer ${accessToken}` }
             });
             const cloudData = await response.json();
-            // מיזוג פשוט - הענן קובע, אך שומרים רשימות מקומיות חדשות
             db.lists = { ...cloudData.lists, ...db.lists };
-            db.currentId = cloudData.currentId || db.currentId;
             save();
         }
-    } catch (e) { console.error("Load Error", e); }
+    } catch (e) { console.error(e); }
     updateCloudIndicator('connected');
 }
 
-// טעינת סקריפטים ואיטול
-window.addEventListener('DOMContentLoaded', () => {
-    render();
-    
-    const s1 = document.createElement('script');
-    s1.src = 'https://apis.google.com/js/api.js';
-    s1.onload = gapiLoaded;
-    document.head.appendChild(s1);
+function manualSync() { smartLoadAndMerge(); }
 
-    const s2 = document.createElement('script');
-    s2.src = 'https://accounts.google.com/gsi/client';
-    s2.onload = gisLoaded;
-    document.head.appendChild(s2);
-});
+// טעינת סקריפטים
+const script1 = document.createElement('script');
+script1.src = 'https://apis.google.com/js/api.js';
+script1.onload = gapiLoaded;
+document.head.appendChild(script1);
+
+const script2 = document.createElement('script');
+script2.src = 'https://accounts.google.com/gsi/client';
+script2.onload = gisLoaded;
+document.head.appendChild(script2);
+
+render();
