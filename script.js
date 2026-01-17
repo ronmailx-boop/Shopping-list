@@ -75,14 +75,24 @@ function openModal(id) {
     const m = document.getElementById(id);
     if(!m) return;
     m.classList.add('active'); 
+    
     if(id === 'inputForm') {
         document.getElementById('itemName').value = '';
         document.getElementById('itemPrice').value = '';
         setTimeout(() => document.getElementById('itemName').focus(), 150);
     }
+    
+    // תיקון: הוספת פוקוס אוטומטי לפתיחת המקלדת ברשימה חדשה
+    if(id === 'newListModal') {
+        document.getElementById('newListNameInput').value = '';
+        setTimeout(() => document.getElementById('newListNameInput').focus(), 150);
+    }
+    
     if(id === 'editListNameModal') {
         document.getElementById('editListNameInput').value = db.lists[db.currentId].name;
+        setTimeout(() => document.getElementById('editListNameInput').focus(), 150);
     }
+    
     if(id === 'importModal') {
         document.getElementById('importText').value = '';
         setTimeout(() => document.getElementById('importText').focus(), 150);
@@ -164,7 +174,7 @@ function render() {
                 paid += lP; 
             }
             const div = document.createElement('div'); 
-            div.className = "item-card"; // שימוש במחלקה הזהה למוצר
+            div.className = "item-card"; 
             div.dataset.id = id;
             div.innerHTML = `
                 <div class="flex justify-between items-center mb-4">
