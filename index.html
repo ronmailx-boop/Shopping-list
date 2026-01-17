@@ -120,7 +120,17 @@
         </div>
     </div>
     
-    <div id="newListModal" class="modal-overlay no-print"><div class="edit-modal"><h2>רשימה חדשה</h2><input type="text" id="newListNameInput" placeholder="שם הרשימה" class="modal-input"><div class="flex gap-3"><button class="bg-indigo-600 text-white flex-1 py-4 rounded-xl font-bold shadow-md" onclick="saveNewList()">צור</button><button class="bg-gray-100 flex-1 py-4 rounded-xl font-bold" onclick="closeModal('newListModal')">ביטול</button></div></div></div>
+    <div id="newListModal" class="modal-overlay no-print">
+        <div class="edit-modal">
+            <h2>רשימה חדשה</h2>
+            <input type="text" id="newListNameInput" placeholder="שם הרשימה" class="modal-input">
+            <input type="url" id="newListUrlInput" placeholder="כתובת אתר (אופציונלי)" class="modal-input">
+            <div class="flex gap-3">
+                <button class="bg-indigo-600 text-white flex-1 py-4 rounded-xl font-bold shadow-md" onclick="saveNewList()">צור</button>
+                <button class="bg-gray-100 flex-1 py-4 rounded-xl font-bold" onclick="closeModal('newListModal')">ביטול</button>
+            </div>
+        </div>
+    </div>
     <div id="confirmModal" class="modal-overlay no-print"><div class="edit-modal"><h2 class="text-red-600">ניקוי מוצרים</h2><p class="mb-6">למחוק את כל המוצרים?</p><div class="flex gap-3"><button class="bg-red-500 text-white flex-1 py-4 rounded-xl font-bold shadow-lg" onclick="executeClear()">נקה</button><button class="bg-gray-100 flex-1 py-4 rounded-xl font-bold" onclick="closeModal('confirmModal')">ביטול</button></div></div></div>
     <div id="deleteListModal" class="modal-overlay no-print"><div class="edit-modal"><h2 class="text-red-600">מחיקת רשימה</h2><div class="flex gap-3"><button id="confirmDeleteListBtn" class="bg-red-500 text-white flex-1 py-4 rounded-xl font-bold" onclick="deleteFullList()">מחק</button><button class="bg-gray-100 flex-1 py-4 rounded-xl font-bold" onclick="closeModal('deleteListModal')">ביטול</button></div></div></div>
     <div id="editListNameModal" class="modal-overlay no-print"><div class="edit-modal"><h2>שינוי שם</h2><input type="text" id="editListNameInput" class="modal-input"><div class="flex gap-3"><button class="bg-indigo-600 text-white flex-1 py-4 rounded-xl font-bold" onclick="saveListName()">שמור</button><button class="bg-gray-100 flex-1 py-4 rounded-xl font-bold" onclick="closeModal('editListNameModal')">ביטול</button></div></div></div>
@@ -131,4 +141,3 @@
     <script src="script.js"></script>
 </body>
 </html>
-
