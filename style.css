@@ -21,10 +21,24 @@ body { font-family: system-ui, sans-serif; background: #f4f7fa; padding-bottom: 
     cursor: pointer;
 }
 
-.modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.75); z-index: 7000; align-items: center; justify-content: center; backdrop-filter: blur(8px); }
+/* תיקון מיקום המודאל לחלק העליון למניעת הסתרה ע"י המקלדת */
+.modal-overlay { 
+    display: none; 
+    position: fixed; 
+    inset: 0; 
+    background: rgba(0,0,0,0.75); 
+    z-index: 7000; 
+    display: none;
+    justify-content: center; 
+    align-items: flex-start; /* מצמיד למעלה במקום למרכז */
+    padding-top: 40px; /* מרווח מהקצה העליון */
+    backdrop-filter: blur(8px); 
+    overflow-y: auto; /* מאפשר גלילה במקרה של מסך קטן מאוד */
+}
 .modal-overlay.active { display: flex; }
-.edit-modal { width: 90%; max-width: 400px; background-color: #ffffff !important; border-radius: 40px; padding: 30px; text-align: center; color: #333; border: 2px solid #eee; box-shadow: 0 25px 50px rgba(0,0,0,0.5); }
-.modal-input { width: 100%; padding: 18px; border: 2px solid #f3f4f6; border-radius: 22px; font-size: 18px; text-align: center; outline: none; margin-bottom: 15px; font-weight: bold; background: #f9fafb !important; color: #333; }
+
+.edit-modal { width: 95%; max-width: 400px; background-color: #ffffff !important; border-radius: 30px; padding: 25px; text-align: center; color: #333; border: 2px solid #eee; box-shadow: 0 25px 50px rgba(0,0,0,0.5); }
+.modal-input { width: 100%; padding: 15px; border: 2px solid #f3f4f6; border-radius: 18px; font-size: 18px; text-align: center; outline: none; margin-bottom: 15px; font-weight: bold; background: #f9fafb !important; color: #333; }
 
 .app-header { background: white; padding: 10px 20px; display: flex; flex-direction: row-reverse; justify-content: space-between; align-items: center; box-shadow: 0 2px 8px rgba(0,0,0,0.05); position: sticky; top: 0; z-index: 2000; height: 60px; }
 .header-controls { display: flex; align-items: center; gap: 8px; direction: rtl; }
