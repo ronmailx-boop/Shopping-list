@@ -98,6 +98,11 @@ function openModal(id) {
         setTimeout(() => document.getElementById('editListNameInput').focus(), 150);
     }
     
+    // תיקון: פתיחת מקלדת אוטומטית בעדכון מחיר
+    if(id === 'editTotalModal') {
+        setTimeout(() => document.getElementById('editTotalInput').focus(), 150);
+    }
+    
     if(id === 'importModal') {
         document.getElementById('importText').value = '';
         setTimeout(() => document.getElementById('importText').focus(), 150);
