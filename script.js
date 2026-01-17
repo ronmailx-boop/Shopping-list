@@ -19,7 +19,7 @@ let isConnected = false;
 let db = JSON.parse(localStorage.getItem('BUDGET_FINAL_V27')) || { 
     currentId: 'L1', 
     selectedInSummary: [], 
-    lists: { 'L1': { name: 'הרשימה שלי', items: [] } },
+    lists: { 'L1': { name: 'הרשימה שלי', url: '', items: [] } },
     lastActivePage: 'lists',
     lastSync: 0
 };
@@ -44,7 +44,6 @@ function save() {
     }
 }
 
-// לוגיקה להסתרה/גילוי הבר התחתון
 function toggleBottomBar() {
     const bar = document.querySelector('.bottom-bar');
     bar.classList.toggle('minimized');
@@ -95,7 +94,9 @@ function openModal(id) {
     }
     
     if(id === 'editListNameModal') {
-        document.getElementById('editListNameInput').value = db.lists[db.currentId].name;
+        const list = db.lists[db.currentId];
+        document.getElementById('editListNameInput').value = list.name;
+        document.getElementById('editListUrlInput').value = list.url || '';
         setTimeout(() => document.getElementById('editListNameInput').focus(), 150);
     }
     
@@ -187,7 +188,6 @@ function render() {
             div.className = "item-card"; 
             div.dataset.id = id;
 
-            // בניית כפתור אתר אינטרנט אם קיים לינק
             const webBtn = l.url ? `
                 <button onclick="window.location.href='${l.url.startsWith('http') ? l.url : 'https://' + l.url}'" class="w-10 h-10 rounded-full bg-indigo-50 text-indigo-600 flex items-center justify-center border border-indigo-100 shadow-sm ml-2">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -270,7 +270,7 @@ function saveNewList() {
         const id = 'L' + Date.now(); 
         db.lists[id] = {
             name: n, 
-            url: u, // שמירת האתר
+            url: u, 
             items: []
         }; 
         db.currentId = id; 
@@ -285,7 +285,7 @@ function deleteFullList() {
         delete db.lists[listToDelete]; 
         const keys = Object.keys(db.lists); 
         if (db.currentId === listToDelete) {
-            db.currentId = keys[0] || (db.lists['L1'] = {name: 'הרשימה שלי', items: []}, 'L1');
+            db.currentId = keys[0] || (db.lists['L1'] = {name: 'הרשימה שלי', url: '', items: []}, 'L1');
         }
         closeModal('deleteListModal'); 
         save(); 
@@ -395,7 +395,7 @@ function importFromText() {
         return;
     }
 
-    db.lists[newListId] = { name: finalName, items };
+    db.lists[newListId] = { name: finalName, url: '', items };
     db.currentId = newListId;
     activePage = 'lists';
     
@@ -428,7 +428,6 @@ function initSortable() {
     }
 }
 
-// ========== תיקון פונקציית הדפסה ==========
 function preparePrint() { 
     closeModal('settingsModal');
     const printArea = document.getElementById('printArea');
@@ -527,8 +526,10 @@ function shareSummaryToWhatsApp() {
 
 function saveListName() { 
     const n = document.getElementById('editListNameInput').value.trim(); 
+    const u = document.getElementById('editListUrlInput').value.trim();
     if(n) { 
         db.lists[db.currentId].name = n; 
+        db.lists[db.currentId].url = u; // הוספתי את עדכון ה-URL כאן
         save(); 
     } 
     closeModal('editListNameModal'); 
@@ -765,7 +766,7 @@ async function loadAndMerge() {
         if (localItems.length > 0) {
             const currentListId = db.currentId || 'L1';
             if (!db.lists[currentListId]) {
-                db.lists[currentListId] = { name: 'הרשימה שלי', items: [] };
+                db.lists[currentListId] = { name: 'הרשימה שלי', url: '', items: [] };
             }
             
             const cloudItemNames = db.lists[currentListId].items.map(i => i.name);
@@ -801,25 +802,21 @@ async function manualSync() {
     await loadAndMerge();
 }
 
-// אתחול והוספת מאזינים
 window.addEventListener('DOMContentLoaded', () => {
     const bottomBar = document.querySelector('.bottom-bar');
     if (bottomBar) {
         bottomBar.addEventListener('click', toggleBottomBar);
         
-        // מניעת סגירה כאשר לוחצים על אלמנטים אינטראקטיביים בתוך הבר
         const interactiveElements = bottomBar.querySelectorAll('button, input');
         interactiveElements.forEach(el => {
             el.addEventListener('click', (e) => e.stopPropagation());
         });
     }
 
-    // --- הוספת אפשרות Enter למעבר בין שדות והוספה ---
     const itemNameInput = document.getElementById('itemName');
     const itemPriceInput = document.getElementById('itemPrice');
 
     if (itemNameInput && itemPriceInput) {
-        // מעבר משם המוצר למחיר
         itemNameInput.addEventListener('keypress', (e) => {
             if (e.key === 'Enter') {
                 e.preventDefault();
@@ -827,7 +824,6 @@ window.addEventListener('DOMContentLoaded', () => {
             }
         });
 
-        // הוספת המוצר בלחיצה על Enter בשדה המחיר
         itemPriceInput.addEventListener('keypress', (e) => {
             if (e.key === 'Enter') {
                 e.preventDefault();
@@ -836,7 +832,6 @@ window.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // --- Enter למעבר בטופס רשימה חדשה ---
     const listNameInput = document.getElementById('newListNameInput');
     const listUrlInput = document.getElementById('newListUrlInput');
     if (listNameInput && listUrlInput) {
@@ -853,9 +848,25 @@ window.addEventListener('DOMContentLoaded', () => {
             }
         });
     }
+
+    const editNameInput = document.getElementById('editListNameInput');
+    const editUrlInput = document.getElementById('editListUrlInput');
+    if (editNameInput && editUrlInput) {
+        editNameInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                editUrlInput.focus();
+            }
+        });
+        editUrlInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                saveListName();
+            }
+        });
+    }
 });
 
-// טעינת Google API
 const script1 = document.createElement('script');
 script1.src = 'https://apis.google.com/js/api.js';
 script1.onload = gapiLoaded;
@@ -866,5 +877,4 @@ script2.src = 'https://accounts.google.com/gsi/client';
 script2.onload = gisLoaded;
 document.head.appendChild(script2);
 
-// אתחול ראשוני
 render();
