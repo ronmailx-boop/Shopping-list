@@ -21,43 +21,42 @@ body { font-family: system-ui, sans-serif; background: #f4f7fa; padding-bottom: 
     cursor: pointer;
 }
 
-/* מודאל מוצמד למעלה למניעת הסתרה ע"י המקלדת */
+/* הצמדה לקצה העליון */
 .modal-overlay { 
     display: none; 
     position: fixed; 
     inset: 0; 
     background: rgba(0,0,0,0.75); 
     z-index: 7000; 
+    align-items: flex-start; /* מוצמד לקצה העליון */
     justify-content: center; 
-    align-items: flex-start; 
-    padding-top: 40px; 
     backdrop-filter: blur(8px); 
-    overflow-y: auto; 
+    padding-top: 0; /* ללא רווח עליון */
 }
 .modal-overlay.active { display: flex; }
 
-/* חלונית מוקטנת ב-20% */
+/* קיצור גובה ב-20% ע"י צמצום מרווחים */
 .edit-modal { 
-    width: 80%; /* הוקטן מ-95% */
-    max-width: 320px; /* הוקטן מ-400px */
+    width: 90%; 
+    max-width: 400px; 
     background-color: #ffffff !important; 
-    border-radius: 30px; 
-    padding: 20px; /* הוקטן מ-25px */
+    border-radius: 0 0 30px 30px; /* פינות מעוגלות רק למטה למראה צמוד */
+    padding: 18px 25px; /* צמצום padding (היה 30px) */
     text-align: center; 
     color: #333; 
     border: 2px solid #eee; 
-    box-shadow: 0 25px 50px rgba(0,0,0,0.5); 
+    box-shadow: 0 15px 35px rgba(0,0,0,0.3); 
 }
 
 .modal-input { 
     width: 100%; 
-    padding: 12px; /* הוקטן מ-15px */
+    padding: 14px; /* צמצום (היה 18px) */
     border: 2px solid #f3f4f6; 
     border-radius: 18px; 
-    font-size: 16px; /* הוקטן מעט להתאמה */
+    font-size: 17px; 
     text-align: center; 
     outline: none; 
-    margin-bottom: 12px; 
+    margin-bottom: 10px; /* צמצום (היה 15px) */
     font-weight: bold; 
     background: #f9fafb !important; 
     color: #333; 
