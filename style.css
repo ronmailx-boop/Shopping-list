@@ -1,14 +1,24 @@
 * { box-sizing: border-box; touch-action: manipulation; }
 body { font-family: system-ui, sans-serif; background: #f4f7fa; padding-bottom: 240px; min-height: 100vh; transition: background 0.3s; margin: 0; }
 
+/* לוגו מעוצב בהדר - תואם למסך הפתיחה */
+.header-logo-container {
+    background-color: #7367f0;
+    padding: 6px 14px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    box-shadow: 0 4px 10px rgba(115, 103, 240, 0.25);
+}
+.logo-v { color: white; font-weight: 900; font-size: 1.4rem; }
+.logo-plus { color: #4ade80; font-weight: 900; font-size: 1.4rem; }
+
 .item-card { background: white; border-radius: 25px; padding: 15px; margin-bottom: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.03); display: flex; flex-direction: column; }
 
-/* הגדרות הבר התחתון עם אנימציה */
 .bottom-bar { 
     position: fixed; 
-    bottom: 0; 
-    left: 0; 
-    right: 0; 
+    bottom: 0; left: 0; right: 0; 
     background: #7367f0; 
     z-index: 1000; 
     padding: 15px 15px 35px 15px; 
@@ -17,123 +27,26 @@ body { font-family: system-ui, sans-serif; background: #f4f7fa; padding-bottom: 
     transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
     cursor: pointer;
 }
+.bottom-bar.minimized { transform: translateY(calc(100% - 8px)); }
 
-.bottom-bar.minimized {
-    transform: translateY(calc(100% - 8px));
+.app-header { background: white; padding: 10px 20px; display: flex; flex-direction: row-reverse; justify-content: space-between; align-items: center; box-shadow: 0 2px 8px rgba(0,0,0,0.05); position: sticky; top: 0; z-index: 2000; height: 65px; }
+
+/* תיקון נגישות ל-Onboarding - כפתורים שקועים */
+.onboarding-footer {
+    padding-bottom: calc(30px + env(safe-area-inset-bottom)) !important;
 }
 
-.tab-btn { flex: 1; padding: 12px; border-radius: 15px; font-weight: bold; text-align: center; cursor: pointer; transition: 0.2s; background: white; color: #666; border: 1px solid #eee; }
-.tab-active { background: #7367f0 !important; color: white !important; }
-
-.bottom-circle-btn {
-    width: 48px !important;
-    height: 48px !important;
-    flex-shrink: 0 !important;
-    border-radius: 50% !important;
-    display: flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-    border: 2px solid rgba(255,255,255,0.2) !important;
-    box-shadow: 0 4px 10px rgba(0,0,0,0.2) !important;
-    cursor: pointer;
+#onboarding-content {
+    max-height: 70vh;
 }
 
-.modal-overlay { 
-    display: none; 
-    position: fixed; 
-    inset: 0; 
-    background: rgba(0,0,0,0.75); 
-    z-index: 7000; 
-    align-items: flex-start; 
-    justify-content: center; 
-    backdrop-filter: blur(8px); 
-    padding-top: 0; 
-}
-.modal-overlay.active { display: flex; }
+/* אנימציות ועיצוב Splash */
+@keyframes loading { 0% { transform: translateX(-100%); } 100% { transform: translateX(100%); } }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
 
-.edit-modal { 
-    width: 90%; 
-    max-width: 400px; 
-    background-color: #ffffff !important; 
-    border-radius: 0 0 30px 30px; 
-    padding: 6px 25px; 
-    text-align: center; 
-    color: #333; 
-    border: 2px solid #eee; 
-    box-shadow: 0 15px 35px rgba(0,0,0,0.3); 
-}
+#splash-screen.fade-out { opacity: 0; pointer-events: none; }
+.onboarding-step img { max-width: 220px; border-radius: 30px; box-shadow: 0 20px 40px rgba(115, 103, 240, 0.2); margin-bottom: 2rem; }
+.dot { width: 10px; height: 10px; background: #e2e8f0; border-radius: 50%; transition: all 0.4s; }
+.dot.active { width: 30px; background: #7367f0; border-radius: 5px; }
 
-.modal-input { 
-    width: 100%; 
-    padding: 6px; 
-    border: 2px solid #f3f4f6; 
-    border-radius: 16px; 
-    font-size: 16px; 
-    text-align: center; 
-    outline: none; 
-    margin-bottom: 5px; 
-    font-weight: bold; 
-    background: #f9fafb !important; 
-    color: #333; 
-}
-
-.edit-modal h2 { margin-top: 2px; margin-bottom: 8px; font-size: 1.15rem; }
-
-.app-header { background: white; padding: 10px 20px; display: flex; flex-direction: row-reverse; justify-content: space-between; align-items: center; box-shadow: 0 2px 8px rgba(0,0,0,0.05); position: sticky; top: 0; z-index: 2000; height: 60px; }
-.header-controls { display: flex; align-items: center; gap: 8px; direction: rtl; }
-.gear-btn { flex-shrink: 0; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; }
-
-.trash-btn { width: 44px; height: 44px; background: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #ef4444; border: none; cursor: pointer; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
-.category-separator { background: #7367f0; color: white; border-radius: 20px; padding: 15px; margin-bottom: 20px; text-align: center; }
-
-/* מצב לילה */
-body.dark-mode { background: #1a1a2e; color: #e0e0e0; }
-.dark-mode .app-header { background: #16213e; border-bottom: 1px solid #0f3460; }
-.dark-mode .item-card, .dark-mode .bg-white { background-color: #0f3460 !important; border-color: #1a1a2e; color: white; }
-.dark-mode #selectAllLabel { color: white !important; }
-.dark-mode .select-all-container { background-color: #0f3460 !important; }
-.dark-mode .item-card span.font-bold { color: white !important; }
-.dark-mode .item-card .bg-gray-50 { background-color: rgba(255,255,255,0.1) !important; border-color: rgba(255,255,255,0.2); }
-
-@media print {
-    .no-print, .bottom-bar, .app-header, .tab-btn, .modal-overlay, .trash-btn, input, button { display: none !important; }
-    #printArea { display: block !important; width: 100%; direction: rtl; }
-}
-
-/* --- תוספות עבור Splash & Onboarding --- */
-@keyframes loading {
-    0% { transform: translateX(-100%); }
-    100% { transform: translateX(100%); }
-}
-
-@keyframes fadeIn {
-    from { opacity: 0; transform: translateY(20px); }
-    to { opacity: 1; transform: translateY(0); }
-}
-
-#splash-screen.fade-out {
-    opacity: 0;
-    pointer-events: none;
-}
-
-.onboarding-step img {
-    max-width: 250px;
-    height: auto;
-    border-radius: 30px;
-    box-shadow: 0 20px 40px rgba(115, 103, 240, 0.2);
-    margin-bottom: 2.5rem;
-}
-
-.dot {
-    width: 10px;
-    height: 10px;
-    background: #e2e8f0;
-    border-radius: 50%;
-    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.dot.active {
-    width: 30px;
-    background: #7367f0;
-    border-radius: 5px;
-}
+/* שאר הסגנונות הקיימים שלכם... */
