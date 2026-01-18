@@ -55,8 +55,24 @@
         </div>
     </div>
 
-    <div id="main-content" class="max-w-md mx-auto p-4 no-print min-h-[60vh]">
-        <div id="itemsContainer"></div>
+    <div class="max-w-md mx-auto p-4 no-print">
+        <div class="flex gap-3 mb-6">
+            <div id="tabLists" onclick="showPage('lists')" class="tab-btn tab-active">הרשימה שלי</div>
+            <div id="tabSummary" onclick="showPage('summary')" class="tab-btn">הרשימות שלי</div>
+        </div>
+
+        <div id="pageLists">
+            <div class="bg-white p-2 rounded-2xl border border-gray-100 shadow-sm mb-4 flex gap-2">
+                <button onclick="alert('רשימה חדשה')" class="bg-[#7367f0] text-white flex-1 py-3 rounded-xl font-bold">+ רשימה חדשה</button>
+                <button onclick="alert('ייבוא')" class="bg-green-500 text-white flex-1 py-3 rounded-xl font-bold">📥 ייבוא</button>
+            </div>
+            
+            <div id="itemsContainer"></div>
+        </div>
+
+        <div id="pageSummary" class="hidden">
+            <div id="summaryContainer"></div>
+        </div>
     </div>
 
     <div class="bottom-bar-fixed no-print">
