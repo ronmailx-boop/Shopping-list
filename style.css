@@ -1,49 +1,41 @@
-* { box-sizing: border-box; touch-action: manipulation; }
-body { font-family: system-ui, sans-serif; background: #f4f7fa; padding-bottom: 240px; min-height: 100vh; transition: background 0.3s; margin: 0; }
+/* שימוש בהגדרות הקיימות שלך בתוספת תיקונים */
+.hidden { display: none !important; }
 
-.item-card { background: white; border-radius: 25px; padding: 15px; margin-bottom: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.03); display: flex; flex-direction: column; }
+.tab-btn { 
+    flex: 1; padding: 12px; border-radius: 15px; font-weight: bold; 
+    text-align: center; background: white; color: #666; border: 1px solid #eee;
+    transition: all 0.2s;
+}
+
+.tab-active { background: #7367f0 !important; color: white !important; border-color: #7367f0; }
 
 .bottom-bar { 
     position: fixed; bottom: 0; left: 0; right: 0; 
-    background: #7367f0; z-index: 1000; padding: 15px 15px 35px 15px; 
-    border-radius: 35px 35px 0 0; box-shadow: 0 -10px 25px rgba(0, 0, 0, 0.15); 
-    transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    background: #7367f0; z-index: 1000; padding: 15px 15px 30px 15px; 
+    border-radius: 30px 30px 0 0; box-shadow: 0 -5px 20px rgba(0, 0, 0, 0.1); 
 }
-
-.bottom-bar.minimized { transform: translateY(calc(100% - 8px)); }
 
 /* Toasts Styling */
 #toast-container {
-    position: fixed; bottom: 220px; left: 50%; transform: translateX(-50%);
+    position: fixed; bottom: 180px; left: 50%; transform: translateX(-50%);
     z-index: 9999; display: flex; flex-direction: column; gap: 10px;
     pointer-events: none; width: 90%; max-width: 350px;
 }
 
 .toast {
-    background: rgba(45, 45, 45, 0.95); color: white; padding: 14px 20px;
-    border-radius: 20px; font-size: 15px; font-weight: 600;
-    box-shadow: 0 8px 20px rgba(0,0,0,0.2); backdrop-filter: blur(10px);
-    display: flex; align-items: center; gap: 12px; direction: rtl;
+    background: rgba(45, 45, 45, 0.95); color: white; padding: 12px 18px;
+    border-radius: 16px; font-size: 14px; font-weight: 600;
+    display: flex; align-items: center; gap: 10px; direction: rtl;
     border-right: 5px solid #7367f0;
-    animation: toastIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+    animation: toastIn 0.4s ease-out forwards;
 }
-
-.toast-success { border-right-color: #22c55e; }
-.toast-error { border-right-color: #ef4444; }
-.toast-offline { border-right-color: #94a3b8; background: rgba(30, 41, 59, 0.98); }
 
 @keyframes toastIn {
-    from { opacity: 0; transform: translateY(30px) scale(0.9); }
-    to { opacity: 1; transform: translateY(0) scale(1); }
-}
-
-@keyframes toastOut {
-    from { opacity: 1; transform: translateY(0); }
-    to { opacity: 0; transform: translateY(-20px); }
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
 }
 
 .toast-exit { animation: toastOut 0.3s ease-in forwards; }
-
-/* שאר הסגנונות הקיימים */
-.tab-btn { flex: 1; padding: 12px; border-radius: 15px; font-weight: bold; text-align: center; background: white; color: #666; border: 1px solid #eee; }
-.tab-active { background: #7367f0 !important; color: white !important; }
+@keyframes toastOut {
+    to { opacity: 0; transform: translateY(-10px); }
+}
