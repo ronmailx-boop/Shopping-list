@@ -1,4 +1,4 @@
-let db = JSON.parse(localStorage.getItem('VPLUS_DB_V3')) || { 
+let db = JSON.parse(localStorage.getItem('VPLUS_DB_FINAL')) || { 
     currentId: 'L1', 
     lists: { 'L1': { name: 'הרשימה שלי', items: [] } },
     lastActivePage: 'lists'
@@ -15,7 +15,7 @@ let activePage = db.lastActivePage || 'lists';
 
 function save() {
     db.lastActivePage = activePage;
-    localStorage.setItem('VPLUS_DB_V3', JSON.stringify(db));
+    localStorage.setItem('VPLUS_DB_FINAL', JSON.stringify(db));
     render();
 }
 
@@ -24,18 +24,27 @@ function showPage(p) {
     save();
 }
 
+// ניהול מודאלים
+function openModal(id) {
+    document.getElementById(id).classList.add('active');
+    if(id === 'inputForm') {
+        document.getElementById('itemName').value = '';
+        document.getElementById('itemPrice').value = '';
+        setTimeout(() => document.getElementById('itemName').focus(), 300);
+    }
+}
+
+function closeModal(id) {
+    document.getElementById(id).classList.remove('active');
+}
+
 function render() {
     const itemsContainer = document.getElementById('itemsContainer');
     const summaryContainer = document.getElementById('summaryContainer');
     if (!itemsContainer || !summaryContainer) return;
 
-    // עדכון כפתורי הטאבים
-    const tabL = document.getElementById('tabLists');
-    const tabS = document.getElementById('tabSummary');
-    if(tabL && tabS) {
-        tabL.className = `tab-btn ${activePage === 'lists' ? 'tab-active' : ''}`;
-        tabS.className = `tab-btn ${activePage === 'summary' ? 'tab-active' : ''}`;
-    }
+    document.getElementById('tabLists').className = `tab-btn ${activePage === 'lists' ? 'tab-active' : ''}`;
+    document.getElementById('tabSummary').className = `tab-btn ${activePage === 'summary' ? 'tab-active' : ''}`;
 
     if (activePage === 'lists') {
         document.getElementById('pageLists').classList.remove('hidden');
@@ -43,19 +52,17 @@ function render() {
         
         itemsContainer.innerHTML = '';
         let total = 0;
-        const list = db.lists[db.currentId] || { items: [] };
-        const items = list.items;
+        const list = db.lists[db.currentId] || { name: 'רשימה', items: [] };
         
-        if (items.length === 0) {
+        if (list.items.length === 0) {
             itemsContainer.innerHTML = `
                 <div class="flex flex-col items-center justify-center p-12 text-gray-400 opacity-60">
-                    <svg class="w-16 h-16 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path></svg>
                     <p class="font-bold">הרשימה ריקה</p>
                     <p class="text-sm">לחץ על ה- + כדי להתחיל</p>
                 </div>`;
         }
 
-        items.forEach((item, idx) => {
+        list.items.forEach((item, idx) => {
             const subtotal = item.price * item.qty;
             total += subtotal;
             const div = document.createElement('div');
@@ -65,6 +72,7 @@ function render() {
                 <div class="flex items-center gap-4">
                     <div class="text-xs text-gray-400">x${item.qty}</div>
                     <div class="text-[#7367f0] font-black text-xl">₪${subtotal.toFixed(2)}</div>
+                    <button onclick="removeItem(${idx})" class="text-red-300 pr-2">✕</button>
                 </div>
             `;
             itemsContainer.appendChild(div);
@@ -75,21 +83,77 @@ function render() {
     } else {
         document.getElementById('pageLists').classList.add('hidden');
         document.getElementById('pageSummary').classList.remove('hidden');
-        summaryContainer.innerHTML = '<div class="text-center p-10 text-gray-400 font-bold">דף סיכומי רשימות</div>';
+        renderSummary();
     }
 }
 
-function addItemPrompt() {
-    const n = prompt("שם המוצר:");
-    if (!n) return;
-    const p = parseFloat(prompt("מחיר:"));
-    if (isNaN(p)) return;
-    
-    if (!db.lists[db.currentId]) db.lists[db.currentId] = { name: 'הרשימה שלי', items: [] };
-    db.lists[db.currentId].items.push({ name: n, price: p, qty: 1 });
+function addItem() {
+    const name = document.getElementById('itemName').value.trim();
+    const price = parseFloat(document.getElementById('itemPrice').value) || 0;
+    if (name) {
+        db.lists[db.currentId].items.push({ name, price, qty: 1 });
+        closeModal('inputForm');
+        save();
+    }
+}
+
+function removeItem(idx) {
+    db.lists[db.currentId].items.splice(idx, 1);
     save();
 }
 
+function saveNewList() {
+    const name = document.getElementById('newListNameInput').value.trim();
+    if (name) {
+        const id = 'L' + Date.now();
+        db.lists[id] = { name: name, items: [] };
+        db.currentId = id;
+        closeModal('newListModal');
+        showPage('lists');
+    }
+}
+
+function importFromText() {
+    const text = document.getElementById('importText').value;
+    if (text) {
+        const lines = text.split('\n');
+        lines.forEach(line => {
+            const parts = line.split(/[-₪,]/);
+            const name = parts[0].trim();
+            const price = parseFloat(parts[1]) || 0;
+            if (name) db.lists[db.currentId].items.push({ name, price, qty: 1 });
+        });
+        closeModal('importModal');
+        save();
+    }
+}
+
+function renderSummary() {
+    const container = document.getElementById('summaryContainer');
+    container.innerHTML = '<h3 class="font-bold mb-4 text-indigo-600">סיכום כל הרשימות</h3>';
+    Object.keys(db.lists).forEach(id => {
+        const list = db.lists[id];
+        let sum = 0;
+        list.items.forEach(i => sum += (i.price * i.qty));
+        const div = document.createElement('div');
+        div.className = "item-card cursor-pointer";
+        div.onclick = () => { db.currentId = id; showPage('lists'); };
+        div.innerHTML = `<span>${list.name}</span><span class="font-black">₪${sum.toFixed(2)}</span>`;
+        container.appendChild(div);
+    });
+}
+
+// פונקציות סנכרון (דמה עד לחיבור האמיתי)
+function syncToCloud() {
+    document.getElementById('cloudIndicator').classList.add('bg-green-500');
+    alert('הנתונים סונכרנו בהצלחה!');
+}
+
+function handleAuthClick() {
+    alert('מתחבר לחשבון גוגל...');
+}
+
+// אתחול האפליקציה
 function initApp() {
     const splash = document.getElementById('splash-screen');
     const onboarding = document.getElementById('onboarding-overlay');
@@ -113,7 +177,7 @@ function renderOnboardingStep() {
     const step = onboardingSteps[currentOnboardingStep];
     
     content.innerHTML = `
-        <div class="onboarding-step animate-[fadeIn_0.5s_ease-out]">
+        <div class="onboarding-step">
             <img src="${step.image}" class="mx-auto shadow-2xl">
             <h2 class="font-black text-2xl">${step.title}</h2>
             <p class="mt-4 text-gray-500 font-medium">${step.desc}</p>
@@ -133,16 +197,10 @@ document.getElementById('onboarding-next').onclick = () => {
         currentOnboardingStep++;
         renderOnboardingStep();
     } else {
-        closeOnboarding();
+        localStorage.setItem('vplus_seen_final', 'true');
+        document.getElementById('onboarding-overlay').classList.add('hidden');
+        render();
     }
 };
-
-document.getElementById('onboarding-skip').onclick = closeOnboarding;
-
-function closeOnboarding() {
-    localStorage.setItem('vplus_seen_final', 'true');
-    document.getElementById('onboarding-overlay').classList.add('hidden');
-    render();
-}
 
 window.addEventListener('DOMContentLoaded', initApp);
