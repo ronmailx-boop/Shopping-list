@@ -10,6 +10,49 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
     
+    <style>
+        /* עיצוב הלוגו */
+        .logo-container {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .purple-logo {
+            width: 50px;
+            height: 50px;
+            background: linear-gradient(135deg, #8A2BE2 0%, #9400D3 100%);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-family: Arial, sans-serif;
+            font-weight: bold;
+            font-size: 20px;
+            box-shadow: 0 4px 12px rgba(138, 43, 226, 0.3);
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .purple-logo:hover {
+            transform: scale(1.05);
+            box-shadow: 0 6px 16px rgba(138, 43, 226, 0.4);
+        }
+
+        /* אם תרצה לשים תמונת לוגו במקום טקסט */
+        .purple-logo img {
+            width: 70%;
+            height: 70%;
+            object-fit: contain;
+        }
+
+        /* תמיכה במצב לילה */
+        body.dark-mode .purple-logo {
+            box-shadow: 0 4px 12px rgba(138, 43, 226, 0.5);
+        }
+    </style>
+    
     <script>
       if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {
@@ -23,8 +66,13 @@
 <body>
 
     <div class="app-header no-print">
-        <div class="header-logo-container">
-            <span class="logo-v">V</span><span class="logo-plus">plus</span>
+        <!-- הלוגו החדש במקום הכיתוב Vplus הישן -->
+        <div class="logo-container">
+            <div class="purple-logo">
+                V+
+                <!-- אם יש לך תמונת לוגו, החלף את השורה למעלה ב: -->
+                <!-- <img src="path/to/your/logo.png" alt="Vplus Logo"> -->
+            </div>
         </div>
         
         <div class="header-controls">
@@ -109,11 +157,45 @@
     <div id="printArea" class="hidden"></div>
 
     <div id="inputForm" class="modal-overlay no-print"><div class="edit-modal"><h2>הוספת מוצר</h2><input type="text" id="itemName" placeholder="שם המוצר" class="modal-input"><input type="number" id="itemPrice" inputmode="decimal" placeholder="מחיר" class="modal-input"><div class="flex gap-3"><button class="bg-green-500 text-white flex-1 py-4 rounded-xl font-bold shadow-md" onclick="addItem()">הוסף</button><button class="bg-gray-100 text-gray-500 flex-1 py-4 rounded-xl font-bold" onclick="closeModal('inputForm')">ביטול</button></div></div></div>
-    <div id="importModal" class="modal-overlay no-print"><div class="edit-modal"><h2>ייבוא</h2><textarea id="importText" class="modal-input" rows="5"></textarea><div class="flex gap-3"><button class="bg-green-500 text-white flex-1 py-4 rounded-xl font-bold" onclick="importFromText()">ייבא</button><button class="bg-gray-100 flex-1 py-4 rounded-xl font-bold" onclick="closeModal('importModal')">ביטול</button></div></div></div>
-    <div id="newListModal" class="modal-overlay no-print"><div class="edit-modal"><h2>רשימה חדשה</h2><input type="text" id="newListNameInput" placeholder="שם הרשימה" class="modal-input"><input type="url" id="newListUrlInput" placeholder="כתובת אתר (אופציונלי)" class="modal-input"><div class="flex gap-3"><button class="bg-indigo-600 text-white flex-1 py-4 rounded-xl font-bold shadow-md" onclick="saveNewList()">צור</button><button class="bg-gray-100 flex-1 py-4 rounded-xl font-bold" onclick=\"closeModal('newListModal')\">ביטול</button></div></div></div>
-    <div id="confirmModal" class="modal-overlay no-print"><div class="edit-modal"><h2 class="text-red-600">ניקוי מוצרים</h2><p>למחוק את כל המוצרים?</p><div class="flex gap-3"><button class="bg-red-500 text-white flex-1 py-4 rounded-xl font-bold shadow-lg" onclick="executeClear()">נקה</button><button class="bg-gray-100 flex-1 py-4 rounded-xl font-bold" onclick="closeModal('confirmModal')">ביטול</button></div></div></div>
+    
+    <div id="importModal" class="modal-overlay no-print">
+        <div class="edit-modal">
+            <h2 class="mb-2">ייבוא רשימה מטקסט</h2>
+            <p class="text-sm text-gray-500 mb-4">הדבק טקסט מוואטסאפ או כל רשימה</p>
+            <textarea id="importText" placeholder="הדבק כאן טקסט לייבוא..." class="modal-input" rows="8" style="resize: vertical; min-height: 150px;"></textarea>
+            <div class="flex gap-3">
+                <button class="bg-green-500 text-white flex-1 py-4 rounded-xl font-bold shadow-md" onclick="importFromText()">ייבא</button>
+                <button class="bg-gray-100 flex-1 py-4 rounded-xl font-bold" onclick="closeModal('importModal')">ביטול</button>
+            </div>
+        </div>
+    </div>
+    
+    <div id="newListModal" class="modal-overlay no-print">
+        <div class="edit-modal">
+            <h2>רשימה חדשה</h2>
+            <input type="text" id="newListNameInput" placeholder="שם הרשימה" class="modal-input">
+            <input type="url" id="newListUrlInput" placeholder="כתובת אתר (אופציונלי)" class="modal-input">
+            <div class="flex gap-3">
+                <button class="bg-indigo-600 text-white flex-1 py-4 rounded-xl font-bold shadow-md" onclick="saveNewList()">צור</button>
+                <button class="bg-gray-100 flex-1 py-4 rounded-xl font-bold" onclick="closeModal('newListModal')">ביטול</button>
+            </div>
+        </div>
+    </div>
+    <div id="confirmModal" class="modal-overlay no-print"><div class="edit-modal"><h2 class="text-red-600">ניקוי מוצרים</h2><p class="mb-6">למחוק את כל המוצרים?</p><div class="flex gap-3"><button class="bg-red-500 text-white flex-1 py-4 rounded-xl font-bold shadow-lg" onclick="executeClear()">נקה</button><button class="bg-gray-100 flex-1 py-4 rounded-xl font-bold" onclick="closeModal('confirmModal')">ביטול</button></div></div></div>
     <div id="deleteListModal" class="modal-overlay no-print"><div class="edit-modal"><h2 class="text-red-600">מחיקת רשימה</h2><div class="flex gap-3"><button id="confirmDeleteListBtn" class="bg-red-500 text-white flex-1 py-4 rounded-xl font-bold" onclick="deleteFullList()">מחק</button><button class="bg-gray-100 flex-1 py-4 rounded-xl font-bold" onclick="closeModal('deleteListModal')">ביטול</button></div></div></div>
-    <div id="editListNameModal" class="modal-overlay no-print"><div class="edit-modal"><h2>עריכת רשימה</h2><input type="text" id="editListNameInput" class="modal-input"><input type="url" id="editListUrlInput" class="modal-input"><div class="flex gap-3"><button class="bg-indigo-600 text-white flex-1 py-4 rounded-xl font-bold" onclick="saveListName()">שמור</button><button class="bg-gray-100 flex-1 py-4 rounded-xl font-bold" onclick="closeModal('editListNameModal')">ביטול</button></div></div></div>
+    
+    <div id="editListNameModal" class="modal-overlay no-print">
+        <div class="edit-modal">
+            <h2>עריכת רשימה</h2>
+            <input type="text" id="editListNameInput" placeholder="שם הרשימה" class="modal-input">
+            <input type="url" id="editListUrlInput" placeholder="כתובת אתר (אופציונלי)" class="modal-input">
+            <div class="flex gap-3">
+                <button class="bg-indigo-600 text-white flex-1 py-4 rounded-xl font-bold" onclick="saveListName()">שמור</button>
+                <button class="bg-gray-100 flex-1 py-4 rounded-xl font-bold" onclick="closeModal('editListNameModal')">ביטול</button>
+            </div>
+        </div>
+    </div>
+    
     <div id="editTotalModal" class="modal-overlay no-print"><div class="edit-modal"><h2>עדכון מחיר</h2><input type="number" id="editTotalInput" class="modal-input"><div class="flex gap-3"><button class="bg-indigo-600 text-white flex-1 py-4 rounded-xl font-bold" onclick="saveTotal()">עדכן</button><button class="bg-gray-100 flex-1 py-4 rounded-xl font-bold" onclick="closeModal('editTotalModal')">ביטול</button></div></div></div>
     <div id="settingsModal" class="modal-overlay no-print"><div class="edit-modal"><h2>הגדרות</h2><button onclick="toggleDarkMode()" class="w-full bg-indigo-50 text-indigo-600 py-4 rounded-xl font-bold mb-4">מצב לילה 🌙</button><button onclick="preparePrint()" class="w-full bg-orange-500 text-white py-4 rounded-xl font-bold">הדפס PDF 🖨️</button><button onclick="closeModal('settingsModal')" class="mt-4 text-gray-400 block w-full">סגור</button></div></div>
     <div id="shareListModal" class="modal-overlay no-print"><div class="edit-modal"><h2 class="mb-6">מה לשלוח ב-WhatsApp?</h2><button onclick="shareFullToWhatsApp()" class="w-full bg-indigo-600 text-white py-4 rounded-xl font-bold mb-3 shadow-md">שיתוף רשימה מלאה 📋</button><button onclick="shareMissingToWhatsApp()" class="w-full bg-green-500 text-white py-4 rounded-xl font-bold mb-4 shadow-md">שיתוף מוצרים חסרים בלבד ⬜</button><button onclick="closeModal('shareListModal')" class="text-gray-400 font-bold block w-full mt-2">ביטול</button></div></div>
