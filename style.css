@@ -3,110 +3,47 @@ body { font-family: system-ui, sans-serif; background: #f4f7fa; padding-bottom: 
 
 .item-card { background: white; border-radius: 25px; padding: 15px; margin-bottom: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.03); display: flex; flex-direction: column; }
 
-/* הגדרות הבר התחתון עם אנימציה */
 .bottom-bar { 
-    position: fixed; 
-    bottom: 0; 
-    left: 0; 
-    right: 0; 
-    background: #7367f0; 
-    z-index: 1000; 
-    padding: 15px 15px 35px 15px; 
-    border-radius: 35px 35px 0 0; 
-    box-shadow: 0 -10px 25px rgba(0, 0, 0, 0.15); 
+    position: fixed; bottom: 0; left: 0; right: 0; 
+    background: #7367f0; z-index: 1000; padding: 15px 15px 35px 15px; 
+    border-radius: 35px 35px 0 0; box-shadow: 0 -10px 25px rgba(0, 0, 0, 0.15); 
     transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-    cursor: pointer;
 }
 
-/* מצב מוסתר - משאיר פס דק למעלה */
-.bottom-bar.minimized {
-    transform: translateY(calc(100% - 8px));
+.bottom-bar.minimized { transform: translateY(calc(100% - 8px)); }
+
+/* Toasts Styling */
+#toast-container {
+    position: fixed; bottom: 220px; left: 50%; transform: translateX(-50%);
+    z-index: 9999; display: flex; flex-direction: column; gap: 10px;
+    pointer-events: none; width: 90%; max-width: 350px;
 }
 
-.tab-btn { flex: 1; padding: 12px; border-radius: 15px; font-weight: bold; text-align: center; cursor: pointer; transition: 0.2s; background: white; color: #666; border: 1px solid #eee; }
+.toast {
+    background: rgba(45, 45, 45, 0.95); color: white; padding: 14px 20px;
+    border-radius: 20px; font-size: 15px; font-weight: 600;
+    box-shadow: 0 8px 20px rgba(0,0,0,0.2); backdrop-filter: blur(10px);
+    display: flex; align-items: center; gap: 12px; direction: rtl;
+    border-right: 5px solid #7367f0;
+    animation: toastIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+}
+
+.toast-success { border-right-color: #22c55e; }
+.toast-error { border-right-color: #ef4444; }
+.toast-offline { border-right-color: #94a3b8; background: rgba(30, 41, 59, 0.98); }
+
+@keyframes toastIn {
+    from { opacity: 0; transform: translateY(30px) scale(0.9); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes toastOut {
+    from { opacity: 1; transform: translateY(0); }
+    to { opacity: 0; transform: translateY(-20px); }
+}
+
+.toast-exit { animation: toastOut 0.3s ease-in forwards; }
+
+/* שאר הסגנונות הקיימים */
+.tab-btn { flex: 1; padding: 12px; border-radius: 15px; font-weight: bold; text-align: center; background: white; color: #666; border: 1px solid #eee; }
 .tab-active { background: #7367f0 !important; color: white !important; }
-
-/* כפתורי עיגול בבר התחתון */
-.bottom-circle-btn {
-    width: 48px !important;
-    height: 48px !important;
-    flex-shrink: 0 !important;
-    border-radius: 50% !important;
-    display: flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-    border: 2px solid rgba(255,255,255,0.2) !important;
-    box-shadow: 0 4px 10px rgba(0,0,0,0.2) !important;
-    cursor: pointer;
-}
-
-/* הצמדה לקצה העליון */
-.modal-overlay { 
-    display: none; 
-    position: fixed; 
-    inset: 0; 
-    background: rgba(0,0,0,0.75); 
-    z-index: 7000; 
-    align-items: flex-start; 
-    justify-content: center; 
-    backdrop-filter: blur(8px); 
-    padding-top: 0; 
-}
-.modal-overlay.active { display: flex; }
-
-/* הידוק גובה החלונית ב-20% נוספים */
-.edit-modal { 
-    width: 90%; 
-    max-width: 400px; 
-    background-color: #ffffff !important; 
-    border-radius: 0 0 30px 30px; 
-    padding: 6px 25px; 
-    text-align: center; 
-    color: #333; 
-    border: 2px solid #eee; 
-    box-shadow: 0 15px 35px rgba(0,0,0,0.3); 
-}
-
-.modal-input { 
-    width: 100%; 
-    padding: 6px; 
-    border: 2px solid #f3f4f6; 
-    border-radius: 16px; 
-    font-size: 16px; 
-    text-align: center; 
-    outline: none; 
-    margin-bottom: 5px; 
-    font-weight: bold; 
-    background: #f9fafb !important; 
-    color: #333; 
-}
-
-/* התאמת כותרת המודאל למבנה קומפקטי */
-.edit-modal h2 {
-    margin-top: 2px;
-    margin-bottom: 8px;
-    font-size: 1.15rem;
-}
-
-.app-header { background: white; padding: 10px 20px; display: flex; flex-direction: row-reverse; justify-content: space-between; align-items: center; box-shadow: 0 2px 8px rgba(0,0,0,0.05); position: sticky; top: 0; z-index: 2000; height: 60px; }
-.header-controls { display: flex; align-items: center; gap: 8px; direction: rtl; }
-.gear-btn { flex-shrink: 0; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; }
-
-.trash-btn { width: 44px; height: 44px; background: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #ef4444; border: none; cursor: pointer; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
-.category-separator { background: #7367f0; color: white; border-radius: 20px; padding: 15px; margin-bottom: 20px; text-align: center; }
-
-/* מצב לילה */
-body.dark-mode { background: #1a1a2e; color: #e0e0e0; }
-.dark-mode .app-header { background: #16213e; border-bottom: 1px solid #0f3460; }
-.dark-mode .item-card, .dark-mode .bg-white { background-color: #0f3460 !important; border-color: #1a1a2e; color: white; }
-.dark-mode #selectAllLabel { color: white !important; }
-.dark-mode .select-all-container { background-color: #0f3460 !important; }
-
-/* תיקון נראות מספר הכמות במצב לילה */
-.dark-mode .item-card span.font-bold { color: white !important; }
-.dark-mode .item-card .bg-gray-50 { background-color: rgba(255,255,255,0.1) !important; border-color: rgba(255,255,255,0.2); }
-
-@media print {
-    .no-print, .bottom-bar, .app-header, .tab-btn, .modal-overlay, .trash-btn, input, button { display: none !important; }
-    #printArea { display: block !important; width: 100%; direction: rtl; }
-}
