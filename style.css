@@ -1,7 +1,7 @@
 * { box-sizing: border-box; touch-action: manipulation; }
-body { font-family: system-ui, sans-serif; background: #f4f7fa; margin: 0; padding-bottom: 120px; }
+body { font-family: system-ui, sans-serif; background: #f4f7fa; margin: 0; padding-bottom: 140px; }
 
-/* לוגו מתוקן - משמאל לימין תמיד */
+/* לוגו - תמיד Vplus משמאל לימין */
 .header-logo-container {
     background-color: #7367f0;
     padding: 6px 12px;
@@ -16,18 +16,28 @@ body { font-family: system-ui, sans-serif; background: #f4f7fa; margin: 0; paddi
 .logo-v { color: white; font-weight: 900; font-size: 1.3rem; }
 .logo-plus { color: #4ade80; font-weight: 900; font-size: 1.3rem; }
 
+/* Header - לוגו בשמאל, כפתורים בימין */
 .app-header { 
     background: white; 
     padding: 10px 15px; 
     display: flex; 
-    flex-direction: row !important; /* לוגו בימין, כפתורים בשמאל */
+    flex-direction: row-reverse !important; /* דוחף לוגו לשמאל בגלל dir=rtl */
     justify-content: space-between; 
     align-items: center; 
     box-shadow: 0 2px 8px rgba(0,0,0,0.05); 
     position: sticky; top: 0; z-index: 2000; height: 60px;
 }
 
-.header-controls { display: flex; align-items: center; gap: 8px; flex-direction: row-reverse; }
+.header-controls { 
+    display: flex; 
+    align-items: center; 
+    gap: 8px; 
+    flex-direction: row !important; /* סנכרון -> גוגל -> הגדרות */
+}
+
+/* טאבים */
+.tab-btn { flex: 1; padding: 12px; border-radius: 15px; font-weight: bold; text-align: center; cursor: pointer; background: white; color: #666; border: 1px solid #eee; }
+.tab-active { background: #7367f0 !important; color: white !important; }
 
 /* בר תחתון */
 .bottom-bar-fixed {
@@ -36,10 +46,12 @@ body { font-family: system-ui, sans-serif; background: #f4f7fa; margin: 0; paddi
     border-radius: 30px 30px 0 0; z-index: 1000;
 }
 
-/* הדרכה ללא חיתוך */
-.onboarding-step img { max-width: 140px; height: auto; border-radius: 20px; margin-bottom: 1rem; }
-.onboarding-step h2 { font-size: 1.4rem; margin-bottom: 0.5rem; color: #7367f0; }
-.onboarding-step p { font-size: 1rem; color: #666; padding: 0 10px; }
+/* כרטיסי מוצר */
+.item-card { background: white; border-radius: 20px; padding: 15px; margin-bottom: 12px; shadow-sm; display: flex; justify-content: space-between; align-items: center; }
+
+/* הדרכה */
+.onboarding-step img { max-width: 130px; height: auto; border-radius: 20px; margin-bottom: 1rem; }
+.onboarding-step h2 { font-size: 1.4rem; color: #7367f0; }
 
 @keyframes loading { 0% { transform: translateX(-100%); } 100% { transform: translateX(100%); } }
 #splash-screen.fade-out { opacity: 0; pointer-events: none; }
