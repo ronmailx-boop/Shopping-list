@@ -1,4 +1,4 @@
-let db = JSON.parse(localStorage.getItem('VPLUS_DB_V2')) || { 
+let db = JSON.parse(localStorage.getItem('VPLUS_DB_V3')) || { 
     currentId: 'L1', 
     lists: { 'L1': { name: 'הרשימה שלי', items: [] } },
     lastActivePage: 'lists'
@@ -15,7 +15,7 @@ let activePage = db.lastActivePage || 'lists';
 
 function save() {
     db.lastActivePage = activePage;
-    localStorage.setItem('VPLUS_DB_V2', JSON.stringify(db));
+    localStorage.setItem('VPLUS_DB_V3', JSON.stringify(db));
     render();
 }
 
@@ -29,9 +29,13 @@ function render() {
     const summaryContainer = document.getElementById('summaryContainer');
     if (!itemsContainer || !summaryContainer) return;
 
-    // עדכון טאבים
-    document.getElementById('tabLists').className = `tab-btn ${activePage === 'lists' ? 'tab-active' : ''}`;
-    document.getElementById('tabSummary').className = `tab-btn ${activePage === 'summary' ? 'tab-active' : ''}`;
+    // עדכון כפתורי הטאבים
+    const tabL = document.getElementById('tabLists');
+    const tabS = document.getElementById('tabSummary');
+    if(tabL && tabS) {
+        tabL.className = `tab-btn ${activePage === 'lists' ? 'tab-active' : ''}`;
+        tabS.className = `tab-btn ${activePage === 'summary' ? 'tab-active' : ''}`;
+    }
 
     if (activePage === 'lists') {
         document.getElementById('pageLists').classList.remove('hidden');
@@ -39,20 +43,29 @@ function render() {
         
         itemsContainer.innerHTML = '';
         let total = 0;
-        const items = db.lists[db.currentId].items;
+        const list = db.lists[db.currentId] || { items: [] };
+        const items = list.items;
         
         if (items.length === 0) {
-            itemsContainer.innerHTML = '<div class="text-center p-10 text-gray-400">הרשימה ריקה. לחץ על + להוספה</div>';
+            itemsContainer.innerHTML = `
+                <div class="flex flex-col items-center justify-center p-12 text-gray-400 opacity-60">
+                    <svg class="w-16 h-16 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path></svg>
+                    <p class="font-bold">הרשימה ריקה</p>
+                    <p class="text-sm">לחץ על ה- + כדי להתחיל</p>
+                </div>`;
         }
 
         items.forEach((item, idx) => {
             const subtotal = item.price * item.qty;
             total += subtotal;
             const div = document.createElement('div');
-            div.className = "item-card animate-[fadeIn_0.3s]";
+            div.className = "item-card animate-[fadeIn_0.3s_ease-out]";
             div.innerHTML = `
-                <div class="font-bold text-lg">${item.name}</div>
-                <div class="text-indigo-600 font-black">₪${subtotal.toFixed(2)}</div>
+                <div class="font-bold text-lg text-slate-700">${item.name}</div>
+                <div class="flex items-center gap-4">
+                    <div class="text-xs text-gray-400">x${item.qty}</div>
+                    <div class="text-[#7367f0] font-black text-xl">₪${subtotal.toFixed(2)}</div>
+                </div>
             `;
             itemsContainer.appendChild(div);
         });
@@ -62,17 +75,19 @@ function render() {
     } else {
         document.getElementById('pageLists').classList.add('hidden');
         document.getElementById('pageSummary').classList.remove('hidden');
-        summaryContainer.innerHTML = '<div class="text-center p-10 text-gray-400">דף סיכומי רשימות</div>';
+        summaryContainer.innerHTML = '<div class="text-center p-10 text-gray-400 font-bold">דף סיכומי רשימות</div>';
     }
 }
 
 function addItemPrompt() {
     const n = prompt("שם המוצר:");
+    if (!n) return;
     const p = parseFloat(prompt("מחיר:"));
-    if (n && !isNaN(p)) {
-        db.lists[db.currentId].items.push({ name: n, price: p, qty: 1 });
-        save();
-    }
+    if (isNaN(p)) return;
+    
+    if (!db.lists[db.currentId]) db.lists[db.currentId] = { name: 'הרשימה שלי', items: [] };
+    db.lists[db.currentId].items.push({ name: n, price: p, qty: 1 });
+    save();
 }
 
 function initApp() {
@@ -81,7 +96,7 @@ function initApp() {
     
     setTimeout(() => {
         splash.classList.add('fade-out');
-        const hasSeen = localStorage.getItem('vplus_seen_v3');
+        const hasSeen = localStorage.getItem('vplus_seen_final');
         if (!hasSeen) {
             onboarding.classList.remove('hidden');
             onboarding.classList.add('flex');
@@ -98,10 +113,10 @@ function renderOnboardingStep() {
     const step = onboardingSteps[currentOnboardingStep];
     
     content.innerHTML = `
-        <div class="onboarding-step">
-            <img src="${step.image}" class="mx-auto shadow-lg">
+        <div class="onboarding-step animate-[fadeIn_0.5s_ease-out]">
+            <img src="${step.image}" class="mx-auto shadow-2xl">
             <h2 class="font-black text-2xl">${step.title}</h2>
-            <p class="mt-2 text-gray-500">${step.desc}</p>
+            <p class="mt-4 text-gray-500 font-medium">${step.desc}</p>
         </div>
     `;
     
@@ -125,7 +140,7 @@ document.getElementById('onboarding-next').onclick = () => {
 document.getElementById('onboarding-skip').onclick = closeOnboarding;
 
 function closeOnboarding() {
-    localStorage.setItem('vplus_seen_v3', 'true');
+    localStorage.setItem('vplus_seen_final', 'true');
     document.getElementById('onboarding-overlay').classList.add('hidden');
     render();
 }
