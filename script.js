@@ -1,60 +1,53 @@
-// קוד סנכרון גוגל והגדרות נשארים ללא שינוי...
+// אתחול נתונים בסיסי
+let db = JSON.parse(localStorage.getItem('vplus_db')) || { items: [], settings: { isLocked: false } };
+let isSyncing = false;
+let accessToken = null;
+
+function saveDb() {
+    localStorage.setItem('vplus_db', JSON.stringify(db));
+    render();
+}
 
 function showToast(message, type = 'info') {
     const container = document.getElementById('toast-container');
     if (!container) return;
-
     const toast = document.createElement('div');
     toast.className = `toast toast-${type}`;
-    
     const icons = { success: '✅', error: '❌', info: 'ℹ️', offline: '📡' };
     toast.innerHTML = `<span>${icons[type] || 'ℹ️'}</span> <span>${message}</span>`;
-    
     container.appendChild(toast);
-
     setTimeout(() => {
         toast.classList.add('toast-exit');
         setTimeout(() => toast.remove(), 300);
     }, 3500);
 }
 
-// מאזינים למצב אופליין
+// ניהול דפים וטאבים
+function showPage(pageId) {
+    document.getElementById('pageLists').classList.toggle('hidden', pageId !== 'lists');
+    document.getElementById('tabLists').classList.toggle('tab-active', pageId === 'lists');
+    document.getElementById('tabSummary').classList.toggle('tab-active', pageId === 'summary');
+    showToast(`עברת למסך ${pageId === 'lists' ? 'הרשימה' : 'הסיכום'}`, 'info');
+}
+
+// פונקציות כפתורים בסיסיות למניעת שגיאות
+function openModal(id) { showToast(`פתיחת מודאל: ${id}`, 'info'); }
+function toggleLock() { 
+    db.settings.isLocked = !db.settings.isLocked; 
+    saveDb(); 
+    showToast(db.settings.isLocked ? 'הרשימה ננעלה' : 'הרשימה פתוחה', 'info'); 
+}
+
+// מאזינים לרשת
 window.addEventListener('online', () => showToast('החיבור חזר! סנכרון זמין', 'success'));
-window.addEventListener('offline', () => showToast('עובד במצב אופליין. הנתונים נשמרים מקומית', 'offline'));
+window.addEventListener('offline', () => showToast('עובד במצב אופליין', 'offline'));
 
-// עדכון סנכרון עם Toasts
-async function syncToCloud() {
-    if (!navigator.onLine) {
-        showToast('אין חיבור לאינטרנט לסנכרון', 'error');
-        return;
-    }
-    
-    if (!accessToken || isSyncing) return;
-    isSyncing = true;
-    updateCloudIndicator('syncing');
-
-    try {
-        const folderId = await findOrCreateFolder();
-        const fileId = await findFileInFolder(folderId);
-        const dataToSave = JSON.stringify(db);
-
-        // לוגיקת העלאה...
-        showToast('סונכרן לענן בהצלחה', 'success');
-    } catch (err) {
-        showToast('שגיאה בסנכרון לענן', 'error');
-    } finally {
-        isSyncing = false;
-        updateCloudIndicator('connected');
-    }
+function render() {
+    const container = document.getElementById('itemsContainer');
+    if (!container) return;
+    container.innerHTML = db.items.length === 0 ? '<div class="text-center p-10 text-gray-400">הרשימה ריקה</div>' : '';
+    // כאן תבוא לוגיקת הרינדור המלאה שלך
 }
 
-// עדכון ייבוא עם Toasts
-function importFromText() {
-    // לוגיקת ייבוא קיימת...
-    if (items.length === 0) {
-        showToast('לא נמצאו מוצרים לייבוא', 'error');
-        return;
-    }
-    // בסיום הייבוא:
-    showToast(`יובאו ${items.length} מוצרים בהצלחה`, 'success');
-}
+// הרצה ראשונית
+render();
