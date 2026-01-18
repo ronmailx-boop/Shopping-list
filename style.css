@@ -1,52 +1,55 @@
 * { box-sizing: border-box; touch-action: manipulation; }
-body { font-family: system-ui, sans-serif; background: #f4f7fa; padding-bottom: 240px; min-height: 100vh; transition: background 0.3s; margin: 0; }
+body { font-family: system-ui, sans-serif; background: #f4f7fa; padding-bottom: 120px; min-height: 100vh; transition: background 0.3s; margin: 0; }
 
-/* לוגו מעוצב בהדר - תואם למסך הפתיחה */
+/* לוגו מעוצב - תיקון כיוון תצוגה */
 .header-logo-container {
     background-color: #7367f0;
-    padding: 6px 14px;
+    padding: 6px 12px;
     border-radius: 12px;
     display: flex;
+    flex-direction: row; /* מבטיח ש-V תמיד לפני plus */
     align-items: center;
-    gap: 2px;
-    box-shadow: 0 4px 10px rgba(115, 103, 240, 0.25);
+    gap: 1px;
+    box-shadow: 0 4px 10px rgba(115, 103, 240, 0.2);
+    unicode-bidi: isolate;
 }
-.logo-v { color: white; font-weight: 900; font-size: 1.4rem; }
-.logo-plus { color: #4ade80; font-weight: 900; font-size: 1.4rem; }
+.logo-v { color: white; font-weight: 900; font-size: 1.3rem; }
+.logo-plus { color: #4ade80; font-weight: 900; font-size: 1.3rem; }
 
-.item-card { background: white; border-radius: 25px; padding: 15px; margin-bottom: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.03); display: flex; flex-direction: column; }
-
-.bottom-bar { 
-    position: fixed; 
-    bottom: 0; left: 0; right: 0; 
-    background: #7367f0; 
-    z-index: 1000; 
-    padding: 15px 15px 35px 15px; 
-    border-radius: 35px 35px 0 0; 
-    box-shadow: 0 -10px 25px rgba(0, 0, 0, 0.15); 
-    transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-    cursor: pointer;
+.app-header { 
+    background: white; 
+    padding: 10px 15px; 
+    display: flex; 
+    flex-direction: row; /* תיקון כיוון הבר כולו */
+    justify-content: space-between; 
+    align-items: center; 
+    box-shadow: 0 2px 8px rgba(0,0,0,0.05); 
+    position: sticky; 
+    top: 0; 
+    z-index: 2000; 
+    height: 60px;
 }
-.bottom-bar.minimized { transform: translateY(calc(100% - 8px)); }
 
-.app-header { background: white; padding: 10px 20px; display: flex; flex-direction: row-reverse; justify-content: space-between; align-items: center; box-shadow: 0 2px 8px rgba(0,0,0,0.05); position: sticky; top: 0; z-index: 2000; height: 65px; }
+.header-controls { display: flex; align-items: center; gap: 8px; }
 
-/* תיקון נגישות ל-Onboarding - כפתורים שקועים */
+/* תיקון חיתוך מסכי הדרכה */
+.onboarding-step img { 
+    max-width: 160px; /* הקטנה משמעותית כדי למנוע חיתוך */
+    height: auto;
+    border-radius: 25px; 
+    margin-bottom: 1.5rem; 
+}
+.onboarding-step h2 { font-size: 1.5rem !important; margin-bottom: 1rem; }
+.onboarding-step p { font-size: 1.1rem !important; line-height: 1.4; }
+
 .onboarding-footer {
-    padding-bottom: calc(30px + env(safe-area-inset-bottom)) !important;
+    padding-bottom: calc(15px + env(safe-area-inset-bottom)) !important;
 }
 
-#onboarding-content {
-    max-height: 70vh;
-}
-
-/* אנימציות ועיצוב Splash */
+/* אנימציות */
 @keyframes loading { 0% { transform: translateX(-100%); } 100% { transform: translateX(100%); } }
-@keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(15px); } to { opacity: 1; transform: translateY(0); } }
 
 #splash-screen.fade-out { opacity: 0; pointer-events: none; }
-.onboarding-step img { max-width: 220px; border-radius: 30px; box-shadow: 0 20px 40px rgba(115, 103, 240, 0.2); margin-bottom: 2rem; }
-.dot { width: 10px; height: 10px; background: #e2e8f0; border-radius: 50%; transition: all 0.4s; }
-.dot.active { width: 30px; background: #7367f0; border-radius: 5px; }
-
-/* שאר הסגנונות הקיימים שלכם... */
+.dot { width: 8px; height: 8px; background: #e2e8f0; border-radius: 50%; }
+.dot.active { width: 24px; background: #7367f0; border-radius: 4px; }
