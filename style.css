@@ -1,17 +1,17 @@
 * { box-sizing: border-box; touch-action: manipulation; }
-body { font-family: system-ui, sans-serif; background: #f4f7fa; padding-bottom: 120px; min-height: 100vh; transition: background 0.3s; margin: 0; }
+body { font-family: system-ui, sans-serif; background: #f4f7fa; margin: 0; padding-bottom: 120px; }
 
-/* לוגו מעוצב - תיקון כיוון תצוגה */
+/* לוגו מתוקן - משמאל לימין תמיד */
 .header-logo-container {
     background-color: #7367f0;
     padding: 6px 12px;
     border-radius: 12px;
     display: flex;
-    flex-direction: row; /* מבטיח ש-V תמיד לפני plus */
+    flex-direction: row !important;
+    direction: ltr !important;
     align-items: center;
     gap: 1px;
     box-shadow: 0 4px 10px rgba(115, 103, 240, 0.2);
-    unicode-bidi: isolate;
 }
 .logo-v { color: white; font-weight: 900; font-size: 1.3rem; }
 .logo-plus { color: #4ade80; font-weight: 900; font-size: 1.3rem; }
@@ -20,36 +20,28 @@ body { font-family: system-ui, sans-serif; background: #f4f7fa; padding-bottom: 
     background: white; 
     padding: 10px 15px; 
     display: flex; 
-    flex-direction: row; /* תיקון כיוון הבר כולו */
+    flex-direction: row !important; /* לוגו בימין, כפתורים בשמאל */
     justify-content: space-between; 
     align-items: center; 
     box-shadow: 0 2px 8px rgba(0,0,0,0.05); 
-    position: sticky; 
-    top: 0; 
-    z-index: 2000; 
-    height: 60px;
+    position: sticky; top: 0; z-index: 2000; height: 60px;
 }
 
-.header-controls { display: flex; align-items: center; gap: 8px; }
+.header-controls { display: flex; align-items: center; gap: 8px; flex-direction: row-reverse; }
 
-/* תיקון חיתוך מסכי הדרכה */
-.onboarding-step img { 
-    max-width: 160px; /* הקטנה משמעותית כדי למנוע חיתוך */
-    height: auto;
-    border-radius: 25px; 
-    margin-bottom: 1.5rem; 
-}
-.onboarding-step h2 { font-size: 1.5rem !important; margin-bottom: 1rem; }
-.onboarding-step p { font-size: 1.1rem !important; line-height: 1.4; }
-
-.onboarding-footer {
-    padding-bottom: calc(15px + env(safe-area-inset-bottom)) !important;
+/* בר תחתון */
+.bottom-bar-fixed {
+    position: fixed; bottom: 0; left: 0; right: 0;
+    background: #7367f0; padding: 20px 20px 30px;
+    border-radius: 30px 30px 0 0; z-index: 1000;
 }
 
-/* אנימציות */
+/* הדרכה ללא חיתוך */
+.onboarding-step img { max-width: 140px; height: auto; border-radius: 20px; margin-bottom: 1rem; }
+.onboarding-step h2 { font-size: 1.4rem; margin-bottom: 0.5rem; color: #7367f0; }
+.onboarding-step p { font-size: 1rem; color: #666; padding: 0 10px; }
+
 @keyframes loading { 0% { transform: translateX(-100%); } 100% { transform: translateX(100%); } }
-@keyframes fadeIn { from { opacity: 0; transform: translateY(15px); } to { opacity: 1; transform: translateY(0); } }
-
 #splash-screen.fade-out { opacity: 0; pointer-events: none; }
 .dot { width: 8px; height: 8px; background: #e2e8f0; border-radius: 50%; }
 .dot.active { width: 24px; background: #7367f0; border-radius: 4px; }
