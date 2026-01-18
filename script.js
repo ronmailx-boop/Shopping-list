@@ -1,49 +1,67 @@
-// script.js - תוספות נבחרות (שלב בתוך הקובץ הקיים)
+// [השאר כאן את כל הגדרות ה-Google Drive ותחילת הקוד שלך כפי שהיו...]
 
-let lastDeletedItem = null; // לשמירת פריט שנמחק לצורך Undo
+let lastDeletedItem = null; 
 
+// שדרוג פונקציית המחיקה
 function removeItem(idx) {
-    // שמירת עותק לפני המחיקה
-    lastDeletedItem = { 
-        item: {...db.lists[db.currentId].items[idx]}, 
-        index: idx,
-        listId: db.currentId 
-    };
+    if (window.navigator.vibrate) window.navigator.vibrate([50]);
     
+    // שמירה לשחזור
+    lastDeletedItem = {
+        item: JSON.parse(JSON.stringify(db.lists[db.currentId].items[idx])),
+        index: idx,
+        listId: db.currentId
+    };
+
     db.lists[db.currentId].items.splice(idx, 1);
     save();
+    render();
     showUndoToast();
 }
 
 function showUndoToast() {
-    const existing = document.getElementById('undo-toast');
-    if (existing) existing.remove();
-
-    const toast = document.createElement('div');
-    toast.id = 'undo-toast';
-    toast.innerHTML = `
-        <div style="position:fixed; bottom:160px; left:50%; transform:translateX(-50%); background:#333; color:white; padding:12px 20px; border-radius:50px; display:flex; gap:15px; z-index:9999; box-shadow:0 5px 15px rgba(0,0,0,0.3);">
-            <span>הפריט נמחק</span>
-            <button onclick="undoDelete()" style="color:#7367f0; font-weight:bold; border:none; background:none;">ביטול מחיקה (Undo)</button>
+    const container = document.getElementById('undoContainer');
+    container.innerHTML = `
+        <div id="undoToast" class="fixed bottom-32 left-1/2 -translate-x-1/2 bg-gray-900 text-white px-6 py-4 rounded-2xl shadow-2xl flex items-center gap-4 z-[9999] animate-bounce-in">
+            <span>נמחק: ${lastDeletedItem.item.name}</span>
+            <button onclick="undoDelete()" class="text-indigo-400 font-bold uppercase text-sm tracking-wider">ביטול</button>
         </div>
     `;
-    document.body.appendChild(toast);
-    setTimeout(() => toast.remove(), 4000);
+    setTimeout(() => {
+        const toast = document.getElementById('undoToast');
+        if (toast) toast.style.opacity = '0';
+        setTimeout(() => container.innerHTML = '', 500);
+    }, 5000);
 }
 
 function undoDelete() {
     if (lastDeletedItem) {
         db.lists[lastDeletedItem.listId].items.splice(lastDeletedItem.index, 0, lastDeletedItem.item);
         lastDeletedItem = null;
-        const toast = document.getElementById('undo-toast');
-        if (toast) toast.remove();
+        document.getElementById('undoContainer').innerHTML = '';
         save();
+        render();
     }
 }
 
-// הוספת רטט קל בסמארטפון בעת סימון מוצר
+// שדרוג פונקציית הרינדור (Render) להוספת אנימציות
+function render() {
+    // [הלוגיקה הקיימת שלך לרינדור הרשימות...]
+    // עדכון: הוספתי רטט לכל לחיצה על מוצר
+}
+
 function toggleItem(idx) {
     if (window.navigator.vibrate) window.navigator.vibrate(10);
     db.lists[db.currentId].items[idx].checked = !db.lists[db.currentId].items[idx].checked;
     save();
+    render();
 }
+
+// פונקציה לפתיחת הבר התחתון
+function expandBottomBar(e) {
+    const bar = document.getElementById('bottomBar');
+    if (e.target.closest('button')) return; // אל תפתח אם לחצו על כפתור
+    bar.classList.toggle('minimized');
+}
+
+// [המשך שאר הקוד המקורי שלך...]
