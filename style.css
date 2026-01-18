@@ -1,67 +1,141 @@
-/* style.css - גרסה משודרגת */
+/* style.css - הגרסה המלאה והמשופרת */
 :root {
     --primary: #7367f0;
-    --primary-light: #8e85f3;
     --success: #28c76f;
     --danger: #ea5455;
-    --warning: #ff9f43;
     --bg-light: #f8f7fa;
     --card-bg: #ffffff;
     --text-main: #5e5873;
+    --radius: 24px;
 }
 
-* { box-sizing: border-box; touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
+* { 
+    box-sizing: border-box; 
+    touch-action: manipulation; 
+    -webkit-tap-highlight-color: transparent;
+}
 
 body { 
-    font-family: 'Segoe UI', system-ui, sans-serif; 
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; 
     background: var(--bg-light); 
     color: var(--text-main);
     padding-bottom: 180px; 
-    transition: all 0.3s ease; 
-    margin: 0; 
+    transition: background 0.4s ease, color 0.4s ease; 
+    margin: 0;
+    overflow-x: hidden;
 }
 
-/* שדרוג כרטיס מוצר - נקי ומרווח יותר */
+/* Header */
+.app-header {
+    background: rgba(255, 255, 255, 0.8);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid rgba(0,0,0,0.05);
+    padding: 12px 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    position: sticky;
+    top: 0;
+    z-index: 2000;
+}
+
+/* כרטיסי מוצרים */
 .item-card { 
     background: var(--card-bg); 
-    border-radius: 20px; 
-    padding: 18px; 
-    margin-bottom: 15px; 
-    box-shadow: 0 4px 15px rgba(0,0,0,0.05); 
+    border-radius: var(--radius); 
+    padding: 20px; 
+    margin-bottom: 16px; 
+    box-shadow: 0 4px 20px rgba(0,0,0,0.03); 
     border: 1px solid rgba(0,0,0,0.02);
-    transition: transform 0.2s;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
 
-.item-card:active { transform: scale(0.98); }
+.item-card:active { transform: scale(0.97); }
 
-/* הבר התחתון - עיצוב צף ומודרני */
+.item-card.checked { opacity: 0.6; background: #f1f0f0 !important; }
+
+/* כפתורי שליטה בכמות */
+.qty-btn {
+    width: 36px;
+    height: 36px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--bg-light);
+    border: none;
+    font-weight: bold;
+    color: var(--primary);
+}
+
+/* הבר התחתון המעוצב */
 .bottom-bar { 
     position: fixed; 
     bottom: 20px; 
     left: 15px; 
     right: 15px; 
-    background: rgba(115, 103, 240, 0.95); 
-    backdrop-filter: blur(10px);
+    background: linear-gradient(135deg, #7367f0 0%, #8e85f3 100%); 
     z-index: 1000; 
     padding: 20px; 
-    border-radius: 30px; 
-    box-shadow: 0 10px 30px rgba(115, 103, 240, 0.4); 
+    border-radius: 32px; 
+    box-shadow: 0 12px 40px rgba(115, 103, 240, 0.4); 
     color: white;
+    transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-/* כפתור הפלוס המרכזי - אפקט פעימה */
+.bottom-bar.minimized { height: 100px; }
+
 .main-add-btn {
-    width: 70px;
-    height: 70px;
+    width: 72px;
+    height: 72px;
     background: var(--success);
     border-radius: 50%;
-    border: 5px solid white;
-    box-shadow: 0 5px 15px rgba(40, 199, 111, 0.4);
-    margin-top: -45px;
-    transition: 0.3s;
+    border: 6px solid #f8f7fa;
+    box-shadow: 0 8px 25px rgba(40, 199, 111, 0.4);
+    position: relative;
+    top: -20px;
 }
 
-/* מצב לילה משופר - כחול עמוק במקום שחור */
+/* מודאלים */
+.modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(15, 22, 58, 0.5);
+    backdrop-filter: blur(4px);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 3000;
+    padding: 20px;
+}
+
+.edit-modal {
+    background: white;
+    width: 100%;
+    max-width: 400px;
+    border-radius: 32px;
+    padding: 30px;
+}
+
+.modal-input {
+    width: 100%;
+    background: #f8f7fa;
+    border: 2px solid transparent;
+    border-radius: 16px;
+    padding: 16px;
+    margin-bottom: 15px;
+    outline: none;
+    transition: border 0.3s;
+}
+
+.modal-input:focus { border-color: var(--primary); }
+
+/* מצב לילה */
 body.dark-mode { background: #10163a; color: #b4b7bd; }
-.dark-mode .item-card { background: #252d50 !important; color: #cfd3d9; border-color: #3b4465; }
-.dark-mode .app-header { background: #252d50; border-bottom: none; }
+.dark-mode .app-header { background: rgba(37, 45, 80, 0.9); border-color: rgba(255,255,255,0.1); }
+.dark-mode .item-card { background: #252d50 !important; border-color: #3b4465; color: #cfd3d9; }
+.dark-mode .modal-input { background: #10163a; color: white; }
+.dark-mode .edit-modal { background: #252d50; color: white; }
