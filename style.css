@@ -1,112 +1,67 @@
-* { box-sizing: border-box; touch-action: manipulation; }
-body { font-family: system-ui, sans-serif; background: #f4f7fa; padding-bottom: 240px; min-height: 100vh; transition: background 0.3s; margin: 0; }
+/* style.css - גרסה משודרגת */
+:root {
+    --primary: #7367f0;
+    --primary-light: #8e85f3;
+    --success: #28c76f;
+    --danger: #ea5455;
+    --warning: #ff9f43;
+    --bg-light: #f8f7fa;
+    --card-bg: #ffffff;
+    --text-main: #5e5873;
+}
 
-.item-card { background: white; border-radius: 25px; padding: 15px; margin-bottom: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.03); display: flex; flex-direction: column; }
+* { box-sizing: border-box; touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
 
-/* הגדרות הבר התחתון עם אנימציה */
+body { 
+    font-family: 'Segoe UI', system-ui, sans-serif; 
+    background: var(--bg-light); 
+    color: var(--text-main);
+    padding-bottom: 180px; 
+    transition: all 0.3s ease; 
+    margin: 0; 
+}
+
+/* שדרוג כרטיס מוצר - נקי ומרווח יותר */
+.item-card { 
+    background: var(--card-bg); 
+    border-radius: 20px; 
+    padding: 18px; 
+    margin-bottom: 15px; 
+    box-shadow: 0 4px 15px rgba(0,0,0,0.05); 
+    border: 1px solid rgba(0,0,0,0.02);
+    transition: transform 0.2s;
+}
+
+.item-card:active { transform: scale(0.98); }
+
+/* הבר התחתון - עיצוב צף ומודרני */
 .bottom-bar { 
     position: fixed; 
-    bottom: 0; 
-    left: 0; 
-    right: 0; 
-    background: #7367f0; 
+    bottom: 20px; 
+    left: 15px; 
+    right: 15px; 
+    background: rgba(115, 103, 240, 0.95); 
+    backdrop-filter: blur(10px);
     z-index: 1000; 
-    padding: 15px 15px 35px 15px; 
-    border-radius: 35px 35px 0 0; 
-    box-shadow: 0 -10px 25px rgba(0, 0, 0, 0.15); 
-    transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-    cursor: pointer;
+    padding: 20px; 
+    border-radius: 30px; 
+    box-shadow: 0 10px 30px rgba(115, 103, 240, 0.4); 
+    color: white;
 }
 
-/* מצב מוסתר - משאיר פס דק למעלה */
-.bottom-bar.minimized {
-    transform: translateY(calc(100% - 8px));
+/* כפתור הפלוס המרכזי - אפקט פעימה */
+.main-add-btn {
+    width: 70px;
+    height: 70px;
+    background: var(--success);
+    border-radius: 50%;
+    border: 5px solid white;
+    box-shadow: 0 5px 15px rgba(40, 199, 111, 0.4);
+    margin-top: -45px;
+    transition: 0.3s;
 }
 
-.tab-btn { flex: 1; padding: 12px; border-radius: 15px; font-weight: bold; text-align: center; cursor: pointer; transition: 0.2s; background: white; color: #666; border: 1px solid #eee; }
-.tab-active { background: #7367f0 !important; color: white !important; }
-
-/* כפתורי עיגול בבר התחתון */
-.bottom-circle-btn {
-    width: 48px !important;
-    height: 48px !important;
-    flex-shrink: 0 !important;
-    border-radius: 50% !important;
-    display: flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-    border: 2px solid rgba(255,255,255,0.2) !important;
-    box-shadow: 0 4px 10px rgba(0,0,0,0.2) !important;
-    cursor: pointer;
-}
-
-/* הצמדה לקצה העליון */
-.modal-overlay { 
-    display: none; 
-    position: fixed; 
-    inset: 0; 
-    background: rgba(0,0,0,0.75); 
-    z-index: 7000; 
-    align-items: flex-start; 
-    justify-content: center; 
-    backdrop-filter: blur(8px); 
-    padding-top: 0; 
-}
-.modal-overlay.active { display: flex; }
-
-/* הידוק גובה החלונית ב-20% נוספים */
-.edit-modal { 
-    width: 90%; 
-    max-width: 400px; 
-    background-color: #ffffff !important; 
-    border-radius: 0 0 30px 30px; 
-    padding: 6px 25px; 
-    text-align: center; 
-    color: #333; 
-    border: 2px solid #eee; 
-    box-shadow: 0 15px 35px rgba(0,0,0,0.3); 
-}
-
-.modal-input { 
-    width: 100%; 
-    padding: 6px; 
-    border: 2px solid #f3f4f6; 
-    border-radius: 16px; 
-    font-size: 16px; 
-    text-align: center; 
-    outline: none; 
-    margin-bottom: 5px; 
-    font-weight: bold; 
-    background: #f9fafb !important; 
-    color: #333; 
-}
-
-/* התאמת כותרת המודאל למבנה קומפקטי */
-.edit-modal h2 {
-    margin-top: 2px;
-    margin-bottom: 8px;
-    font-size: 1.15rem;
-}
-
-.app-header { background: white; padding: 10px 20px; display: flex; flex-direction: row-reverse; justify-content: space-between; align-items: center; box-shadow: 0 2px 8px rgba(0,0,0,0.05); position: sticky; top: 0; z-index: 2000; height: 60px; }
-.header-controls { display: flex; align-items: center; gap: 8px; direction: rtl; }
-.gear-btn { flex-shrink: 0; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; }
-
-.trash-btn { width: 44px; height: 44px; background: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #ef4444; border: none; cursor: pointer; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
-.category-separator { background: #7367f0; color: white; border-radius: 20px; padding: 15px; margin-bottom: 20px; text-align: center; }
-
-/* מצב לילה */
-body.dark-mode { background: #1a1a2e; color: #e0e0e0; }
-.dark-mode .app-header { background: #16213e; border-bottom: 1px solid #0f3460; }
-.dark-mode .item-card, .dark-mode .bg-white { background-color: #0f3460 !important; border-color: #1a1a2e; color: white; }
-.dark-mode #selectAllLabel { color: white !important; }
-.dark-mode .select-all-container { background-color: #0f3460 !important; }
-
-/* תיקון נראות מספר הכמות במצב לילה */
-.dark-mode .item-card span.font-bold { color: white !important; }
-.dark-mode .item-card .bg-gray-50 { background-color: rgba(255,255,255,0.1) !important; border-color: rgba(255,255,255,0.2); }
-
-@media print {
-    .no-print, .bottom-bar, .app-header, .tab-btn, .modal-overlay, .trash-btn, input, button { display: none !important; }
-    #printArea { display: block !important; width: 100%; direction: rtl; }
-}
+/* מצב לילה משופר - כחול עמוק במקום שחור */
+body.dark-mode { background: #10163a; color: #b4b7bd; }
+.dark-mode .item-card { background: #252d50 !important; color: #cfd3d9; border-color: #3b4465; }
+.dark-mode .app-header { background: #252d50; border-bottom: none; }
