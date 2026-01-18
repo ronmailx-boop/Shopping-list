@@ -18,6 +18,7 @@ body { font-family: system-ui, sans-serif; background: #f4f7fa; padding-bottom: 
     cursor: pointer;
 }
 
+/* מצב מוסתר - משאיר פס דק למעלה */
 .bottom-bar.minimized {
     transform: translateY(calc(100% - 8px));
 }
@@ -25,6 +26,7 @@ body { font-family: system-ui, sans-serif; background: #f4f7fa; padding-bottom: 
 .tab-btn { flex: 1; padding: 12px; border-radius: 15px; font-weight: bold; text-align: center; cursor: pointer; transition: 0.2s; background: white; color: #666; border: 1px solid #eee; }
 .tab-active { background: #7367f0 !important; color: white !important; }
 
+/* כפתורי עיגול בבר התחתון */
 .bottom-circle-btn {
     width: 48px !important;
     height: 48px !important;
@@ -38,6 +40,7 @@ body { font-family: system-ui, sans-serif; background: #f4f7fa; padding-bottom: 
     cursor: pointer;
 }
 
+/* הצמדה לקצה העליון */
 .modal-overlay { 
     display: none; 
     position: fixed; 
@@ -51,6 +54,7 @@ body { font-family: system-ui, sans-serif; background: #f4f7fa; padding-bottom: 
 }
 .modal-overlay.active { display: flex; }
 
+/* הידוק גובה החלונית ב-20% נוספים */
 .edit-modal { 
     width: 90%; 
     max-width: 400px; 
@@ -77,50 +81,15 @@ body { font-family: system-ui, sans-serif; background: #f4f7fa; padding-bottom: 
     color: #333; 
 }
 
+/* התאמת כותרת המודאל למבנה קומפקטי */
 .edit-modal h2 {
     margin-top: 2px;
     margin-bottom: 8px;
     font-size: 1.15rem;
 }
 
-/* Header מתוקן */
-.app-header { 
-    background: white; 
-    padding: 10px 15px; 
-    display: flex; 
-    justify-content: space-between; 
-    align-items: center; 
-    box-shadow: 0 2px 8px rgba(0,0,0,0.05); 
-    position: sticky; 
-    top: 0; 
-    z-index: 2000; 
-    height: 65px; 
-}
-
-/* כפתורי בקרה בימין */
-.header-controls { 
-    display: flex; 
-    align-items: center; 
-    gap: 8px; 
-    order: 2; /* מבטיח שהם יהיו בצד ימין ב-RTL */
-}
-
-/* לוגו בשמאל */
-.header-logo-container {
-    background-color: #7367f0;
-    padding: 6px 12px;
-    border-radius: 12px;
-    display: flex;
-    align-items: center;
-    gap: 2px;
-    box-shadow: 0 4px 10px rgba(115, 103, 240, 0.25);
-    direction: ltr;
-    order: 1; /* מבטיח שהלוגו יהיה בצד שמאל ב-RTL */
-}
-
-.logo-v { color: white; font-weight: 900; font-size: 1.4rem; }
-.logo-plus { color: #4ade80; font-weight: 900; font-size: 1.4rem; }
-
+.app-header { background: white; padding: 10px 20px; display: flex; flex-direction: row-reverse; justify-content: space-between; align-items: center; box-shadow: 0 2px 8px rgba(0,0,0,0.05); position: sticky; top: 0; z-index: 2000; height: 60px; }
+.header-controls { display: flex; align-items: center; gap: 8px; direction: rtl; }
 .gear-btn { flex-shrink: 0; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; }
 
 .trash-btn { width: 44px; height: 44px; background: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #ef4444; border: none; cursor: pointer; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
@@ -132,6 +101,8 @@ body.dark-mode { background: #1a1a2e; color: #e0e0e0; }
 .dark-mode .item-card, .dark-mode .bg-white { background-color: #0f3460 !important; border-color: #1a1a2e; color: white; }
 .dark-mode #selectAllLabel { color: white !important; }
 .dark-mode .select-all-container { background-color: #0f3460 !important; }
+
+/* תיקון נראות מספר הכמות במצב לילה */
 .dark-mode .item-card span.font-bold { color: white !important; }
 .dark-mode .item-card .bg-gray-50 { background-color: rgba(255,255,255,0.1) !important; border-color: rgba(255,255,255,0.2); }
 
