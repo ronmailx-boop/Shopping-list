@@ -13,7 +13,7 @@
 <body>
 
     <div id="splash-screen" class="fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-[#7367f0] transition-opacity duration-500">
-        <div class="w-32 h-32 mb-4 animate-bounce">
+        <div class="w-24 h-24 mb-4 animate-bounce">
             <img src="icon.png" alt="Logo" class="rounded-3xl shadow-2xl">
         </div>
         <h1 class="text-white text-4xl font-black">V<span class="text-green-400">plus</span></h1>
@@ -23,12 +23,12 @@
     </div>
 
     <div id="onboarding-overlay" class="fixed inset-0 z-[9000] hidden bg-white flex-col">
-        <div id="onboarding-content" class="flex-1 flex flex-col items-center justify-center p-8 text-center overflow-y-auto">
+        <div id="onboarding-content" class="flex-1 flex flex-col items-center justify-center p-6 text-center overflow-y-auto">
             </div>
-        <div class="onboarding-footer p-8 flex justify-between items-center bg-white border-t border-gray-100">
+        <div class="onboarding-footer p-6 flex justify-between items-center bg-white border-t border-gray-100 mb-2">
             <button id="onboarding-skip" class="text-gray-400 font-bold text-lg">דלג</button>
             <div id="onboarding-dots" class="flex gap-2"></div>
-            <button id="onboarding-next" class="bg-[#7367f0] text-white px-10 py-4 rounded-2xl font-bold shadow-lg text-lg">הבא</button>
+            <button id="onboarding-next" class="bg-[#7367f0] text-white px-8 py-3 rounded-2xl font-bold shadow-lg text-lg">הבא</button>
         </div>
     </div>
 
@@ -39,12 +39,12 @@
         
         <div class="header-controls">
             <div id="cloudBtn" class="bg-indigo-50 text-indigo-600 px-3 py-1 rounded-full text-[10px] font-bold border border-indigo-100 flex items-center gap-1 cursor-pointer">
-                <span>סנכרון ענן</span>
+                <span>סנכרון</span>
                 <div id="cloudIndicator" class="w-2 h-2 bg-gray-300 rounded-full"></div>
             </div>
             
-            <div class="w-10 h-10 rounded-full border border-gray-200 flex items-center justify-center bg-white shadow-sm cursor-pointer overflow-hidden">
-                <svg class="w-6 h-6 flex-shrink-0" viewBox="0 0 24 24">
+            <div id="googleLoginBtn" class="w-9 h-9 rounded-full border border-gray-200 flex items-center justify-center bg-white shadow-sm cursor-pointer overflow-hidden">
+                <svg class="w-5 h-5" viewBox="0 0 24 24">
                     <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
                     <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-1 .67-2.28 1.07-3.71 1.07-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
                     <path fill="#FBBC05" d="M5.84 14.11c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.09H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.91l3.66-2.8z"/>
@@ -52,13 +52,14 @@
                 </svg>
             </div>
 
-            <button onclick="openModal('settingsModal')" class="p-2 rounded-full hover:bg-gray-100 gear-btn">
-                <svg class="w-7 h-7 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+            <button onclick="openModal('settingsModal')" class="p-2 rounded-full hover:bg-gray-100">
+                <svg class="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
             </button>
         </div>
     </div>
 
-    <div class="max-w-md mx-auto p-4 no-print">
+    <div id="main-content" class="max-w-md mx-auto p-4 no-print">
+        <div id="itemsContainer"></div>
         </div>
 
     <script src="script.js"></script>
