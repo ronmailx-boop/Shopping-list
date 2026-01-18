@@ -1,53 +1,44 @@
-let db = JSON.parse(localStorage.getItem('VPLUS_DB_V1')) || { 
+let db = JSON.parse(localStorage.getItem('VPLUS_DB_V2')) || { 
     currentId: 'L1', 
-    lists: { 'L1': { name: 'הרשימה שלי', items: [] } },
-    lastActivePage: 'lists'
+    lists: { 'L1': { name: 'הרשימה שלי', items: [] } }
 };
 
 const onboardingSteps = [
-    { title: "ברוכים הבאים", desc: "ניהול רשימות קניות ותקציב במקום אחד.", image: "icon.png" },
+    { title: "ברוכים הבאים", desc: "הדרך החכמה לנהל קניות ותקציב.", image: "icon.png" },
     { title: "שליטה בהוצאות", desc: "עקבו אחרי הסכומים בזמן אמת.", image: "icon.png" },
-    { title: "סנכרון ענן", desc: "גבו את הנתונים לענן של גוגל.", image: "icon.png" }
+    { title: "סנכרון ענן", desc: "הנתונים שלכם תמיד מגובים.", image: "icon.png" }
 ];
 
 let currentOnboardingStep = 0;
 
 function save() {
-    localStorage.setItem('VPLUS_DB_V1', JSON.stringify(db));
+    localStorage.setItem('VPLUS_DB_V2', JSON.stringify(db));
     render();
 }
 
-// פונקציה לחישוב סה"כ (למניעת שגיאות רינדור)
-function getTotals() {
-    let t = 0;
-    const items = db.lists[db.currentId].items;
-    items.forEach(i => t += (i.price * i.qty));
-    return t;
-}
-
 function render() {
-    const container = document.getElementById('itemsContainer');
-    const mainContent = document.getElementById('main-content');
-    if (!container || !mainContent) return;
-
-    // בניית ממשק האפליקציה בתוך ה-main-content
-    mainContent.innerHTML = `
-        <div class="bg-white p-4 rounded-2xl shadow-sm mb-4 flex justify-between items-center">
-            <h2 class="text-xl font-bold">${db.lists[db.currentId].name}</h2>
-            <div class="text-indigo-600 font-black text-xl">₪${getTotals().toFixed(2)}</div>
-        </div>
-        <div id="itemsContainer"></div>
-        <button onclick="addItemPrompt()" class="fixed bottom-8 left-1/2 -translate-x-1/2 w-16 h-16 bg-green-500 text-white rounded-full text-4xl shadow-2xl z-50">+</button>
-    `;
-
-    // רינדור המוצרים
     const itemsList = document.getElementById('itemsContainer');
-    db.lists[db.currentId].items.forEach((item, idx) => {
+    if (!itemsList) return;
+
+    itemsList.innerHTML = '';
+    let total = 0;
+    
+    const items = db.lists[db.currentId].items;
+    items.forEach((item, idx) => {
+        const subtotal = item.price * item.qty;
+        total += subtotal;
+        
         const div = document.createElement('div');
-        div.className = "bg-white p-4 rounded-xl mb-2 shadow-sm flex justify-between";
-        div.innerHTML = `<span>${item.name}</span> <b>₪${(item.price * item.qty).toFixed(2)}</b>`;
+        div.className = "bg-white p-4 rounded-xl mb-3 shadow-sm flex justify-between items-center animate-[fadeIn_0.3s]";
+        div.innerHTML = `
+            <div class="font-bold text-lg">${item.name}</div>
+            <div class="text-indigo-600 font-black">₪${subtotal.toFixed(2)}</div>
+        `;
         itemsList.appendChild(div);
     });
+
+    document.getElementById('displayTotal').innerText = total.toFixed(2);
+    document.getElementById('displayLeft').innerText = total.toFixed(2);
 }
 
 function addItemPrompt() {
@@ -65,7 +56,7 @@ function initApp() {
     
     setTimeout(() => {
         splash.classList.add('fade-out');
-        const hasSeen = localStorage.getItem('vplus_onboarding_v2');
+        const hasSeen = localStorage.getItem('vplus_seen_v3');
         if (!hasSeen) {
             onboarding.classList.remove('hidden');
             onboarding.classList.add('flex');
@@ -82,10 +73,10 @@ function renderOnboardingStep() {
     const step = onboardingSteps[currentOnboardingStep];
     
     content.innerHTML = `
-        <div class="onboarding-step animate-[fadeIn_0.5s_ease-out]">
-            <img src="${step.image}" class="mx-auto shadow-xl">
-            <h2 class="font-black text-indigo-600">${step.title}</h2>
-            <p class="text-gray-600 font-medium">${step.desc}</p>
+        <div class="onboarding-step">
+            <img src="${step.image}" class="mx-auto shadow-lg">
+            <h2 class="font-black">${step.title}</h2>
+            <p>${step.desc}</p>
         </div>
     `;
     
@@ -102,16 +93,16 @@ document.getElementById('onboarding-next').onclick = () => {
         currentOnboardingStep++;
         renderOnboardingStep();
     } else {
-        localStorage.setItem('vplus_onboarding_v2', 'true');
-        document.getElementById('onboarding-overlay').classList.add('hidden');
-        render();
+        closeOnboarding();
     }
 };
 
-document.getElementById('onboarding-skip').onclick = () => {
-    localStorage.setItem('vplus_onboarding_v2', 'true');
+document.getElementById('onboarding-skip').onclick = closeOnboarding;
+
+function closeOnboarding() {
+    localStorage.setItem('vplus_seen_v3', 'true');
     document.getElementById('onboarding-overlay').classList.add('hidden');
     render();
-};
+}
 
 window.addEventListener('DOMContentLoaded', initApp);
