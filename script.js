@@ -19,7 +19,7 @@ function save() {
     render();
 }
 
-// פונקציית המזעור
+// פונקציה חדשה למזעור הבר
 function toggleBottomBar() {
     const bar = document.querySelector('.bottom-bar-fixed');
     if (bar) {
@@ -32,6 +32,7 @@ function showPage(p) {
     save();
 }
 
+// ניהול מודאלים
 function openModal(id) {
     document.getElementById(id).classList.add('active');
     if(id === 'inputForm') {
@@ -150,6 +151,7 @@ function renderSummary() {
     });
 }
 
+// פונקציות סנכרון (דמה עד לחיבור האמיתי)
 function syncToCloud() {
     document.getElementById('cloudIndicator').classList.add('bg-green-500');
     alert('הנתונים סונכרנו בהצלחה!');
@@ -159,6 +161,7 @@ function handleAuthClick() {
     alert('מתחבר לחשבון גוגל...');
 }
 
+// אתחול האפליקציה
 function initApp() {
     const splash = document.getElementById('splash-screen');
     const onboarding = document.getElementById('onboarding-overlay');
@@ -179,7 +182,7 @@ function initApp() {
     const bar = document.querySelector('.bottom-bar-fixed');
     if (bar) {
         bar.addEventListener('click', (e) => {
-            // מזעור רק אם הלחיצה היא לא על כפתור (כדי שיוכלו ללחוץ על הפלוס בלי שהבר יברח)
+            // מזעור רק אם הלחיצה היא לא על כפתור (כדי שיוכלו להשתמש בפלוס בלי מזעור בטעות)
             if (!e.target.closest('button')) {
                 toggleBottomBar();
             }
