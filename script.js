@@ -19,7 +19,7 @@ function save() {
     render();
 }
 
-// פונקציית המזעור החדשה
+// פונקציית המזעור
 function toggleBottomBar() {
     const bar = document.querySelector('.bottom-bar-fixed');
     if (bar) {
@@ -61,6 +61,14 @@ function render() {
         let total = 0;
         const list = db.lists[db.currentId] || { name: 'רשימה', items: [] };
         
+        if (list.items.length === 0) {
+            itemsContainer.innerHTML = `
+                <div class="flex flex-col items-center justify-center p-12 text-gray-400 opacity-60">
+                    <p class="font-bold">הרשימה ריקה</p>
+                    <p class="text-sm">לחץ על ה- + כדי להתחיל</p>
+                </div>`;
+        }
+
         list.items.forEach((item, idx) => {
             const subtotal = item.price * item.qty;
             total += subtotal;
@@ -156,9 +164,9 @@ function initApp() {
     const onboarding = document.getElementById('onboarding-overlay');
     
     setTimeout(() => {
-        if(splash) splash.classList.add('fade-out');
+        splash.classList.add('fade-out');
         const hasSeen = localStorage.getItem('vplus_seen_final');
-        if (!hasSeen && onboarding) {
+        if (!hasSeen) {
             onboarding.classList.remove('hidden');
             onboarding.classList.add('flex');
             renderOnboardingStep();
@@ -166,6 +174,17 @@ function initApp() {
             render();
         }
     }, 2500);
+
+    // הוספת מאזין לחיצה לבר התחתון
+    const bar = document.querySelector('.bottom-bar-fixed');
+    if (bar) {
+        bar.addEventListener('click', (e) => {
+            // מזעור רק אם הלחיצה היא לא על כפתור (כדי שיוכלו ללחוץ על הפלוס בלי שהבר יברח)
+            if (!e.target.closest('button')) {
+                toggleBottomBar();
+            }
+        });
+    }
 }
 
 function renderOnboardingStep() {
@@ -189,31 +208,15 @@ function renderOnboardingStep() {
         currentOnboardingStep === onboardingSteps.length - 1 ? "מתחילים!" : "הבא";
 }
 
-// מאזין אירועים לבר התחתון
-window.addEventListener('DOMContentLoaded', () => {
-    initApp();
-    
-    const bar = document.querySelector('.bottom-bar-fixed');
-    if (bar) {
-        bar.addEventListener('click', (e) => {
-            // אם הלחיצה היא לא על כפתור ה"+"
-            if (!e.target.closest('button')) {
-                toggleBottomBar();
-            }
-        });
+document.getElementById('onboarding-next').onclick = () => {
+    if (currentOnboardingStep < onboardingSteps.length - 1) {
+        currentOnboardingStep++;
+        renderOnboardingStep();
+    } else {
+        localStorage.setItem('vplus_seen_final', 'true');
+        document.getElementById('onboarding-overlay').classList.add('hidden');
+        render();
     }
+};
 
-    const nextBtn = document.getElementById('onboarding-next');
-    if (nextBtn) {
-        nextBtn.onclick = () => {
-            if (currentOnboardingStep < onboardingSteps.length - 1) {
-                currentOnboardingStep++;
-                renderOnboardingStep();
-            } else {
-                localStorage.setItem('vplus_seen_final', 'true');
-                document.getElementById('onboarding-overlay').classList.add('hidden');
-                render();
-            }
-        };
-    }
-});
+window.addEventListener('DOMContentLoaded', initApp);
