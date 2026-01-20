@@ -16,7 +16,7 @@ body { font-family: system-ui, sans-serif; background: #f4f7fa; margin: 0; paddi
 .logo-v { color: white; font-weight: 900; font-size: 1.4rem; }
 .logo-plus { color: #4ade80; font-weight: 900; font-size: 1.4rem; }
 
-/* Header - לוגו בשמאל וכפתורים בימין */
+/* Header */
 .app-header { 
     background: white; 
     padding: 10px 15px; 
@@ -39,7 +39,7 @@ body { font-family: system-ui, sans-serif; background: #f4f7fa; margin: 0; paddi
 .tab-btn { flex: 1; padding: 14px; border-radius: 18px; font-weight: 800; text-align: center; cursor: pointer; background: white; color: #888; border: 1px solid #eee; transition: 0.3s; }
 .tab-active { background: #7367f0 !important; color: white !important; box-shadow: 0 4px 10px rgba(115, 103, 240, 0.2); }
 
-/* בר תחתון עם תמיכה במזעור */
+/* בר תחתון - הוספת אנימציה וסמן לחיצה */
 .bottom-bar-fixed {
     position: fixed; bottom: 0; left: 0; right: 0;
     background: #7367f0; padding: 25px 20px 40px;
@@ -49,9 +49,9 @@ body { font-family: system-ui, sans-serif; background: #f4f7fa; margin: 0; paddi
     cursor: pointer;
 }
 
-/* מצב מזעור */
+/* ה-Class שגורם למזעור */
 .bottom-bar-fixed.minimized {
-    transform: translateY(calc(100% - 15px));
+    transform: translateY(calc(100% - 25px));
 }
 
 .w-18 { width: 4.5rem; }
@@ -73,7 +73,30 @@ body { font-family: system-ui, sans-serif; background: #f4f7fa; margin: 0; paddi
     width: 90%; max-width: 400px;
     background: white; border-radius: 30px;
     padding: 30px; text-align: center;
+    box-shadow: 0 20px 50px rgba(0,0,0,0.2);
+    animation: modalPop 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
+
+@keyframes modalPop {
+    from { opacity: 0; transform: scale(0.8); }
+    to { opacity: 1; transform: scale(1); }
+}
+
+.modal-input {
+    width: 100%; padding: 15px; border: 2px solid #f0f0f0;
+    border-radius: 15px; font-size: 18px; text-align: center;
+    outline: none; transition: 0.3s;
+}
+.modal-input:focus { border-color: #7367f0; background: #f8f7ff; }
+
+/* הדרכה */
+.onboarding-step img { max-width: 140px; height: auto; border-radius: 25px; margin-bottom: 1.5rem; }
+.onboarding-step h2 { font-size: 1.6rem; color: #7367f0; font-weight: 900; }
+
+@keyframes loading { 0% { transform: translateX(-100%); } 100% { transform: translateX(100%); } }
+#splash-screen.fade-out { opacity: 0; pointer-events: none; }
+.dot { width: 10px; height: 10px; background: #e2e8f0; border-radius: 50%; transition: 0.4s; }
+.dot.active { width: 28px; background: #7367f0; border-radius: 5px; }
 
 @media print {
     .no-print, .bottom-bar-fixed, .app-header, .tab-btn { display: none !important; }
