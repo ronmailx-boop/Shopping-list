@@ -44,11 +44,6 @@ function save() {
     }
 }
 
-function toggleBottomBar() {
-    const bar = document.querySelector('.bottom-bar');
-    bar.classList.toggle('minimized');
-}
-
 function toggleItem(idx) {
     db.lists[db.currentId].items[idx].checked = !db.lists[db.currentId].items[idx].checked;
     save();
@@ -138,6 +133,10 @@ function render() {
         document.getElementById('pageSummary').classList.add('hidden');
         const list = db.lists[db.currentId];
         document.getElementById('listNameDisplay').innerText = list.name;
+        
+        // עדכון מונה מוצרים
+        document.getElementById('itemCountDisplay').innerText = `${list.items.length} מוצרים`;
+
         list.items.forEach((item, idx) => {
             const sub = item.price * item.qty; 
             total += sub; 
@@ -149,7 +148,9 @@ function render() {
                 <div class="flex justify-between items-center mb-4">
                     <div class="flex items-center gap-3 flex-1">
                         <input type="checkbox" ${item.checked ? 'checked' : ''} onchange="toggleItem(${idx})" class="w-7 h-7 accent-indigo-600">
-                        <div class="flex-1 text-2xl font-bold ${item.checked ? 'line-through text-gray-300' : ''}">${item.name}</div>
+                        <div class="flex-1 text-2xl font-bold ${item.checked ? 'line-through text-gray-300' : ''}">
+                            <span class="item-number">${idx + 1}.</span> ${item.name}
+                        </div>
                     </div>
                     <button onclick="removeItem(${idx})" class="trash-btn">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -171,8 +172,19 @@ function render() {
     } else {
         document.getElementById('pageLists').classList.add('hidden');
         document.getElementById('pageSummary').classList.remove('hidden');
+        
+        const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+
         Object.keys(db.lists).forEach(id => {
             const l = db.lists[id];
+            
+            // לוגיקת חיפוש: שם רשימה, שם מוצר או URL
+            const matchesName = l.name.toLowerCase().includes(searchTerm);
+            const matchesURL = l.url && l.url.toLowerCase().includes(searchTerm);
+            const matchesItems = l.items.some(i => i.name.toLowerCase().includes(searchTerm));
+
+            if (searchTerm && !matchesName && !matchesURL && !matchesItems) return;
+
             let lT = 0, lP = 0;
             l.items.forEach(i => { 
                 const s = i.price * i.qty; 
@@ -223,6 +235,56 @@ function render() {
     document.getElementById('displayPaid').innerText = paid.toFixed(2);
     document.getElementById('displayLeft').innerText = (total - paid).toFixed(2);
     initSortable();
+}
+
+// פונקציית שיתוף מערכתית חדשה
+async function shareNative(type) {
+    let title = "";
+    let text = "";
+
+    if (type === 'list') {
+        const list = db.lists[db.currentId];
+        if (list.items.length === 0) return;
+        title = `Vplus - ${list.name}`;
+        text = `🛒 *${list.name}:*\n\n`;
+        list.items.forEach((i, idx) => {
+            text += `${idx + 1}. ${i.checked ? '✅' : '⬜'} *${i.name}* (x${i.qty}) - ₪${(i.price * i.qty).toFixed(2)}\n`;
+        });
+        text += `\n💰 *סה"כ: ₪${document.getElementById('displayTotal').innerText}*`;
+    } else {
+        const selectedIds = db.selectedInSummary;
+        if (selectedIds.length === 0) { 
+            alert("בחר לפחות רשימה אחת לשיתוף!"); 
+            return; 
+        }
+        title = "Vplus - ריכוז רשימות";
+        text = `📦 *ריכוז רשימות קנייה (חסרים בלבד):*\n\n`;
+        selectedIds.forEach(id => {
+            const l = db.lists[id];
+            const missing = l.items.filter(i => !i.checked);
+            if (missing.length > 0) {
+                text += `🔹 *${l.name}:*\n`;
+                missing.forEach(i => text += `  - ${i.name} (x${i.qty})\n`);
+                text += `\n`;
+            }
+        });
+    }
+
+    if (navigator.share) {
+        try {
+            await navigator.share({
+                title: title,
+                text: text
+            });
+        } catch (err) {
+            console.log("Sharing failed", err);
+        }
+    } else {
+        // Fallback: Copy to clipboard if Web Share API is not available
+        navigator.clipboard.writeText(text).then(() => {
+            alert("הטקסט הועתק ללוח!");
+        });
+    }
 }
 
 function addItem() { 
@@ -480,56 +542,12 @@ function preparePrint() {
     window.print();
 }
 
-function shareFullToWhatsApp() {
-    const list = db.lists[db.currentId];
-    if (list.items.length === 0) return;
-    let text = `🛒 *${list.name} (רשימה מלאה):*\n\n`;
-    list.items.forEach(i => {
-        text += `${i.checked ? '✅' : '⬜'} *${i.name}* (x${i.qty}) - ₪${(i.price * i.qty).toFixed(2)}\n`;
-    });
-    text += `\n💰 *סה"כ: ₪${document.getElementById('displayTotal').innerText}*`;
-    window.open("https://wa.me/?text=" + encodeURIComponent(text));
-    closeModal('shareListModal');
-}
-
-function shareMissingToWhatsApp() {
-    const list = db.lists[db.currentId];
-    const missing = list.items.filter(i => !i.checked);
-    if (missing.length === 0) { 
-        alert("אין מוצרים חסרים!"); 
-        return; 
-    }
-    let text = `⬜ *${list.name} (מוצרים חסרים):*\n\n`;
-    missing.forEach(i => text += `• *${i.name}* (x${i.qty})\n`);
-    window.open("https://wa.me/?text=" + encodeURIComponent(text));
-    closeModal('shareListModal');
-}
-
-function shareSummaryToWhatsApp() {
-    const selectedIds = db.selectedInSummary;
-    if (selectedIds.length === 0) { 
-        alert("בחר לפחות רשימה אחת לשיתוף!"); 
-        return; 
-    }
-    let text = `📦 *ריכוז רשימות קנייה (חסרים בלבד):*\n\n`;
-    selectedIds.forEach(id => {
-        const l = db.lists[id];
-        const missing = l.items.filter(i => !i.checked);
-        if (missing.length > 0) {
-            text += `🔹 *${l.name}:*\n`;
-            missing.forEach(i => text += `  - ${i.name} (x${i.qty})\n`);
-            text += `\n`;
-        }
-    });
-    window.open("https://wa.me/?text=" + encodeURIComponent(text));
-}
-
 function saveListName() { 
     const n = document.getElementById('editListNameInput').value.trim(); 
     const u = document.getElementById('editListUrlInput').value.trim();
     if(n) { 
         db.lists[db.currentId].name = n; 
-        db.lists[db.currentId].url = u; // הוספתי את עדכון ה-URL כאן
+        db.lists[db.currentId].url = u; 
         save(); 
     } 
     closeModal('editListNameModal'); 
