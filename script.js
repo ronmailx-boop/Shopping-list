@@ -44,6 +44,15 @@ function save() {
     }
 }
 
+// פונקציה לסגירה ופתיחה של הבר התחתון
+function toggleBottomBar(e) {
+    const bottomBar = document.querySelector('.bottom-bar');
+    // אם הלחיצה היא על הבר עצמו או על אחד הקונטיינרים (ולא על כפתור פונקציונלי)
+    if (e.target === bottomBar || e.target.closest('.flex')) {
+        bottomBar.classList.toggle('minimized');
+    }
+}
+
 function toggleItem(idx) {
     db.lists[db.currentId].items[idx].checked = !db.lists[db.currentId].items[idx].checked;
     save();
@@ -133,8 +142,6 @@ function render() {
         document.getElementById('pageSummary').classList.add('hidden');
         const list = db.lists[db.currentId];
         document.getElementById('listNameDisplay').innerText = list.name;
-        
-        // עדכון מונה מוצרים
         document.getElementById('itemCountDisplay').innerText = `${list.items.length} מוצרים`;
 
         list.items.forEach((item, idx) => {
@@ -172,13 +179,10 @@ function render() {
     } else {
         document.getElementById('pageLists').classList.add('hidden');
         document.getElementById('pageSummary').classList.remove('hidden');
-        
         const searchTerm = document.getElementById('searchInput').value.toLowerCase();
 
         Object.keys(db.lists).forEach(id => {
             const l = db.lists[id];
-            
-            // לוגיקת חיפוש: שם רשימה, שם מוצר או URL
             const matchesName = l.name.toLowerCase().includes(searchTerm);
             const matchesURL = l.url && l.url.toLowerCase().includes(searchTerm);
             const matchesItems = l.items.some(i => i.name.toLowerCase().includes(searchTerm));
@@ -192,21 +196,11 @@ function render() {
                 if(i.checked) lP += s; 
             });
             const isSel = db.selectedInSummary.includes(id); 
-            if (isSel) { 
-                total += lT; 
-                paid += lP; 
-            }
+            if (isSel) { total += lT; paid += lP; }
             const div = document.createElement('div'); 
             div.className = "item-card"; 
             div.dataset.id = id;
-
-            const webBtn = l.url ? `
-                <button onclick="window.location.href='${l.url.startsWith('http') ? l.url : 'https://' + l.url}'" class="w-10 h-10 rounded-full bg-indigo-50 text-indigo-600 flex items-center justify-center border border-indigo-100 shadow-sm ml-2">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9"></path>
-                    </svg>
-                </button>
-            ` : '';
+            const webBtn = l.url ? `<button onclick="window.location.href='${l.url.startsWith('http') ? l.url : 'https://' + l.url}'" class="w-10 h-10 rounded-full bg-indigo-50 text-indigo-600 flex items-center justify-center border border-indigo-100 shadow-sm ml-2"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9"></path></svg></button>` : '';
 
             div.innerHTML = `
                 <div class="flex justify-between items-center mb-4">
@@ -214,18 +208,9 @@ function render() {
                         <input type="checkbox" ${isSel ? 'checked' : ''} onchange="toggleSum('${id}')" class="w-7 h-7 accent-indigo-600">
                         <div class="flex-1 text-2xl font-bold cursor-pointer" onclick="db.currentId='${id}'; showPage('lists')">${l.name}</div>
                     </div>
-                    <div class="flex items-center">
-                        ${webBtn}
-                        <button onclick="prepareDeleteList('${id}')" class="trash-btn">
-                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path>
-                            </svg>
-                        </button>
-                    </div>
+                    <div class="flex items-center">${webBtn}<button onclick="prepareDeleteList('${id}')" class="trash-btn"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg></button></div>
                 </div>
-                <div class="flex justify-end items-center">
-                    <span class="text-2xl font-black text-indigo-600">₪${lT.toFixed(2)}</span>
-                </div>
+                <div class="flex justify-end items-center"><span class="text-2xl font-black text-indigo-600">₪${lT.toFixed(2)}</span></div>
             `;
             container.appendChild(div);
         });
@@ -237,11 +222,9 @@ function render() {
     initSortable();
 }
 
-// פונקציית שיתוף מערכתית חדשה
+// פונקציית שיתוף ופעולות נוספות (מתוך סט 2 המקורי)
 async function shareNative(type) {
-    let title = "";
-    let text = "";
-
+    let title = ""; let text = "";
     if (type === 'list') {
         const list = db.lists[db.currentId];
         if (list.items.length === 0) return;
@@ -253,10 +236,7 @@ async function shareNative(type) {
         text += `\n💰 *סה"כ: ₪${document.getElementById('displayTotal').innerText}*`;
     } else {
         const selectedIds = db.selectedInSummary;
-        if (selectedIds.length === 0) { 
-            alert("בחר לפחות רשימה אחת לשיתוף!"); 
-            return; 
-        }
+        if (selectedIds.length === 0) { alert("בחר לפחות רשימה אחת לשיתוף!"); return; }
         title = "Vplus - ריכוז רשימות";
         text = `📦 *ריכוז רשימות קנייה (חסרים בלבד):*\n\n`;
         selectedIds.forEach(id => {
@@ -271,19 +251,9 @@ async function shareNative(type) {
     }
 
     if (navigator.share) {
-        try {
-            await navigator.share({
-                title: title,
-                text: text
-            });
-        } catch (err) {
-            console.log("Sharing failed", err);
-        }
+        try { await navigator.share({ title: title, text: text }); } catch (err) { console.log("Sharing failed", err); }
     } else {
-        // Fallback: Copy to clipboard if Web Share API is not available
-        navigator.clipboard.writeText(text).then(() => {
-            alert("הטקסט הועתק ללוח!");
-        });
+        navigator.clipboard.writeText(text).then(() => { alert("הטקסט הועתק ללוח!"); });
     }
 }
 
@@ -291,50 +261,23 @@ function addItem() {
     const n = document.getElementById('itemName').value.trim();
     const p = parseFloat(document.getElementById('itemPrice').value) || 0; 
     if (n) { 
-        db.lists[db.currentId].items.push({ 
-            name: n, 
-            price: p, 
-            qty: 1, 
-            checked: false 
-        }); 
+        db.lists[db.currentId].items.push({ name: n, price: p, qty: 1, checked: false }); 
         closeModal('inputForm'); 
         save(); 
     } 
 }
 
-function changeQty(idx, d) { 
-    if(db.lists[db.currentId].items[idx].qty + d >= 1) { 
-        db.lists[db.currentId].items[idx].qty += d; 
-        save(); 
-    } 
-}
-
-function removeItem(idx) { 
-    db.lists[db.currentId].items.splice(idx, 1); 
-    save(); 
-}
-
-function toggleLock() { 
-    isLocked = !isLocked; 
-    render(); 
-}
-
-function executeClear() { 
-    db.lists[db.currentId].items = []; 
-    closeModal('confirmModal'); 
-    save(); 
-}
+function changeQty(idx, d) { if(db.lists[db.currentId].items[idx].qty + d >= 1) { db.lists[db.currentId].items[idx].qty += d; save(); } }
+function removeItem(idx) { db.lists[db.currentId].items.splice(idx, 1); save(); }
+function toggleLock() { isLocked = !isLocked; render(); }
+function executeClear() { db.lists[db.currentId].items = []; closeModal('confirmModal'); save(); }
 
 function saveNewList() { 
     const n = document.getElementById('newListNameInput').value.trim(); 
     const u = document.getElementById('newListUrlInput').value.trim();
     if(n) { 
         const id = 'L' + Date.now(); 
-        db.lists[id] = {
-            name: n, 
-            url: u, 
-            items: []
-        }; 
+        db.lists[id] = { name: n, url: u, items: [] }; 
         db.currentId = id; 
         activePage = 'lists'; 
         closeModal('newListModal'); 
@@ -354,51 +297,29 @@ function deleteFullList() {
     } 
 }
 
-function prepareDeleteList(id) { 
-    listToDelete = id; 
-    openModal('deleteListModal'); 
-}
+function prepareDeleteList(id) { listToDelete = id; openModal('deleteListModal'); }
 
 function importFromText() {
     const text = document.getElementById('importText').value.trim();
-    if (!text) {
-        alert('אנא הדבק טקסט לייבוא');
-        return;
-    }
-
+    if (!text) { alert('אנא הדבק טקסט לייבוא'); return; }
     const lines = text.split('\n').filter(line => line.trim());
     let listName = 'רשימה מיובאת';
     let startIndex = 0;
-    
     const firstLine = lines[0];
     if (firstLine.includes('*') && firstLine.includes(':')) {
         const match = firstLine.match(/\*([^*]+)\*/);
-        if (match) {
-            listName = match[1].trim();
-            startIndex = 1;
-        }
+        if (match) { listName = match[1].trim(); startIndex = 1; }
     }
-
     let finalName = listName;
     let counter = 1;
     const existingNames = Object.values(db.lists).map(l => l.name);
-    while (existingNames.includes(finalName)) {
-        counter++;
-        finalName = `${listName} ${counter}`;
-    }
-
+    while (existingNames.includes(finalName)) { counter++; finalName = `${listName} ${counter}`; }
     const newListId = 'L' + Date.now();
     const items = [];
-
     for (let i = startIndex; i < lines.length; i++) {
         const line = lines[i].trim();
-        
-        if (!line || line.includes('🛒') || line.includes('💰') || line.includes('סה"כ') || line === '---') {
-            continue;
-        }
-
+        if (!line || line.includes('🛒') || line.includes('💰') || line.includes('סה"כ') || line === '---') continue;
         let itemAdded = false;
-
         const fullMatch = line.match(/[⬜✅]\s*\*([^*]+)\*\s*\(x(\d+)\)\s*-\s*₪([\d.]+)/);
         if (fullMatch) {
             const name = fullMatch[1].trim();
@@ -409,61 +330,38 @@ function importFromText() {
             items.push({ name, price, qty, checked });
             itemAdded = true;
         }
-
         if (!itemAdded) {
             const bulletQtyMatch = line.match(/^[•\-]\s*\*?([^(]+)\*?\s*\(x(\d+)\)/);
             if (bulletQtyMatch) {
                 const name = bulletQtyMatch[1].trim().replace(/\*/g, '');
                 const qty = parseInt(bulletQtyMatch[2]);
-                if (name) {
-                    items.push({ name, price: 0, qty, checked: false });
-                    itemAdded = true;
-                }
+                if (name) { items.push({ name, price: 0, qty, checked: false }); itemAdded = true; }
             }
         }
-
         if (!itemAdded) {
             const bulletMatch = line.match(/^[•\-]\s*\*?(.+?)\*?$/);
             if (bulletMatch) {
                 const name = bulletMatch[1].trim().replace(/\*/g, '');
-                if (name) {
-                    items.push({ name, price: 0, qty: 1, checked: false });
-                    itemAdded = true;
-                }
+                if (name) { items.push({ name, price: 0, qty: 1, checked: false }); itemAdded = true; }
             }
         }
-
         if (!itemAdded) {
             const starMatch = line.match(/^\*([^*]+)\*$/);
             if (starMatch) {
                 const name = starMatch[1].trim();
-                if (name) {
-                    items.push({ name, price: 0, qty: 1, checked: false });
-                    itemAdded = true;
-                }
+                if (name) { items.push({ name, price: 0, qty: 1, checked: false }); itemAdded = true; }
             }
         }
-
         if (!itemAdded && line.length > 0) {
             const name = line.replace(/^[\d\.\)\-\s]+/, '').trim();
-            if (name && !/^\d+$/.test(name)) {
-                items.push({ name, price: 0, qty: 1, checked: false });
-            }
+            if (name && !/^\d+$/.test(name)) { items.push({ name, price: 0, qty: 1, checked: false }); }
         }
     }
-
-    if (items.length === 0) {
-        alert('לא נמצאו מוצרים בטקסט');
-        return;
-    }
-
+    if (items.length === 0) { alert('לא נמצאו מוצרים בטקסט'); return; }
     db.lists[newListId] = { name: finalName, url: '', items };
     db.currentId = newListId;
     activePage = 'lists';
-    
-    closeModal('importModal');
-    save();
-    
+    closeModal('importModal'); save();
     alert(`✅ יובאו ${items.length} מוצרים לרשימה "${finalName}"`);
 }
 
@@ -494,62 +392,27 @@ function preparePrint() {
     closeModal('settingsModal');
     const printArea = document.getElementById('printArea');
     if (!printArea) return;
-
     let grandTotal = 0;
     let htmlContent = `<h1 style="text-align:center; color:#7367f0;">דוח קניות מפורט - Vplus</h1>`;
-    
     const idsToPrint = db.selectedInSummary.length > 0 ? db.selectedInSummary : Object.keys(db.lists);
-    
     idsToPrint.forEach(id => {
-        const l = db.lists[id]; 
-        let listTotal = 0;
-        
-        htmlContent += `
-            <div style="border-bottom: 2px solid #7367f0; margin-bottom: 20px; padding-bottom: 10px;">
-                <h2>${l.name}</h2>
-                <table style="width:100%; border-collapse:collapse; border:1px solid #ddd; margin-bottom:10px;">
-                    <thead>
-                        <tr style="background:#f9fafb;">
-                            <th style="padding:8px; border:1px solid #ddd; text-align:right;">מוצר</th>
-                            <th style="padding:8px; border:1px solid #ddd; text-align:center;">כמות</th>
-                            <th style="padding:8px; border:1px solid #ddd; text-align:left;">סה"כ</th>
-                        </tr>
-                    </thead>
-                    <tbody>`;
-        
+        const l = db.lists[id]; let listTotal = 0;
+        htmlContent += `<div style="border-bottom: 2px solid #7367f0; margin-bottom: 20px; padding-bottom: 10px;"><h2>${l.name}</h2><table style="width:100%; border-collapse:collapse; border:1px solid #ddd; margin-bottom:10px;"><thead><tr style="background:#f9fafb;"><th style="padding:8px; border:1px solid #ddd; text-align:right;">מוצר</th><th style="padding:8px; border:1px solid #ddd; text-align:center;">כמות</th><th style="padding:8px; border:1px solid #ddd; text-align:left;">סה"כ</th></tr></thead><tbody>`;
         l.items.forEach(i => { 
-            const s = i.price * i.qty; 
-            listTotal += s; 
-            htmlContent += `
-                <tr>
-                    <td style="padding:8px; border:1px solid #ddd; text-align:right;">${i.name}</td>
-                    <td style="padding:8px; border:1px solid #ddd; text-align:center;">${i.qty}</td>
-                    <td style="padding:8px; border:1px solid #ddd; text-align:left;">₪${s.toFixed(2)}</td>
-                </tr>`; 
+            const s = i.price * i.qty; listTotal += s; 
+            htmlContent += `<tr><td style="padding:8px; border:1px solid #ddd; text-align:right;">${i.name}</td><td style="padding:8px; border:1px solid #ddd; text-align:center;">${i.qty}</td><td style="padding:8px; border:1px solid #ddd; text-align:left;">₪${s.toFixed(2)}</td></tr>`; 
         });
-        
-        htmlContent += `
-                    </tbody>
-                </table>
-                <div style="text-align:left; font-weight:bold;">סיכום רשימה: ₪${listTotal.toFixed(2)}</div>
-            </div>`;
+        htmlContent += `</tbody></table><div style="text-align:left; font-weight:bold;">סיכום רשימה: ₪${listTotal.toFixed(2)}</div></div>`;
         grandTotal += listTotal;
     });
-    
     htmlContent += `<div style="text-align:center; margin-top:30px; padding:15px; border:3px double #7367f0; font-size:1.5em; font-weight:900;">סה"כ כולל: ₪${grandTotal.toFixed(2)}</div>`;
-    
-    printArea.innerHTML = htmlContent; 
-    window.print();
+    printArea.innerHTML = htmlContent; window.print();
 }
 
 function saveListName() { 
     const n = document.getElementById('editListNameInput').value.trim(); 
     const u = document.getElementById('editListUrlInput').value.trim();
-    if(n) { 
-        db.lists[db.currentId].name = n; 
-        db.lists[db.currentId].url = u; 
-        save(); 
-    } 
+    if(n) { db.lists[db.currentId].name = n; db.lists[db.currentId].url = u; save(); } 
     closeModal('editListNameModal'); 
 }
 
@@ -569,268 +432,110 @@ function saveTotal() {
     closeModal('editTotalModal');
 }
 
-// ========== Google Drive Integration ==========
+// ========== Google Drive Integration (מתוך סט 2) ==========
 
-function gapiLoaded() {
-    gapi.load('client', initializeGapiClient);
-}
-
-async function initializeGapiClient() {
-    await gapi.client.init({
-        apiKey: GOOGLE_API_KEY,
-        discoveryDocs: [DISCOVERY_DOC],
-    });
-    gapiInited = true;
-    maybeEnableButtons();
-}
-
-function gisLoaded() {
-    tokenClient = google.accounts.oauth2.initTokenClient({
-        client_id: GOOGLE_CLIENT_ID,
-        scope: SCOPES,
-        callback: '',
-    });
-    gisInited = true;
-    maybeEnableButtons();
-}
-
-function maybeEnableButtons() {
-    if (gapiInited && gisInited) {
-        document.getElementById('cloudBtn').onclick = handleCloudClick;
-    }
-}
-
-function handleCloudClick() {
-    if (isConnected) {
-        manualSync();
-    } else {
-        handleAuthClick();
-    }
-}
+function gapiLoaded() { gapi.load('client', initializeGapiClient); }
+async function initializeGapiClient() { await gapi.client.init({ apiKey: GOOGLE_API_KEY, discoveryDocs: [DISCOVERY_DOC], }); gapiInited = true; maybeEnableButtons(); }
+function gisLoaded() { tokenClient = google.accounts.oauth2.initTokenClient({ client_id: GOOGLE_CLIENT_ID, scope: SCOPES, callback: '', }); gisInited = true; maybeEnableButtons(); }
+function maybeEnableButtons() { if (gapiInited && gisInited) { document.getElementById('cloudBtn').onclick = handleCloudClick; } }
+function handleCloudClick() { if (isConnected) { manualSync(); } else { handleAuthClick(); } }
 
 function handleAuthClick() {
     tokenClient.callback = async (resp) => {
-        if (resp.error !== undefined) {
-            console.error('שגיאת התחברות:', resp);
-            return;
-        }
-        
+        if (resp.error !== undefined) { console.error('שגיאת התחברות:', resp); return; }
         accessToken = gapi.client.getToken().access_token;
         isConnected = true;
         updateCloudIndicator('connected');
-        
         await loadAndMerge();
     };
-
-    if (gapi.client.getToken() === null) {
-        tokenClient.requestAccessToken({prompt: 'consent'});
-    } else {
-        tokenClient.requestAccessToken({prompt: ''});
-    }
+    if (gapi.client.getToken() === null) { tokenClient.requestAccessToken({prompt: 'consent'}); } 
+    else { tokenClient.requestAccessToken({prompt: ''}); }
 }
 
 function updateCloudIndicator(status) {
     const indicator = document.getElementById('cloudIndicator');
     if (!indicator) return;
-    if (status === 'connected') {
-        indicator.className = 'w-2 h-2 bg-green-500 rounded-full';
-    } else if (status === 'syncing') {
-        indicator.className = 'w-2 h-2 bg-yellow-500 rounded-full animate-pulse';
-    } else {
-        indicator.className = 'w-2 h-2 bg-gray-300 rounded-full';
-    }
+    if (status === 'connected') indicator.className = 'w-2 h-2 bg-green-500 rounded-full';
+    else if (status === 'syncing') indicator.className = 'w-2 h-2 bg-yellow-500 rounded-full animate-pulse';
+    else indicator.className = 'w-2 h-2 bg-gray-300 rounded-full';
 }
 
 async function findOrCreateFolder() {
     try {
-        const response = await gapi.client.drive.files.list({
-            q: `name='${FOLDER_NAME}' and mimeType='application/vnd.google-apps.folder' and trashed=false`,
-            fields: 'files(id, name)',
-            spaces: 'drive'
-        });
-
-        if (response.result.files.length > 0) {
-            return response.result.files[0].id;
-        }
-
-        const folderMetadata = {
-            name: FOLDER_NAME,
-            mimeType: 'application/vnd.google-apps.folder'
-        };
-
-        const folder = await gapi.client.drive.files.create({
-            resource: folderMetadata,
-            fields: 'id'
-        });
-
+        const response = await gapi.client.drive.files.list({ q: `name='${FOLDER_NAME}' and mimeType='application/vnd.google-apps.folder' and trashed=false`, fields: 'files(id, name)', spaces: 'drive' });
+        if (response.result.files.length > 0) return response.result.files[0].id;
+        const folder = await gapi.client.drive.files.create({ resource: { name: FOLDER_NAME, mimeType: 'application/vnd.google-apps.folder' }, fields: 'id' });
         return folder.result.id;
-    } catch (err) {
-        console.error('שגיאה ביצירת תיקייה:', err);
-        return null;
-    }
+    } catch (err) { return null; }
 }
 
 async function findFileInFolder(folderId) {
     try {
-        const response = await gapi.client.drive.files.list({
-            q: `name='${FILE_NAME}' and '${folderId}' in parents and trashed=false`,
-            fields: 'files(id, name)',
-            spaces: 'drive'
-        });
-
+        const response = await gapi.client.drive.files.list({ q: `name='${FILE_NAME}' and '${folderId}' in parents and trashed=false`, fields: 'files(id, name)', spaces: 'drive' });
         return response.result.files.length > 0 ? response.result.files[0].id : null;
-    } catch (err) {
-        console.error('שגיאה באיתור קובץ:', err);
-        return null;
-    }
+    } catch (err) { return null; }
 }
 
 async function syncToCloud() {
     if (!accessToken || isSyncing) return;
-    
-    isSyncing = true;
-    updateCloudIndicator('syncing');
-
+    isSyncing = true; updateCloudIndicator('syncing');
     try {
         const folderId = await findOrCreateFolder();
-        if (!folderId) {
-            isSyncing = false;
-            updateCloudIndicator('connected');
-            return;
-        }
-
+        if (!folderId) { isSyncing = false; updateCloudIndicator('connected'); return; }
         const fileId = await findFileInFolder(folderId);
         const dataToSave = JSON.stringify(db);
-
         if (fileId) {
-            await fetch(`https://www.googleapis.com/upload/drive/v3/files/${fileId}?uploadType=media`, {
-                method: 'PATCH',
-                headers: {
-                    'Authorization': `Bearer ${accessToken}`,
-                    'Content-Type': 'application/json'
-                },
-                body: dataToSave
-            });
-            driveFileId = fileId;
+            await fetch(`https://www.googleapis.com/upload/drive/v3/files/${fileId}?uploadType=media`, { method: 'PATCH', headers: { 'Authorization': `Bearer ${accessToken}`, 'Content-Type': 'application/json' }, body: dataToSave });
         } else {
-            const metadata = {
-                name: FILE_NAME,
-                parents: [folderId]
-            };
-
+            const metadata = { name: FILE_NAME, parents: [folderId] };
             const form = new FormData();
             form.append('metadata', new Blob([JSON.stringify(metadata)], { type: 'application/json' }));
             form.append('file', new Blob([dataToSave], { type: 'application/json' }));
-
-            const response = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id', {
-                method: 'POST',
-                headers: {
-                    'Authorization': `Bearer ${accessToken}`
-                },
-                body: form
-            });
-
-            const result = await response.json();
-            driveFileId = result.id;
+            await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id', { method: 'POST', headers: { 'Authorization': `Bearer ${accessToken}` }, body: form });
         }
-
-        console.log('✅ סונכרן לענן');
-    } catch (err) {
-        console.error('❌ שגיאה בסינכרון:', err);
-    } finally {
-        isSyncing = false;
-        updateCloudIndicator('connected');
-    }
+    } catch (err) { console.error(err); } finally { isSyncing = false; updateCloudIndicator('connected'); }
 }
 
 async function loadAndMerge() {
     if (!accessToken || isSyncing) return;
-    
-    isSyncing = true;
-    updateCloudIndicator('syncing');
-
+    isSyncing = true; updateCloudIndicator('syncing');
     try {
         const folderId = await findOrCreateFolder();
-        if (!folderId) {
-            isSyncing = false;
-            updateCloudIndicator('connected');
-            return;
-        }
-
+        if (!folderId) { isSyncing = false; updateCloudIndicator('connected'); return; }
         const fileId = await findFileInFolder(folderId);
-        
-        if (!fileId) {
-            console.log('📁 אין קובץ בענן - שומר נתונים מקומיים');
-            isSyncing = false;
-            updateCloudIndicator('connected');
-            await syncToCloud();
-            return;
-        }
-
-        driveFileId = fileId;
-
-        const response = await fetch(`https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`, {
-            headers: {
-                'Authorization': `Bearer ${accessToken}`
-            }
-        });
-
+        if (!fileId) { isSyncing = false; updateCloudIndicator('connected'); await syncToCloud(); return; }
+        const response = await fetch(`https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`, { headers: { 'Authorization': `Bearer ${accessToken}` } });
         const cloudData = await response.json();
-        
         const localItems = db.lists[db.currentId] ? [...db.lists[db.currentId].items] : [];
-        
         db = cloudData;
-        
         if (localItems.length > 0) {
             const currentListId = db.currentId || 'L1';
-            if (!db.lists[currentListId]) {
-                db.lists[currentListId] = { name: 'הרשימה שלי', url: '', items: [] };
-            }
-            
-            const cloudItemNames = db.lists[currentListId].items.map(i => i.name);
-            const newItems = localItems.filter(localItem => 
-                !cloudItemNames.includes(localItem.name)
-            );
-            
-            if (newItems.length > 0) {
-                db.lists[currentListId].items.push(...newItems);
-                console.log(`✅ צורפו ${newItems.length} מוצרים חדשים`);
-            }
+            if (!db.lists[currentListId]) db.lists[currentListId] = { name: 'הרשימה שלי', url: '', items: [] };
+            const cloudNames = db.lists[currentListId].items.map(i => i.name);
+            const newItems = localItems.filter(li => !cloudNames.includes(li.name));
+            if (newItems.length > 0) db.lists[currentListId].items.push(...newItems);
         }
-        
         localStorage.setItem('BUDGET_FINAL_V27', JSON.stringify(db));
         render();
-        
-        if (localItems.length > 0) {
-            isSyncing = false;
-            updateCloudIndicator('connected');
-            await syncToCloud();
-        }
-        
-        console.log('✅ טעינה מהענן הושלמה');
-    } catch (err) {
-        console.error('❌ שגיאה בטעינה:', err);
-    } finally {
-        isSyncing = false;
-        updateCloudIndicator('connected');
-    }
+        if (localItems.length > 0) { isSyncing = false; updateCloudIndicator('connected'); await syncToCloud(); }
+    } catch (err) { console.error(err); } finally { isSyncing = false; updateCloudIndicator('connected'); }
 }
 
-async function manualSync() {
-    await loadAndMerge();
-}
+async function manualSync() { await loadAndMerge(); }
 
+// ========== אתחול והגדרת מאזיני אירועים (תיקון הבאגים) ==========
 window.addEventListener('DOMContentLoaded', () => {
+    // תיקון 1: סגירת הבר הסגול בלחיצה
     const bottomBar = document.querySelector('.bottom-bar');
     if (bottomBar) {
         bottomBar.addEventListener('click', toggleBottomBar);
-        
         const interactiveElements = bottomBar.querySelectorAll('button, input');
         interactiveElements.forEach(el => {
             el.addEventListener('click', (e) => e.stopPropagation());
         });
     }
 
+    // תיקון 2: ניווט Enter בהוספת מוצר
     const itemNameInput = document.getElementById('itemName');
     const itemPriceInput = document.getElementById('itemPrice');
 
@@ -838,61 +543,35 @@ window.addEventListener('DOMContentLoaded', () => {
         itemNameInput.addEventListener('keypress', (e) => {
             if (e.key === 'Enter') {
                 e.preventDefault();
-                itemPriceInput.focus();
+                itemPriceInput.focus(); // עובר למחיר
             }
         });
 
         itemPriceInput.addEventListener('keypress', (e) => {
             if (e.key === 'Enter') {
                 e.preventDefault();
-                addItem();
+                addItem(); // מוסיף וסוגר
             }
         });
     }
 
+    // ניווט Enter בשאר המודאלים
     const listNameInput = document.getElementById('newListNameInput');
     const listUrlInput = document.getElementById('newListUrlInput');
     if (listNameInput && listUrlInput) {
-        listNameInput.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') {
-                e.preventDefault();
-                listUrlInput.focus();
-            }
-        });
-        listUrlInput.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') {
-                e.preventDefault();
-                saveNewList();
-            }
-        });
+        listNameInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') { e.preventDefault(); listUrlInput.focus(); } });
+        listUrlInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') { e.preventDefault(); saveNewList(); } });
     }
 
     const editNameInput = document.getElementById('editListNameInput');
     const editUrlInput = document.getElementById('editListUrlInput');
     if (editNameInput && editUrlInput) {
-        editNameInput.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') {
-                e.preventDefault();
-                editUrlInput.focus();
-            }
-        });
-        editUrlInput.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') {
-                e.preventDefault();
-                saveListName();
-            }
-        });
+        editNameInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') { e.preventDefault(); editUrlInput.focus(); } });
+        editUrlInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') { e.preventDefault(); saveListName(); } });
     }
 });
 
-const script1 = document.createElement('script');
-script1.src = 'https://apis.google.com/js/api.js';
-script1.onload = gapiLoaded;
-document.head.appendChild(script1);
-
-const script2 = document.createElement('script');
-script2.src = 'https://accounts.google.com/gsi/client';
-script2.onload = gisLoaded;
-document.head.appendChild(script2);
+const script1 = document.createElement('script'); script1.src = 'https://apis.google.com/js/api.js'; script1.onload = gapiLoaded; document.head.appendChild(script1);
+const script2 = document.createElement('script'); script2.src = 'https://accounts.google.com/gsi/client'; script2.onload = gisLoaded; document.head.appendChild(script2);
 
 render();
