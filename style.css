@@ -7,6 +7,7 @@ body { font-family: system-ui, sans-serif; background: #f4f7fa; padding-bottom: 
 #searchInput { transition: all 0.3s ease; border: 2px solid transparent; }
 #searchInput:focus { border-color: #7367f0; background: #fff; box-shadow: 0 10px 25px rgba(115, 103, 240, 0.1); outline: none; }
 
+/* עיצוב הבר הסגול התחתון */
 .bottom-bar { 
     position: fixed; 
     bottom: 0; 
@@ -21,8 +22,9 @@ body { font-family: system-ui, sans-serif; background: #f4f7fa; padding-bottom: 
     cursor: pointer;
 }
 
+/* תיקון מצב סגור - יורד כמעט עד הסוף (משאיר 45px גלויים) */
 .bottom-bar.minimized {
-    transform: translateY(calc(100% - 60px)); /* משאיר רק את החלק העליון גלוי */
+    transform: translateY(calc(100% - 45px)); 
 }
 
 .tab-btn { flex: 1; padding: 12px; border-radius: 15px; font-weight: bold; text-align: center; cursor: pointer; transition: 0.2s; background: white; color: #666; border: 1px solid #eee; }
