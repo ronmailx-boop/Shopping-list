@@ -39,19 +39,12 @@ body { font-family: system-ui, sans-serif; background: #f4f7fa; margin: 0; paddi
 .tab-btn { flex: 1; padding: 14px; border-radius: 18px; font-weight: 800; text-align: center; cursor: pointer; background: white; color: #888; border: 1px solid #eee; transition: 0.3s; }
 .tab-active { background: #7367f0 !important; color: white !important; box-shadow: 0 4px 10px rgba(115, 103, 240, 0.2); }
 
-/* בר תחתון - הוספת אנימציה וסמן לחיצה */
+/* בר תחתון */
 .bottom-bar-fixed {
     position: fixed; bottom: 0; left: 0; right: 0;
     background: #7367f0; padding: 25px 20px 40px;
     border-radius: 40px 40px 0 0; z-index: 1000;
     box-shadow: 0 -8px 25px rgba(0,0,0,0.1);
-    transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-    cursor: pointer;
-}
-
-/* מצב מזעור */
-.bottom-bar-fixed.minimized {
-    transform: translateY(calc(100% - 25px));
 }
 
 .w-18 { width: 4.5rem; }

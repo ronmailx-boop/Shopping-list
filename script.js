@@ -19,14 +19,6 @@ function save() {
     render();
 }
 
-// פונקציה חדשה למזעור הבר
-function toggleBottomBar() {
-    const bar = document.querySelector('.bottom-bar-fixed');
-    if (bar) {
-        bar.classList.toggle('minimized');
-    }
-}
-
 function showPage(p) {
     activePage = p;
     save();
@@ -177,17 +169,6 @@ function initApp() {
             render();
         }
     }, 2500);
-
-    // הוספת מאזין לחיצה לבר התחתון
-    const bar = document.querySelector('.bottom-bar-fixed');
-    if (bar) {
-        bar.addEventListener('click', (e) => {
-            // מזעור רק אם הלחיצה היא לא על כפתור (כדי שיוכלו להשתמש בפלוס בלי מזעור בטעות)
-            if (!e.target.closest('button')) {
-                toggleBottomBar();
-            }
-        });
-    }
 }
 
 function renderOnboardingStep() {
