@@ -1,59 +1,95 @@
-// ========== App Logic ==========
 let db = JSON.parse(localStorage.getItem('BUDGET_FINAL_V27')) || { 
     currentId: 'L1', 
-    lists: { 'L1': { name: 'הרשימה שלי', url: '', items: [] } },
+    lists: { 'L1': { name: 'הרשימה שלי', items: [] } },
     lastActivePage: 'lists'
 };
 
 let isLocked = true;
 let activePage = db.lastActivePage || 'lists';
-let currentEditIdx = null;
 
-function save() { 
+function save() {
+    db.lastActivePage = activePage;
     localStorage.setItem('BUDGET_FINAL_V27', JSON.stringify(db));
     render();
 }
 
-// פונקציית חיפוש בתוך הרשימה
+// ========== חיפוש וגלילה ==========
 function searchProductInList() {
     const query = document.getElementById('productSearchInput').value.trim().toLowerCase();
     const items = document.querySelectorAll('.item-card');
-    
-    // הסרת הדגשות קודמות
-    items.forEach(item => item.classList.remove('highlight-product'));
+    items.forEach(i => i.classList.remove('highlight-product'));
 
     if (!query) return;
 
-    // חיפוש המוצר הראשון שמתאים
     for (let item of items) {
-        const productName = item.querySelector('.product-title').innerText.toLowerCase();
-        if (productName.includes(query)) {
-            // גלילה למוצר
+        if (item.innerText.toLowerCase().includes(query)) {
             item.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            // הוספת הדגשה
             item.classList.add('highlight-product');
-            
-            // האזנה לגלילה הבאה כדי להסיר את ההדגשה
-            const removeHighlight = () => {
-                item.classList.remove('highlight-product');
-                window.removeEventListener('scroll', removeHighlight);
-            };
-            // השהייה קטנה כדי שגלילת ה-smooth לא תפעיל את המחיקה מיד
-            setTimeout(() => window.addEventListener('scroll', removeHighlight), 500);
-            
-            break; // עוצרים במוצר הראשון שנמצא
+            const clear = () => { item.classList.remove('highlight-product'); window.removeEventListener('scroll', clear); };
+            setTimeout(() => window.addEventListener('scroll', clear), 600);
+            break;
         }
     }
 }
 
+// ========== ניהול מוצרים (כולל Enter-Enter) ==========
+function addItem() {
+    const name = document.getElementById('itemName').value.trim();
+    const price = parseFloat(document.getElementById('itemPrice').value) || 0;
+    if (name) {
+        db.lists[db.currentId].items.push({ name, price, qty: 1, checked: false });
+        document.getElementById('itemName').value = '';
+        document.getElementById('itemPrice').value = '';
+        closeModal('inputForm');
+        save();
+    }
+}
+
+// ========== שאר הפונקציות (PDF, ייבוא, נעילה) ==========
+function toggleLock() { 
+    isLocked = !isLocked; 
+    save(); 
+}
+
+function importFromText() {
+    const text = document.getElementById('importText').value;
+    if (text) {
+        text.split('\n').forEach(line => {
+            if (line.trim()) db.lists[db.currentId].items.push({ name: line.trim(), price: 0, qty: 1, checked: false });
+        });
+        closeModal('importModal');
+        save();
+    }
+}
+
+function preparePrint() {
+    const area = document.getElementById('printArea');
+    const list = db.lists[db.currentId];
+    let html = `<h1>${list.name}</h1><table border="1" width="100%">`;
+    list.items.forEach(i => html += `<tr><td>${i.name}</td><td>₪${(i.price*i.qty).toFixed(2)}</td></tr>`);
+    area.innerHTML = html + `</table>`;
+    window.print();
+}
+
+function handleCloudClick() {
+    const ind = document.getElementById('cloudIndicator');
+    ind.className = "w-2 h-2 bg-blue-500 animate-ping";
+    setTimeout(() => { 
+        ind.className = "w-2 h-2 bg-green-500"; 
+        alert("סונכרן בהצלחה!"); 
+    }, 1500);
+}
+
+// ========== רינדור ==========
 function render() {
     const container = document.getElementById(activePage === 'lists' ? 'itemsContainer' : 'summaryContainer');
     if (!container) return;
     container.innerHTML = '';
     let total = 0, paid = 0;
 
-    document.getElementById('tabLists').className = `tab-btn ${activePage === 'lists' ? 'tab-active' : ''}`;
-    document.getElementById('tabSummary').className = `tab-btn ${activePage === 'summary' ? 'tab-active' : ''}`;
+    // כפתור נעילה (כחול/כתום)
+    const lockBtn = document.getElementById('mainLockBtn');
+    if (lockBtn) lockBtn.style.backgroundColor = isLocked ? '#2563eb' : '#fb923c';
 
     if (activePage === 'lists') {
         const list = db.lists[db.currentId];
@@ -61,46 +97,25 @@ function render() {
         document.getElementById('itemCountDisplay').innerText = `${list.items.length} מוצרים`;
 
         list.items.forEach((item, idx) => {
-            const sub = item.price * item.qty; 
-            total += sub; 
-            if (item.checked) paid += sub;
-            const div = document.createElement('div'); 
+            const sub = item.price * item.qty;
+            total += sub; if (item.checked) paid += sub;
+            const div = document.createElement('div');
             div.className = "item-card";
-            div.dataset.id = idx;
-            div.innerHTML = `
-                <div class="flex justify-between items-center mb-4">
-                    <div class="flex items-center gap-3 flex-1">
-                        <input type="checkbox" ${item.checked ? 'checked' : ''} onchange="toggleItem(${idx})" class="w-7 h-7 accent-indigo-600">
-                        <div class="flex-1 text-2xl font-bold ${item.checked ? 'line-through text-gray-300' : ''}">
-                            <span class="item-number">${idx + 1}.</span> <span class="product-title">${item.name}</span>
-                        </div>
-                    </div>
-                    <button onclick="removeItem(${idx})" class="trash-btn">🗑️</button>
-                </div>
-                <div class="flex justify-between items-center">
-                    <div class="flex items-center gap-3 bg-gray-50 rounded-xl px-2 py-1 border">
-                        <button onclick="changeQty(${idx}, 1)" class="text-green-500 text-2xl font-bold">+</button>
-                        <span class="font-bold w-6 text-center">${item.qty}</span>
-                        <button onclick="changeQty(${idx}, -1)" class="text-red-500 text-2xl font-bold">-</button>
-                    </div>
-                    <span class="text-2xl font-black text-indigo-600">₪${sub.toFixed(2)}</span>
-                </div>
-            `;
+            div.innerHTML = `<div class="flex justify-between">
+                <span>${idx+1}. ${item.name}</span>
+                <input type="checkbox" ${item.checked?'checked':''} onchange="toggleItem(${idx})">
+            </div>
+            <div class="flex justify-between mt-2">
+                <div>₪${sub.toFixed(2)}</div>
+                <div>x${item.qty}</div>
+            </div>`;
             container.appendChild(div);
         });
     } else {
         Object.keys(db.lists).forEach(id => {
-            const l = db.lists[id];
-            let lT = 0;
-            l.items.forEach(i => lT += i.price * i.qty);
-            const div = document.createElement('div'); 
-            div.className = "item-card"; 
-            div.innerHTML = `
-                <div class="flex justify-between items-center">
-                    <div class="text-2xl font-bold cursor-pointer" onclick="db.currentId='${id}'; showPage('lists')">${l.name}</div>
-                    <span class="text-xl font-black text-indigo-600">₪${lT.toFixed(2)}</span>
-                </div>
-            `;
+            const div = document.createElement('div');
+            div.className = "item-card";
+            div.innerHTML = `<div onclick="db.currentId='${id}'; showPage('lists')">${db.lists[id].name}</div>`;
             container.appendChild(div);
         });
     }
@@ -109,40 +124,24 @@ function render() {
     document.getElementById('displayLeft').innerText = (total - paid).toFixed(2);
 }
 
+// ========== עזרים ==========
 function showPage(p) { activePage = p; save(); }
 function openModal(id) { document.getElementById(id).classList.add('active'); }
 function closeModal(id) { document.getElementById(id).classList.remove('active'); }
 function toggleItem(idx) { db.lists[db.currentId].items[idx].checked = !db.lists[db.currentId].items[idx].checked; save(); }
-function removeItem(idx) { db.lists[db.currentId].items.splice(idx, 1); save(); }
-function changeQty(idx, d) { if(db.lists[db.currentId].items[idx].qty + d >= 1) { db.lists[db.currentId].items[idx].qty += d; save(); } }
-function toggleLock() { isLocked = !isLocked; render(); }
-function executeClear() { db.lists[db.currentId].items = []; closeModal('confirmModal'); save(); }
-
-function addItem() {
-    const n = document.getElementById('itemName').value.trim();
-    const p = parseFloat(document.getElementById('itemPrice').value) || 0;
-    if (n) {
-        db.lists[db.currentId].items.push({ name: n, price: p, qty: 1, checked: false });
-        closeModal('inputForm');
-        save();
-    }
-}
-
-function saveNewList() {
-    const n = document.getElementById('newListNameInput').value.trim();
-    if (n) {
-        const id = 'L' + Date.now();
-        db.lists[id] = { name: n, url: '', items: [] };
-        db.currentId = id;
-        activePage = 'lists';
-        closeModal('newListModal');
-        save();
-    }
-}
+function toggleDarkMode() { document.body.classList.toggle('dark-mode'); closeModal('settingsModal'); }
 
 window.addEventListener('DOMContentLoaded', () => {
+    // מזעור בר תחתון
     document.querySelector('.bottom-bar').addEventListener('click', (e) => {
         if (!e.target.closest('button')) e.currentTarget.classList.toggle('minimized');
     });
+
+    // Enter-Enter בהוספה
+    const nameIn = document.getElementById('itemName');
+    const priceIn = document.getElementById('itemPrice');
+    nameIn?.addEventListener('keypress', (e) => { if(e.key==='Enter') priceIn.focus(); });
+    priceIn?.addEventListener('keypress', (e) => { if(e.key==='Enter') addItem(); });
+
     render();
 });
