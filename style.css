@@ -1,53 +1,28 @@
 * { box-sizing: border-box; touch-action: manipulation; }
 body { font-family: system-ui, sans-serif; background: #f4f7fa; padding-bottom: 240px; min-height: 100vh; transition: background 0.3s; margin: 0; }
 
-.item-card { 
-    background: white; border-radius: 25px; padding: 15px; margin-bottom: 12px; 
-    box-shadow: 0 4px 12px rgba(0,0,0,0.03); display: flex; flex-direction: column; 
-    transition: all 0.3s ease;
-}
+.item-card { background: white; border-radius: 25px; padding: 15px; margin-bottom: 12px; shadow: 0 4px 12px rgba(0,0,0,0.03); transition: all 0.3s ease; }
 
-/* הדגשת מוצר שנמצא בחיפוש */
+/* הדגשת מוצר נמצא */
 .highlight-product {
-    background: #fff9c4 !important; /* צבע צהוב בולט */
+    background: #fff9c4 !important;
     border: 2px solid #7367f0;
-    transform: scale(1.05);
-    animation: bounce 0.5s ease infinite alternate;
-    z-index: 10;
+    transform: scale(1.03);
+    animation: pulse 0.6s infinite alternate;
 }
+@keyframes pulse { from { transform: scale(1.01); } to { transform: scale(1.04); } }
 
-@keyframes bounce {
-    from { transform: scale(1.03); }
-    to { transform: scale(1.06); }
-}
+.bottom-bar { position: fixed; bottom: 0; left: 0; right: 0; background: #7367f0; z-index: 1000; padding: 15px 15px 35px 15px; border-radius: 35px 35px 0 0; transition: transform 0.4s ease; cursor: pointer; }
+.bottom-bar.minimized { transform: translateY(calc(100% - 15px)); }
+.bottom-bar.minimized > * { opacity: 0; pointer-events: none; }
 
-.item-number { color: #7367f0; opacity: 0.6; font-size: 0.8em; margin-left: 4px; }
-
-#productSearchInput { transition: all 0.3s ease; border: 2px solid transparent; }
-#productSearchInput:focus { border-color: #7367f0; background: #fff; box-shadow: 0 10px 25px rgba(115, 103, 240, 0.1); outline: none; }
-
-.bottom-bar { 
-    position: fixed; bottom: 0; left: 0; right: 0; background: #7367f0; z-index: 1000; 
-    padding: 15px 15px 35px 15px; border-radius: 35px 35px 0 0; 
-    box-shadow: 0 -10px 25px rgba(0, 0, 0, 0.15); transition: transform 0.4s ease; cursor: pointer;
-}
-.bottom-bar.minimized { transform: translateY(calc(100% - 8px)); }
-
-.tab-btn { flex: 1; padding: 12px; border-radius: 15px; font-weight: bold; text-align: center; cursor: pointer; background: white; color: #666; border: 1px solid #eee; }
+.tab-btn { flex: 1; padding: 12px; border-radius: 15px; font-weight: bold; text-align: center; cursor: pointer; background: white; color: #666; }
 .tab-active { background: #7367f0 !important; color: white !important; }
 
-.bottom-circle-btn { width: 48px; height: 48px; border-radius: 50%; display: flex; align-items: center; justify-content: center; border: 2px solid rgba(255,255,255,0.2); box-shadow: 0 4px 10px rgba(0,0,0,0.2); cursor: pointer; }
+.bottom-circle-btn { width: 50px; height: 50px; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; border: none; cursor: pointer; }
 
-.modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.75); z-index: 7000; align-items: flex-start; justify-content: center; backdrop-filter: blur(8px); }
-.modal-overlay.active { display: flex; }
-.edit-modal { width: 90%; max-width: 400px; background-color: #ffffff; border-radius: 0 0 30px 30px; padding: 20px; text-align: center; border: 2px solid #eee; }
-.modal-input { width: 100%; padding: 12px; border: 2px solid #f3f4f6; border-radius: 16px; margin-bottom: 10px; text-align: center; }
+body.dark-mode { background: #1a1a2e; color: white; }
+body.dark-mode .item-card, body.dark-mode .app-header { background: #16213e !important; color: white; }
+body.dark-mode input { background: #0f3460; color: white; border: none; }
 
-.app-header { background: white; padding: 10px 20px; display: flex; flex-direction: row-reverse; justify-content: space-between; align-items: center; box-shadow: 0 2px 8px rgba(0,0,0,0.05); position: sticky; top: 0; z-index: 2000; }
-.trash-btn { width: 44px; height: 44px; background: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #ef4444; border: none; cursor: pointer; }
-.category-separator { background: #7367f0; color: white; border-radius: 20px; padding: 15px; margin-bottom: 20px; text-align: center; }
-
-@media print {
-    .no-print, .bottom-bar, .app-header, .tab-btn, .modal-overlay, .trash-btn, input, button { display: none !important; }
-    #printArea { display: block !important; width: 100%; direction: rtl; }
-}
+@media print { .no-print { display: none !important; } #printArea { display: block !important; } }
