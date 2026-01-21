@@ -20,12 +20,21 @@ body { font-family: system-ui, sans-serif; background: #f4f7fa; padding-bottom: 
     padding: 15px 15px 35px 15px; 
     border-radius: 35px 35px 0 0; 
     box-shadow: 0 -10px 25px rgba(0, 0, 0, 0.15); 
-    transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1);
     cursor: pointer;
+    transform: translateY(0);
 }
 
+/* מצב ממוזער - הבר יורד כמעט לגמרי */
 .bottom-bar.minimized {
-    transform: translateY(calc(100% - 8px));
+    transform: translateY(calc(100% - 12px));
+}
+
+/* הסתרת התוכן בתוך הבר כשהוא למטה */
+.bottom-bar.minimized > * {
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s;
 }
 
 .tab-btn { flex: 1; padding: 12px; border-radius: 15px; font-weight: bold; text-align: center; cursor: pointer; transition: 0.2s; background: white; color: #666; border: 1px solid #eee; }
