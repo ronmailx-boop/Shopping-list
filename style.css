@@ -3,14 +3,14 @@ body { font-family: system-ui, sans-serif; background: #f4f7fa; padding-bottom: 
 
 .item-card { background: white; border-radius: 25px; padding: 15px; margin-bottom: 12px; shadow: 0 4px 12px rgba(0,0,0,0.03); transition: all 0.3s ease; }
 
-/* הדגשת מוצר נמצא */
+/* הדגשה לחיפוש */
 .highlight-product {
     background: #fff9c4 !important;
     border: 2px solid #7367f0;
     transform: scale(1.03);
-    animation: pulse 0.6s infinite alternate;
+    animation: bounce 0.6s infinite alternate;
 }
-@keyframes pulse { from { transform: scale(1.01); } to { transform: scale(1.04); } }
+@keyframes bounce { from { transform: scale(1.01); } to { transform: scale(1.04); } }
 
 .bottom-bar { position: fixed; bottom: 0; left: 0; right: 0; background: #7367f0; z-index: 1000; padding: 15px 15px 35px 15px; border-radius: 35px 35px 0 0; transition: transform 0.4s ease; cursor: pointer; }
 .bottom-bar.minimized { transform: translateY(calc(100% - 15px)); }
@@ -19,10 +19,13 @@ body { font-family: system-ui, sans-serif; background: #f4f7fa; padding-bottom: 
 .tab-btn { flex: 1; padding: 12px; border-radius: 15px; font-weight: bold; text-align: center; cursor: pointer; background: white; color: #666; }
 .tab-active { background: #7367f0 !important; color: white !important; }
 
-.bottom-circle-btn { width: 50px; height: 50px; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; border: none; cursor: pointer; }
+.bottom-circle-btn { width: 48px; height: 48px; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; border: none; cursor: pointer; transition: background 0.3s; }
 
 body.dark-mode { background: #1a1a2e; color: white; }
 body.dark-mode .item-card, body.dark-mode .app-header { background: #16213e !important; color: white; }
-body.dark-mode input { background: #0f3460; color: white; border: none; }
 
-@media print { .no-print { display: none !important; } #printArea { display: block !important; } }
+.trash-btn { width: 44px; height: 44px; background: #fff1f1; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #ef4444; border: none; }
+.category-separator { background: #7367f0; color: white; border-radius: 25px; padding: 20px; margin-bottom: 15px; text-align: center; }
+
+@media print { .no-print { display: none !important; } #printArea { display: block !important; direction: rtl; } }
+.hidden { display: none !important; }
