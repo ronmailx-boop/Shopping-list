@@ -44,11 +44,11 @@ function save() {
     }
 }
 
-// פונקציה לסגירה ופתיחה של הבר התחתון
+// פונקציה לסגירה ופתיחה של הבר התחתון (תיקון הבר הסגול)
 function toggleBottomBar(e) {
     const bottomBar = document.querySelector('.bottom-bar');
-    // אם הלחיצה היא על הבר עצמו או על אחד הקונטיינרים (ולא על כפתור פונקציונלי)
-    if (e.target === bottomBar || e.target.closest('.flex')) {
+    // מפעיל את הסגירה רק בלחיצה על הבר עצמו או על שטחים ריקים בתוכו
+    if (e.target === bottomBar || e.target.classList.contains('flex') || e.target.tagName === 'DIV') {
         bottomBar.classList.toggle('minimized');
     }
 }
@@ -222,7 +222,6 @@ function render() {
     initSortable();
 }
 
-// פונקציית שיתוף ופעולות נוספות (מתוך סט 2 המקורי)
 async function shareNative(type) {
     let title = ""; let text = "";
     if (type === 'list') {
@@ -432,7 +431,7 @@ function saveTotal() {
     closeModal('editTotalModal');
 }
 
-// ========== Google Drive Integration (מתוך סט 2) ==========
+// ========== Google Drive Integration ==========
 
 function gapiLoaded() { gapi.load('client', initializeGapiClient); }
 async function initializeGapiClient() { await gapi.client.init({ apiKey: GOOGLE_API_KEY, discoveryDocs: [DISCOVERY_DOC], }); gapiInited = true; maybeEnableButtons(); }
@@ -529,13 +528,14 @@ window.addEventListener('DOMContentLoaded', () => {
     const bottomBar = document.querySelector('.bottom-bar');
     if (bottomBar) {
         bottomBar.addEventListener('click', toggleBottomBar);
+        // מונע סגירה כשלוחצים על כפתורים
         const interactiveElements = bottomBar.querySelectorAll('button, input');
         interactiveElements.forEach(el => {
             el.addEventListener('click', (e) => e.stopPropagation());
         });
     }
 
-    // תיקון 2: ניווט Enter בהוספת מוצר
+    // תיקון 2: ניווט Enter בהוספת מוצר (מעבר בין שדות והוספה)
     const itemNameInput = document.getElementById('itemName');
     const itemPriceInput = document.getElementById('itemPrice');
 
@@ -543,14 +543,14 @@ window.addEventListener('DOMContentLoaded', () => {
         itemNameInput.addEventListener('keypress', (e) => {
             if (e.key === 'Enter') {
                 e.preventDefault();
-                itemPriceInput.focus(); // עובר למחיר
+                itemPriceInput.focus(); // מעבר למחיר בלחיצת Enter
             }
         });
 
         itemPriceInput.addEventListener('keypress', (e) => {
             if (e.key === 'Enter') {
                 e.preventDefault();
-                addItem(); // מוסיף וסוגר
+                addItem(); // הוספת מוצר וסגירת המודאל ב-Enter שני
             }
         });
     }
