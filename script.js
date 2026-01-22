@@ -20,159 +20,73 @@ let db = JSON.parse(localStorage.getItem('BUDGET_FINAL_V27')) || {
 let activePage = db.lastActivePage || 'lists';
 let isLocked = true;
 let showMissingOnly = false;
-let highlightedItemName = null;
 let sortableInstance = null;
-let currentEditIdx = null;
 
-// ========== Core Functions ==========
+// ========== Initialization & Auth ==========
+function gapiLoaded() { gapi.load('client', async () => { await gapi.client.init({ apiKey: GOOGLE_API_KEY, discoveryDocs: [DISCOVERY_DOC] }); gapiInited = true; }); }
+function gisLoaded() { tokenClient = google.accounts.oauth2.initTokenClient({ client_id: GOOGLE_CLIENT_ID, scope: SCOPES, callback: '' }); gisInited = true; }
+
+async function handleAuthClick() {
+    tokenClient.callback = async (resp) => {
+        if (resp.error !== undefined) throw (resp);
+        accessToken = resp.access_token;
+        isConnected = true;
+        updateCloudIndicator('connected');
+        syncToCloud();
+    };
+    if (gapi.client.getToken() === null) {
+        tokenClient.requestAccessToken({prompt: 'consent'});
+    } else {
+        tokenClient.requestAccessToken({prompt: ''});
+    }
+}
+
+// ========== Cloud Sync Logic ==========
+async function syncToCloud() {
+    if (isSyncing || !accessToken) return;
+    isSyncing = true; updateCloudIndicator('syncing');
+    try {
+        const folderRes = await gapi.client.drive.files.list({ q: `name='${FOLDER_NAME}' and mimeType='application/vnd.google-apps.folder'` });
+        let folderId = folderRes.result.files[0]?.id;
+        if(!folderId) {
+            const folder = await gapi.client.drive.files.create({ resource: { name: FOLDER_NAME, mimeType: 'application/vnd.google-apps.folder' }, fields: 'id' });
+            folderId = folder.result.id;
+        }
+        const fileRes = await gapi.client.drive.files.list({ q: `name='${FILE_NAME}' and '${folderId}' in parents` });
+        const fileId = fileRes.result.files[0]?.id;
+        const data = JSON.stringify(db);
+        if (fileId) {
+            await fetch(`https://www.googleapis.com/upload/drive/v3/files/${fileId}?uploadType=media`, {
+                method: 'PATCH', headers: { 'Authorization': `Bearer ${accessToken}`, 'Content-Type': 'application/json' }, body: data
+            });
+        } else {
+            const metadata = { name: FILE_NAME, parents: [folderId] };
+            const form = new FormData();
+            form.append('metadata', new Blob([JSON.stringify(metadata)], { type: 'application/json' }));
+            form.append('file', new Blob([data], { type: 'application/json' }));
+            await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart', {
+                method: 'POST', headers: { 'Authorization': `Bearer ${accessToken}` }, body: form
+            });
+        }
+    } catch (e) { console.error(e); } finally { isSyncing = false; updateCloudIndicator('connected'); }
+}
+
+function updateCloudIndicator(s) { 
+    const ind = document.getElementById('cloudIndicator');
+    if(ind) ind.className = `w-2 h-2 rounded-full ${s === 'connected' ? 'bg-green-500' : 'bg-yellow-500 animate-pulse'}`;
+}
+
+// ========== Core Logic ==========
 function save() { 
     db.lastActivePage = activePage;
     localStorage.setItem('BUDGET_FINAL_V27', JSON.stringify(db));
     render();
-    if (isConnected && !isSyncing) {
+    if (isConnected) {
         if (syncTimeout) clearTimeout(syncTimeout);
-        syncTimeout = setTimeout(() => syncToCloud(), 2000);
+        syncTimeout = setTimeout(() => syncToCloud(), 3000);
     }
 }
 
-function openModal(id) { 
-    const m = document.getElementById(id);
-    if(m) {
-        m.classList.add('active');
-        if(id === 'inputForm') {
-            document.getElementById('itemName').value = '';
-            document.getElementById('itemPrice').value = '';
-            setTimeout(() => document.getElementById('itemName').focus(), 150);
-        }
-    }
-}
-
-function closeModal(id) { 
-    const m = document.getElementById(id); 
-    if(m) m.classList.remove('active'); 
-}
-
-function showPage(p) { activePage = p; save(); }
-
-function toggleBottomBar(e) {
-    if (e.target.closest('button') || e.target.closest('input')) return;
-    document.getElementById('bottomBar').classList.toggle('minimized');
-}
-
-function toggleLock() { 
-    isLocked = !isLocked; 
-    render(); 
-}
-
-// ========== Item Logic ==========
-function addItem() { 
-    const n = document.getElementById('itemName').value.trim();
-    const p = parseFloat(document.getElementById('itemPrice').value) || 0; 
-    if (n) { 
-        db.lists[db.currentId].items.push({ name: n, price: p, qty: 1, checked: false }); 
-        closeModal('inputForm'); 
-        save(); 
-    } 
-}
-
-function removeItem(idx) { db.lists[db.currentId].items.splice(idx, 1); save(); }
-
-function toggleItem(idx) {
-    db.lists[db.currentId].items[idx].checked = !db.lists[db.currentId].items[idx].checked;
-    save();
-}
-
-function changeQty(idx, d) { 
-    if(db.lists[db.currentId].items[idx].qty + d >= 1) { 
-        db.lists[db.currentId].items[idx].qty += d; 
-        save(); 
-    } 
-}
-
-// ========== Summary Page Logic (Selection) ==========
-function toggleListSelection(id) {
-    const idx = db.selectedInSummary.indexOf(id);
-    if (idx === -1) db.selectedInSummary.push(id);
-    else db.selectedInSummary.splice(idx, 1);
-    save();
-}
-
-function toggleSelectAll(checked) {
-    if (checked) db.selectedInSummary = Object.keys(db.lists);
-    else db.selectedInSummary = [];
-    save();
-}
-
-// ========== PDF & Sharing ==========
-function preparePrint() { 
-    closeModal('settingsModal');
-    const printArea = document.getElementById('printArea');
-    
-    let grandTotal = 0;
-    let htmlContent = `
-        <div style="direction:rtl; font-family:sans-serif; padding:20px;">
-            <h1 style="text-align:center; color:#7367f0; margin-bottom:10px;">Vplus - דוח תקציב חכם</h1>
-            <p style="text-align:center; color:#666; margin-bottom:30px;">הופק בתאריך: ${new Date().toLocaleDateString('he-IL')}</p>`;
-    
-    Object.keys(db.lists).forEach(id => {
-        const l = db.lists[id];
-        let lTotal = 0;
-        htmlContent += `
-            <div style="margin-bottom:30px; border:1px solid #eee; border-radius:15px; padding:15px;">
-                <h2 style="color:#7367f0; border-bottom:2px solid #7367f0; padding-bottom:5px;">${l.name}</h2>
-                <table style="width:100%; border-collapse:collapse; margin-top:10px;">
-                    <thead>
-                        <tr style="background:#f8f9fa;">
-                            <th style="text-align:right; padding:10px; border-bottom:1px solid #ddd;">מוצר</th>
-                            <th style="text-align:center; padding:10px; border-bottom:1px solid #ddd;">כמות</th>
-                            <th style="text-align:left; padding:10px; border-bottom:1px solid #ddd;">סה"כ</th>
-                        </tr>
-                    </thead>
-                    <tbody>`;
-        l.items.forEach(i => {
-            const s = i.price * i.qty; lTotal += s;
-            htmlContent += `
-                <tr>
-                    <td style="padding:10px; border-bottom:1px solid #eee;">${i.name}</td>
-                    <td style="text-align:center; padding:10px; border-bottom:1px solid #eee;">${i.qty}</td>
-                    <td style="text-align:left; padding:10px; border-bottom:1px solid #eee;">₪${s.toFixed(2)}</td>
-                </tr>`;
-        });
-        htmlContent += `
-                    </tbody>
-                </table>
-                <div style="text-align:left; margin-top:10px; font-weight:bold; font-size:1.1em;">סה"כ לרשימה: ₪${lTotal.toFixed(2)}</div>
-            </div>`;
-        grandTotal += lTotal;
-    });
-    
-    htmlContent += `
-            <div style="text-align:center; margin-top:40px; padding:20px; background:#7367f0; color:white; border-radius:15px;">
-                <h2 style="margin:0;">סה"כ כללי לתשלום: ₪${grandTotal.toFixed(2)}</h2>
-            </div>
-        </div>`;
-    
-    printArea.innerHTML = htmlContent;
-    setTimeout(() => { window.print(); }, 500);
-}
-
-function shareNative(type) {
-    let text = "";
-    if (type === 'list') {
-        const l = db.lists[db.currentId];
-        text = `🛒 *${l.name}*\n` + l.items.map(i => `${i.checked ? '✅':'⬜'} ${i.name} (x${i.qty})`).join('\n');
-    } else {
-        text = "📋 *סיכום רשימות Vplus:*\n";
-        db.selectedInSummary.forEach(id => {
-            const l = db.lists[id];
-            text += `\n🔹 ${l.name}`;
-        });
-    }
-    if (navigator.share) navigator.share({ text });
-    else { navigator.clipboard.writeText(text); alert("הטקסט הועתק ללוח"); }
-}
-
-// ========== Render ==========
 function render() {
     const list = db.lists[db.currentId];
     const container = document.getElementById(activePage === 'lists' ? 'itemsContainer' : 'summaryContainer');
@@ -194,24 +108,22 @@ function render() {
             if (showMissingOnly && item.checked) return;
 
             const div = document.createElement('div');
-            div.className = `item-card ${item.name === highlightedItemName ? 'highlight-flash' : ''}`;
+            div.className = `item-card bg-white p-4 rounded-2xl shadow-sm mb-3 flex flex-col gap-3`;
             div.innerHTML = `
-                <div class="flex justify-between items-center mb-4">
-                    <div class="flex items-center gap-3 flex-1">
-                        <input type="checkbox" ${item.checked ? 'checked':''} onchange="toggleItem(${idx})" class="w-7 h-7">
-                        <div class="flex-1 text-2xl font-bold ${item.checked ? 'line-through text-gray-300' : ''}">
-                            <span class="item-number">${idx + 1}.</span> ${item.name}
-                        </div>
+                <div class="flex justify-between items-center">
+                    <div class="flex items-center gap-3">
+                        <input type="checkbox" ${item.checked ? 'checked' : ''} onchange="toggleItem(${idx})" class="w-6 h-6">
+                        <span class="text-xl font-bold ${item.checked ? 'line-through text-gray-300' : ''}">${idx+1}. ${item.name}</span>
                     </div>
-                    <button onclick="removeItem(${idx})" class="trash-btn">🗑️</button>
+                    <button onclick="removeItem(${idx})" class="text-red-400">🗑️</button>
                 </div>
                 <div class="flex justify-between items-center">
-                    <div class="flex items-center gap-3 bg-gray-50 rounded-xl px-2 py-1 border">
-                        <button onclick="changeQty(${idx}, 1)" class="text-green-500 text-2xl font-bold">+</button>
-                        <span class="font-bold w-6 text-center">${item.qty}</span>
-                        <button onclick="changeQty(${idx}, -1)" class="text-red-500 text-2xl font-bold">-</button>
+                    <div class="flex items-center gap-3 bg-gray-50 p-1 rounded-xl">
+                        <button onclick="changeQty(${idx}, 1)" class="text-green-500 font-bold px-2">+</button>
+                        <span class="font-bold">${item.qty}</span>
+                        <button onclick="changeQty(${idx}, -1)" class="text-red-500 font-bold px-2">-</button>
                     </div>
-                    <span class="text-2xl font-black text-indigo-600">₪${sub.toFixed(2)}</span>
+                    <span class="text-indigo-600 font-black text-xl">₪${sub.toFixed(2)}</span>
                 </div>`;
             container.appendChild(div);
         });
@@ -220,49 +132,65 @@ function render() {
         document.getElementById('pageSummary').classList.remove('hidden');
         Object.keys(db.lists).forEach(id => {
             const l = db.lists[id];
-            const isSelected = db.selectedInSummary.includes(id);
             const div = document.createElement('div');
-            div.className = "item-card flex flex-row items-center gap-4 cursor-pointer";
+            div.className = "item-card bg-white p-4 rounded-2xl shadow-sm mb-3 flex items-center gap-4";
             div.innerHTML = `
-                <input type="checkbox" ${isSelected ? 'checked' : ''} onchange="toggleListSelection('${id}')" class="w-7 h-7 accent-indigo-600">
-                <div class="flex-1 font-bold text-xl" onclick="db.currentId='${id}'; showPage('lists')">${l.name}</div>
-                <div class="text-gray-400">⬅️</div>`;
+                <input type="checkbox" ${db.selectedInSummary.includes(id) ? 'checked' : ''} onchange="toggleSelectList('${id}')" class="w-6 h-6">
+                <div class="flex-1 font-bold text-lg" onclick="db.currentId='${id}'; showPage('lists')">${l.name}</div>`;
             container.appendChild(div);
         });
-        document.getElementById('selectAllLists').checked = db.selectedInSummary.length === Object.keys(db.lists).length;
     }
 
-    // Update Bottom Bar
     document.getElementById('displayTotal').innerText = total.toFixed(2);
     document.getElementById('displayPaid').innerText = paid.toFixed(2);
     document.getElementById('displayLeft').innerText = (total - paid).toFixed(2);
 
-    // Lock Button Style
-    const lockBtn = document.getElementById('mainLockBtn');
+    // Lock & Sortable
     const lockPath = document.getElementById('lockIconPath');
+    const lockBtn = document.getElementById('mainLockBtn');
     lockBtn.className = `bottom-circle-btn ${isLocked ? 'bg-blue-600' : 'bg-orange-500'}`;
-    lockPath.setAttribute('d', isLocked ? 
-        'M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z' : 
-        'M8 11V7a4 4 1 118 0m-4 8v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2z');
-    document.getElementById('statusTag').innerText = isLocked ? "נעול" : "עריכה פעילה (גרירה)";
+    lockPath.setAttribute('d', isLocked ? 'M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z' : 'M8 11V7a4 4 118 0m-4 8v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2z');
+    document.getElementById('statusTag').innerText = isLocked ? "נעול" : "עריכה פעילה";
 
-    // Sortable Initialization
     if (sortableInstance) sortableInstance.destroy();
     if (!isLocked && activePage === 'lists') {
-        sortableInstance = new Sortable(container, {
-            animation: 150,
-            onEnd: (evt) => {
-                const items = db.lists[db.currentId].items;
-                const [movedItem] = items.splice(evt.oldIndex, 1);
-                items.splice(evt.newIndex, 0, movedItem);
-                save();
-            }
-        });
+        sortableInstance = Sortable.create(container, { animation: 150, onEnd: (e) => {
+            const items = db.lists[db.currentId].items;
+            const item = items.splice(e.oldIndex, 1)[0];
+            items.splice(e.newIndex, 0, item);
+            save();
+        }});
     }
 }
 
-// ========== Initialize ==========
-window.onload = () => {
-    document.getElementById('bottomBar').addEventListener('click', toggleBottomBar);
-    render();
-};
+// ========== UI Actions ==========
+function openModal(id) { document.getElementById(id).classList.add('active'); }
+function closeModal(id) { document.getElementById(id).classList.remove('active'); }
+function showPage(p) { activePage = p; save(); }
+function toggleLock() { isLocked = !isLocked; render(); }
+function toggleBottomBar() { document.getElementById('bottomBar').classList.toggle('minimized'); }
+
+function addItem() {
+    const n = document.getElementById('itemName').value;
+    const p = parseFloat(document.getElementById('itemPrice').value) || 0;
+    if (n) { db.lists[db.currentId].items.push({ name: n, price: p, qty: 1, checked: false }); save(); closeModal('inputForm'); }
+}
+
+function saveNewList() {
+    const n = document.getElementById('newListNameInput').value;
+    if (n) { const id = 'L' + Date.now(); db.lists[id] = { name: n, items: [] }; db.currentId = id; activePage = 'lists'; save(); closeModal('newListModal'); }
+}
+
+function toggleItem(idx) { db.lists[db.currentId].items[idx].checked = !db.lists[db.currentId].items[idx].checked; save(); }
+function removeItem(idx) { db.lists[db.currentId].items.splice(idx, 1); save(); }
+function changeQty(idx, d) { if(db.lists[db.currentId].items[idx].qty + d > 0) { db.lists[db.currentId].items[idx].qty += d; save(); } }
+function toggleSelectList(id) { const i = db.selectedInSummary.indexOf(id); if(i > -1) db.selectedInSummary.splice(i,1); else db.selectedInSummary.push(id); save(); }
+function toggleSelectAll(c) { db.selectedInSummary = c ? Object.keys(db.lists) : []; save(); }
+function executeClear() { db.lists[db.currentId].items = []; save(); closeModal('confirmModal'); }
+function toggleDarkMode() { document.body.classList.toggle('dark-mode'); }
+
+function preparePrint() { window.print(); }
+function shareNative(t) { /* לוגיקת שיתוף */ }
+
+// Init
+render();
