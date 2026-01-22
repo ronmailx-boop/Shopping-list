@@ -24,7 +24,7 @@ let highlightedItemName = null;
 let sortableInstance = null;
 let currentEditIdx = null;
 
-// פונקציית שמירה עם סנכרון ענן
+// ========== Core Functions ==========
 function save() { 
     db.lastActivePage = activePage;
     localStorage.setItem('BUDGET_FINAL_V27', JSON.stringify(db));
@@ -35,7 +35,6 @@ function save() {
     }
 }
 
-// ========== UI Logic ==========
 function openModal(id) { 
     const m = document.getElementById(id);
     if(m) {
@@ -65,12 +64,7 @@ function toggleLock() {
     render(); 
 }
 
-function toggleDarkMode() { 
-    document.body.classList.toggle('dark-mode'); 
-    closeModal('settingsModal'); 
-}
-
-// ========== List Logic ==========
+// ========== Item Logic ==========
 function addItem() { 
     const n = document.getElementById('itemName').value.trim();
     const p = parseFloat(document.getElementById('itemPrice').value) || 0; 
@@ -95,140 +89,71 @@ function changeQty(idx, d) {
     } 
 }
 
-function openEditTotalModal(idx) {
-    currentEditIdx = idx;
-    const item = db.lists[db.currentId].items[idx];
-    document.getElementById('editTotalInput').value = (item.price * item.qty).toFixed(2);
-    openModal('editTotalModal');
+// ========== Summary Page Logic (Selection) ==========
+function toggleListSelection(id) {
+    const idx = db.selectedInSummary.indexOf(id);
+    if (idx === -1) db.selectedInSummary.push(id);
+    else db.selectedInSummary.splice(idx, 1);
+    save();
 }
 
-function saveTotal() {
-    const val = parseFloat(document.getElementById('editTotalInput').value);
-    if (!isNaN(val)) {
-        const item = db.lists[db.currentId].items[currentEditIdx];
-        item.price = val / item.qty;
-        save();
-    }
-    closeModal('editTotalModal');
+function toggleSelectAll(checked) {
+    if (checked) db.selectedInSummary = Object.keys(db.lists);
+    else db.selectedInSummary = [];
+    save();
 }
 
-function executeClear() { db.lists[db.currentId].items = []; closeModal('confirmModal'); save(); }
-
-function saveNewList() {
-    const n = document.getElementById('newListNameInput').value.trim();
-    const u = document.getElementById('newListUrlInput').value.trim();
-    if (n) {
-        const id = 'L' + Date.now();
-        db.lists[id] = { name: n, url: u, items: [] };
-        db.currentId = id;
-        activePage = 'lists';
-        closeModal('newListModal');
-        save();
-    }
-}
-
-// ========== Search & Filter ==========
-function handleItemSearch(val) {
-    const sug = document.getElementById('itemSuggestions');
-    if (!val.trim()) { sug.classList.add('hidden'); return; }
-    const matches = db.lists[db.currentId].items.filter(i => i.name.toLowerCase().includes(val.toLowerCase()));
-    if (matches.length > 0) {
-        sug.innerHTML = matches.map(i => `<div class="p-3 border-b cursor-pointer font-bold" onclick="highlightItem('${i.name.replace(/'/g, "\\'")}')">${i.name}</div>`).join('');
-        sug.classList.remove('hidden');
-    } else { sug.classList.add('hidden'); }
-}
-
-function highlightItem(name) {
-    highlightedItemName = name; 
-    showMissingOnly = false; 
-    render();
-    document.getElementById('itemSuggestions').classList.add('hidden');
-    document.getElementById('itemSearchInput').value = '';
-    setTimeout(() => {
-        const el = document.querySelector('.highlight-flash');
-        if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        setTimeout(() => { highlightedItemName = null; render(); }, 3000);
-    }, 100);
-}
-
-function toggleMissingFilter() {
-    showMissingOnly = !showMissingOnly;
-    const btn = document.getElementById('filterMissingBtn');
-    btn.innerText = showMissingOnly ? "הצג הכל" : "הצג חסרים בלבד";
-    render();
-}
-
-// ========== Cloud Sync (Drive) ==========
-function gapiLoaded() { gapi.load('client', () => gapi.client.init({ apiKey: GOOGLE_API_KEY, discoveryDocs: [DISCOVERY_DOC] }).then(() => gapiInited = true)); }
-function gisLoaded() { tokenClient = google.accounts.oauth2.initTokenClient({ client_id: GOOGLE_CLIENT_ID, scope: SCOPES, callback: '' }); gisInited = true; }
-
-async function handleCloudClick() {
-    if (!isConnected) {
-        tokenClient.callback = async (resp) => { accessToken = resp.access_token; isConnected = true; updateCloudIndicator('connected'); syncToCloud(); };
-        tokenClient.requestAccessToken({ prompt: 'consent' });
-    } else syncToCloud();
-}
-
-async function syncToCloud() {
-    if (isSyncing || !accessToken) return;
-    isSyncing = true; updateCloudIndicator('syncing');
-    try {
-        const folderRes = await gapi.client.drive.files.list({ q: `name='${FOLDER_NAME}' and mimeType='application/vnd.google-apps.folder'` });
-        let folderId = folderRes.result.files[0]?.id;
-        if(!folderId) {
-            const folder = await gapi.client.drive.files.create({ resource: { name: FOLDER_NAME, mimeType: 'application/vnd.google-apps.folder' }, fields: 'id' });
-            folderId = folder.result.id;
-        }
-        const fileRes = await gapi.client.drive.files.list({ q: `name='${FILE_NAME}' and '${folderId}' in parents` });
-        const fileId = fileRes.result.files[0]?.id;
-        const data = JSON.stringify(db);
-        if (fileId) {
-            await fetch(`https://www.googleapis.com/upload/drive/v3/files/${fileId}?uploadType=media`, {
-                method: 'PATCH', headers: { 'Authorization': `Bearer ${accessToken}`, 'Content-Type': 'application/json' }, body: data
-            });
-        } else {
-            const metadata = { name: FILE_NAME, parents: [folderId] };
-            const form = new FormData();
-            form.append('metadata', new Blob([JSON.stringify(metadata)], { type: 'application/json' }));
-            form.append('file', new Blob([data], { type: 'application/json' }));
-            await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart', {
-                method: 'POST', headers: { 'Authorization': `Bearer ${accessToken}` }, body: form
-            });
-        }
-    } catch (e) { console.error(e); } finally { isSyncing = false; updateCloudIndicator('connected'); }
-}
-
-function updateCloudIndicator(s) { 
-    const ind = document.getElementById('cloudIndicator');
-    if(ind) ind.className = `w-2 h-2 rounded-full ${s === 'connected' ? 'bg-green-500' : 'bg-yellow-500 animate-pulse'}`;
-}
-
-// ========== PDF & Share ==========
+// ========== PDF & Sharing ==========
 function preparePrint() { 
     closeModal('settingsModal');
     const printArea = document.getElementById('printArea');
-    if (!printArea) return;
-
+    
     let grandTotal = 0;
-    let htmlContent = `<h1 style="text-align:center; color:#7367f0; direction:rtl;">Vplus - דוח תקציב</h1>`;
+    let htmlContent = `
+        <div style="direction:rtl; font-family:sans-serif; padding:20px;">
+            <h1 style="text-align:center; color:#7367f0; margin-bottom:10px;">Vplus - דוח תקציב חכם</h1>
+            <p style="text-align:center; color:#666; margin-bottom:30px;">הופק בתאריך: ${new Date().toLocaleDateString('he-IL')}</p>`;
     
     Object.keys(db.lists).forEach(id => {
         const l = db.lists[id];
         let lTotal = 0;
-        htmlContent += `<div style="direction:rtl; margin-bottom:20px; border-bottom:1px solid #eee;">
-            <h3>${l.name}</h3>
-            <table style="width:100%; border-collapse:collapse; margin-bottom:10px;">
-                <tr style="background:#f4f4f4;"><th style="text-align:right;">מוצר</th><th>כמות</th><th style="text-align:left;">סה"כ</th></tr>`;
+        htmlContent += `
+            <div style="margin-bottom:30px; border:1px solid #eee; border-radius:15px; padding:15px;">
+                <h2 style="color:#7367f0; border-bottom:2px solid #7367f0; padding-bottom:5px;">${l.name}</h2>
+                <table style="width:100%; border-collapse:collapse; margin-top:10px;">
+                    <thead>
+                        <tr style="background:#f8f9fa;">
+                            <th style="text-align:right; padding:10px; border-bottom:1px solid #ddd;">מוצר</th>
+                            <th style="text-align:center; padding:10px; border-bottom:1px solid #ddd;">כמות</th>
+                            <th style="text-align:left; padding:10px; border-bottom:1px solid #ddd;">סה"כ</th>
+                        </tr>
+                    </thead>
+                    <tbody>`;
         l.items.forEach(i => {
             const s = i.price * i.qty; lTotal += s;
-            htmlContent += `<tr><td style="text-align:right;">${i.name}</td><td style="text-align:center;">${i.qty}</td><td style="text-align:left;">₪${s.toFixed(2)}</td></tr>`;
+            htmlContent += `
+                <tr>
+                    <td style="padding:10px; border-bottom:1px solid #eee;">${i.name}</td>
+                    <td style="text-align:center; padding:10px; border-bottom:1px solid #eee;">${i.qty}</td>
+                    <td style="text-align:left; padding:10px; border-bottom:1px solid #eee;">₪${s.toFixed(2)}</td>
+                </tr>`;
         });
-        htmlContent += `</table><p style="text-align:left; font-weight:bold;">סה"כ רשימה: ₪${lTotal.toFixed(2)}</p></div>`;
+        htmlContent += `
+                    </tbody>
+                </table>
+                <div style="text-align:left; margin-top:10px; font-weight:bold; font-size:1.1em;">סה"כ לרשימה: ₪${lTotal.toFixed(2)}</div>
+            </div>`;
         grandTotal += lTotal;
     });
-    htmlContent += `<h2 style="text-align:center; margin-top:30px;">סה"כ לתשלום: ₪${grandTotal.toFixed(2)}</h2>`;
+    
+    htmlContent += `
+            <div style="text-align:center; margin-top:40px; padding:20px; background:#7367f0; color:white; border-radius:15px;">
+                <h2 style="margin:0;">סה"כ כללי לתשלום: ₪${grandTotal.toFixed(2)}</h2>
+            </div>
+        </div>`;
+    
     printArea.innerHTML = htmlContent;
-    window.print(); 
+    setTimeout(() => { window.print(); }, 500);
 }
 
 function shareNative(type) {
@@ -236,9 +161,15 @@ function shareNative(type) {
     if (type === 'list') {
         const l = db.lists[db.currentId];
         text = `🛒 *${l.name}*\n` + l.items.map(i => `${i.checked ? '✅':'⬜'} ${i.name} (x${i.qty})`).join('\n');
+    } else {
+        text = "📋 *סיכום רשימות Vplus:*\n";
+        db.selectedInSummary.forEach(id => {
+            const l = db.lists[id];
+            text += `\n🔹 ${l.name}`;
+        });
     }
     if (navigator.share) navigator.share({ text });
-    else { navigator.clipboard.writeText(text); alert("הועתק ללוח"); }
+    else { navigator.clipboard.writeText(text); alert("הטקסט הועתק ללוח"); }
 }
 
 // ========== Render ==========
@@ -256,36 +187,31 @@ function render() {
         document.getElementById('pageLists').classList.remove('hidden');
         document.getElementById('pageSummary').classList.add('hidden');
         document.getElementById('listNameDisplay').innerText = list.name;
-        document.getElementById('itemCountDisplay').innerText = `${list.items.length} מוצרים`;
 
-        let itemsToRender = list.items.map((i, idx) => ({...i, originalIdx: idx}));
-        if (highlightedItemName) itemsToRender.sort((a,b) => a.name === highlightedItemName ? -1 : 1);
-
-        itemsToRender.forEach((item) => {
+        list.items.forEach((item, idx) => {
             const sub = item.price * item.qty;
             total += sub; if (item.checked) paid += sub;
             if (showMissingOnly && item.checked) return;
 
             const div = document.createElement('div');
             div.className = `item-card ${item.name === highlightedItemName ? 'highlight-flash' : ''}`;
-            div.setAttribute('data-id', item.originalIdx);
             div.innerHTML = `
                 <div class="flex justify-between items-center mb-4">
                     <div class="flex items-center gap-3 flex-1">
-                        <input type="checkbox" ${item.checked ? 'checked':''} onchange="toggleItem(${item.originalIdx})" class="w-7 h-7">
+                        <input type="checkbox" ${item.checked ? 'checked':''} onchange="toggleItem(${idx})" class="w-7 h-7">
                         <div class="flex-1 text-2xl font-bold ${item.checked ? 'line-through text-gray-300' : ''}">
-                            <span class="item-number">${item.originalIdx + 1}.</span> ${item.name}
+                            <span class="item-number">${idx + 1}.</span> ${item.name}
                         </div>
                     </div>
-                    <button onclick="removeItem(${item.originalIdx})" class="trash-btn">🗑️</button>
+                    <button onclick="removeItem(${idx})" class="trash-btn">🗑️</button>
                 </div>
                 <div class="flex justify-between items-center">
                     <div class="flex items-center gap-3 bg-gray-50 rounded-xl px-2 py-1 border">
-                        <button onclick="changeQty(${item.originalIdx}, 1)" class="text-green-500 text-2xl font-bold">+</button>
+                        <button onclick="changeQty(${idx}, 1)" class="text-green-500 text-2xl font-bold">+</button>
                         <span class="font-bold w-6 text-center">${item.qty}</span>
-                        <button onclick="changeQty(${item.originalIdx}, -1)" class="text-red-500 text-2xl font-bold">-</button>
+                        <button onclick="changeQty(${idx}, -1)" class="text-red-500 text-2xl font-bold">-</button>
                     </div>
-                    <span onclick="openEditTotalModal(${item.originalIdx})" class="text-2xl font-black text-indigo-600 cursor-pointer">₪${sub.toFixed(2)}</span>
+                    <span class="text-2xl font-black text-indigo-600">₪${sub.toFixed(2)}</span>
                 </div>`;
             container.appendChild(div);
         });
@@ -294,44 +220,49 @@ function render() {
         document.getElementById('pageSummary').classList.remove('hidden');
         Object.keys(db.lists).forEach(id => {
             const l = db.lists[id];
+            const isSelected = db.selectedInSummary.includes(id);
             const div = document.createElement('div');
-            div.className = "item-card flex items-center gap-4 cursor-pointer";
-            div.innerHTML = `<div class="flex-1 font-bold text-xl" onclick="db.currentId='${id}'; showPage('lists')">${l.name}</div>`;
+            div.className = "item-card flex flex-row items-center gap-4 cursor-pointer";
+            div.innerHTML = `
+                <input type="checkbox" ${isSelected ? 'checked' : ''} onchange="toggleListSelection('${id}')" class="w-7 h-7 accent-indigo-600">
+                <div class="flex-1 font-bold text-xl" onclick="db.currentId='${id}'; showPage('lists')">${l.name}</div>
+                <div class="text-gray-400">⬅️</div>`;
             container.appendChild(div);
         });
+        document.getElementById('selectAllLists').checked = db.selectedInSummary.length === Object.keys(db.lists).length;
     }
 
+    // Update Bottom Bar
     document.getElementById('displayTotal').innerText = total.toFixed(2);
     document.getElementById('displayPaid').innerText = paid.toFixed(2);
     document.getElementById('displayLeft').innerText = (total - paid).toFixed(2);
 
+    // Lock Button Style
     const lockBtn = document.getElementById('mainLockBtn');
     const lockPath = document.getElementById('lockIconPath');
-    lockBtn.className = `bottom-circle-btn ${isLocked ? 'bg-blue-600' : 'bg-orange-400'}`;
-    lockPath.setAttribute('d', isLocked ? 'M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z' : 'M8 11V7a4 4 118 0m-4 8v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2z');
+    lockBtn.className = `bottom-circle-btn ${isLocked ? 'bg-blue-600' : 'bg-orange-500'}`;
+    lockPath.setAttribute('d', isLocked ? 
+        'M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z' : 
+        'M8 11V7a4 4 1 118 0m-4 8v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2z');
     document.getElementById('statusTag').innerText = isLocked ? "נעול" : "עריכה פעילה (גרירה)";
 
+    // Sortable Initialization
     if (sortableInstance) sortableInstance.destroy();
     if (!isLocked && activePage === 'lists') {
-        sortableInstance = Sortable.create(container, { animation: 150, onEnd: (e) => {
-            const items = db.lists[db.currentId].items;
-            const item = items.splice(e.oldIndex, 1)[0];
-            items.splice(e.newIndex, 0, item);
-            save();
-        }});
+        sortableInstance = new Sortable(container, {
+            animation: 150,
+            onEnd: (evt) => {
+                const items = db.lists[db.currentId].items;
+                const [movedItem] = items.splice(evt.oldIndex, 1);
+                items.splice(evt.newIndex, 0, movedItem);
+                save();
+            }
+        });
     }
 }
 
 // ========== Initialize ==========
 window.onload = () => {
-    const bar = document.getElementById('bottomBar');
-    bar.addEventListener('click', toggleBottomBar);
-    const btns = bar.querySelectorAll('button');
-    btns.forEach(b => b.addEventListener('click', e => e.stopPropagation()));
-    
-    document.getElementById('cloudBtn').onclick = handleCloudClick;
+    document.getElementById('bottomBar').addEventListener('click', toggleBottomBar);
     render();
 };
-
-const s1 = document.createElement('script'); s1.src = 'https://apis.google.com/js/api.js'; s1.onload = gapiLoaded; document.head.appendChild(s1);
-const s2 = document.createElement('script'); s2.src = 'https://accounts.google.com/gsi/client'; s2.onload = gisLoaded; document.head.appendChild(s2);
