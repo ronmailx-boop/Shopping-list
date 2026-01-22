@@ -1,4 +1,4 @@
-/* הגדרות כלליות וחווית משתמש */
+/* הגדרות בסיסיות */
 * { 
     box-sizing: border-box; 
     touch-action: manipulation; 
@@ -15,7 +15,7 @@ body {
     direction: rtl;
 }
 
-/* כרטיסיית מוצר */
+/* כרטיסיות מוצרים */
 .item-card { 
     background: white; 
     border-radius: 20px; 
@@ -40,7 +40,7 @@ body {
     100% { transform: scale(1); border-color: #7367f0; }
 }
 
-/* הבר הסגול התחתון */
+/* הבר הסגול התחתון - תיקון Minimize */
 .bottom-bar { 
     position: fixed; 
     bottom: 0; 
@@ -55,12 +55,11 @@ body {
     box-shadow: 0 -10px 25px rgba(0, 0, 0, 0.15);
 }
 
-/* מצב ממוזער לבר התחתון */
+/* תיקון: הבר יורד כמעט עד הסוף, נשאר רק פס של 8 פיקסלים */
 .bottom-bar.minimized { 
-    transform: translateY(calc(100% - 65px)); 
+    transform: translateY(calc(100% - 8px)); 
 }
 
-/* כפתורים עגולים בבר התחתון */
 .bottom-circle-btn { 
     width: 48px; 
     height: 48px; 
@@ -71,14 +70,9 @@ body {
     background: rgba(255,255,255,0.2); 
     border: 1px solid rgba(255,255,255,0.3);
     cursor: pointer;
-    transition: background 0.2s;
 }
 
-.bottom-circle-btn:active {
-    background: rgba(255,255,255,0.4);
-}
-
-/* טאבים (ניווט) */
+/* טאבים */
 .tab-btn { 
     flex: 1; 
     padding: 12px; 
@@ -88,17 +82,15 @@ body {
     cursor: pointer; 
     font-weight: bold; 
     color: #666; 
-    transition: 0.2s;
     border: 1px solid #eee;
 }
 
 .tab-active { 
     background: #7367f0 !important; 
     color: white !important; 
-    border-color: #7367f0;
 }
 
-/* מודלים (חלונות קופצים) */
+/* מודלים */
 .modal-overlay { 
     display: none; 
     position: fixed; 
@@ -110,9 +102,7 @@ body {
     backdrop-filter: blur(4px); 
 }
 
-.modal-overlay.active { 
-    display: flex; 
-}
+.modal-overlay.active { display: flex; }
 
 .edit-modal { 
     background: white; 
@@ -121,7 +111,6 @@ body {
     border-radius: 25px; 
     padding: 25px; 
     text-align: center; 
-    box-shadow: 0 20px 40px rgba(0,0,0,0.2);
 }
 
 .modal-input { 
@@ -133,14 +122,9 @@ body {
     font-weight: bold; 
     text-align: center; 
     font-size: 16px;
-    outline: none;
 }
 
-.modal-input:focus {
-    border-color: #7367f0;
-}
-
-/* שורת חיפוש והצעות */
+/* הצעות חיפוש */
 #itemSuggestions {
     background: white;
     border: 1px solid #eee;
@@ -151,71 +135,21 @@ body {
 #itemSuggestions div {
     padding: 12px;
     border-bottom: 1px solid #f9fafb;
-    transition: background 0.2s;
-}
-
-#itemSuggestions div:hover {
-    background: #f0f0ff;
-}
-
-/* כותרת האפליקציה */
-.app-header { 
-    background: white; 
-    padding: 10px 20px; 
-    display: flex; 
-    flex-direction: row-reverse; 
-    justify-content: space-between; 
-    align-items: center; 
-    box-shadow: 0 2px 8px rgba(0,0,0,0.05); 
-    position: sticky; 
-    top: 0; 
-    z-index: 2000; 
-    height: 60px; 
-}
-
-.category-separator { 
-    background: #7367f0; 
-    color: white; 
-    border-radius: 20px; 
-    padding: 15px; 
-    margin-bottom: 20px; 
-    text-align: center; 
+    cursor: pointer;
 }
 
 /* מצב לילה */
-body.dark-mode { 
-    background: #1a1a2e; 
-    color: white; 
-}
-
-.dark-mode .item-card, 
-.dark-mode .bg-white, 
-.dark-mode .edit-modal,
-.dark-mode .app-header { 
+body.dark-mode { background: #1a1a2e; color: white; }
+.dark-mode .item-card, .dark-mode .bg-white, .dark-mode .edit-modal { 
     background: #16213e !important; 
     color: white; 
     border-color: #0f3460; 
 }
 
-.dark-mode .modal-input,
-.dark-mode #itemSearchInput,
-.dark-mode #searchInput { 
-    background: #0f3460 !important; 
-    color: white; 
-    border-color: #1a1a2e; 
-}
-
-.dark-mode #itemSuggestions {
-    background: #16213e;
-    border-color: #0f3460;
-}
+.dark-mode .modal-input { background: #0f3460; color: white; }
 
 /* הדפסה */
 @media print { 
-    .no-print, .bottom-bar, .app-header, .modal-overlay { 
-        display: none !important; 
-    } 
-    #printArea { 
-        display: block !important; 
-    } 
+    .no-print, .bottom-bar, .app-header { display: none !important; } 
+    #printArea { display: block !important; } 
 }
