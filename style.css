@@ -38,11 +38,11 @@ body {
 
 @keyframes flash-animation { 
     0% { transform: scale(1); border-color: #7367f0; }
-    50% { transform: scale(1.02); border-color: #22c55e; box-shadow: 0 0 20px rgba(34, 197, 94, 0.5); }
+    50% { transform: scale(1.02); border-color: #22c55e; box-shadow: 0 0 15px rgba(34, 197, 94, 0.5); }
     100% { transform: scale(1); border-color: #7367f0; }
 }
 
-/* הבר הסגול התחתון - תיקון Minimize */
+/* הבר הסגול התחתון - פונקציונליות Minimize */
 .bottom-bar { 
     position: fixed; 
     bottom: 0; 
@@ -57,7 +57,7 @@ body {
     box-shadow: 0 -10px 25px rgba(0, 0, 0, 0.15);
 }
 
-/* הבר יורד כמעט עד הסוף, משאיר רק 8 פיקסלים גלויים */
+/* מצב ממוזער - משאיר פס דק של 8 פיקסלים */
 .bottom-bar.minimized { 
     transform: translateY(calc(100% - 8px)); 
 }
@@ -73,7 +73,6 @@ body {
     border: 2px solid rgba(255,255,255,0.2) !important;
     box-shadow: 0 4px 10px rgba(0,0,0,0.2) !important;
     cursor: pointer;
-    transition: background 0.2s;
 }
 
 /* טאבים */
@@ -95,7 +94,7 @@ body {
     color: white !important; 
 }
 
-/* מודלים (חלונות קופצים) */
+/* מודלים */
 .modal-overlay { 
     display: none; 
     position: fixed; 
@@ -134,25 +133,6 @@ body {
     background: #f9fafb !important; 
 }
 
-/* הצעות חיפוש */
-#itemSuggestions {
-    background: white;
-    border: 1px solid #eee;
-    border-radius: 12px;
-    box-shadow: 0 10px 25px rgba(0,0,0,0.1);
-}
-
-#itemSuggestions div {
-    padding: 12px;
-    border-bottom: 1px solid #f9fafb;
-    cursor: pointer;
-    font-weight: bold;
-}
-
-#itemSuggestions div:hover {
-    background: #f0f0ff;
-}
-
 /* כותרת האפליקציה */
 .app-header { 
     background: white; 
@@ -177,16 +157,20 @@ body {
     text-align: center; 
 }
 
-/* מצב לילה */
+/* מצב לילה - Dark Mode שוחזר במלואו */
 body.dark-mode { 
     background: #1a1a2e; 
     color: #e0e0e0; 
 }
 
+.dark-mode .app-header { 
+    background: #16213e; 
+    border-bottom: 1px solid #0f3460; 
+}
+
 .dark-mode .item-card, 
 .dark-mode .bg-white, 
-.dark-mode .edit-modal,
-.dark-mode .app-header { 
+.dark-mode .edit-modal { 
     background-color: #0f3460 !important; 
     border-color: #1a1a2e; 
     color: white; 
