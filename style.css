@@ -1,4 +1,4 @@
-/* הגדרות בסיסיות וחווית משתמש */
+/* הגדרות כלליות וחווית משתמש */
 * { 
     box-sizing: border-box; 
     touch-action: manipulation; 
@@ -42,7 +42,7 @@ body {
     100% { transform: scale(1); border-color: #7367f0; }
 }
 
-/* הבר הסגול התחתון - פונקציונליות Minimize */
+/* הבר הסגול התחתון - פונקציונליות מיזעור */
 .bottom-bar { 
     position: fixed; 
     bottom: 0; 
@@ -57,11 +57,12 @@ body {
     box-shadow: 0 -10px 25px rgba(0, 0, 0, 0.15);
 }
 
-/* מצב ממוזער - משאיר פס דק של 8 פיקסלים */
+/* מצב ממוזער - משאיר פס דק מאוד גלוי */
 .bottom-bar.minimized { 
     transform: translateY(calc(100% - 8px)); 
 }
 
+/* כפתורים עגולים בבר התחתון */
 .bottom-circle-btn { 
     width: 48px !important; 
     height: 48px !important; 
@@ -73,9 +74,10 @@ body {
     border: 2px solid rgba(255,255,255,0.2) !important;
     box-shadow: 0 4px 10px rgba(0,0,0,0.2) !important;
     cursor: pointer;
+    transition: background 0.2s;
 }
 
-/* טאבים */
+/* טאבים לניווט */
 .tab-btn { 
     flex: 1; 
     padding: 12px; 
@@ -94,7 +96,7 @@ body {
     color: white !important; 
 }
 
-/* מודלים */
+/* מודלים - חלונות קופצים */
 .modal-overlay { 
     display: none; 
     position: fixed; 
@@ -131,6 +133,7 @@ body {
     margin-bottom: 12px; 
     font-weight: bold; 
     background: #f9fafb !important; 
+    color: #333;
 }
 
 /* כותרת האפליקציה */
@@ -157,7 +160,7 @@ body {
     text-align: center; 
 }
 
-/* מצב לילה - Dark Mode שוחזר במלואו */
+/* מצב לילה - Dark Mode */
 body.dark-mode { 
     background: #1a1a2e; 
     color: #e0e0e0; 
@@ -181,13 +184,14 @@ body.dark-mode {
     color: white; 
 }
 
-/* הדפסה */
+/* הגדרות להדפסה */
 @media print { 
-    .no-print, .bottom-bar, .app-header, .tab-btn { 
+    .no-print, .bottom-bar, .app-header, .tab-btn, .modal-overlay, button { 
         display: none !important; 
     } 
     #printArea { 
         display: block !important; 
         direction: rtl;
+        width: 100%;
     } 
 }
