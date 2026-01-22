@@ -1,39 +1,38 @@
-/* אנימציית הבהוב להדגשת מוצר */
+* { box-sizing: border-box; touch-action: manipulation; }
+body { font-family: system-ui, sans-serif; background: #f4f7fa; padding-bottom: 240px; min-height: 100vh; transition: background 0.3s; margin: 0; }
+
+.item-card { background: white; border-radius: 25px; padding: 15px; margin-bottom: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.03); display: flex; flex-direction: column; transition: all 0.3s; border: 2px solid transparent; }
+
+/* חיפוש והצעות */
+#itemSuggestions { box-shadow: 0 10px 25px rgba(0,0,0,0.2); right: 0; }
+#itemSuggestions div { padding: 12px 15px; border-bottom: 1px solid #f8f9fa; cursor: pointer; color: #333; font-weight: bold; }
+#itemSuggestions div:hover { background: #f0f0ff; }
+
+/* אנימציית הבהוב להדגשה */
 @keyframes highlight-animation {
-    0% { transform: scale(1); border: 2px solid #7367f0; box-shadow: 0 0 20px rgba(115, 103, 240, 0.4); }
-    50% { transform: scale(1.02); border: 2px solid #22c55e; box-shadow: 0 0 30px rgba(34, 197, 94, 0.5); }
-    100% { transform: scale(1); border: 2px solid #7367f0; box-shadow: 0 0 20px rgba(115, 103, 240, 0.4); }
+    0% { border-color: #7367f0; box-shadow: 0 0 5px rgba(115, 103, 240, 0.4); }
+    50% { border-color: #22c55e; box-shadow: 0 0 20px rgba(34, 197, 94, 0.6); transform: scale(1.02); }
+    100% { border-color: #7367f0; box-shadow: 0 0 5px rgba(115, 103, 240, 0.4); }
 }
+.highlight-flash { animation: highlight-animation 1s ease-in-out infinite; z-index: 10; position: relative; }
 
-.highlight-flash {
-    animation: highlight-animation 1s ease-in-out infinite;
-    z-index: 10;
-    position: relative;
-    border: 2px solid #7367f0 !important;
-}
+.bottom-bar { position: fixed; bottom: 0; left: 0; right: 0; background: #7367f0; z-index: 1000; padding: 15px 15px 35px 15px; border-radius: 35px 35px 0 0; box-shadow: 0 -10px 25px rgba(0, 0, 0, 0.15); }
+.tab-btn { flex: 1; padding: 12px; border-radius: 15px; font-weight: bold; text-align: center; cursor: pointer; background: white; color: #666; }
+.tab-active { background: #7367f0 !important; color: white !important; }
 
-/* עיצוב רשימת הצעות */
-#itemSuggestions div {
-    transition: all 0.2s;
-    border-bottom: 1px solid #f0f0f0;
-}
+.bottom-circle-btn { width: 48px; height: 48px; border-radius: 50%; display: flex; align-items: center; justify-content: center; border: 2px solid rgba(255,255,255,0.2); box-shadow: 0 4px 10px rgba(0,0,0,0.2); }
 
-#itemSuggestions div:last-child {
-    border-bottom: none;
-}
+.modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 7000; align-items: center; justify-content: center; backdrop-filter: blur(5px); }
+.modal-overlay.active { display: flex; }
+.edit-modal { width: 90%; max-width: 400px; background: white; border-radius: 30px; padding: 25px; text-align: center; }
+.modal-input { width: 100%; padding: 12px; border: 2px solid #eee; border-radius: 15px; margin-bottom: 15px; text-align: center; font-size: 16px; }
 
-.dark-mode #itemSuggestions {
-    background: #16213e;
-    border-color: #0f3460;
-}
+.app-header { background: white; padding: 10px 20px; display: flex; flex-direction: row-reverse; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 2000; height: 60px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
+.category-separator { background: #7367f0; color: white; border-radius: 20px; padding: 15px; margin-bottom: 20px; text-align: center; }
 
-.dark-mode #itemSuggestions div {
-    color: white;
-    border-bottom-color: #0f3460;
-}
+body.dark-mode { background: #1a1a2e; color: #e0e0e0; }
+.dark-mode .item-card, .dark-mode .bg-white, .dark-mode .edit-modal { background: #16213e !important; color: white; border-color: #0f3460; }
+.dark-mode .modal-input { background: #0f3460; color: white; border-color: #1a1a2e; }
+.dark-mode #itemSuggestions div { color: white; border-bottom-color: #0f3460; }
 
-.dark-mode #itemSearchInput {
-    background: #0f3460 !important;
-    color: white;
-    border-color: #1a1a2e;
-}
+@media print { .no-print, .bottom-bar, .app-header { display: none !important; } }
