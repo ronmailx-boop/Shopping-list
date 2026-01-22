@@ -1,4 +1,4 @@
-// ========== Google Drive Implementation ==========
+// ========== Google Drive Configuration ==========
 const GOOGLE_CLIENT_ID = '151476121869-b5lbrt5t89s8d342ftd1cg1q926518pt.apps.googleusercontent.com';
 const GOOGLE_API_KEY = 'AIzaSyDIMiuwL-phvwI7iAUeMQmTOowWE96mP6I'; 
 const DISCOVERY_DOC = 'https://www.googleapis.com/discovery/v1/apis/drive/v3/rest';
@@ -9,13 +9,22 @@ const FILE_NAME = 'budget_data.json';
 let gapiInited = false, gisInited = false, tokenClient, accessToken = null;
 let isSyncing = false, isConnected = false, syncTimeout = null;
 
+// ========== App State ==========
 let db = JSON.parse(localStorage.getItem('BUDGET_FINAL_V27')) || { 
-    currentId: 'L1', lists: { 'L1': { name: 'הרשימה שלי', url: '', items: [] } }, lastActivePage: 'lists', selectedInSummary: []
+    currentId: 'L1', 
+    lists: { 'L1': { name: 'הרשימה שלי', url: '', items: [] } },
+    lastActivePage: 'lists',
+    selectedInSummary: []
 };
-let activePage = db.lastActivePage || 'lists', isLocked = true, showMissingOnly = false, highlightedItemName = null;
-let sortableInstance = null, currentEditIdx = null;
 
-// פונקציית שמירה עם סנכרון ענן
+let activePage = db.lastActivePage || 'lists';
+let isLocked = true;
+let showMissingOnly = false;
+let highlightedItemName = null;
+let sortableInstance = null;
+let currentEditIdx = null;
+
+// שמירה וסנכרון
 function save() { 
     db.lastActivePage = activePage;
     localStorage.setItem('BUDGET_FINAL_V27', JSON.stringify(db));
@@ -26,32 +35,147 @@ function save() {
     }
 }
 
-// --- לוגיקת סנכרון ענן ---
+// ========== UI Logic ==========
+function openModal(id) { 
+    const m = document.getElementById(id);
+    if(m) {
+        m.classList.add('active');
+        // איפוס שדות ומיקוד
+        if(id === 'inputForm') {
+            document.getElementById('itemName').value = '';
+            document.getElementById('itemPrice').value = '';
+            setTimeout(() => document.getElementById('itemName').focus(), 150);
+        }
+    }
+}
+
+function closeModal(id) { 
+    const m = document.getElementById(id); 
+    if(m) m.classList.remove('active'); 
+}
+
+function showPage(p) { activePage = p; save(); }
+
+function toggleBottomBar(e) {
+    if (e.target.closest('button') || e.target.closest('input')) return;
+    document.getElementById('bottomBar').classList.toggle('minimized');
+}
+
+function toggleLock() { 
+    isLocked = !isLocked; 
+    render(); 
+}
+
+function toggleDarkMode() { 
+    document.body.classList.toggle('dark-mode'); 
+    closeModal('settingsModal'); 
+}
+
+// ========== List Logic ==========
+function addItem() { 
+    const n = document.getElementById('itemName').value.trim();
+    const p = parseFloat(document.getElementById('itemPrice').value) || 0; 
+    if (n) { 
+        db.lists[db.currentId].items.push({ name: n, price: p, qty: 1, checked: false }); 
+        closeModal('inputForm'); 
+        save(); 
+    } 
+}
+
+function removeItem(idx) { db.lists[db.currentId].items.splice(idx, 1); save(); }
+
+function toggleItem(idx) {
+    db.lists[db.currentId].items[idx].checked = !db.lists[db.currentId].items[idx].checked;
+    save();
+}
+
+function changeQty(idx, d) { 
+    if(db.lists[db.currentId].items[idx].qty + d >= 1) { 
+        db.lists[db.currentId].items[idx].qty += d; 
+        save(); 
+    } 
+}
+
+function saveTotal() {
+    const val = parseFloat(document.getElementById('editTotalInput').value);
+    if (!isNaN(val)) {
+        const item = db.lists[db.currentId].items[currentEditIdx];
+        item.price = val / item.qty;
+        save();
+    }
+    closeModal('editTotalModal');
+}
+
+function executeClear() { db.lists[db.currentId].items = []; closeModal('confirmModal'); save(); }
+
+function saveNewList() {
+    const n = document.getElementById('newListNameInput').value.trim();
+    const u = document.getElementById('newListUrlInput').value.trim();
+    if (n) {
+        const id = 'L' + Date.now();
+        db.lists[id] = { name: n, url: u, items: [] };
+        db.currentId = id;
+        activePage = 'lists';
+        closeModal('newListModal');
+        save();
+    }
+}
+
+// ========== Search & Filter ==========
+function handleItemSearch(val) {
+    const sug = document.getElementById('itemSuggestions');
+    if (!val.trim()) { sug.classList.add('hidden'); return; }
+    const matches = db.lists[db.currentId].items.filter(i => i.name.toLowerCase().includes(val.toLowerCase()));
+    if (matches.length > 0) {
+        sug.innerHTML = matches.map(i => `<div class="p-3 border-b cursor-pointer font-bold" onclick="highlightItem('${i.name.replace(/'/g, "\\'")}')">${i.name}</div>`).join('');
+        sug.classList.remove('hidden');
+    } else { sug.classList.add('hidden'); }
+}
+
+function highlightItem(name) {
+    highlightedItemName = name; 
+    showMissingOnly = false; 
+    render();
+    document.getElementById('itemSuggestions').classList.add('hidden');
+    document.getElementById('itemSearchInput').value = '';
+    setTimeout(() => {
+        const el = document.querySelector('.highlight-flash');
+        if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        setTimeout(() => { highlightedItemName = null; render(); }, 3000);
+    }, 100);
+}
+
+function toggleMissingFilter() {
+    showMissingOnly = !showMissingOnly;
+    const btn = document.getElementById('filterMissingBtn');
+    btn.innerText = showMissingOnly ? "הצג הכל" : "הצג חסרים בלבד";
+    render();
+}
+
+// ========== Cloud Sync (Drive) ==========
+function gapiLoaded() { gapi.load('client', () => gapi.client.init({ apiKey: GOOGLE_API_KEY, discoveryDocs: [DISCOVERY_DOC] }).then(() => gapiInited = true)); }
+function gisLoaded() { tokenClient = google.accounts.oauth2.initTokenClient({ client_id: GOOGLE_CLIENT_ID, scope: SCOPES, callback: '' }); gisInited = true; }
+
 async function handleCloudClick() {
     if (!isConnected) {
-        tokenClient.callback = async (resp) => {
-            accessToken = resp.access_token; isConnected = true;
-            updateCloudIndicator('connected');
-            await loadAndMerge();
-        };
+        tokenClient.callback = async (resp) => { accessToken = resp.access_token; isConnected = true; updateCloudIndicator('connected'); syncToCloud(); };
         tokenClient.requestAccessToken({ prompt: 'consent' });
-    } else { await loadAndMerge(); }
+    } else syncToCloud();
 }
 
 async function syncToCloud() {
     if (isSyncing || !accessToken) return;
     isSyncing = true; updateCloudIndicator('syncing');
     try {
-        const folderResponse = await gapi.client.drive.files.list({ q: `name='${FOLDER_NAME}' and mimeType='application/vnd.google-apps.folder'` });
-        let folderId = folderResponse.result.files[0]?.id;
+        const folderRes = await gapi.client.drive.files.list({ q: `name='${FOLDER_NAME}' and mimeType='application/vnd.google-apps.folder'` });
+        let folderId = folderRes.result.files[0]?.id;
         if(!folderId) {
             const folder = await gapi.client.drive.files.create({ resource: { name: FOLDER_NAME, mimeType: 'application/vnd.google-apps.folder' }, fields: 'id' });
             folderId = folder.result.id;
         }
-        const fileResponse = await gapi.client.drive.files.list({ q: `name='${FILE_NAME}' and '${folderId}' in parents` });
-        const fileId = fileResponse.result.files[0]?.id;
+        const fileRes = await gapi.client.drive.files.list({ q: `name='${FILE_NAME}' and '${folderId}' in parents` });
+        const fileId = fileRes.result.files[0]?.id;
         const data = JSON.stringify(db);
-        
         if (fileId) {
             await fetch(`https://www.googleapis.com/upload/drive/v3/files/${fileId}?uploadType=media`, {
                 method: 'PATCH', headers: { 'Authorization': `Bearer ${accessToken}`, 'Content-Type': 'application/json' }, body: data
@@ -65,68 +189,28 @@ async function syncToCloud() {
                 method: 'POST', headers: { 'Authorization': `Bearer ${accessToken}` }, body: form
             });
         }
-    } catch (e) { console.error("Sync failed", e); }
-    finally { isSyncing = false; updateCloudIndicator('connected'); }
+    } catch (e) { console.error(e); } finally { isSyncing = false; updateCloudIndicator('connected'); }
 }
 
-async function loadAndMerge() { /* מימוש טעינה ומיזוג כפי שהיה במקור */ render(); }
 function updateCloudIndicator(s) { 
     const ind = document.getElementById('cloudIndicator');
     if(ind) ind.className = `w-2 h-2 rounded-full ${s === 'connected' ? 'bg-green-500' : 'bg-yellow-500 animate-pulse'}`;
 }
 
-// --- לוגיקת ממשק משתמש ---
-function toggleLock() { isLocked = !isLocked; render(); }
-function showPage(p) { activePage = p; save(); }
-function openModal(id) { document.getElementById(id).classList.add('active'); }
-function closeModal(id) { document.getElementById(id).classList.remove('active'); }
-function toggleDarkMode() { document.body.classList.toggle('dark-mode'); closeModal('settingsModal'); }
-function toggleBottomBar(e) {
-    if (e.target.closest('button') || e.target.closest('input')) return;
-    document.getElementById('bottomBar').classList.toggle('minimized');
-}
+// ========== PDF & Share ==========
+function preparePrint() { closeModal('settingsModal'); window.print(); }
 
-function openEditTotalModal(idx) { currentEditIdx = idx; openModal('editTotalModal'); }
-function saveTotal() {
-    const val = parseFloat(document.getElementById('editTotalInput').value);
-    if (!isNaN(val)) {
-        const item = db.lists[db.currentId].items[currentEditIdx];
-        item.price = val / item.qty;
-        save();
+function shareNative(type) {
+    let text = "";
+    if (type === 'list') {
+        const l = db.lists[db.currentId];
+        text = `🛒 *${l.name}*\n` + l.items.map(i => `${i.checked ? '✅':'⬜'} ${i.name} (x${i.qty})`).join('\n');
     }
-    closeModal('editTotalModal');
+    if (navigator.share) navigator.share({ text });
+    else { navigator.clipboard.writeText(text); alert("הועתק ללוח"); }
 }
 
-// --- חיפוש וסינון ---
-function handleItemSearch(val) {
-    const sug = document.getElementById('itemSuggestions');
-    if (!val.trim()) { sug.classList.add('hidden'); return; }
-    const matches = db.lists[db.currentId].items.filter(i => i.name.toLowerCase().includes(val.toLowerCase()));
-    if (matches.length > 0) {
-        sug.innerHTML = matches.map(i => `<div class="p-3 border-b cursor-pointer font-bold" onclick="highlightItem('${i.name.replace(/'/g, "\\'")}')">${i.name}</div>`).join('');
-        sug.classList.remove('hidden');
-    } else { sug.classList.add('hidden'); }
-}
-
-function highlightItem(name) {
-    highlightedItemName = name; showMissingOnly = false; render();
-    document.getElementById('itemSuggestions').classList.add('hidden');
-    document.getElementById('itemSearchInput').value = '';
-    setTimeout(() => { 
-        const el = document.querySelector('.highlight-flash');
-        if(el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        setTimeout(() => { highlightedItemName = null; render(); }, 3000); 
-    }, 100);
-}
-
-function toggleMissingFilter() { 
-    showMissingOnly = !showMissingOnly; 
-    const btn = document.getElementById('filterMissingBtn');
-    btn.innerText = showMissingOnly ? "הצג הכל" : "הצג חסרים בלבד";
-    render(); 
-}
-
-// --- Render ---
+// ========== Render ==========
 function render() {
     const list = db.lists[db.currentId];
     const container = document.getElementById(activePage === 'lists' ? 'itemsContainer' : 'summaryContainer');
@@ -180,8 +264,8 @@ function render() {
         Object.keys(db.lists).forEach(id => {
             const l = db.lists[id];
             const div = document.createElement('div');
-            div.className = "item-card flex items-center gap-4";
-            div.innerHTML = `<input type="checkbox" class="w-7 h-7" ${db.selectedInSummary.includes(id) ? 'checked':''} onchange="toggleSum('${id}')"><div class="flex-1 font-bold text-xl" onclick="db.currentId='${id}'; showPage('lists')">${l.name}</div>`;
+            div.className = "item-card flex items-center gap-4 cursor-pointer";
+            div.innerHTML = `<div class="flex-1 font-bold text-xl" onclick="db.currentId='${id}'; showPage('lists')">${l.name}</div>`;
             container.appendChild(div);
         });
     }
@@ -190,10 +274,10 @@ function render() {
     document.getElementById('displayPaid').innerText = paid.toFixed(2);
     document.getElementById('displayLeft').innerText = (total - paid).toFixed(2);
 
-    // ניהול מנעול וגרירה
     const lockPath = document.getElementById('lockIconPath');
     lockPath.setAttribute('d', isLocked ? 'M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z' : 'M8 11V7a4 4 118 0m-4 8v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2z');
-    
+    document.getElementById('statusTag').innerText = isLocked ? "נעול" : "עריכה פעילה (גרירה)";
+
     if (sortableInstance) sortableInstance.destroy();
     if (!isLocked && activePage === 'lists') {
         sortableInstance = Sortable.create(container, { animation: 150, onEnd: (e) => {
@@ -205,10 +289,12 @@ function render() {
     }
 }
 
-// ========== Init ==========
 window.onload = () => {
-    gapi.load('client', () => gapi.client.init({ apiKey: GOOGLE_API_KEY, discoveryDocs: [DISCOVERY_DOC] }));
-    tokenClient = google.accounts.oauth2.initTokenClient({ client_id: GOOGLE_CLIENT_ID, scope: SCOPES, callback: '' });
+    const b = document.getElementById('bottomBar');
+    if(b) b.addEventListener('click', toggleBottomBar);
     document.getElementById('cloudBtn').onclick = handleCloudClick;
     render();
 };
+
+gapiLoaded();
+gisLoaded();
