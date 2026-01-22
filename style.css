@@ -42,7 +42,7 @@ body {
     100% { transform: scale(1); border-color: #7367f0; }
 }
 
-/* הבר הסגול התחתון - תיקון Minimize */
+/* הבר הסגול התחתון */
 .bottom-bar { 
     position: fixed; 
     bottom: 0; 
@@ -57,7 +57,7 @@ body {
     box-shadow: 0 -10px 25px rgba(0, 0, 0, 0.15);
 }
 
-/* הבר יורד כמעט עד הסוף, משאיר רק 8 פיקסלים גלויים */
+/* תיקון ה-Minimize: משאיר פס דק של 8 פיקסלים */
 .bottom-bar.minimized { 
     transform: translateY(calc(100% - 8px)); 
 }
@@ -74,6 +74,14 @@ body {
     box-shadow: 0 4px 10px rgba(0,0,0,0.2) !important;
     cursor: pointer;
     transition: background 0.2s;
+}
+
+/* תיקון ספציפי למנעול בתוך הכפתור הכתום */
+.lock-icon {
+    width: 24px !important;
+    height: 24px !important;
+    color: white !important;
+    display: block !important;
 }
 
 /* טאבים */
@@ -95,7 +103,7 @@ body {
     color: white !important; 
 }
 
-/* מודלים (חלונות קופצים) */
+/* מודלים */
 .modal-overlay { 
     display: none; 
     position: fixed; 
@@ -107,9 +115,7 @@ body {
     backdrop-filter: blur(8px); 
 }
 
-.modal-overlay.active { 
-    display: flex; 
-}
+.modal-overlay.active { display: flex; }
 
 .edit-modal { 
     width: 90%; 
@@ -149,34 +155,6 @@ body {
     font-weight: bold;
 }
 
-#itemSuggestions div:hover {
-    background: #f0f0ff;
-}
-
-/* כותרת האפליקציה */
-.app-header { 
-    background: white; 
-    padding: 10px 20px; 
-    display: flex; 
-    flex-direction: row-reverse; 
-    justify-content: space-between; 
-    align-items: center; 
-    box-shadow: 0 2px 8px rgba(0,0,0,0.05); 
-    position: sticky; 
-    top: 0; 
-    z-index: 2000; 
-    height: 60px; 
-}
-
-.category-separator { 
-    background: #7367f0; 
-    color: white; 
-    border-radius: 20px; 
-    padding: 15px; 
-    margin-bottom: 20px; 
-    text-align: center; 
-}
-
 /* מצב לילה */
 body.dark-mode { 
     background: #1a1a2e; 
@@ -192,18 +170,14 @@ body.dark-mode {
     color: white; 
 }
 
-.dark-mode .modal-input { 
-    background-color: #16213e !important; 
-    color: white; 
-}
-
-/* הדפסה */
+/* הדפסה מעוצבת */
 @media print { 
-    .no-print, .bottom-bar, .app-header, .tab-btn { 
+    .no-print, .bottom-bar, .app-header, .tab-btn, .modal-overlay { 
         display: none !important; 
     } 
     #printArea { 
         display: block !important; 
         direction: rtl;
+        width: 100%;
     } 
 }
