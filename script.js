@@ -24,7 +24,7 @@ let highlightedItemName = null;
 let sortableInstance = null;
 let currentEditIdx = null;
 
-// שמירה וסנכרון
+// פונקציית שמירה עם סנכרון ענן
 function save() { 
     db.lastActivePage = activePage;
     localStorage.setItem('BUDGET_FINAL_V27', JSON.stringify(db));
@@ -40,7 +40,6 @@ function openModal(id) {
     const m = document.getElementById(id);
     if(m) {
         m.classList.add('active');
-        // איפוס שדות ומיקוד
         if(id === 'inputForm') {
             document.getElementById('itemName').value = '';
             document.getElementById('itemPrice').value = '';
@@ -94,6 +93,13 @@ function changeQty(idx, d) {
         db.lists[db.currentId].items[idx].qty += d; 
         save(); 
     } 
+}
+
+function openEditTotalModal(idx) {
+    currentEditIdx = idx;
+    const item = db.lists[db.currentId].items[idx];
+    document.getElementById('editTotalInput').value = (item.price * item.qty).toFixed(2);
+    openModal('editTotalModal');
 }
 
 function saveTotal() {
@@ -198,7 +204,32 @@ function updateCloudIndicator(s) {
 }
 
 // ========== PDF & Share ==========
-function preparePrint() { closeModal('settingsModal'); window.print(); }
+function preparePrint() { 
+    closeModal('settingsModal');
+    const printArea = document.getElementById('printArea');
+    if (!printArea) return;
+
+    let grandTotal = 0;
+    let htmlContent = `<h1 style="text-align:center; color:#7367f0; direction:rtl;">Vplus - דוח תקציב</h1>`;
+    
+    Object.keys(db.lists).forEach(id => {
+        const l = db.lists[id];
+        let lTotal = 0;
+        htmlContent += `<div style="direction:rtl; margin-bottom:20px; border-bottom:1px solid #eee;">
+            <h3>${l.name}</h3>
+            <table style="width:100%; border-collapse:collapse; margin-bottom:10px;">
+                <tr style="background:#f4f4f4;"><th style="text-align:right;">מוצר</th><th>כמות</th><th style="text-align:left;">סה"כ</th></tr>`;
+        l.items.forEach(i => {
+            const s = i.price * i.qty; lTotal += s;
+            htmlContent += `<tr><td style="text-align:right;">${i.name}</td><td style="text-align:center;">${i.qty}</td><td style="text-align:left;">₪${s.toFixed(2)}</td></tr>`;
+        });
+        htmlContent += `</table><p style="text-align:left; font-weight:bold;">סה"כ רשימה: ₪${lTotal.toFixed(2)}</p></div>`;
+        grandTotal += lTotal;
+    });
+    htmlContent += `<h2 style="text-align:center; margin-top:30px;">סה"כ לתשלום: ₪${grandTotal.toFixed(2)}</h2>`;
+    printArea.innerHTML = htmlContent;
+    window.print(); 
+}
 
 function shareNative(type) {
     let text = "";
@@ -243,15 +274,15 @@ function render() {
                     <div class="flex items-center gap-3 flex-1">
                         <input type="checkbox" ${item.checked ? 'checked':''} onchange="toggleItem(${item.originalIdx})" class="w-7 h-7">
                         <div class="flex-1 text-2xl font-bold ${item.checked ? 'line-through text-gray-300' : ''}">
-                            <span class="text-indigo-600 opacity-50 text-sm">${item.originalIdx + 1}.</span> ${item.name}
+                            <span class="item-number">${item.originalIdx + 1}.</span> ${item.name}
                         </div>
                     </div>
-                    <button onclick="removeItem(${item.originalIdx})" class="text-red-500">🗑️</button>
+                    <button onclick="removeItem(${item.originalIdx})" class="trash-btn">🗑️</button>
                 </div>
                 <div class="flex justify-between items-center">
-                    <div class="flex items-center gap-3 bg-gray-100 px-2 py-1 rounded-xl">
+                    <div class="flex items-center gap-3 bg-gray-50 rounded-xl px-2 py-1 border">
                         <button onclick="changeQty(${item.originalIdx}, 1)" class="text-green-500 text-2xl font-bold">+</button>
-                        <span class="font-bold">${item.qty}</span>
+                        <span class="font-bold w-6 text-center">${item.qty}</span>
                         <button onclick="changeQty(${item.originalIdx}, -1)" class="text-red-500 text-2xl font-bold">-</button>
                     </div>
                     <span onclick="openEditTotalModal(${item.originalIdx})" class="text-2xl font-black text-indigo-600 cursor-pointer">₪${sub.toFixed(2)}</span>
@@ -274,7 +305,9 @@ function render() {
     document.getElementById('displayPaid').innerText = paid.toFixed(2);
     document.getElementById('displayLeft').innerText = (total - paid).toFixed(2);
 
+    const lockBtn = document.getElementById('mainLockBtn');
     const lockPath = document.getElementById('lockIconPath');
+    lockBtn.className = `bottom-circle-btn ${isLocked ? 'bg-blue-600' : 'bg-orange-400'}`;
     lockPath.setAttribute('d', isLocked ? 'M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z' : 'M8 11V7a4 4 118 0m-4 8v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2z');
     document.getElementById('statusTag').innerText = isLocked ? "נעול" : "עריכה פעילה (גרירה)";
 
@@ -289,12 +322,16 @@ function render() {
     }
 }
 
+// ========== Initialize ==========
 window.onload = () => {
-    const b = document.getElementById('bottomBar');
-    if(b) b.addEventListener('click', toggleBottomBar);
+    const bar = document.getElementById('bottomBar');
+    bar.addEventListener('click', toggleBottomBar);
+    const btns = bar.querySelectorAll('button');
+    btns.forEach(b => b.addEventListener('click', e => e.stopPropagation()));
+    
     document.getElementById('cloudBtn').onclick = handleCloudClick;
     render();
 };
 
-gapiLoaded();
-gisLoaded();
+const s1 = document.createElement('script'); s1.src = 'https://apis.google.com/js/api.js'; s1.onload = gapiLoaded; document.head.appendChild(s1);
+const s2 = document.createElement('script'); s2.src = 'https://accounts.google.com/gsi/client'; s2.onload = gisLoaded; document.head.appendChild(s2);
