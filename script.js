@@ -62,7 +62,6 @@ function findItemInList(specificVal = null) {
         return;
     }
 
-    render(); // מבטיח שה-DOM מעודכן לפני חיפוש האלמנט
     const itemElements = document.querySelectorAll('#itemsContainer .item-card');
     const targetEl = Array.from(itemElements).find(el => parseInt(el.getAttribute('data-id')) === itemIdx);
 
@@ -100,7 +99,7 @@ function save() {
 }
 
 function render() {
-    const container = document.getElementById(activePage === 'lists' ? 'itemsContainer' : 'summaryContainer');
+    const container = document.getElementById(activePage === 'lists' ? 'itemsContainer' : (activePage === 'summary' ? 'summaryContainer' : null));
     let total = 0, paid = 0;
 
     document.getElementById('tabLists').className = `tab-btn ${activePage === 'lists' ? 'tab-active' : ''}`;
@@ -158,6 +157,7 @@ function renderSummary(container) {
     document.getElementById('pageLists').classList.add('hidden');
     document.getElementById('pageSummary').classList.remove('hidden');
     document.getElementById('pageStats').classList.add('hidden');
+    if (!container) return;
     container.innerHTML = '';
     Object.keys(db.lists).forEach(id => {
         const l = db.lists[id];
@@ -167,10 +167,29 @@ function renderSummary(container) {
         div.innerHTML = `
             <div class="flex justify-between items-center">
                 <input type="checkbox" ${isSel ? 'checked' : ''} onchange="toggleSum('${id}')" class="w-6 h-6">
-                <div class="flex-1 px-4 font-bold" onclick="db.currentId='${id}'; showPage('lists')">${l.name}</div>
-                <button onclick="deleteList('${id}')" class="text-red-500">🗑️</button>
+                <div class="flex-1 px-4 font-bold cursor-pointer" onclick="db.currentId='${id}'; showPage('lists')">${l.isTemplate ? '⭐ ' : ''}${l.name}</div>
+                <button onclick="deleteFullList('${id}')" class="text-red-500">🗑️</button>
             </div>`;
         container.appendChild(div);
+    });
+}
+
+function renderStats() {
+    document.getElementById('pageLists').classList.add('hidden');
+    document.getElementById('pageSummary').classList.add('hidden');
+    document.getElementById('pageStats').classList.remove('hidden');
+    
+    document.getElementById('completedLists').innerText = db.stats.listsCompleted || 0;
+    const avg = db.stats.listsCompleted > 0 ? (db.stats.totalSpent / db.stats.listsCompleted).toFixed(0) : 0;
+    document.getElementById('avgPerList').innerText = `₪${avg}`;
+
+    const histCont = document.getElementById('historyContent');
+    histCont.innerHTML = '';
+    db.history.slice().reverse().forEach(entry => {
+        const d = document.createElement('div');
+        d.className = "p-2 border-b text-sm flex justify-between";
+        d.innerHTML = `<span>${entry.name}</span><span class="font-bold">₪${entry.total.toFixed(2)}</span>`;
+        histCont.appendChild(d);
     });
 }
 
@@ -181,6 +200,7 @@ function completeList() {
     if (!list || list.items.length === 0) return;
     const total = list.items.reduce((sum, item) => sum + (item.price * item.qty), 0);
     db.history.push({ name: list.name, items: [...list.items], total, completedAt: Date.now() });
+    db.stats.totalSpent += total;
     db.stats.listsCompleted++;
     list.items = [];
     activePage = 'stats';
@@ -195,7 +215,30 @@ function addItem() {
     if(n) { db.lists[db.currentId].items.push({name:n, price:p, qty:1, checked:false}); closeModal('inputForm'); save(); }
 }
 
-function toggleLock() { isLocked = !isLocked; document.getElementById('statusTag').innerText = isLocked ? "נעול" : "עריכה פעילה"; render(); }
+function saveNewList() {
+    const n = document.getElementById('newListNameInput').value;
+    if(n) {
+        const id = 'L' + Date.now();
+        db.lists[id] = { name: n, items: [], isTemplate: document.getElementById('newListTemplate').checked };
+        db.currentId = id;
+        closeModal('newListModal');
+        save();
+    }
+}
+
+function deleteFullList(id) {
+    if(Object.keys(db.lists).length > 1) {
+        delete db.lists[id];
+        if(db.currentId === id) db.currentId = Object.keys(db.lists)[0];
+        save();
+    }
+}
+
+function toggleLock() { 
+    isLocked = !isLocked; 
+    document.getElementById('statusTag').innerText = isLocked ? "נעול" : "עריכה פעילה"; 
+    render(); 
+}
 
 function initSortable() {
     const el = document.getElementById('itemsContainer');
@@ -219,12 +262,13 @@ function toggleItem(idx) { db.lists[db.currentId].items[idx].checked = !db.lists
 function changeQty(idx, d) { if(db.lists[db.currentId].items[idx].qty + d >= 1) { db.lists[db.currentId].items[idx].qty += d; save(); } }
 function removeItem(idx) { db.lists[db.currentId].items.splice(idx, 1); save(); }
 function toggleSum(id) { const i = db.selectedInSummary.indexOf(id); i > -1 ? db.selectedInSummary.splice(i, 1) : db.selectedInSummary.push(id); save(); }
+function toggleSelectAll(checked) { db.selectedInSummary = checked ? Object.keys(db.lists) : []; save(); }
 
 function showNotification(msg, type='success') {
     const n = document.createElement('div'); n.className = 'notification show';
     n.style.background = type === 'success' ? '#22c55e' : '#f59e0b';
     n.innerHTML = `<strong>${msg}</strong>`; document.body.appendChild(n);
-    setTimeout(() => n.remove(), 3000);
+    setTimeout(() => { n.classList.remove('show'); setTimeout(() => n.remove(), 300); }, 3000);
 }
 
 function preparePrint() { window.print(); }
@@ -235,12 +279,30 @@ function exportData() {
 }
 function importData(e) {
     const reader = new FileReader();
-    reader.onload = (event) => { db = JSON.parse(event.target.result); save(); showNotification('✅ שוחזר!'); };
+    reader.onload = (event) => { try { db = JSON.parse(event.target.result); save(); showNotification('✅ שוחזר!'); } catch(e){ alert('קובץ לא תקין'); } };
     reader.readAsText(e.target.files[0]);
 }
 
-// ========== GOOGLE DRIVE INTEGRATION (Simplified for space) ==========
-function handleCloudClick() { /* לוגיקת התחברות לגוגל */ isConnected = true; showNotification('☁️ מחובר!'); }
-async function syncToCloud() { if(!isConnected) return; /* לוגיקת העלאה */ }
+function toggleDarkMode() {
+    document.body.classList.toggle('dark-mode');
+    localStorage.setItem('darkMode', document.body.classList.contains('dark-mode'));
+}
 
-window.onload = () => render();
+function importFromText() {
+    const txt = document.getElementById('importText').value;
+    if(!txt) return;
+    const lines = txt.split('\n');
+    lines.forEach(l => { if(l.trim()) db.lists[db.currentId].items.push({name: l.trim(), price: 0, qty: 1, checked: false}); });
+    closeModal('importModal');
+    save();
+}
+
+// ========== GOOGLE DRIVE INTEGRATION ==========
+function gapiLoaded() { gapi.load('client', async () => { await gapi.client.init({ apiKey: GOOGLE_API_KEY, discoveryDocs: [DISCOVERY_DOC] }); gapiInited = true; }); }
+function gisLoaded() { tokenClient = google.accounts.oauth2.initTokenClient({ client_id: GOOGLE_CLIENT_ID, scope: SCOPES, callback: (resp) => { accessToken = resp.access_token; isConnected = true; showNotification('☁️ מחובר!'); syncToCloud(); } }); gisInited = true; }
+async function syncToCloud() { if(!accessToken) { tokenClient.requestAccessToken(); return; } /* לוגיקת העלאה מלאה כאן */ }
+
+// Load Dark Mode
+if(localStorage.getItem('darkMode') === 'true') document.body.classList.add('dark-mode');
+
+window.onload = () => { render(); gapiLoaded(); gisLoaded(); };
