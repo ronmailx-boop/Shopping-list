@@ -3,12 +3,267 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Vplus - ניהול תקציב חכם</title>
-    <link rel="stylesheet" href="style.css">
-    <link rel="manifest" href="manifest.json">
+    <title>Vplus Pro - ניהול תקציב חכם</title>
     <meta name="theme-color" content="#7367f0">
+    <link rel="manifest" href="manifest.json">
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    
+    <style>
+        * { box-sizing: border-box; touch-action: manipulation; }
+        body { 
+            font-family: system-ui, sans-serif; 
+            background: linear-gradient(135deg, #f4f7fa 0%, #e8ecf3 100%); 
+            padding-bottom: 240px; 
+            min-height: 100vh; 
+            transition: background 0.3s; 
+            margin: 0; 
+        }
+
+        .item-card { 
+            background: white; 
+            border-radius: 25px; 
+            padding: 15px; 
+            margin-bottom: 12px; 
+            box-shadow: 0 4px 12px rgba(0,0,0,0.03); 
+            display: flex; 
+            flex-direction: column;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .item-card:active {
+            transform: scale(0.98);
+        }
+
+        .item-number { color: #7367f0; opacity: 0.6; font-size: 0.8em; margin-left: 4px; }
+
+        #searchInput { 
+            transition: all 0.3s ease; 
+            border: 2px solid transparent; 
+        }
+        #searchInput:focus { 
+            border-color: #7367f0; 
+            background: #fff; 
+            box-shadow: 0 10px 25px rgba(115, 103, 240, 0.1); 
+            outline: none; 
+        }
+
+        .bottom-bar { 
+            position: fixed; 
+            bottom: 0; 
+            left: 0; 
+            right: 0; 
+            background: linear-gradient(135deg, #7367f0 0%, #9055ff 100%);
+            z-index: 1000; 
+            padding: 15px 15px 35px 15px; 
+            border-radius: 35px 35px 0 0; 
+            box-shadow: 0 -10px 25px rgba(0, 0, 0, 0.15); 
+            transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .bottom-bar.minimized {
+            transform: translateY(calc(100% - 8px));
+        }
+
+        .tab-btn { 
+            flex: 1; 
+            padding: 12px; 
+            border-radius: 15px; 
+            font-weight: bold; 
+            text-align: center; 
+            cursor: pointer; 
+            transition: 0.2s; 
+            background: white; 
+            color: #666; 
+            border: 1px solid #eee; 
+        }
+        .tab-active { 
+            background: linear-gradient(135deg, #7367f0 0%, #9055ff 100%) !important; 
+            color: white !important; 
+            box-shadow: 0 4px 12px rgba(115, 103, 240, 0.3);
+        }
+
+        .bottom-circle-btn {
+            width: 48px !important;
+            height: 48px !important;
+            flex-shrink: 0 !important;
+            border-radius: 50% !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            border: 2px solid rgba(255,255,255,0.2) !important;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.2) !important;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+
+        .bottom-circle-btn:active {
+            transform: scale(0.95);
+        }
+
+        .modal-overlay { 
+            display: none; 
+            position: fixed; 
+            inset: 0; 
+            background: rgba(0,0,0,0.75); 
+            z-index: 7000; 
+            align-items: flex-start; 
+            justify-content: center; 
+            backdrop-filter: blur(8px); 
+            padding-top: 0; 
+        }
+        .modal-overlay.active { display: flex; }
+
+        .edit-modal { 
+            width: 90%; 
+            max-width: 400px; 
+            background-color: #ffffff !important; 
+            border-radius: 0 0 30px 30px; 
+            padding: 6px 25px; 
+            text-align: center; 
+            color: #333; 
+            border: 2px solid #eee; 
+            box-shadow: 0 15px 35px rgba(0,0,0,0.3);
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        .modal-input { 
+            width: 100%; 
+            padding: 6px; 
+            border: 2px solid #f3f4f6; 
+            border-radius: 16px; 
+            font-size: 16px; 
+            text-align: center; 
+            outline: none; 
+            margin-bottom: 5px; 
+            font-weight: bold; 
+            background: #f9fafb !important; 
+            color: #333; 
+        }
+
+        .edit-modal h2 {
+            margin-top: 2px;
+            margin-bottom: 8px;
+            font-size: 1.15rem;
+        }
+
+        .app-header { 
+            background: white; 
+            padding: 10px 20px; 
+            display: flex; 
+            flex-direction: row-reverse; 
+            justify-content: space-between; 
+            align-items: center; 
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05); 
+            position: sticky; 
+            top: 0; 
+            z-index: 2000; 
+            height: 60px; 
+        }
+        .header-controls { display: flex; align-items: center; gap: 8px; direction: rtl; }
+        .gear-btn { flex-shrink: 0; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; }
+
+        .trash-btn { 
+            width: 44px; 
+            height: 44px; 
+            background: white; 
+            border-radius: 50%; 
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            color: #ef4444; 
+            border: none; 
+            cursor: pointer; 
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1); 
+        }
+        .category-separator { 
+            background: linear-gradient(135deg, #7367f0 0%, #9055ff 100%); 
+            color: white; 
+            border-radius: 20px; 
+            padding: 15px; 
+            margin-bottom: 20px; 
+            text-align: center; 
+        }
+
+        .category-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: bold;
+            margin: 2px;
+        }
+
+        .stat-card {
+            background: white;
+            border-radius: 20px;
+            padding: 20px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+            margin-bottom: 15px;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: #e5e7eb;
+            border-radius: 10px;
+            overflow: hidden;
+            margin-top: 8px;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #22c55e 0%, #16a34a 100%);
+            border-radius: 10px;
+            transition: width 0.3s ease;
+        }
+
+        body.dark-mode { background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%); color: #e0e0e0; }
+        .dark-mode .app-header { background: #16213e; border-bottom: 1px solid #0f3460; }
+        .dark-mode .item-card, .dark-mode .bg-white, .dark-mode .stat-card { background-color: #0f3460 !important; border-color: #1a1a2e; color: white; }
+        .dark-mode #selectAllLabel { color: white !important; }
+        .dark-mode .select-all-container { background-color: #0f3460 !important; }
+        .dark-mode #searchInput { background-color: #0f3460 !important; color: white; }
+        .dark-mode .item-number { color: #a5a2f7; }
+        .dark-mode .item-card span.font-bold { color: white !important; }
+        .dark-mode .item-card .bg-gray-50 { background-color: rgba(255,255,255,0.1) !important; border-color: rgba(255,255,255,0.2); }
+        .dark-mode .modal-input { background-color: #0f3460 !important; color: white !important; border-color: #1a1a2e; }
+        .dark-mode .edit-modal { background-color: #16213e !important; color: white; border-color: #0f3460; }
+
+        @media print {
+            .no-print, .bottom-bar, .app-header, .tab-btn, .modal-overlay, .trash-btn, input, button { display: none !important; }
+            #printArea { display: block !important; width: 100%; direction: rtl; }
+        }
+
+        .notification {
+            position: fixed;
+            top: 70px;
+            right: 20px;
+            background: white;
+            padding: 15px 20px;
+            border-radius: 15px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+            z-index: 9000;
+            transform: translateX(400px);
+            transition: transform 0.3s ease;
+        }
+
+        .notification.show {
+            transform: translateX(0);
+        }
+
+        .template-badge {
+            background: #fbbf24;
+            color: white;
+            padding: 2px 8px;
+            border-radius: 8px;
+            font-size: 10px;
+            font-weight: bold;
+            margin-right: 8px;
+        }
+    </style>
     
     <script>
       if ('serviceWorker' in navigator) {
@@ -18,12 +273,26 @@
             .catch(err => console.log('Registration Failed', err));
         });
       }
+
+      // Auto dark mode based on system preference
+      if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+        document.addEventListener('DOMContentLoaded', () => {
+          const savedDarkMode = localStorage.getItem('darkMode');
+          if (savedDarkMode === null) {
+            document.body.classList.add('dark-mode');
+          }
+        });
+      }
     </script>
 </head>
 <body>
 
     <div class="app-header no-print">
-        <h1 class="font-bold text-2xl" style="direction: ltr;"><span style="color: #22c55e !important;">V</span><span class="text-indigo-600">plus</span></h1>
+        <h1 class="font-bold text-2xl" style="direction: ltr;">
+            <span style="color: #22c55e !important;">V</span>
+            <span class="text-indigo-600">plus</span>
+            <span style="font-size: 10px; color: #9055ff; vertical-align: super;">PRO</span>
+        </h1>
         
         <div class="header-controls">
             <div id="cloudBtn" class="bg-indigo-50 text-indigo-600 px-3 py-1 rounded-full text-[10px] font-bold border border-indigo-100 flex items-center gap-1 cursor-pointer">
@@ -50,6 +319,7 @@
         <div class="flex gap-3 mb-6">
             <div id="tabLists" onclick="showPage('lists')" class="tab-btn">הרשימה שלי</div>
             <div id="tabSummary" onclick="showPage('summary')" class="tab-btn">הרשימות שלי</div>
+            <div id="tabStats" onclick="showPage('stats')" class="tab-btn">📊 סטטיסטיקות</div>
         </div>
 
         <div id="pageLists">
@@ -68,9 +338,12 @@
                         <div id="listNameDisplay" class="text-2xl font-black truncate" onclick="openModal('editListNameModal')"></div>
                         <div id="itemCountDisplay" class="text-[10px] font-bold opacity-80 uppercase tracking-wider mt-0.5">0 מוצרים</div>
                     </div>
-                    <div class="w-8"></div>
+                    <button onclick="toggleTemplateMode()" class="text-white opacity-90">
+                        <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path></svg>
+                    </button>
                 </div>
                 <div id="statusTag" class="text-[10px] font-bold mt-2 opacity-80 text-center">נעול</div>
+                <div id="budgetWarning" class="hidden text-[10px] font-bold mt-2 bg-red-500 text-white py-1 px-3 rounded-full inline-block">⚠️ חריגה מתקציב!</div>
             </div>
             <div id="itemsContainer"></div>
         </div>
@@ -90,6 +363,44 @@
             </div>
             <div id="summaryContainer"></div>
         </div>
+
+        <div id="pageStats" class="hidden">
+            <div class="stat-card">
+                <h3 class="text-xl font-bold mb-4">📊 סטטיסטיקות חודשיות</h3>
+                <div class="mb-4">
+                    <div class="flex justify-between mb-2">
+                        <span class="font-bold">הוצאות החודש</span>
+                        <span class="text-indigo-600 font-black" id="monthlyTotal">₪0.00</span>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="monthlyProgress" style="width: 0%"></div>
+                    </div>
+                </div>
+                <div class="grid grid-cols-2 gap-3 mb-4">
+                    <div class="bg-green-50 p-3 rounded-xl">
+                        <div class="text-xs text-green-600 mb-1">רשימות הושלמו</div>
+                        <div class="text-2xl font-black text-green-600" id="completedLists">0</div>
+                    </div>
+                    <div class="bg-blue-50 p-3 rounded-xl">
+                        <div class="text-xs text-blue-600 mb-1">ממוצע לרשימה</div>
+                        <div class="text-2xl font-black text-blue-600" id="avgPerList">₪0</div>
+                    </div>
+                </div>
+                <canvas id="monthlyChart" height="200"></canvas>
+            </div>
+
+            <div class="stat-card">
+                <h3 class="text-xl font-bold mb-4">🏆 מוצרים פופולריים</h3>
+                <div id="popularItems"></div>
+            </div>
+
+            <div class="stat-card">
+                <h3 class="text-xl font-bold mb-4">📁 היסטוריה</h3>
+                <button onclick="openModal('historyModal')" class="w-full bg-indigo-600 text-white py-3 rounded-xl font-bold">
+                    צפה ברשימות שהושלמו
+                </button>
+            </div>
+        </div>
     </div>
 
     <div class="bottom-bar text-white no-print">
@@ -107,22 +418,41 @@
                 <div class="text-2xl font-black text-orange-300">₪<span id="displayLeft">0.00</span></div>
             </div>
             <button onclick="openModal('confirmModal')" class="bottom-circle-btn bg-red-500">
-                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"></path></svg>
             </button>
         </div>
     </div>
 
     <div id="printArea" class="hidden"></div>
 
-    <div id="inputForm" class="modal-overlay no-print"><div class="edit-modal"><h2>הוספת מוצר</h2><input type="text" id="itemName" placeholder="שם המוצר" class="modal-input"><input type="number" id="itemPrice" inputmode="decimal" placeholder="מחיר" class="modal-input"><div class="flex gap-3"><button class="bg-green-500 text-white flex-1 py-4 rounded-xl font-bold shadow-md" onclick="addItem()">הוסף</button><button class="bg-gray-100 text-gray-500 flex-1 py-4 rounded-xl font-bold" onclick="closeModal('inputForm')">ביטול</button></div></div></div>
-    <div id="importModal" class="modal-overlay no-print"><div class="edit-modal"><h2 class="mb-2">ייבוא רשימה מטקסט</h2><p class="text-sm text-gray-500 mb-4">הדבק טקסט מוואטסאפ או כל רשימה</p><textarea id="importText" placeholder="הדבק כאן טקסט לייבוא..." class="modal-input" rows="8" style="resize: vertical; min-height: 150px;"></textarea><div class="flex gap-3"><button class="bg-green-500 text-white flex-1 py-4 rounded-xl font-bold shadow-md" onclick="importFromText()">ייבא</button><button class="bg-gray-100 flex-1 py-4 rounded-xl font-bold" onclick="closeModal('importModal')">ביטול</button></div></div></div>
-    <div id="newListModal" class="modal-overlay no-print"><div class="edit-modal"><h2>רשימה חדשה</h2><input type="text" id="newListNameInput" placeholder="שם הרשימה" class="modal-input"><input type="url" id="newListUrlInput" placeholder="כתובת אתר (אופציונלי)" class="modal-input"><div class="flex gap-3"><button class="bg-indigo-600 text-white flex-1 py-4 rounded-xl font-bold shadow-md" onclick="saveNewList()">צור</button><button class="bg-gray-100 flex-1 py-4 rounded-xl font-bold" onclick="closeModal('newListModal')">ביטול</button></div></div></div>
-    <div id="confirmModal" class="modal-overlay no-print"><div class="edit-modal"><h2 class="text-red-600">ניקוי מוצרים</h2><p class="mb-6">למחוק את כל המוצרים?</p><div class="flex gap-3"><button class="bg-red-500 text-white flex-1 py-4 rounded-xl font-bold shadow-lg" onclick="executeClear()">נקה</button><button class="bg-gray-100 flex-1 py-4 rounded-xl font-bold" onclick="closeModal('confirmModal')">ביטול</button></div></div></div>
-    <div id="deleteListModal" class="modal-overlay no-print"><div class="edit-modal"><h2 class="text-red-600">מחיקת רשימה</h2><div class="flex gap-3"><button id="confirmDeleteListBtn" class="bg-red-500 text-white flex-1 py-4 rounded-xl font-bold" onclick="deleteFullList()">מחק</button><button class="bg-gray-100 flex-1 py-4 rounded-xl font-bold" onclick="closeModal('deleteListModal')">ביטול</button></div></div></div>
-    <div id="editListNameModal" class="modal-overlay no-print"><div class="edit-modal"><h2>עריכת רשימה</h2><input type="text" id="editListNameInput" placeholder="שם הרשימה" class="modal-input"><input type="url" id="editListUrlInput" placeholder="כתובת אתר (אופציונלי)" class="modal-input"><div class="flex gap-3"><button class="bg-indigo-600 text-white flex-1 py-4 rounded-xl font-bold" onclick="saveListName()">שמור</button><button class="bg-gray-100 flex-1 py-4 rounded-xl font-bold" onclick="closeModal('editListNameModal')">ביטול</button></div></div></div>
-    <div id="editTotalModal" class="modal-overlay no-print"><div class="edit-modal"><h2>עדכון מחיר</h2><input type="number" id="editTotalInput" class="modal-input"><div class="flex gap-3"><button class="bg-indigo-600 text-white flex-1 py-4 rounded-xl font-bold" onclick="saveTotal()">עדכן</button><button class="bg-gray-100 flex-1 py-4 rounded-xl font-bold" onclick="closeModal('editTotalModal')">ביטול</button></div></div></div>
-    <div id="settingsModal" class="modal-overlay no-print"><div class="edit-modal"><h2>הגדרות</h2><button onclick="toggleDarkMode()" class="w-full bg-indigo-50 text-indigo-600 py-4 rounded-xl font-bold mb-4">מצב לילה 🌙</button><button onclick="preparePrint()" class="w-full bg-orange-500 text-white py-4 rounded-xl font-bold">הדפס PDF 🖨️</button><button onclick="closeModal('settingsModal')" class="mt-4 text-gray-400 block w-full">סגור</button></div></div>
+    <!-- Modals -->
+    <div id="inputForm" class="modal-overlay no-print">
+        <div class="edit-modal">
+            <h2>הוספת מוצר</h2>
+            <input type="text" id="itemName" placeholder="שם המוצר" class="modal-input">
+            <input type="number" id="itemPrice" inputmode="decimal" placeholder="מחיר" class="modal-input">
+            <select id="itemCategory" class="modal-input">
+                <option value="">בחר קטגוריה (אופציונלי)</option>
+                <option value="פירות וירקות">🥬 פירות וירקות</option>
+                <option value="בשר ודגים">🥩 בשר ודגים</option>
+                <option value="חלב וביצים">🥛 חלב וביצים</option>
+                <option value="לחם ומאפים">🍞 לחם ומאפים</option>
+                <option value="שימורים">🥫 שימורים</option>
+                <option value="חטיפים">🍪 חטיפים</option>
+                <option value="משקאות">🥤 משקאות</option>
+                <option value="ניקיון">🧹 ניקיון</option>
+                <option value="היגיינה">🧴 היגיינה</option>
+                <option value="אחר">📦 אחר</option>
+            </select>
+            <div class="flex gap-3">
+                <button class="bg-green-500 text-white flex-1 py-4 rounded-xl font-bold shadow-md" onclick="addItem()">הוסף</button>
+                <button class="bg-gray-100 text-gray-500 flex-1 py-4 rounded-xl font-bold" onclick="closeModal('inputForm')">ביטול</button>
+            </div>
+        </div>
+    </div>
 
-    <script src="script.js"></script>
-</body>
-</html>
+    <div id="importModal" class="modal-overlay no-print">
+        <div class="edit-modal">
+            <h2 class="mb-2">ייבוא רשימה מטקסט</h2>
+            <p class="text-sm text-gray-500 mb-4">הדבק טקסט מוואטסאפ או כל רשימה</p>
+            <textarea id="importText" placeholder="הדבק כא
