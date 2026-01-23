@@ -1,3 +1,6 @@
+
+
+```javascript
 // ========== Google Drive Configuration ==========
 const GOOGLE_CLIENT_ID = '151476121869-b5lbrt5t89s8d342ftd1cg1q926518pt.apps.googleusercontent.com';
 const GOOGLE_API_KEY = 'AIzaSyDIMiuwL-phvwI7iAUeMQmTOowWE96mP6I'; 
@@ -30,6 +33,10 @@ let currentEditIdx = null;
 let listToDelete = null;
 let sortableInstance = null;
 
+// משתנים חדשים לתכונות החדשות
+let showMissingOnly = false;
+let highlightedItemIndex = null;
+
 function save() { 
     db.lastActivePage = activePage;
     db.lastSync = Date.now();
@@ -42,11 +49,6 @@ function save() {
             syncToCloud();
         }, 1500);
     }
-}
-
-function toggleBottomBar() {
-    const bar = document.querySelector('.bottom-bar');
-    bar.classList.toggle('minimized');
 }
 
 function toggleItem(idx) {
@@ -72,7 +74,10 @@ function toggleDarkMode() {
 }
 
 function showPage(p) { 
-    activePage = p; 
+    activePage = p;
+    showMissingOnly = false;
+    highlightedItemIndex = null;
+    document.getElementById('listSearchInput').value = '';
     save(); 
 }
 
@@ -115,6 +120,100 @@ function closeModal(id) {
     if(m) m.classList.remove('active'); 
 }
 
+// ========== תכונה חדשה: חיפוש עם autocomplete ==========
+function handleListSearch() {
+    const searchValue = document.getElementById('listSearchInput').value.trim().toLowerCase();
+    const suggestionsBox = document.getElementById('searchSuggestions');
+    
+    if (!searchValue) {
+        suggestionsBox.classList.remove('active');
+        suggestionsBox.innerHTML = '';
+        highlightedItemIndex = null;
+        render();
+        return;
+    }
+    
+    const list = db.lists[db.currentId];
+    const matches = list.items
+        .map((item, idx) => ({ item, idx }))
+        .filter(({ item }) => item.name.toLowerCase().includes(searchValue));
+    
+    if (matches.length > 0) {
+        suggestionsBox.innerHTML = matches
+            .map(({ item, idx }) => 
+                `<div class="suggestion-item" onclick="selectSearchItem(${idx})">${item.name}</div>`
+            )
+            .join('');
+        suggestionsBox.classList.add('active');
+    } else {
+        suggestionsBox.classList.remove('active');
+        suggestionsBox.innerHTML = '';
+    }
+}
+
+function selectSearchItem(idx) {
+    highlightedItemIndex = idx;
+    document.getElementById('searchSuggestions').classList.remove('active');
+    document.getElementById('listSearchInput').value = '';
+    render();
+    
+    setTimeout(() => {
+        const itemCard = document.querySelector(`.item-card[data-id="${idx}"]`);
+        if (itemCard) {
+            itemCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+    }, 100);
+}
+
+// ========== תכונה חדשה: הצג חסרים בלבד ==========
+function toggleMissingOnly() {
+    showMissingOnly = !showMissingOnly;
+    highlightedItemIndex = null;
+    
+    const btn = document.getElementById('toggleMissingBtn');
+    const createBtn = document.getElementById('createMissingListBtn');
+    
+    if (showMissingOnly) {
+        btn.innerText = 'הצג הכל';
+        btn.classList.remove('bg-orange-500');
+        btn.classList.add('bg-indigo-600');
+        createBtn.classList.remove('hidden');
+    } else {
+        btn.innerText = 'הצג חסרים בלבד';
+        btn.classList.remove('bg-indigo-600');
+        btn.classList.add('bg-orange-500');
+        createBtn.classList.add('hidden');
+    }
+    
+    render();
+}
+
+function createListFromMissing() {
+    const list = db.lists[db.currentId];
+    const missingItems = list.items.filter(i => !i.checked);
+    
+    if (missingItems.length === 0) {
+        alert('אין מוצרים חסרים ברשימה');
+        return;
+    }
+    
+    const newListId = 'L' + Date.now();
+    const newListName = list.name + ' - חסרים';
+    
+    db.lists[newListId] = {
+        name: newListName,
+        url: list.url || '',
+        items: missingItems.map(item => ({ ...item, checked: false }))
+    };
+    
+    db.currentId = newListId;
+    showMissingOnly = false;
+    highlightedItemIndex = null;
+    
+    save();
+    alert(`✅ נוצרה רשימה חדשה "${newListName}" עם ${missingItems.length} מוצרים`);
+}
+
 function render() {
     const container = document.getElementById(activePage === 'lists' ? 'itemsContainer' : 'summaryContainer');
     if (!container) return;
@@ -138,20 +237,41 @@ function render() {
         document.getElementById('pageSummary').classList.add('hidden');
         const list = db.lists[db.currentId];
         document.getElementById('listNameDisplay').innerText = list.name;
-        list.items.forEach((item, idx) => {
+        
+        // סינון מוצרים לפי מצב "הצג חסרים"
+        const itemsToShow = showMissingOnly 
+            ? list.items.filter(i => !i.checked)
+            : list.items;
+        
+        // עדכון מונה מוצרים
+        const displayCount = showMissingOnly 
+            ? `${itemsToShow.length} חסרים מתוך ${list.items.length}`
+            : `${list.items.length} מוצרים`;
+        document.getElementById('itemCountDisplay').innerText = displayCount;
+
+        itemsToShow.forEach((item, displayIdx) => {
+            const originalIdx = list.items.indexOf(item);
             const sub = item.price * item.qty; 
             total += sub; 
             if (item.checked) paid += sub;
             const div = document.createElement('div'); 
             div.className = "item-card";
-            div.setAttribute('data-id', idx);
+            div.setAttribute('data-id', originalIdx);
+            
+            // הוספת הדגשה למוצר שנבחר בחיפוש
+            if (highlightedItemIndex === originalIdx) {
+                div.classList.add('highlighted');
+            }
+            
             div.innerHTML = `
                 <div class="flex justify-between items-center mb-4">
                     <div class="flex items-center gap-3 flex-1">
-                        <input type="checkbox" ${item.checked ? 'checked' : ''} onchange="toggleItem(${idx})" class="w-7 h-7 accent-indigo-600">
-                        <div class="flex-1 text-2xl font-bold ${item.checked ? 'line-through text-gray-300' : ''}">${item.name}</div>
+                        <input type="checkbox" ${item.checked ? 'checked' : ''} onchange="toggleItem(${originalIdx})" class="w-7 h-7 accent-indigo-600">
+                        <div class="flex-1 text-2xl font-bold ${item.checked ? 'line-through text-gray-300' : ''}">
+                            <span class="item-number">${originalIdx + 1}.</span> ${item.name}
+                        </div>
                     </div>
-                    <button onclick="removeItem(${idx})" class="trash-btn">
+                    <button onclick="removeItem(${originalIdx})" class="trash-btn">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path>
                         </svg>
@@ -159,11 +279,11 @@ function render() {
                 </div>
                 <div class="flex justify-between items-center">
                     <div class="flex items-center gap-3 bg-gray-50 rounded-xl px-2 py-1 border">
-                        <button onclick="changeQty(${idx}, 1)" class="text-green-500 text-2xl font-bold">+</button>
+                        <button onclick="changeQty(${originalIdx}, 1)" class="text-green-500 text-2xl font-bold">+</button>
                         <span class="font-bold w-6 text-center">${item.qty}</span>
-                        <button onclick="changeQty(${idx}, -1)" class="text-red-500 text-2xl font-bold">-</button>
+                        <button onclick="changeQty(${originalIdx}, -1)" class="text-red-500 text-2xl font-bold">-</button>
                     </div>
-                    <span onclick="openEditTotalModal(${idx})" class="text-2xl font-black text-indigo-600">₪${sub.toFixed(2)}</span>
+                    <span onclick="openEditTotalModal(${originalIdx})" class="text-2xl font-black text-indigo-600">₪${sub.toFixed(2)}</span>
                 </div>
             `;
             container.appendChild(div);
@@ -171,8 +291,18 @@ function render() {
     } else {
         document.getElementById('pageLists').classList.add('hidden');
         document.getElementById('pageSummary').classList.remove('hidden');
+        
+        const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+
         Object.keys(db.lists).forEach(id => {
             const l = db.lists[id];
+            
+            const matchesName = l.name.toLowerCase().includes(searchTerm);
+            const matchesURL = l.url && l.url.toLowerCase().includes(searchTerm);
+            const matchesItems = l.items.some(i => i.name.toLowerCase().includes(searchTerm));
+
+            if (searchTerm && !matchesName && !matchesURL && !matchesItems) return;
+
             let lT = 0, lP = 0;
             l.items.forEach(i => { 
                 const s = i.price * i.qty; 
@@ -225,6 +355,54 @@ function render() {
     initSortable();
 }
 
+async function shareNative(type) {
+    let title = "";
+    let text = "";
+
+    if (type === 'list') {
+        const list = db.lists[db.currentId];
+        if (list.items.length === 0) return;
+        title = `Vplus - ${list.name}`;
+        text = `🛒 *${list.name}:*\n\n`;
+        list.items.forEach((i, idx) => {
+            text += `${idx + 1}. ${i.checked ? '✅' : '⬜'} *${i.name}* (x${i.qty}) - ₪${(i.price * i.qty).toFixed(2)}\n`;
+        });
+        text += `\n💰 *סה"כ: ₪${document.getElementById('displayTotal').innerText}*`;
+    } else {
+        const selectedIds = db.selectedInSummary;
+        if (selectedIds.length === 0) { 
+            alert("בחר לפחות רשימה אחת לשיתוף!"); 
+            return; 
+        }
+        title = "Vplus - ריכוז רשימות";
+        text = `📦 *ריכוז רשימות קנייה (חסרים בלבד):*\n\n`;
+        selectedIds.forEach(id => {
+            const l = db.lists[id];
+            const missing = l.items.filter(i => !i.checked);
+            if (missing.length > 0) {
+                text += `🔹 *${l.name}:*\n`;
+                missing.forEach(i => text += `  - ${i.name} (x${i.qty})\n`);
+                text += `\n`;
+            }
+        });
+    }
+
+    if (navigator.share) {
+        try {
+            await navigator.share({
+                title: title,
+                text: text
+            });
+        } catch (err) {
+            console.log("Sharing failed", err);
+        }
+    } else {
+        navigator.clipboard.writeText(text).then(() => {
+            alert("הטקסט הועתק ללוח!");
+        });
+    }
+}
+
 function addItem() { 
     const n = document.getElementById('itemName').value.trim();
     const p = parseFloat(document.getElementById('itemPrice').value) || 0; 
@@ -249,6 +427,7 @@ function changeQty(idx, d) {
 
 function removeItem(idx) { 
     db.lists[db.currentId].items.splice(idx, 1); 
+    highlightedItemIndex = null;
     save(); 
 }
 
@@ -259,6 +438,7 @@ function toggleLock() {
 
 function executeClear() { 
     db.lists[db.currentId].items = []; 
+    highlightedItemIndex = null;
     closeModal('confirmModal'); 
     save(); 
 }
@@ -408,7 +588,7 @@ function importFromText() {
 function initSortable() {
     const el = document.getElementById(activePage === 'lists' ? 'itemsContainer' : 'summaryContainer');
     if (sortableInstance) sortableInstance.destroy();
-    if (el && !isLocked) {
+    if (el && !isLocked && !showMissingOnly) {
         sortableInstance = Sortable.create(el, { 
             animation: 150, 
             onEnd: function() {
@@ -480,56 +660,12 @@ function preparePrint() {
     window.print();
 }
 
-function shareFullToWhatsApp() {
-    const list = db.lists[db.currentId];
-    if (list.items.length === 0) return;
-    let text = `🛒 *${list.name} (רשימה מלאה):*\n\n`;
-    list.items.forEach(i => {
-        text += `${i.checked ? '✅' : '⬜'} *${i.name}* (x${i.qty}) - ₪${(i.price * i.qty).toFixed(2)}\n`;
-    });
-    text += `\n💰 *סה"כ: ₪${document.getElementById('displayTotal').innerText}*`;
-    window.open("https://wa.me/?text=" + encodeURIComponent(text));
-    closeModal('shareListModal');
-}
-
-function shareMissingToWhatsApp() {
-    const list = db.lists[db.currentId];
-    const missing = list.items.filter(i => !i.checked);
-    if (missing.length === 0) { 
-        alert("אין מוצרים חסרים!"); 
-        return; 
-    }
-    let text = `⬜ *${list.name} (מוצרים חסרים):*\n\n`;
-    missing.forEach(i => text += `• *${i.name}* (x${i.qty})\n`);
-    window.open("https://wa.me/?text=" + encodeURIComponent(text));
-    closeModal('shareListModal');
-}
-
-function shareSummaryToWhatsApp() {
-    const selectedIds = db.selectedInSummary;
-    if (selectedIds.length === 0) { 
-        alert("בחר לפחות רשימה אחת לשיתוף!"); 
-        return; 
-    }
-    let text = `📦 *ריכוז רשימות קנייה (חסרים בלבד):*\n\n`;
-    selectedIds.forEach(id => {
-        const l = db.lists[id];
-        const missing = l.items.filter(i => !i.checked);
-        if (missing.length > 0) {
-            text += `🔹 *${l.name}:*\n`;
-            missing.forEach(i => text += `  - ${i.name} (x${i.qty})\n`);
-            text += `\n`;
-        }
-    });
-    window.open("https://wa.me/?text=" + encodeURIComponent(text));
-}
-
 function saveListName() { 
     const n = document.getElementById('editListNameInput').value.trim(); 
     const u = document.getElementById('editListUrlInput').value.trim();
     if(n) { 
         db.lists[db.currentId].name = n; 
-        db.lists[db.currentId].url = u; // הוספתי את עדכון ה-URL כאן
+        db.lists[db.currentId].url = u; 
         save(); 
     } 
     closeModal('editListNameModal'); 
@@ -541,6 +677,10 @@ function openEditTotalModal(idx) {
     openModal('editTotalModal'); 
 }
 
+function saveTotal() { 
+    const val = parseFloat(document.getElementById('editTotalInput').
+
+```javascript
 function saveTotal() { 
     const val = parseFloat(document.getElementById('editTotalInput').value); 
     if (!isNaN(val)) { 
@@ -802,6 +942,13 @@ async function manualSync() {
     await loadAndMerge();
 }
 
+function toggleBottomBar() {
+    const bottomBar = document.querySelector('.bottom-bar');
+    if (bottomBar) {
+        bottomBar.classList.toggle('minimized');
+    }
+}
+
 window.addEventListener('DOMContentLoaded', () => {
     const bottomBar = document.querySelector('.bottom-bar');
     if (bottomBar) {
@@ -865,6 +1012,15 @@ window.addEventListener('DOMContentLoaded', () => {
             }
         });
     }
+    
+    // הסתרת הצעות חיפוש בלחיצה מחוץ לשדה
+    document.addEventListener('click', (e) => {
+        const searchInput = document.getElementById('listSearchInput');
+        const suggestions = document.getElementById('searchSuggestions');
+        if (searchInput && suggestions && !searchInput.contains(e.target) && !suggestions.contains(e.target)) {
+            suggestions.classList.remove('active');
+        }
+    });
 });
 
 const script1 = document.createElement('script');
@@ -878,3 +1034,6 @@ script2.onload = gisLoaded;
 document.head.appendChild(script2);
 
 render();
+```
+
+
