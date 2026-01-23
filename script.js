@@ -1,4 +1,4 @@
-// ========== Google Drive Config (מקור) ==========
+// ========== Google Drive Configuration (מקור) ==========
 const GOOGLE_CLIENT_ID = '151476121869-b5lbrt5t89s8d342ftd1cg1q926518pt.apps.googleusercontent.com';
 const GOOGLE_API_KEY = 'AIzaSyDIMiuwL-phvwI7iAUeMQmTOowWE96mP6I'; 
 const DISCOVERY_DOC = 'https://www.googleapis.com/discovery/v1/apis/drive/v3/rest';
@@ -41,10 +41,11 @@ function render() {
     document.getElementById('tabLists').className = `tab-btn ${activePage === 'lists' ? 'tab-active' : ''}`;
     document.getElementById('tabSummary').className = `tab-btn ${activePage === 'summary' ? 'tab-active' : ''}`;
 
+    // עדכון כפתור נעילה וסטטוס
     const btn = document.getElementById('mainLockBtn');
     const path = document.getElementById('lockIconPath');
     const tag = document.getElementById('statusTag');
-    if (btn && path) {
+    if (btn && path && tag) {
         btn.className = `bottom-circle-btn ${isLocked ? 'bg-blue-600' : 'bg-orange-400'}`;
         path.setAttribute('d', isLocked ? 'M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z' : 'M8 11V7a4 4 0 118 0m-4 8v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2z');
         tag.innerText = isLocked ? "נעול" : "עריכה פעילה (גרירה מופעלת)";
@@ -60,15 +61,13 @@ function render() {
             if (item.checked) paid += sub;
             count++;
 
-            if (showOnlyMissing && item.checked) return;
-
             const div = document.createElement('div');
             div.className = "item-card";
             div.setAttribute('data-id', idx);
             div.innerHTML = `
                 <div class="flex justify-between items-center mb-4">
                     <div class="flex items-center gap-2 flex-1">
-                        <span class="item-index">${idx + 1}</span>
+                        <span class="item-index font-bold text-indigo-600 bg-indigo-50 px-2 rounded-lg">${idx + 1}</span>
                         <input type="checkbox" ${item.checked ? 'checked' : ''} onchange="toggleItem(${idx})" class="w-7 h-7 accent-indigo-600">
                         <div class="flex-1 text-2xl font-bold ${item.checked ? 'line-through text-gray-300' : ''}">${item.name}</div>
                     </div>
@@ -98,7 +97,7 @@ function render() {
                 <div class="flex justify-between items-center">
                     <div class="flex items-center gap-3 flex-1">
                         <input type="checkbox" ${isSel ? 'checked' : ''} onchange="toggleSum('${id}')" class="w-7 h-7 accent-indigo-600">
-                        <div class="flex-1 text-2xl font-bold" onclick="db.currentId='${id}'; showPage('lists')">${l.name}</div>
+                        <div class="flex-1 text-2xl font-bold cursor-pointer" onclick="db.currentId='${id}'; showPage('lists')">${l.name}</div>
                     </div>
                     <span class="text-xl font-black text-indigo-600">₪${lT.toFixed(2)}</span>
                 </div>`;
@@ -106,16 +105,16 @@ function render() {
         });
     }
 
-    document.getElementById('displayCount').innerText = count;
     document.getElementById('displayTotal').innerText = total.toFixed(2);
+    document.getElementById('displayPaid').innerText = paid.toFixed(2);
     document.getElementById('displayLeft').innerText = (total - paid).toFixed(2);
     initSortable();
 }
 
-// ========== Logic Functions ==========
+// ========== Logic & Actions ==========
+function showPage(p) { activePage = p; save(); }
 function toggleItem(idx) { db.lists[db.currentId].items[idx].checked = !db.lists[db.currentId].items[idx].checked; save(); }
 function toggleSum(id) { const i = db.selectedInSummary.indexOf(id); if(i>-1) db.selectedInSummary.splice(i,1); else db.selectedInSummary.push(id); save(); }
-function showPage(p) { activePage = p; showOnlyMissing = false; save(); }
 function toggleLock() { isLocked = !isLocked; render(); }
 function changeQty(idx, d) { if(db.lists[db.currentId].items[idx].qty+d >= 1) { db.lists[db.currentId].items[idx].qty+=d; save(); } }
 function removeItem(idx) { db.lists[db.currentId].items.splice(idx, 1); save(); }
@@ -123,7 +122,11 @@ function removeItem(idx) { db.lists[db.currentId].items.splice(idx, 1); save(); 
 function addItem() {
     const n = document.getElementById('itemName').value.trim();
     const p = parseFloat(document.getElementById('itemPrice').value) || 0;
-    if (n) { db.lists[db.currentId].items.push({ name: n, price: p, qty: 1, checked: false }); closeModal('inputForm'); save(); }
+    if (n) {
+        db.lists[db.currentId].items.push({ name: n, price: p, qty: 1, checked: false });
+        closeModal('inputForm');
+        save();
+    }
 }
 
 function openEditTotalModal(idx) {
@@ -143,87 +146,89 @@ function saveTotal() {
     closeModal('editTotalModal');
 }
 
-function handleBottomBarClick(e) {
-    if (!e.target.closest('button') && !e.target.closest('input')) {
-        document.querySelector('.bottom-bar').classList.toggle('minimized');
-    }
+function toggleBottomBarFromEvent(e) {
+    const bar = document.querySelector('.bottom-bar');
+    bar.classList.toggle('minimized');
 }
 
-// ========== Professional PDF Export ==========
+function toggleDarkMode() {
+    document.body.classList.toggle('dark-mode');
+    closeModal('settingsModal');
+}
+
+// ========== Professional PDF (מקור) ==========
 function preparePrint() {
     closeModal('settingsModal');
     let grandTotal = 0;
-    let html = `<div dir="rtl" style="font-family:sans-serif; padding:20px;">
-                <h1 style="text-align:center; color:#7367f0;">Vplus - דוח קניות מפורט</h1>`;
+    let html = `<div dir="rtl" style="font-family:Arial, sans-serif; padding:30px;">
+                <h1 style="text-align:center; color:#7367f0; border-bottom:4px double #7367f0; padding-bottom:10px;">Vplus - דוח קניות מפורט</h1>`;
     
     Object.keys(db.lists).forEach(id => {
         const l = db.lists[id];
-        let lT = 0;
-        html += `<h2 style="border-bottom:2px solid #7367f0;">${l.name}</h2>
-                 <table style="width:100%; border-collapse:collapse; margin-bottom:20px;">
-                 <tr style="background:#f4f7fa;">
-                    <th style="padding:10px; border:1px solid #ddd; text-align:right;">מוצר</th>
-                    <th style="padding:10px; border:1px solid #ddd; text-align:center;">כמות</th>
-                    <th style="padding:10px; border:1px solid #ddd; text-align:left;">סה"כ</th>
+        let listTotal = 0;
+        html += `<h2 style="color:#444; margin-top:30px;">${l.name}</h2>
+                 <table style="width:100%; border-collapse:collapse; margin-bottom:10px; border:1px solid #eee;">
+                 <tr style="background:#f8f9fa;">
+                    <th style="padding:12px; border:1px solid #eee; text-align:right;">מוצר</th>
+                    <th style="padding:12px; border:1px solid #eee; text-align:center;">כמות</th>
+                    <th style="padding:12px; border:1px solid #eee; text-align:left;">סה"כ</th>
                  </tr>`;
         l.items.forEach(i => {
-            const s = i.price * i.qty; lT += s;
+            const s = i.price * i.qty; listTotal += s;
             html += `<tr>
-                        <td style="padding:10px; border:1px solid #ddd;">${i.name}</td>
-                        <td style="padding:10px; border:1px solid #ddd; text-align:center;">${i.qty}</td>
-                        <td style="padding:10px; border:1px solid #ddd; text-align:left;">₪${s.toFixed(2)}</td>
+                        <td style="padding:10px; border:1px solid #eee;">${i.name}</td>
+                        <td style="padding:10px; border:1px solid #eee; text-align:center;">${i.qty}</td>
+                        <td style="padding:10px; border:1px solid #eee; text-align:left;">₪${s.toFixed(2)}</td>
                      </tr>`;
         });
-        html += `</table><p style="text-align:left; font-weight:bold;">סה"כ רשימה: ₪${lT.toFixed(2)}</p>`;
-        grandTotal += lT;
+        html += `</table><p style="text-align:left; font-weight:bold; font-size:1.1em;">סה"כ רשימה: ₪${listTotal.toFixed(2)}</p>`;
+        grandTotal += listTotal;
     });
-    html += `<h2 style="text-align:center; margin-top:40px; padding:20px; border:4px double #7367f0;">סה"כ לתשלום: ₪${grandTotal.toFixed(2)}</h2></div>`;
+    html += `<div style="text-align:center; margin-top:50px; padding:20px; border:3px solid #7367f0; background:#f0eeff; font-size:1.8em; font-weight:900;">סה"כ כולל לתשלום: ₪${grandTotal.toFixed(2)}</div></div>`;
     
     const win = window.open('', '_blank');
     win.document.write(html); win.document.close();
     setTimeout(() => { win.print(); }, 500);
 }
 
-// ========== Search & Filters ==========
-function handleSearch(q) {
-    const sug = document.getElementById('searchSuggestions');
-    if (!q) { sug.classList.add('hidden'); return; }
-    sug.innerHTML = '';
-    db.lists[db.currentId].items.forEach((item, idx) => {
-        if (item.name.includes(q)) {
-            const d = document.createElement('div');
-            d.innerHTML = item.name;
-            d.onclick = () => { highlightItem(idx); sug.classList.add('hidden'); document.getElementById('globalSearch').value = ''; };
-            sug.appendChild(d);
-        }
-    });
-    sug.classList.toggle('hidden', sug.innerHTML === '');
+// ========== Modal Utils ==========
+function openModal(id) { 
+    document.getElementById(id).classList.add('active'); 
+    if (id === 'inputForm') {
+        document.getElementById('itemName').value = '';
+        document.getElementById('itemPrice').value = '';
+        setTimeout(() => document.getElementById('itemName').focus(), 200);
+    }
 }
-
-function highlightItem(idx) {
-    const el = document.querySelector(`[data-id="${idx}"]`);
-    if (el) { el.scrollIntoView({behavior:'smooth', block:'center'}); el.classList.add('highlight-search'); setTimeout(()=>el.classList.remove('highlight-search'),3000); }
-}
-
-function toggleMissingFilter() { showOnlyMissing = !showOnlyMissing; document.getElementById('filterBanner').classList.toggle('hidden', !showOnlyMissing); render(); }
-
-// ========== Helpers & Init ==========
-function openModal(id) { document.getElementById(id).classList.add('active'); }
 function closeModal(id) { document.getElementById(id).classList.remove('active'); }
+
+// ========== Init & Listeners ==========
+window.addEventListener('DOMContentLoaded', () => {
+    // הוספה מהירה: Enter בשם עובר למחיר, Enter במחיר מוסיף מוצר
+    document.getElementById('itemName').addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') { e.preventDefault(); document.getElementById('itemPrice').focus(); }
+    });
+    document.getElementById('itemPrice').addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') { e.preventDefault(); addItem(); }
+    });
+
+    render();
+});
+
 function initSortable() {
     const el = document.getElementById('itemsContainer');
     if (sortableInstance) sortableInstance.destroy();
-    if (el && !isLocked) sortableInstance = Sortable.create(el, { animation: 150, onEnd: () => {
-        const order = Array.from(el.children).map(c => parseInt(c.dataset.id));
-        const items = db.lists[db.currentId].items;
-        db.lists[db.currentId].items = order.map(i => items[i]);
-        save();
-    }});
+    if (el && !isLocked) {
+        sortableInstance = Sortable.create(el, { animation: 150, onEnd: () => {
+            const order = Array.from(el.children).map(c => parseInt(c.dataset.id));
+            const items = db.lists[db.currentId].items;
+            db.lists[db.currentId].items = order.map(i => items[i]);
+            save();
+        }});
+    }
 }
 
-window.addEventListener('DOMContentLoaded', render);
-
-// ========== Google Scripts ==========
+// Google Scripts (מקור)
 const loadJS = (src, cb) => { const s = document.createElement('script'); s.src = src; s.onload = cb; document.head.appendChild(s); };
 loadJS('https://apis.google.com/js/api.js', () => gapi.load('client', () => gapi.client.init({apiKey: GOOGLE_API_KEY, discoveryDocs: [DISCOVERY_DOC]})));
 loadJS('https://accounts.google.com/gsi/client', () => tokenClient = google.accounts.oauth2.initTokenClient({client_id: GOOGLE_CLIENT_ID, scope: SCOPES, callback: ''}));
