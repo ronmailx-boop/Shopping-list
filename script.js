@@ -46,7 +46,7 @@ function handleSearchInput(val) {
     });
 
     const exactMatch = list.items.find(i => i.name === val);
-    if (exactMatch) findItemInList(val);
+    if (exactMatch && val === exactMatch.name) findItemInList(val);
 }
 
 function findItemInList(specificVal = null) {
@@ -92,19 +92,18 @@ function findItemInList(specificVal = null) {
 function save() { 
     localStorage.setItem('BUDGET_FINAL_V28', JSON.stringify(db));
     render();
-    if (isConnected && !isSyncing) {
-        clearTimeout(syncTimeout);
-        syncTimeout = setTimeout(syncToCloud, 2000);
-    }
 }
 
 function render() {
     const container = document.getElementById(activePage === 'lists' ? 'itemsContainer' : (activePage === 'summary' ? 'summaryContainer' : null));
     let total = 0, paid = 0;
 
-    document.getElementById('tabLists').className = `tab-btn ${activePage === 'lists' ? 'tab-active' : ''}`;
-    document.getElementById('tabSummary').className = `tab-btn ${activePage === 'summary' ? 'tab-active' : ''}`;
-    document.getElementById('tabStats').className = `tab-btn ${activePage === 'stats' ? 'tab-active' : ''}`;
+    // עדכון כפתורי טאבים
+    const tabs = { 'lists': 'tabLists', 'summary': 'tabSummary', 'stats': 'tabStats' };
+    Object.keys(tabs).forEach(p => {
+        const el = document.getElementById(tabs[p]);
+        if (el) el.className = `tab-btn ${activePage === p ? 'tab-active' : ''}`;
+    });
 
     if (activePage === 'lists') {
         document.getElementById('pageLists').classList.remove('hidden');
@@ -142,7 +141,7 @@ function render() {
             });
         }
     } else if (activePage === 'summary') {
-        renderSummary(container);
+        renderSummary();
     } else if (activePage === 'stats') {
         renderStats();
     }
@@ -153,7 +152,8 @@ function render() {
     initSortable();
 }
 
-function renderSummary(container) {
+function renderSummary() {
+    const container = document.getElementById('summaryContainer');
     document.getElementById('pageLists').classList.add('hidden');
     document.getElementById('pageSummary').classList.remove('hidden');
     document.getElementById('pageStats').classList.add('hidden');
@@ -167,7 +167,7 @@ function renderSummary(container) {
         div.innerHTML = `
             <div class="flex justify-between items-center">
                 <input type="checkbox" ${isSel ? 'checked' : ''} onchange="toggleSum('${id}')" class="w-6 h-6">
-                <div class="flex-1 px-4 font-bold cursor-pointer" onclick="db.currentId='${id}'; showPage('lists')">${l.isTemplate ? '⭐ ' : ''}${l.name}</div>
+                <div class="flex-1 px-4 font-bold cursor-pointer" onclick="setActiveList('${id}')">${l.isTemplate ? '⭐ ' : ''}${l.name}</div>
                 <button onclick="deleteFullList('${id}')" class="text-red-500">🗑️</button>
             </div>`;
         container.appendChild(div);
@@ -184,20 +184,32 @@ function renderStats() {
     document.getElementById('avgPerList').innerText = `₪${avg}`;
 
     const histCont = document.getElementById('historyContent');
-    histCont.innerHTML = '';
-    db.history.slice().reverse().forEach(entry => {
-        const d = document.createElement('div');
-        d.className = "p-2 border-b text-sm flex justify-between";
-        d.innerHTML = `<span>${entry.name}</span><span class="font-bold">₪${entry.total.toFixed(2)}</span>`;
-        histCont.appendChild(d);
-    });
+    if (histCont) {
+        histCont.innerHTML = '';
+        db.history.slice().reverse().forEach(entry => {
+            const d = document.createElement('div');
+            d.className = "p-2 border-b text-sm flex justify-between";
+            d.innerHTML = `<span>${entry.name}</span><span class="font-bold">₪${entry.total.toFixed(2)}</span>`;
+            histCont.appendChild(d);
+        });
+    }
 }
 
 // ========== ACTIONS ==========
 
+function setActiveList(id) {
+    db.currentId = id;
+    activePage = 'lists';
+    save();
+}
+
 function completeList() {
     const list = db.lists[db.currentId];
-    if (!list || list.items.length === 0) return;
+    if (!list || list.items.length === 0) {
+        showNotification('הרשימה ריקה!', 'warning');
+        closeModal('confirmModal');
+        return;
+    }
     const total = list.items.reduce((sum, item) => sum + (item.price * item.qty), 0);
     db.history.push({ name: list.name, items: [...list.items], total, completedAt: Date.now() });
     db.stats.totalSpent += total;
@@ -210,13 +222,19 @@ function completeList() {
 }
 
 function addItem() {
-    const n = document.getElementById('itemName').value;
+    const n = document.getElementById('itemName').value.trim();
     const p = parseFloat(document.getElementById('itemPrice').value) || 0;
-    if(n) { db.lists[db.currentId].items.push({name:n, price:p, qty:1, checked:false}); closeModal('inputForm'); save(); }
+    if(n) { 
+        db.lists[db.currentId].items.push({name:n, price:p, qty:1, checked:false}); 
+        document.getElementById('itemName').value = '';
+        document.getElementById('itemPrice').value = '';
+        closeModal('inputForm'); 
+        save(); 
+    }
 }
 
 function saveNewList() {
-    const n = document.getElementById('newListNameInput').value;
+    const n = document.getElementById('newListNameInput').value.trim();
     if(n) {
         const id = 'L' + Date.now();
         db.lists[id] = { name: n, items: [], isTemplate: document.getElementById('newListTemplate').checked };
@@ -228,9 +246,13 @@ function saveNewList() {
 
 function deleteFullList(id) {
     if(Object.keys(db.lists).length > 1) {
-        delete db.lists[id];
-        if(db.currentId === id) db.currentId = Object.keys(db.lists)[0];
-        save();
+        if(confirm('למחוק את כל הרשימה?')) {
+            delete db.lists[id];
+            if(db.currentId === id) db.currentId = Object.keys(db.lists)[0];
+            save();
+        }
+    } else {
+        showNotification('אי אפשר למחוק את הרשימה האחרונה', 'warning');
     }
 }
 
@@ -293,16 +315,28 @@ function importFromText() {
     if(!txt) return;
     const lines = txt.split('\n');
     lines.forEach(l => { if(l.trim()) db.lists[db.currentId].items.push({name: l.trim(), price: 0, qty: 1, checked: false}); });
+    document.getElementById('importText').value = '';
     closeModal('importModal');
     save();
 }
 
-// ========== GOOGLE DRIVE INTEGRATION ==========
-function gapiLoaded() { gapi.load('client', async () => { await gapi.client.init({ apiKey: GOOGLE_API_KEY, discoveryDocs: [DISCOVERY_DOC] }); gapiInited = true; }); }
-function gisLoaded() { tokenClient = google.accounts.oauth2.initTokenClient({ client_id: GOOGLE_CLIENT_ID, scope: SCOPES, callback: (resp) => { accessToken = resp.access_token; isConnected = true; showNotification('☁️ מחובר!'); syncToCloud(); } }); gisInited = true; }
-async function syncToCloud() { if(!accessToken) { tokenClient.requestAccessToken(); return; } /* לוגיקת העלאה מלאה כאן */ }
+function shareNative(type) {
+    let text = type === 'list' ? `🛒 ${db.lists[db.currentId].name}:\n` : `📦 חסרים מכל הרשימות:\n`;
+    if (type === 'list') {
+        db.lists[db.currentId].items.forEach(i => text += `${i.checked ? '✅' : '⬜'} ${i.name} (x${i.qty})\n`);
+    } else {
+        db.selectedInSummary.forEach(id => {
+            const l = db.lists[id];
+            text += `\n🔹 ${l.name}:\n`;
+            l.items.filter(i => !i.checked).forEach(i => text += `- ${i.name}\n`);
+        });
+    }
+    navigator.clipboard.writeText(text);
+    showNotification('📋 הטקסט הועתק לשיתוף');
+}
 
-// Load Dark Mode
-if(localStorage.getItem('darkMode') === 'true') document.body.classList.add('dark-mode');
-
-window.onload = () => { render(); gapiLoaded(); gisLoaded(); };
+// ========== INITIALIZATION ==========
+window.addEventListener('DOMContentLoaded', () => {
+    if(localStorage.getItem('darkMode') === 'true') document.body.classList.add('dark-mode');
+    render();
+});
