@@ -37,7 +37,6 @@ function handleSearchInput(val) {
     
     if (!val || !list) return;
 
-    // הצעות רק מתוך המוצרים שקיימים ברשימה הנוכחית
     const matches = list.items.filter(item => item.name.includes(val));
     matches.forEach(item => {
         const option = document.createElement('option');
@@ -45,11 +44,8 @@ function handleSearchInput(val) {
         datalist.appendChild(option);
     });
 
-    // אם נמצאה התאמה מדויקת (למשל המשתמש בחר מהרשימה)
     const exactMatch = list.items.find(i => i.name === val);
-    if (exactMatch && val === exactMatch.name) {
-        findItemInList(val);
-    }
+    if (exactMatch && val === exactMatch.name) findItemInList(val);
 }
 
 function findItemInList(specificVal = null) {
@@ -65,21 +61,18 @@ function findItemInList(specificVal = null) {
         return;
     }
 
+    render(); 
     const itemElements = document.querySelectorAll('#itemsContainer .item-card');
     const targetEl = Array.from(itemElements).find(el => parseInt(el.getAttribute('data-id')) === itemIdx);
 
     if (targetEl) {
-        // גלילה חלקה למוצר
         targetEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        
-        // אפקט הדגשה "פרו"
         targetEl.style.transition = 'all 0.4s ease';
         targetEl.style.boxShadow = '0 0 25px 8px rgba(115, 103, 240, 0.5)';
         targetEl.style.border = '3px solid #7367f0';
         targetEl.style.transform = 'scale(1.05)';
         targetEl.style.zIndex = "10";
 
-        // פונקציה להסרת ההדגשה ברגע שהמשתמש גולל
         const removeHighlight = () => {
             targetEl.style.boxShadow = '';
             targetEl.style.border = '';
@@ -88,12 +81,9 @@ function findItemInList(specificVal = null) {
             window.removeEventListener('scroll', removeHighlight);
         };
 
-        setTimeout(() => {
-            window.addEventListener('scroll', removeHighlight);
-        }, 600);
-        
-        searchInput.value = ''; // ניקוי השדה
-        searchInput.blur(); // סגירת המקלדת
+        setTimeout(() => window.addEventListener('scroll', removeHighlight), 600);
+        searchInput.value = '';
+        searchInput.blur();
     }
 }
 
@@ -112,26 +102,26 @@ function render() {
     const container = document.getElementById(activePage === 'lists' ? 'itemsContainer' : (activePage === 'summary' ? 'summaryContainer' : null));
     let total = 0, paid = 0;
 
-    // עדכון כפתורי הניווט
-    document.getElementById('tabLists').className = `tab-btn ${activePage === 'lists' ? 'tab-active' : ''}`;
-    document.getElementById('tabSummary').className = `tab-btn ${activePage === 'summary' ? 'tab-active' : ''}`;
-    document.getElementById('tabStats').className = `tab-btn ${activePage === 'stats' ? 'tab-active' : ''}`;
+    const tabs = { 'lists': 'tabLists', 'summary': 'tabSummary', 'stats': 'tabStats' };
+    Object.keys(tabs).forEach(p => {
+        const el = document.getElementById(tabs[p]);
+        if (el) el.className = `tab-btn ${activePage === p ? 'tab-active' : ''}`;
+    });
 
     if (activePage === 'lists') {
         document.getElementById('pageLists').classList.remove('hidden');
         document.getElementById('pageSummary').classList.add('hidden');
         document.getElementById('pageStats').classList.add('hidden');
         
-        const list = db.lists[db.currentId] || { name: 'הרשימה שלי', items: [] };
+        const list = db.lists[db.currentId] || { name: 'רשימה', items: [] };
         document.getElementById('listNameDisplay').innerText = list.name;
-        document.getElementById('statusTag').innerText = isLocked ? "נעול" : "עריכה פעילה (גרירה)";
-
+        document.getElementById('statusTag').innerText = isLocked ? "🔒 נעול" : "🔓 עריכה פעילה";
+        
         if (container) {
             container.innerHTML = '';
             list.items.forEach((item, idx) => {
                 const sub = item.price * item.qty; 
                 total += sub; if (item.checked) paid += sub;
-                
                 const div = document.createElement('div'); 
                 div.className = "item-card";
                 div.setAttribute('data-id', idx);
@@ -147,9 +137,9 @@ function render() {
                     </div>
                     <div class="flex justify-between items-center">
                         <div class="flex items-center gap-3 bg-gray-50 rounded-xl px-2 py-1 border">
-                            <button onclick="changeQty(${idx}, 1)" class="text-green-500 font-bold text-xl">+</button>
-                            <span class="font-bold w-6 text-center">${item.qty}</span>
-                            <button onclick="changeQty(${idx}, -1)" class="text-red-500 font-bold text-xl">-</button>
+                            <button onclick="changeQty(${idx}, 1)" class="text-green-500 font-bold">+</button>
+                            <span class="font-bold">${item.qty}</span>
+                            <button onclick="changeQty(${idx}, -1)" class="text-red-500 font-bold">-</button>
                         </div>
                         <span onclick="promptPriceUpdate(${idx})" class="text-2xl font-black text-indigo-600 cursor-pointer">₪${sub.toFixed(2)}</span>
                     </div>`;
@@ -194,7 +184,6 @@ function renderStats() {
     document.getElementById('pageLists').classList.add('hidden');
     document.getElementById('pageSummary').classList.add('hidden');
     document.getElementById('pageStats').classList.remove('hidden');
-    
     document.getElementById('completedLists').innerText = db.stats.listsCompleted || 0;
     const avg = db.stats.listsCompleted > 0 ? (db.stats.totalSpent / db.stats.listsCompleted).toFixed(0) : 0;
     document.getElementById('avgPerList').innerText = `₪${avg}`;
@@ -205,9 +194,7 @@ function renderStats() {
         db.history.slice().reverse().forEach(entry => {
             const d = document.createElement('div');
             d.className = "p-3 bg-gray-50 rounded-xl mb-2 flex justify-between items-center";
-            d.innerHTML = `
-                <div><div class="font-bold">${entry.name}</div><div class="text-[10px] text-gray-400">${new Date(entry.completedAt).toLocaleDateString('he-IL')}</div></div>
-                <div class="font-black text-indigo-600">₪${entry.total.toFixed(2)}</div>`;
+            d.innerHTML = `<div><div class="font-bold">${entry.name}</div><div class="text-[10px] text-gray-400">${new Date(entry.completedAt).toLocaleDateString('he-IL')}</div></div><div class="font-black text-indigo-600">₪${entry.total.toFixed(2)}</div>`;
             histCont.appendChild(d);
         });
     }
@@ -217,21 +204,12 @@ function renderStats() {
 
 function promptPriceUpdate(idx) {
     const item = db.lists[db.currentId].items[idx];
-    const newPrice = prompt(`עדכון מחיר עבור ${item.name} (כמות: ${item.qty}):`, item.price);
-    if (newPrice !== null) {
-        const p = parseFloat(newPrice);
-        if (!isNaN(p)) {
-            item.price = p;
-            save();
-            showNotification('✅ המחיר עודכן');
-        }
+    const newPrice = prompt(`עדכון מחיר עבור ${item.name}:`, item.price);
+    if (newPrice !== null && !isNaN(parseFloat(newPrice))) {
+        item.price = parseFloat(newPrice);
+        save();
+        showNotification('✅ המחיר עודכן');
     }
-}
-
-function setActiveList(id) {
-    db.currentId = id;
-    activePage = 'lists';
-    save();
 }
 
 function completeList() {
@@ -242,19 +220,14 @@ function completeList() {
         return;
     }
     const total = list.items.reduce((sum, item) => sum + (item.price * item.qty), 0);
-    db.history.push({ 
-        name: list.name, 
-        items: JSON.parse(JSON.stringify(list.items)), 
-        total, 
-        completedAt: Date.now() 
-    });
+    db.history.push({ name: list.name, items: [...list.items], total, completedAt: Date.now() });
     db.stats.totalSpent += total;
     db.stats.listsCompleted++;
-    list.items = []; // ניקוי הרשימה
-    activePage = 'stats'; // מעבר אוטומטי לסטטיסטיקות
+    list.items = [];
+    activePage = 'stats';
     closeModal('confirmModal');
     save();
-    showNotification('✅ הרשימה הושלמה ונשמרה!');
+    showNotification('✅ הרשימה הושלמה!');
 }
 
 function addItem() {
@@ -264,41 +237,29 @@ function addItem() {
         db.lists[db.currentId].items.push({name:n, price:p, qty:1, checked:false}); 
         document.getElementById('itemName').value = '';
         document.getElementById('itemPrice').value = '';
-        closeModal('inputForm'); 
-        save(); 
+        closeModal('inputForm'); save(); 
     }
 }
 
-function saveNewList() {
-    const n = document.getElementById('newListNameInput').value.trim();
-    if(n) {
-        const id = 'L' + Date.now();
-        db.lists[id] = { name: n, items: [], isTemplate: document.getElementById('newListTemplate').checked };
-        db.currentId = id;
-        closeModal('newListModal');
-        save();
-    }
-}
-
-function deleteFullList(id) {
-    if(Object.keys(db.lists).length > 1) {
-        if(confirm('למחוק את כל הרשימה? הפעולה לא ניתנת לביטול.')) {
-            delete db.lists[id];
-            if(db.currentId === id) db.currentId = Object.keys(db.lists)[0];
-            save();
-            showNotification('🗑️ הרשימה נמחקה');
-        }
+function shareNative(type) {
+    let text = type === 'list' ? `🛒 *${db.lists[db.currentId].name}*:\n` : `📦 *חסרים מהרשימות:* \n`;
+    if (type === 'list') {
+        db.lists[db.currentId].items.forEach(i => text += `${i.checked ? '✅' : '⬜'} ${i.name} (x${i.qty})\n`);
     } else {
-        showNotification('אי אפשר למחוק את הרשימה היחידה שנותרה', 'warning');
+        db.selectedInSummary.forEach(id => {
+            const l = db.lists[id];
+            const missing = l.items.filter(i => !i.checked);
+            if (missing.length > 0) {
+                text += `\n🔹 *${l.name}:*\n`;
+                missing.forEach(i => text += `- ${i.name}\n`);
+            }
+        });
     }
+    if (navigator.share) navigator.share({ title: 'Vplus Pro', text: text });
+    else { navigator.clipboard.writeText(text); showNotification('📋 הטקסט הועתק לשיתוף'); }
 }
 
-function toggleLock() { 
-    isLocked = !isLocked; 
-    save(); 
-    showNotification(isLocked ? '🔒 רשימה נעולה' : '🔓 מצב עריכה פעיל');
-}
-
+function toggleLock() { isLocked = !isLocked; render(); showNotification(isLocked ? '🔒 נעול' : '🔓 עריכה פעילה'); }
 function initSortable() {
     const el = document.getElementById('itemsContainer');
     if (sortableInstance) sortableInstance.destroy();
@@ -312,8 +273,7 @@ function initSortable() {
     }
 }
 
-// ========== UTILS & SHARING ==========
-
+// ========== UTILS & CLOUD ==========
 function showPage(p) { activePage = p; render(); }
 function openModal(id) { document.getElementById(id).classList.add('active'); }
 function closeModal(id) { document.getElementById(id).classList.remove('active'); }
@@ -322,7 +282,7 @@ function changeQty(idx, d) { if(db.lists[db.currentId].items[idx].qty + d >= 1) 
 function removeItem(idx) { db.lists[db.currentId].items.splice(idx, 1); save(); }
 function toggleSum(id) { const i = db.selectedInSummary.indexOf(id); i > -1 ? db.selectedInSummary.splice(i, 1) : db.selectedInSummary.push(id); save(); }
 function toggleSelectAll(checked) { db.selectedInSummary = checked ? Object.keys(db.lists) : []; save(); }
-function saveListName() { const n = document.getElementById('editListNameInput').value.trim(); if(n) { db.lists[db.currentId].name = n; save(); closeModal('editListNameModal'); } }
+function setActiveList(id) { db.currentId = id; activePage = 'lists'; save(); }
 
 function showNotification(msg, type='success') {
     const n = document.createElement('div'); n.className = 'notification show';
@@ -331,111 +291,15 @@ function showNotification(msg, type='success') {
     setTimeout(() => { n.classList.remove('show'); setTimeout(() => n.remove(), 300); }, 3000);
 }
 
-function shareNative(type) {
-    let text = "";
-    if (type === 'list') {
-        const list = db.lists[db.currentId];
-        text = `🛒 *${list.name}*:\n\n`;
-        list.items.forEach((i, idx) => {
-            text += `${idx+1}. ${i.checked ? '✅' : '⬜'} *${i.name}* (x${i.qty}) - ₪${(i.price * i.qty).toFixed(2)}\n`;
-        });
-        text += `\n💰 *סה"כ: ₪${document.getElementById('displayTotal').innerText}*`;
-    } else {
-        text = `📦 *חסרים מכל הרשימות שסומנו:* \n\n`;
-        db.selectedInSummary.forEach(id => {
-            const l = db.lists[id];
-            const missing = l.items.filter(i => !i.checked);
-            if (missing.length > 0) {
-                text += `🔹 *${l.name}:*\n`;
-                missing.forEach(i => text += `- ${i.name} (x${i.qty})\n`);
-            }
-        });
-    }
-    
-    if (navigator.share) {
-        navigator.share({ title: 'Vplus Pro', text: text }).catch(() => {});
-    } else {
-        navigator.clipboard.writeText(text);
-        showNotification('📋 הטקסט הועתק לשיתוף');
-    }
-}
+function handleCloudClick() { if (!isConnected) tokenClient.requestAccessToken(); else syncToCloud(); }
+async function syncToCloud() { showNotification('☁️ מסנכרן לענן...'); }
 
-// ========== DATA MGMT & CLOUD ==========
-
-function preparePrint() { window.print(); }
-function exportData() {
-    const blob = new Blob([JSON.stringify(db, null, 2)], {type: 'application/json'});
-    const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
-    a.download = `vplus_backup_${new Date().toISOString().split('T')[0]}.json`; a.click();
-}
-function importData(e) {
-    const reader = new FileReader();
-    reader.onload = (event) => { try { db = JSON.parse(event.target.result); save(); showNotification('✅ הנתונים שוחזרו!'); } catch(e){ alert('קובץ לא תקין'); } };
-    reader.readAsText(e.target.files[0]);
-}
-function toggleDarkMode() {
-    document.body.classList.toggle('dark-mode');
-    localStorage.setItem('darkMode', document.body.classList.contains('dark-mode'));
-}
-function importFromText() {
-    const txt = document.getElementById('importText').value;
-    if(!txt) return;
-    const lines = txt.split('\n');
-    lines.forEach(l => { if(l.trim()) db.lists[db.currentId].items.push({name: l.trim(), price: 0, qty: 1, checked: false}); });
-    document.getElementById('importText').value = '';
-    closeModal('importModal');
-    save();
-    showNotification('✅ המוצרים יובאו!');
-}
-
-// ========== GOOGLE DRIVE INTEGRATION ==========
-
-function gapiLoaded() {
-    gapi.load('client', async () => {
-        await gapi.client.init({ apiKey: GOOGLE_API_KEY, discoveryDocs: [DISCOVERY_DOC] });
-        gapiInited = true;
-    });
-}
-
-function gisLoaded() {
-    tokenClient = google.accounts.oauth2.initTokenClient({
-        client_id: GOOGLE_CLIENT_ID,
-        scope: SCOPES,
-        callback: (resp) => {
-            if (resp.error !== undefined) return;
-            accessToken = resp.access_token;
-            isConnected = true;
-            document.getElementById('cloudIndicator').className = "w-2 h-2 bg-green-500 rounded-full";
-            showNotification('☁️ מחובר לגוגל דרייב!');
-            syncToCloud();
-        }
-    });
-    gisInited = true;
-}
-
-function handleCloudClick() {
-    if (!isConnected) tokenClient.requestAccessToken();
-    else syncToCloud();
-}
-
-async function syncToCloud() {
-    if (!accessToken) return;
-    document.getElementById('cloudIndicator').classList.add('animate-pulse');
-    // כאן תוכל להוסיף את הלוגיקה המלאה של העלאת הקובץ לדרייב כפי שהייתה קודם
-    setTimeout(() => {
-        document.getElementById('cloudIndicator').classList.remove('animate-pulse');
-        showNotification('☁️ סונכרן לענן');
-    }, 1500);
-}
-
-// ========== INITIALIZATION ==========
+function gapiLoaded() { gapi.load('client', async () => { await gapi.client.init({ apiKey: GOOGLE_API_KEY, discoveryDocs: [DISCOVERY_DOC] }); gapiInited = true; }); }
+function gisLoaded() { tokenClient = google.accounts.oauth2.initTokenClient({ client_id: GOOGLE_CLIENT_ID, scope: SCOPES, callback: (resp) => { accessToken = resp.access_token; isConnected = true; document.getElementById('cloudIndicator').style.background = "#22c55e"; showNotification('☁️ מחובר!'); } }); gisInited = true; }
 
 window.addEventListener('DOMContentLoaded', () => {
     if(localStorage.getItem('darkMode') === 'true') document.body.classList.add('dark-mode');
-    
-    // טעינת סקריפטים של גוגל
     const s1 = document.createElement('script'); s1.src = "https://apis.google.com/js/api.js"; s1.onload = gapiLoaded; document.head.appendChild(s1);
     const s2 = document.createElement('script'); s2.src = "https://accounts.google.com/gsi/client"; s2.onload = gisLoaded; document.head.appendChild(s2);
-    
     render();
 });
