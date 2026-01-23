@@ -241,6 +241,7 @@ function render() {
             });
         }
 
+        // Budget warning
         const budgetWarning = document.getElementById('budgetWarning');
         if (budgetWarning && list.budget > 0 && total > list.budget) {
             budgetWarning.classList.remove('hidden');
@@ -734,9 +735,13 @@ function importFromText() {
 
     for (let i = startIndex; i < lines.length; i++) {
         const line = lines[i].trim();
-        if (!line || line.includes('🛒') || line.includes('💰') || line.includes('סה"כ') || line === '---') continue;
+        
+        if (!line || line.includes('🛒') || line.includes('💰') || line.includes('סה"כ') || line === '---') {
+            continue;
+        }
 
         let itemAdded = false;
+
         const fullMatch = line.match(/[⬜✅]\s*\*([^*]+)\*\s*\(x(\d+)\)\s*-\s*₪([\d.]+)/);
         if (fullMatch) {
             const name = fullMatch[1].trim();
@@ -747,6 +752,7 @@ function importFromText() {
             items.push({ name, price, qty, checked, category: '' });
             itemAdded = true;
         }
+
         if (!itemAdded) {
             const bulletQtyMatch = line.match(/^[•\-]\s*\*?([^(]+)\*?\s*\(x(\d+)\)/);
             if (bulletQtyMatch) {
@@ -758,6 +764,7 @@ function importFromText() {
                 }
             }
         }
+
         if (!itemAdded) {
             const bulletMatch = line.match(/^[•\-]\s*\*?(.+?)\*?$/);
             if (bulletMatch) {
@@ -768,6 +775,7 @@ function importFromText() {
                 }
             }
         }
+
         if (!itemAdded) {
             const starMatch = line.match(/^\*([^*]+)\*$/);
             if (starMatch) {
@@ -778,6 +786,7 @@ function importFromText() {
                 }
             }
         }
+
         if (!itemAdded && line.length > 0) {
             const name = line.replace(/^[\d\.\)\-\s]+/, '').trim();
             if (name && !/^\d+$/.test(name)) {
@@ -794,8 +803,10 @@ function importFromText() {
     db.lists[newListId] = { name: finalName, url: '', budget: 0, isTemplate: false, items };
     db.currentId = newListId;
     activePage = 'lists';
+    
     closeModal('importModal');
     save();
+    
     showNotification(`✅ יובאו ${items.length} מוצרים!`);
 }
 
@@ -829,11 +840,13 @@ function preparePrint() {
 
     let grandTotal = 0;
     let htmlContent = `<h1 style="text-align:center; color:#7367f0;">דוח קניות מפורט - Vplus Pro</h1>`;
+    
     const idsToPrint = db.selectedInSummary.length > 0 ? db.selectedInSummary : Object.keys(db.lists);
     
     idsToPrint.forEach(id => {
         const l = db.lists[id]; 
         let listTotal = 0;
+        
         htmlContent += `
             <div style="border-bottom: 2px solid #7367f0; margin-bottom: 20px; padding-bottom: 10px;">
                 <h2>${l.name}</h2>
@@ -847,6 +860,7 @@ function preparePrint() {
                         </tr>
                     </thead>
                     <tbody>`;
+        
         l.items.forEach(i => { 
             const s = i.price * i.qty; 
             listTotal += s; 
@@ -858,10 +872,17 @@ function preparePrint() {
                     <td style="padding:8px; border:1px solid #ddd; text-align:left;">₪${s.toFixed(2)}</td>
                 </tr>`; 
         });
-        htmlContent += `</tbody></table><div style="text-align:left; font-weight:bold;">סיכום רשימה: ₪${listTotal.toFixed(2)}</div></div>`;
+        
+        htmlContent += `
+                    </tbody>
+                </table>
+                <div style="text-align:left; font-weight:bold;">סיכום רשימה: ₪${listTotal.toFixed(2)}</div>
+            </div>`;
         grandTotal += listTotal;
     });
+    
     htmlContent += `<div style="text-align:center; margin-top:30px; padding:15px; border:3px double #7367f0; font-size:1.5em; font-weight:900;">סה"כ כולל: ₪${grandTotal.toFixed(2)}</div>`;
+    
     printArea.innerHTML = htmlContent; 
     window.print();
 }
@@ -912,10 +933,12 @@ function exportData() {
 function importData(event) {
     const file = event.target.files[0];
     if (!file) return;
+    
     const reader = new FileReader();
     reader.onload = function(e) {
         try {
             const importedData = JSON.parse(e.target.result);
+            
             if (confirm('האם לשחזר את כל הנתונים? פעולה זו תדרוס את הנתונים הנוכחיים!')) {
                 db = importedData;
                 save();
@@ -923,13 +946,13 @@ function importData(event) {
                 closeModal('settingsModal');
             }
         } catch (err) {
-            alert('שגיאה בקריאת הקובץ.');
+            alert('שגיאה בקריאת הקובץ. וודא שהקובץ תקין.');
         }
     };
     reader.readAsText(file);
 }
 
-// ========== Google Drive Integration (UPDATED) ==========
+// ========== Google Drive Integration ==========
 function gapiLoaded() {
     gapi.load('client', initializeGapiClient);
 }
@@ -960,28 +983,45 @@ function maybeEnableButtons() {
 }
 
 function handleCloudClick() {
-    if (isConnected) manualSync();
-    else handleAuthClick();
+    if (isConnected) {
+        manualSync();
+    } else {
+        handleAuthClick();
+    }
 }
 
 function handleAuthClick() {
     tokenClient.callback = async (resp) => {
-        if (resp.error !== undefined) return;
+        if (resp.error !== undefined) {
+            console.error('שגיאת התחברות:', resp);
+            return;
+        }
+        
         accessToken = gapi.client.getToken().access_token;
         isConnected = true;
         updateCloudIndicator('connected');
         showNotification('☁️ מחובר לענן!');
+        
         await loadAndMerge();
     };
-    tokenClient.requestAccessToken({prompt: gapi.client.getToken() === null ? 'consent' : ''});
+
+    if (gapi.client.getToken() === null) {
+        tokenClient.requestAccessToken({prompt: 'consent'});
+    } else {
+        tokenClient.requestAccessToken({prompt: ''});
+    }
 }
 
 function updateCloudIndicator(status) {
     const indicator = document.getElementById('cloudIndicator');
     if (!indicator) return;
-    indicator.className = status === 'connected' ? 'w-2 h-2 bg-green-500 rounded-full' : 
-                         status === 'syncing' ? 'w-2 h-2 bg-yellow-500 rounded-full animate-pulse' : 
-                         'w-2 h-2 bg-gray-300 rounded-full';
+    if (status === 'connected') {
+        indicator.className = 'w-2 h-2 bg-green-500 rounded-full';
+    } else if (status === 'syncing') {
+        indicator.className = 'w-2 h-2 bg-yellow-500 rounded-full animate-pulse';
+    } else {
+        indicator.className = 'w-2 h-2 bg-gray-300 rounded-full';
+    }
 }
 
 async function findOrCreateFolder() {
@@ -991,13 +1031,26 @@ async function findOrCreateFolder() {
             fields: 'files(id, name)',
             spaces: 'drive'
         });
-        if (response.result.files.length > 0) return response.result.files[0].id;
+
+        if (response.result.files.length > 0) {
+            return response.result.files[0].id;
+        }
+
+        const folderMetadata = {
+            name: FOLDER_NAME,
+            mimeType: 'application/vnd.google-apps.folder'
+        };
+
         const folder = await gapi.client.drive.files.create({
-            resource: { name: FOLDER_NAME, mimeType: 'application/vnd.google-apps.folder' },
+            resource: folderMetadata,
             fields: 'id'
         });
+
         return folder.result.id;
-    } catch (err) { return null; }
+    } catch (err) {
+        console.error('שגיאה ביצירת תיקייה:', err);
+        return null;
+    }
 }
 
 async function findFileInFolder(folderId) {
@@ -1007,91 +1060,155 @@ async function findFileInFolder(folderId) {
             fields: 'files(id, name)',
             spaces: 'drive'
         });
+
         return response.result.files.length > 0 ? response.result.files[0].id : null;
-    } catch (err) { return null; }
+    } catch (err) {
+        console.error('שגיאה באיתור קובץ:', err);
+        return null;
+    }
 }
 
 async function syncToCloud() {
     if (!accessToken || isSyncing) return;
+    
     isSyncing = true;
     updateCloudIndicator('syncing');
+
     try {
         const folderId = await findOrCreateFolder();
-        if (!folderId) { isSyncing = false; updateCloudIndicator('connected'); return; }
+        if (!folderId) {
+            isSyncing = false;
+            updateCloudIndicator('connected');
+            return;
+        }
+
         const fileId = await findFileInFolder(folderId);
         const dataToSave = JSON.stringify(db);
+
         if (fileId) {
             await fetch(`https://www.googleapis.com/upload/drive/v3/files/${fileId}?uploadType=media`, {
                 method: 'PATCH',
-                headers: { 'Authorization': `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
+                headers: {
+                    'Authorization': `Bearer ${accessToken}`,
+                    'Content-Type': 'application/json'
+                },
                 body: dataToSave
             });
+            driveFileId = fileId;
         } else {
-            const metadata = { name: FILE_NAME, parents: [folderId] };
+            const metadata = {
+                name: FILE_NAME,
+                parents: [folderId]
+            };
+
             const form = new FormData();
             form.append('metadata', new Blob([JSON.stringify(metadata)], { type: 'application/json' }));
             form.append('file', new Blob([dataToSave], { type: 'application/json' }));
-            await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart', {
+
+            const response = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id', {
                 method: 'POST',
-                headers: { 'Authorization': `Bearer ${accessToken}` },
+                headers: {
+                    'Authorization': `Bearer ${accessToken}`
+                },
                 body: form
             });
+
+            const result = await response.json();
+            driveFileId = result.id;
         }
-    } catch (err) { showNotification('❌ שגיאה בסינכרון', 'error'); }
-    finally { isSyncing = false; updateCloudIndicator('connected'); }
+
+        console.log('✅ סונכרן לענן');
+    } catch (err) {
+        console.error('❌ שגיאה בסינכרון:', err);
+        showNotification('❌ שגיאה בסינכרון', 'error');
+    } finally {
+        isSyncing = false;
+        updateCloudIndicator('connected');
+    }
 }
 
-// מנגנון ה-Load and Merge המשופר מהקובץ הישן עם הגנת מחיקה
 async function loadAndMerge() {
     if (!accessToken || isSyncing) return;
+    
     isSyncing = true;
     updateCloudIndicator('syncing');
+
     try {
         const folderId = await findOrCreateFolder();
-        const fileId = folderId ? await findFileInFolder(folderId) : null;
+        if (!folderId) {
+            isSyncing = false;
+            updateCloudIndicator('connected');
+            return;
+        }
+
+        const fileId = await findFileInFolder(folderId);
+        
         if (!fileId) {
-            isSyncing = false; updateCloudIndicator('connected');
+            console.log('📁 אין קובץ בענן - שומר נתונים מקומיים');
+            isSyncing = false;
+            updateCloudIndicator('connected');
             await syncToCloud();
             return;
         }
 
+        driveFileId = fileId;
+
         const response = await fetch(`https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`, {
-            headers: { 'Authorization': `Bearer ${accessToken}` }
+            headers: {
+                'Authorization': `Bearer ${accessToken}`
+            }
         });
+
         const cloudData = await response.json();
         
-        // הגנה: אם המכשיר ריק והענן מלא - תעדוף ענן בלבד (אל תמזג ואל תמחוק)
         const localItems = db.lists[db.currentId] ? [...db.lists[db.currentId].items] : [];
-        const cloudHasData = Object.keys(cloudData.lists).some(k => cloudData.lists[k].items.length > 0);
-
-        if (localItems.length === 0 && cloudHasData) {
-            console.log('🛡️ הגנת מחיקה: מכשיר ריק, טוען נתונים מהענן.');
-            db = cloudData;
-        } else {
-            // מיזוג רגיל לפי שמות מהקובץ הישן
-            const oldDb = db;
-            db = cloudData;
-            if (localItems.length > 0) {
-                const curId = db.currentId || 'L1';
-                if (!db.lists[curId]) db.lists[curId] = { name: 'הרשימה שלי', url: '', budget: 0, isTemplate: false, items: [] };
-                const cloudNames = db.lists[curId].items.map(i => i.name);
-                const newItems = localItems.filter(li => !cloudNames.includes(li.name));
-                if (newItems.length > 0) db.lists[curId].items.push(...newItems);
+        
+        db = cloudData;
+        
+        if (localItems.length > 0) {
+            const currentListId = db.currentId || 'L1';
+            if (!db.lists[currentListId]) {
+                db.lists[currentListId] = { name: 'הרשימה שלי', url: '', budget: 0, isTemplate: false, items: [] };
+            }
+            
+            const cloudItemNames = db.lists[currentListId].items.map(i => i.name);
+            const newItems = localItems.filter(localItem => 
+                !cloudItemNames.includes(localItem.name)
+            );
+            
+            if (newItems.length > 0) {
+                db.lists[currentListId].items.push(...newItems);
+                console.log(`✅ צורפו ${newItems.length} מוצרים חדשים`);
             }
         }
         
         localStorage.setItem('BUDGET_FINAL_V28', JSON.stringify(db));
         render();
-        if (localItems.length > 0) await syncToCloud();
+        
+        if (localItems.length > 0) {
+            isSyncing = false;
+            updateCloudIndicator('connected');
+            await syncToCloud();
+        }
+        
         showNotification('☁️ סונכרן מהענן!');
-    } catch (err) { showNotification('❌ שגיאה בטעינה', 'error'); }
-    finally { isSyncing = false; updateCloudIndicator('connected'); }
+        console.log('✅ טעינה מהענן הושלמה');
+    } catch (err) {
+        console.error('❌ שגיאה בטעינה:', err);
+        showNotification('❌ שגיאה בטעינה מהענן', 'error');
+    } finally {
+        isSyncing = false;
+        updateCloudIndicator('connected');
+    }
 }
 
-async function manualSync() { await loadAndMerge(); }
+async function manualSync() {
+    await loadAndMerge();
+}
 
 // ========== Event Listeners ==========
 window.addEventListener('DOMContentLoaded', () => {
+    // Check for saved dark mode preference
     const savedDarkMode = localStorage.getItem('darkMode');
     if (savedDarkMode === 'true') {
         document.body.classList.add('dark-mode');
@@ -1099,14 +1216,101 @@ window.addEventListener('DOMContentLoaded', () => {
         if (text) text.textContent = 'מצב יום ☀️';
     }
 
+    // Bottom bar minimization
+    const bottomBar = document.querySelector('.bottom-bar');
+    if (bottomBar) {
+        const interactiveElements = bottomBar.querySelectorAll('button, input');
+        interactiveElements.forEach(el => {
+            el.addEventListener('click', (e) => e.stopPropagation());
+        });
+    }
+
+    // Enter key handlers for input form
     const itemNameInput = document.getElementById('itemName');
     const itemPriceInput = document.getElementById('itemPrice');
+    const itemCategorySelect = document.getElementById('itemCategory');
+
     if (itemNameInput && itemPriceInput) {
-        itemNameInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') { e.preventDefault(); itemPriceInput.focus(); } });
-        itemPriceInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') { e.preventDefault(); addItem(); } });
+        itemNameInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                itemPriceInput.focus();
+            }
+        });
+
+        itemPriceInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                if (itemCategorySelect) {
+                    itemCategorySelect.focus();
+                } else {
+                    addItem();
+                }
+            }
+        });
+
+        if (itemCategorySelect) {
+            itemCategorySelect.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    addItem();
+                }
+            });
+        }
+    }
+
+    // Enter key handlers for new list modal
+    const listNameInput = document.getElementById('newListNameInput');
+    const listUrlInput = document.getElementById('newListUrlInput');
+    const listBudgetInput = document.getElementById('newListBudget');
+    if (listNameInput && listUrlInput && listBudgetInput) {
+        listNameInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                listUrlInput.focus();
+            }
+        });
+        listUrlInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                listBudgetInput.focus();
+            }
+        });
+        listBudgetInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                saveNewList();
+            }
+        });
+    }
+
+    // Enter key handlers for edit list modal
+    const editNameInput = document.getElementById('editListNameInput');
+    const editUrlInput = document.getElementById('editListUrlInput');
+    const editBudgetInput = document.getElementById('editListBudget');
+    if (editNameInput && editUrlInput && editBudgetInput) {
+        editNameInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                editUrlInput.focus();
+            }
+        });
+        editUrlInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                editBudgetInput.focus();
+            }
+        });
+        editBudgetInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                saveListName();
+            }
+        });
     }
 });
 
+// Load Google APIs
 const script1 = document.createElement('script');
 script1.src = 'https://apis.google.com/js/api.js';
 script1.onload = gapiLoaded;
@@ -1117,4 +1321,5 @@ script2.src = 'https://accounts.google.com/gsi/client';
 script2.onload = gisLoaded;
 document.head.appendChild(script2);
 
+// Initial render
 render();
