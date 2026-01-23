@@ -23,7 +23,7 @@ body {
     cursor: pointer;
 }
 
-/* מצב מוסתר/מצומצם שמשאיר פס דק למעלה */
+/* מצב מוסתר/מצומצם שמשאיר פס דק למעלה לצורך פתיחה */
 .bottom-bar.minimized {
     transform: translateY(calc(100% - 12px));
 }
@@ -37,6 +37,15 @@ body {
     display: flex; 
     flex-direction: column; 
     transition: all 0.3s ease;
+    border: 2px solid transparent;
+}
+
+/* הדגשה למוצר שנמצא בחיפוש */
+.highlight-search {
+    border-color: #7367f0 !important;
+    background-color: #f0eeff !important;
+    transform: scale(1.02);
+    box-shadow: 0 10px 20px rgba(115, 103, 240, 0.2);
 }
 
 .tab-btn { 
@@ -134,7 +143,29 @@ body {
     box-shadow: 0 2px 5px rgba(0,0,0,0.1); 
 }
 
-.category-separator { background: #7367f0; color: white; border-radius: 20px; padding: 15px; margin-bottom: 20px; text-align: center; }
+.category-separator { 
+    background: #7367f0; 
+    color: white; 
+    border-radius: 20px; 
+    padding: 15px; 
+    margin-bottom: 20px; 
+    text-align: center; 
+}
+
+/* סגנון למספר המוצר ברשימה */
+.item-index {
+    background: #e0e7ff;
+    color: #4338ca;
+    font-size: 12px;
+    font-weight: bold;
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 8px;
+    margin-left: 10px;
+}
 
 /* מצב לילה מלא בהתאם למקור */
 body.dark-mode { background: #1a1a2e; color: #e0e0e0; }
@@ -143,7 +174,11 @@ body.dark-mode { background: #1a1a2e; color: #e0e0e0; }
 .dark-mode .modal-input { background: #16213e !important; color: white; border-color: #0f3460; }
 .dark-mode .item-card .bg-gray-50 { background-color: rgba(255,255,255,0.1) !important; border-color: rgba(255,255,255,0.2); }
 
+/* סגנון הדפסה מקצועי */
 @media print {
     .no-print, .bottom-bar, .app-header, .tab-btn, .modal-overlay, .trash-btn, input, button { display: none !important; }
     #printArea { display: block !important; width: 100%; direction: rtl; }
+    table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+    th, td { border: 1px solid #ddd; padding: 12px; text-align: right; }
+    th { background-color: #f8f9fa; }
 }
