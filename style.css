@@ -8,7 +8,7 @@ body {
     margin: 0; 
 }
 
-/* הבר התחתון הסגול - עם אפקט ירידה/צמצום */
+/* הבר התחתון הסגול - אפקט ירידה וצמצום בדיוק כמו במקור */
 .bottom-bar { 
     position: fixed; 
     bottom: 0; 
@@ -23,7 +23,7 @@ body {
     cursor: pointer;
 }
 
-/* מצב מוסתר - יורד למטה ומשאיר פס דק למעלה לצורך פתיחה */
+/* מצב מוסתר/מצומצם שמשאיר פס דק למעלה */
 .bottom-bar.minimized {
     transform: translateY(calc(100% - 12px));
 }
@@ -66,7 +66,7 @@ body {
     cursor: pointer;
 }
 
-/* מודאלים מוצמדים למעלה ומהודקים */
+/* מודאלים מוצמדים למעלה ומהודקים כפי שמופיע במקור */
 .modal-overlay { 
     display: none; 
     position: fixed; 
@@ -133,14 +133,14 @@ body {
     cursor: pointer; 
     box-shadow: 0 2px 5px rgba(0,0,0,0.1); 
 }
+
 .category-separator { background: #7367f0; color: white; border-radius: 20px; padding: 15px; margin-bottom: 20px; text-align: center; }
 
-/* מצב לילה */
+/* מצב לילה מלא בהתאם למקור */
 body.dark-mode { background: #1a1a2e; color: #e0e0e0; }
 .dark-mode .app-header { background: #16213e; border-bottom: 1px solid #0f3460; }
 .dark-mode .item-card, .dark-mode .bg-white { background-color: #0f3460 !important; border-color: #1a1a2e; color: white; }
 .dark-mode .modal-input { background: #16213e !important; color: white; border-color: #0f3460; }
-.dark-mode .item-card span.font-bold { color: white !important; }
 .dark-mode .item-card .bg-gray-50 { background-color: rgba(255,255,255,0.1) !important; border-color: rgba(255,255,255,0.2); }
 
 @media print {
