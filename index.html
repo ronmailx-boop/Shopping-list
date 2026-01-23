@@ -8,7 +8,6 @@
     <link rel="manifest" href="manifest.json">
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     
     <style>
         * { box-sizing: border-box; touch-action: manipulation; }
@@ -17,8 +16,8 @@
             background: linear-gradient(135deg, #f4f7fa 0%, #e8ecf3 100%); 
             padding-bottom: 240px; 
             min-height: 100vh; 
-            transition: background 0.3s; 
             margin: 0; 
+            transition: background 0.3s;
         }
 
         .item-card { 
@@ -29,14 +28,8 @@
             box-shadow: 0 4px 12px rgba(0,0,0,0.03); 
             display: flex; 
             flex-direction: column;
-            transition: transform 0.2s, box-shadow 0.2s, border 0.3s;
+            transition: all 0.3s ease;
         }
-
-        .item-card:active { transform: scale(0.98); }
-        .item-number { color: #7367f0; opacity: 0.6; font-size: 0.8em; margin-left: 4px; }
-
-        #searchInput { transition: all 0.3s ease; border: 2px solid transparent; }
-        #searchInput:focus { border-color: #7367f0; outline: none; }
 
         .bottom-bar { 
             position: fixed; bottom: 0; left: 0; right: 0; 
@@ -45,31 +38,29 @@
             border-radius: 35px 35px 0 0; box-shadow: 0 -10px 25px rgba(0, 0, 0, 0.15); 
         }
 
-        .tab-btn { flex: 1; padding: 12px; border-radius: 15px; font-weight: bold; text-align: center; cursor: pointer; transition: 0.2s; background: white; color: #666; border: 1px solid #eee; }
+        .tab-btn { flex: 1; padding: 12px; border-radius: 15px; font-weight: bold; text-align: center; cursor: pointer; background: white; color: #666; border: 1px solid #eee; }
         .tab-active { background: linear-gradient(135deg, #7367f0 0%, #9055ff 100%) !important; color: white !important; }
-
-        .bottom-circle-btn { width: 48px; height: 48px; border-radius: 50%; display: flex; align-items: center; justify-content: center; border: 2px solid rgba(255,255,255,0.2); cursor: pointer; }
 
         .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.75); z-index: 7000; align-items: flex-start; justify-content: center; backdrop-filter: blur(8px); }
         .modal-overlay.active { display: flex; }
         .edit-modal { width: 90%; max-width: 400px; background: white; border-radius: 0 0 30px 30px; padding: 20px; text-align: center; max-height: 90vh; overflow-y: auto; }
 
-        .modal-input { width: 100%; padding: 12px; border: 2px solid #f3f4f6; border-radius: 16px; margin-bottom: 10px; text-align: center; font-weight: bold; }
+        .modal-input { width: 100%; padding: 12px; border: 2px solid #f3f4f6; border-radius: 16px; margin-bottom: 10px; text-align: center; font-weight: bold; outline: none; }
 
-        .app-header { background: white; padding: 10px 20px; display: flex; flex-direction: row-reverse; justify-content: space-between; align-items: center; box-shadow: 0 2px 8px rgba(0,0,0,0.05); position: sticky; top: 0; z-index: 2000; }
+        .app-header { background: white; padding: 10px 20px; display: flex; flex-direction: row-reverse; justify-content: space-between; align-items: center; box-shadow: 0 2px 8px rgba(0,0,0,0.05); position: sticky; top: 0; z-index: 2000; height: 60px; }
 
-        .trash-btn { width: 40px; height: 40px; color: #ef4444; border: none; background: none; cursor: pointer; }
         .category-separator { background: linear-gradient(135deg, #7367f0 0%, #9055ff 100%); color: white; border-radius: 20px; padding: 15px; margin-bottom: 20px; text-align: center; }
 
         body.dark-mode { background: #1a1a2e; color: #e0e0e0; }
-        .dark-mode .bg-white, .dark-mode .app-header { background-color: #16213e !important; color: white; }
+        .dark-mode .bg-white, .dark-mode .app-header, .dark-mode .edit-modal { background-color: #16213e !important; color: white; }
         .dark-mode .item-card { background-color: #0f3460 !important; }
+        .dark-mode .modal-input { background-color: #1a1a2e !important; color: white; border-color: #0f3460; }
 
         .notification { position: fixed; top: 70px; right: 20px; background: white; padding: 15px 20px; border-radius: 15px; box-shadow: 0 10px 25px rgba(0,0,0,0.15); z-index: 9000; transform: translateX(400px); transition: transform 0.3s; }
         .notification.show { transform: translateX(0); }
 
         .hidden { display: none; }
-        @media print { .no-print { display: none !important; } #printArea { display: block !important; } }
+        .trash-btn { font-size: 1.2rem; cursor: pointer; padding: 5px; }
     </style>
 </head>
 <body>
@@ -79,11 +70,11 @@
             <span style="color: #22c55e;">V</span><span class="text-indigo-600">plus</span><span style="font-size: 10px; color: #9055ff; vertical-align: super;">PRO</span>
         </h1>
         <div class="header-controls flex items-center gap-2">
-            <div id="cloudBtn" class="bg-indigo-50 text-indigo-600 px-3 py-1 rounded-full text-[10px] font-bold border border-indigo-100 cursor-pointer flex items-center gap-1">
+            <div id="cloudBtn" onclick="handleCloudClick()" class="bg-indigo-50 text-indigo-600 px-3 py-1 rounded-full text-[10px] font-bold border border-indigo-100 cursor-pointer flex items-center gap-1">
                 <span>סנכרון ענן</span>
                 <div id="cloudIndicator" class="w-2 h-2 bg-gray-300 rounded-full"></div>
             </div>
-            <button onclick="openModal('settingsModal')" class="p-2"><svg class="w-7 h-7 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg></button>
+            <button onclick="openModal('settingsModal')" class="p-2"><svg class="w-7 h-7 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path></svg></button>
         </div>
     </div>
 
@@ -104,12 +95,12 @@
                 <button onclick="openModal('importModal')" class="bg-green-500 text-white flex-1 py-3 rounded-xl font-bold">📥 ייבוא</button>
             </div>
             <div class="category-separator">
-                <div class="flex justify-between items-center px-2">
-                    <button onclick="shareNative('list')">📤</button>
-                    <div id="listNameDisplay" class="text-xl font-black" onclick="openModal('editListNameModal')">טוען...</div>
-                    <button onclick="toggleTemplateMode()">⭐</button>
+                <div class="flex justify-between items-center px-4">
+                    <button onclick="shareNative('list')" class="text-xl">📤</button>
+                    <div id="listNameDisplay" class="text-xl font-black">טוען...</div>
+                    <button onclick="showNotification('⭐ תכונה זו תתווסף בקרוב')" class="text-xl">⭐</button>
                 </div>
-                <div id="statusTag" class="text-[10px] font-bold mt-1 opacity-80 uppercase">נעול</div>
+                <div id="statusTag" class="text-[10px] font-bold mt-1 opacity-80 uppercase tracking-widest">נעול</div>
             </div>
             <div id="itemsContainer"></div>
         </div>
@@ -117,85 +108,77 @@
         <div id="pageSummary" class="hidden">
             <div class="bg-white rounded-2xl p-4 mb-4 shadow-sm border border-gray-100 flex items-center gap-3">
                 <input type="checkbox" id="selectAllLists" onchange="toggleSelectAll(this.checked)" class="w-7 h-7 accent-indigo-600">
-                <span class="font-bold text-slate-700 flex-1">בחר הכל</span>
+                <span class="font-bold text-slate-700 flex-1">בחר את כל הרשימות</span>
                 <button onclick="shareNative('summary')" class="text-indigo-600 font-bold">שתף חסרים</button>
             </div>
             <div id="summaryContainer"></div>
         </div>
 
         <div id="pageStats" class="hidden">
-            <div class="stat-card">
-                <h3 class="font-bold mb-4">📊 ביצועים</h3>
-                <div class="grid grid-cols-2 gap-3 mb-4">
-                    <div class="bg-green-50 p-3 rounded-xl"><div class="text-xs">הושלמו</div><div id="completedLists" class="text-xl font-black">0</div></div>
-                    <div class="bg-blue-50 p-3 rounded-xl"><div class="text-xs">ממוצע</div><div id="avgPerList" class="text-xl font-black">₪0</div></div>
+            <div class="bg-white p-6 rounded-3xl shadow-sm mb-4">
+                <h3 class="font-bold text-xl mb-4">📊 ביצועים כלליים</h3>
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="bg-green-50 p-4 rounded-2xl"><div class="text-xs text-green-600">הושלמו</div><div id="completedLists" class="text-2xl font-black text-green-700">0</div></div>
+                    <div class="bg-blue-50 p-4 rounded-2xl"><div class="text-xs text-blue-600">ממוצע</div><div id="avgPerList" class="text-2xl font-black text-blue-700">₪0</div></div>
                 </div>
-                <canvas id="monthlyChart" height="200"></canvas>
             </div>
-            <div class="stat-card mt-4">
-                <h3 class="font-bold mb-4">📁 היסטוריה</h3>
-                <div id="historyContent" class="max-h-60 overflow-y-auto mb-4"></div>
+            <div class="bg-white p-6 rounded-3xl shadow-sm">
+                <h3 class="font-bold text-xl mb-4">📁 היסטוריית קניות</h3>
+                <div id="historyContent" class="space-y-2"></div>
             </div>
         </div>
     </div>
 
     <div class="bottom-bar text-white no-print">
-        <div class="flex items-center justify-between mb-4">
-            <div class="flex-1 text-center"><div class="text-[10px] opacity-70">סה"כ</div><div class="text-xl font-bold">₪<span id="displayTotal">0.00</span></div></div>
-            <div class="flex-shrink-0"><button onclick="openModal('inputForm')" class="w-16 h-16 bg-green-500 rounded-full text-4xl font-bold shadow-2xl">+</button></div>
-            <div class="flex-1 text-center"><div class="text-[10px] opacity-70">שולם</div><div class="text-xl font-bold">₪<span id="displayPaid">0.00</span></div></div>
+        <div class="flex items-center justify-between mb-4 px-2">
+            <div class="text-center"><div class="text-[10px] opacity-70">סה"כ</div><div class="text-xl font-bold">₪<span id="displayTotal">0.00</span></div></div>
+            <button onclick="openModal('inputForm')" class="w-16 h-16 bg-green-500 rounded-full text-4xl font-bold shadow-2xl border-4 border-white/20">+</button>
+            <div class="text-center"><div class="text-[10px] opacity-70">שולם</div><div class="text-xl font-bold">₪<span id="displayPaid">0.00</span></div></div>
         </div>
-        <div class="flex items-center justify-between gap-4">
-            <button id="mainLockBtn" onclick="toggleLock()" class="bottom-circle-btn bg-blue-600">🔒</button>
+        <div class="flex items-center justify-between gap-4 px-2">
+            <button id="mainLockBtn" onclick="toggleLock()" class="w-12 h-12 rounded-full bg-blue-600 flex items-center justify-center">🔒</button>
             <div class="text-center flex-1">
-                <div class="text-[10px] opacity-70">נשאר</div>
+                <div class="text-[10px] opacity-70">נשאר לתשלום</div>
                 <div class="text-2xl font-black text-orange-300">₪<span id="displayLeft">0.00</span></div>
             </div>
-            <button onclick="openModal('confirmModal')" class="bottom-circle-btn bg-red-500">✓</button>
+            <button onclick="openModal('confirmModal')" class="w-12 h-12 rounded-full bg-red-500 flex items-center justify-center font-bold text-xl">V</button>
         </div>
     </div>
 
     <div id="inputForm" class="modal-overlay no-print"><div class="edit-modal">
-        <h2>הוספת מוצר</h2>
-        <input type="text" id="itemName" placeholder="שם המוצר" class="modal-input">
-        <input type="number" id="itemPrice" placeholder="מחיר" class="modal-input">
-        <div class="flex gap-3"><button class="bg-green-500 text-white flex-1 py-4 rounded-xl font-bold" onclick="addItem()">הוסף</button><button onclick="closeModal('inputForm')" class="bg-gray-100 flex-1 py-4 rounded-xl">ביטול</button></div>
+        <h2 class="font-bold text-lg mb-4">הוספת מוצר</h2>
+        <input type="text" id="itemName" placeholder="מה קונים?" class="modal-input">
+        <input type="number" id="itemPrice" inputmode="decimal" placeholder="כמה זה עולה?" class="modal-input">
+        <div class="flex gap-3 mt-4"><button class="bg-green-500 text-white flex-1 py-4 rounded-xl font-bold" onclick="addItem()">הוסף</button><button onclick="closeModal('inputForm')" class="bg-gray-100 flex-1 py-4 rounded-xl">ביטול</button></div>
     </div></div>
 
     <div id="newListModal" class="modal-overlay no-print"><div class="edit-modal">
-        <h2>רשימה חדשה</h2>
-        <input type="text" id="newListNameInput" placeholder="שם הרשימה" class="modal-input">
-        <label class="flex items-center gap-2 mb-4 justify-center"><input type="checkbox" id="newListTemplate"> שמור כתבנית</label>
+        <h2 class="font-bold text-lg mb-4">רשימה חדשה</h2>
+        <input type="text" id="newListNameInput" placeholder="שם הרשימה (למשל: סופר)" class="modal-input">
+        <label class="flex items-center gap-2 justify-center mb-4"><input type="checkbox" id="newListTemplate" class="w-5 h-5"> שמור כתבנית</label>
         <div class="flex gap-3"><button class="bg-indigo-600 text-white flex-1 py-4 rounded-xl font-bold" onclick="saveNewList()">צור</button><button onclick="closeModal('newListModal')" class="bg-gray-100 flex-1 py-4 rounded-xl">ביטול</button></div>
     </div></div>
 
-    <div id="importModal" class="modal-overlay no-print"><div class="edit-modal">
-        <h2>ייבוא מרשימה</h2>
-        <textarea id="importText" placeholder="הדבק טקסט כאן..." class="modal-input h-32"></textarea>
-        <button class="bg-green-500 text-white w-full py-4 rounded-xl font-bold" onclick="importFromText()">ייבא עכשיו</button>
-    </div></div>
-
     <div id="confirmModal" class="modal-overlay no-print"><div class="edit-modal">
-        <h2 class="text-green-600">סיום קנייה</h2>
-        <p class="mb-6">להעביר להיסטוריה ולנקות רשימה?</p>
-        <div class="flex gap-3"><button class="bg-green-500 text-white flex-1 py-4 rounded-xl font-bold" onclick="completeList()">השלם</button><button onclick="closeModal('confirmModal')" class="bg-gray-100 flex-1 py-4 rounded-xl">ביטול</button></div>
+        <h2 class="text-green-600 font-bold text-xl mb-4">סיימת את הקנייה?</h2>
+        <p class="mb-6 text-gray-500">המוצרים יועברו להיסטוריה והרשימה הנוכחית תתנקה.</p>
+        <div class="flex gap-3"><button class="bg-green-500 text-white flex-1 py-4 rounded-xl font-bold" onclick="completeList()">כן, השלם</button><button onclick="closeModal('confirmModal')" class="bg-gray-100 flex-1 py-4 rounded-xl">ביטול</button></div>
     </div></div>
 
     <div id="settingsModal" class="modal-overlay no-print"><div class="edit-modal">
-        <h2 class="mb-4">הגדרות מתקדמות</h2>
-        <button onclick="toggleDarkMode()" class="w-full bg-indigo-50 text-indigo-600 py-3 rounded-xl font-bold mb-2">מצב לילה/יום 🌙</button>
-        <button onclick="openModal('templatesModal'); closeModal('settingsModal')" class="w-full bg-yellow-50 text-yellow-600 py-3 rounded-xl font-bold mb-2">⭐ תבניות</button>
-        <button onclick="preparePrint()" class="w-full bg-orange-500 text-white py-3 rounded-xl font-bold mb-2">הדפס PDF 🖨️</button>
-        <button onclick="exportData()" class="w-full bg-blue-500 text-white py-3 rounded-xl font-bold mb-2">💾 גיבוי לקובץ</button>
-        <button onclick="document.getElementById('importFile').click()" class="w-full bg-purple-500 text-white py-3 rounded-xl font-bold">📂 שחזור מקובץ</button>
-        <input type="file" id="importFile" class="hidden" onchange="importData(event)">
-        <button onclick="closeModal('settingsModal')" class="mt-4 text-gray-400">סגור</button>
+        <h2 class="font-bold text-lg mb-6">הגדרות</h2>
+        <button onclick="toggleDarkMode()" class="w-full bg-indigo-50 text-indigo-600 py-4 rounded-2xl font-bold mb-3">מצב לילה 🌙</button>
+        <button onclick="preparePrint()" class="w-full bg-orange-500 text-white py-4 rounded-2xl font-bold mb-3">הדפס PDF 🖨️</button>
+        <button onclick="exportData()" class="w-full bg-blue-500 text-white py-4 rounded-2xl font-bold mb-3">💾 גיבוי נתונים</button>
+        <button onclick="document.getElementById('fileIn').click()" class="w-full bg-purple-500 text-white py-4 rounded-2xl font-bold">📂 שחזור נתונים</button>
+        <input type="file" id="fileIn" class="hidden" onchange="importData(event)">
+        <button onclick="closeModal('settingsModal')" class="mt-6 text-gray-400 block w-full">סגור</button>
     </div></div>
 
-    <div id="templatesModal" class="modal-overlay no-print"><div class="edit-modal">
-        <h2>תבניות שמורות</h2>
-        <div id="templatesContent"></div>
-        <button onclick="closeModal('templatesModal')" class="mt-4">סגור</button>
+    <div id="importModal" class="modal-overlay no-print"><div class="edit-modal">
+        <h2 class="font-bold text-lg mb-4">ייבוא מהיר</h2>
+        <textarea id="importText" placeholder="הדבק רשימת שורות כאן..." class="modal-input h-32"></textarea>
+        <button class="bg-green-500 text-white w-full py-4 rounded-xl font-bold" onclick="importFromText()">ייבא עכשיו</button>
     </div></div>
 
     <div id="printArea" class="hidden"></div>
