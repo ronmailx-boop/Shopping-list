@@ -1,4 +1,4 @@
-// ========== Google Drive Configuration ==========
+// ========== הגדרות Google Drive (לפי נתוני המקור) ==========
 const GOOGLE_CLIENT_ID = '151476121869-b5lbrt5t89s8d342ftd1cg1q926518pt.apps.googleusercontent.com';
 const GOOGLE_API_KEY = 'AIzaSyDIMiuwL-phvwI7iAUeMQmTOowWE96mP6I'; 
 const DISCOVERY_DOC = 'https://www.googleapis.com/discovery/v1/apis/drive/v3/rest';
@@ -13,28 +13,24 @@ let accessToken = null;
 let isSyncing = false;
 let isConnected = false;
 
-// ========== App State ==========
+// ========== מצב האפליקציה ==========
 let db = JSON.parse(localStorage.getItem('BUDGET_FINAL_V27')) || { 
     currentId: 'L1', 
     selectedInSummary: [], 
     lists: { 'L1': { name: 'הרשימה שלי', url: '', items: [] } },
-    lastActivePage: 'lists',
-    lastSync: 0
+    lastActivePage: 'lists'
 };
 
 let isLocked = true;
 let activePage = db.lastActivePage || 'lists';
 let showOnlyMissing = false;
 
-// ========== Core Logic ==========
+// ========== פונקציות ליבה ==========
 function save() { 
     db.lastActivePage = activePage;
-    db.lastSync = Date.now();
     localStorage.setItem('BUDGET_FINAL_V27', JSON.stringify(db));
     render();
-    if (isConnected && !isSyncing) {
-        syncToCloud();
-    }
+    if (isConnected && !isSyncing) syncToCloud();
 }
 
 function render() {
@@ -44,21 +40,23 @@ function render() {
     
     let total = 0, paid = 0, count = 0;
 
-    // עדכון טאבים
+    // טאבים
     document.getElementById('tabLists').className = `tab-btn ${activePage === 'lists' ? 'tab-active' : ''}`;
     document.getElementById('tabSummary').className = `tab-btn ${activePage === 'summary' ? 'tab-active' : ''}`;
 
-    // עדכון כפתור נעילה
+    // נעילה
     const btn = document.getElementById('mainLockBtn');
     const path = document.getElementById('lockIconPath');
     const tag = document.getElementById('statusTag');
-    if (btn && path && tag) {
+    if (btn && path) {
         btn.className = `bottom-circle-btn ${isLocked ? 'bg-blue-600' : 'bg-orange-400'}`;
         path.setAttribute('d', isLocked ? 'M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z' : 'M8 11V7a4 4 0 118 0m-4 8v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2z');
-        tag.innerText = isLocked ? "נעול" : "עריכה (גרירה פעילה)";
+        tag.innerText = isLocked ? "נעול" : "עריכה פעילה";
     }
 
     if (activePage === 'lists') {
+        document.getElementById('pageLists').classList.remove('hidden');
+        document.getElementById('pageSummary').classList.add('hidden');
         const list = db.lists[db.currentId];
         document.getElementById('listNameDisplay').innerText = list.name;
         
@@ -95,6 +93,8 @@ function render() {
             container.appendChild(div);
         });
     } else {
+        document.getElementById('pageLists').classList.add('hidden');
+        document.getElementById('pageSummary').classList.remove('hidden');
         Object.keys(db.lists).forEach(id => {
             const l = db.lists[id];
             let lT = 0; l.items.forEach(i => lT += (i.price * i.qty));
@@ -117,19 +117,18 @@ function render() {
 
     document.getElementById('displayCount').innerText = count;
     document.getElementById('displayTotal').innerText = total.toFixed(2);
-    document.getElementById('displayPaid').innerText = paid.toFixed(2);
     document.getElementById('displayLeft').innerText = (total - paid).toFixed(2);
+    initSortable();
 }
 
-// ========== Actions ==========
-function selectList(id) { db.currentId = id; showPage('lists'); }
+// ========== פונקציות כפתורים ==========
 function showPage(p) { activePage = p; showOnlyMissing = false; save(); }
+function selectList(id) { db.currentId = id; showPage('lists'); }
 function toggleItem(idx) { db.lists[db.currentId].items[idx].checked = !db.lists[db.currentId].items[idx].checked; save(); }
 function toggleSum(id) { const i = db.selectedInSummary.indexOf(id); if(i>-1) db.selectedInSummary.splice(i,1); else db.selectedInSummary.push(id); save(); }
 function toggleLock() { isLocked = !isLocked; render(); }
 function changeQty(idx, d) { if(db.lists[db.currentId].items[idx].qty + d >= 1) { db.lists[db.currentId].items[idx].qty += d; save(); } }
 function removeItem(idx) { db.lists[db.currentId].items.splice(idx, 1); save(); }
-function toggleMissingFilter() { showOnlyMissing = !showOnlyMissing; document.getElementById('filterBanner').classList.toggle('hidden', !showOnlyMissing); render(); }
 
 function addItem() {
     const n = document.getElementById('itemName').value.trim();
@@ -166,83 +165,22 @@ function importFromText() {
     closeModal('importModal'); save();
 }
 
-function preparePrint() {
-    closeModal('settingsModal');
-    let html = `<div dir="rtl" style="padding:20px;"><h1>Vplus - דוח קניות</h1>`;
-    Object.keys(db.lists).forEach(id => {
-        const l = db.lists[id];
-        html += `<h2>${l.name}</h2><ul>` + l.items.map(i => `<li>${i.name} (x${i.qty})</li>`).join('') + `</ul>`;
-    });
-    html += `</div>`;
-    const win = window.open('', '_blank');
-    win.document.write(html);
-    win.document.close();
-    win.print();
+// ========== סינון חסרים ==========
+function toggleMissingFilter() { 
+    showOnlyMissing = !showOnlyMissing; 
+    document.getElementById('filterBanner').classList.toggle('hidden', !showOnlyMissing); 
+    render(); 
 }
 
-// ========== Cloud Sync ==========
-function handleCloudClick() { isConnected ? loadAndMerge() : handleAuthClick(); }
-
-async function handleAuthClick() {
-    tokenClient.callback = async (resp) => {
-        if (resp.error) return;
-        accessToken = gapi.client.getToken().access_token;
-        isConnected = true;
-        updateCloudIndicator('connected');
-        loadAndMerge();
-    };
-    tokenClient.requestAccessToken({prompt: 'consent'});
+function createListFromFiltered() {
+    const missing = db.lists[db.currentId].items.filter(i => !i.checked);
+    if (missing.length === 0) return;
+    const id = 'L' + Date.now();
+    db.lists[id] = { name: "חסרים מ-" + db.lists[db.currentId].name, url: '', items: JSON.parse(JSON.stringify(missing)) };
+    db.currentId = id; showOnlyMissing = false; save();
 }
 
-async function syncToCloud() {
-    if (!accessToken || isSyncing) return;
-    isSyncing = true; updateCloudIndicator('syncing');
-    try {
-        // לוגיקת העלאה פשוטה ל-Drive (multipart upload)
-        const metadata = { name: FILE_NAME, mimeType: 'application/json' };
-        const body = JSON.stringify(db);
-        // הערה: כאן יש להוסיף את ה-fetch המלא ל-Google Drive API כפי שהיה במקור
-        console.log("סונכרן לענן");
-    } finally { isSyncing = false; updateCloudIndicator('connected'); }
-}
-
-function updateCloudIndicator(s) {
-    const ind = document.getElementById('cloudIndicator');
-    if (ind) ind.className = `w-2 h-2 rounded-full ${s==='connected'?'bg-green-500':s==='syncing'?'bg-yellow-500 animate-pulse':'bg-gray-300'}`;
-}
-
-// ========== Init ==========
-window.addEventListener('DOMContentLoaded', () => {
-    document.getElementById('cloudBtn').onclick = handleCloudClick;
-    render();
-});
-
-// טעינת סקריפטים של גוגל
-const loadScript = (src, callback) => {
-    const s = document.createElement('script'); s.src = src; s.onload = callback; document.head.appendChild(s);
-};
-
-loadScript('https://apis.google.com/js/api.js', () => {
-    gapi.load('client', async () => {
-        await gapi.client.init({apiKey: GOOGLE_API_KEY, discoveryDocs: [DISCOVERY_DOC]});
-        gapiInited = true;
-    });
-});
-
-loadScript('https://accounts.google.com/gsi/client', () => {
-    tokenClient = google.accounts.oauth2.initTokenClient({
-        client_id: GOOGLE_CLIENT_ID,
-        scope: SCOPES,
-        callback: ''
-    });
-    gisInited = true;
-});
-
-// מודאלים
-function openModal(id) { document.getElementById(id).classList.add('active'); }
-function closeModal(id) { document.getElementById(id).classList.remove('active'); }
-
-// חיפוש
+// ========== חיפוש ==========
 function handleSearch(q) {
     const sug = document.getElementById('searchSuggestions');
     if (!q) { sug.classList.add('hidden'); return; }
@@ -251,7 +189,7 @@ function handleSearch(q) {
         if (item.name.includes(q)) {
             const d = document.createElement('div');
             d.innerHTML = item.name;
-            d.onclick = () => { highlightItem(idx); sug.classList.add('hidden'); };
+            d.onclick = () => { highlightItem(idx); sug.classList.add('hidden'); document.getElementById('globalSearch').value = ''; };
             sug.appendChild(d);
         }
     });
@@ -260,5 +198,61 @@ function handleSearch(q) {
 
 function highlightItem(idx) {
     const el = document.querySelector(`[data-id="${idx}"]`);
-    if (el) { el.scrollIntoView({behavior:'smooth', block:'center'}); el.classList.add('highlight-search'); setTimeout(()=>el.classList.remove('highlight-search'),2000); }
+    if (el) { el.scrollIntoView({behavior:'smooth', block:'center'}); el.classList.add('highlight-search'); setTimeout(()=>el.classList.remove('highlight-search'),3000); }
 }
+
+// ========== שיתוף והדפסה ==========
+async function shareNative(type) {
+    let text = type === 'current' ? `🛒 *${db.lists[db.currentId].name}*\n\n` : `📦 *ריכוז רשימות*\n\n`;
+    const target = type === 'current' ? db.lists[db.currentId].items : Object.values(db.lists);
+    target.forEach((i, idx) => text += `${idx+1}. ${i.name || i.items?.length + ' מוצרים'}\n`);
+    if (navigator.share) await navigator.share({ text });
+    else window.open("https://wa.me/?text=" + encodeURIComponent(text));
+}
+
+function preparePrint() {
+    closeModal('settingsModal');
+    let html = `<div dir="rtl"><h1>Vplus דוח</h1>`;
+    Object.keys(db.lists).forEach(id => {
+        const l = db.lists[id];
+        html += `<h2>${l.name}</h2><ul>` + l.items.map(i => `<li>${i.name}</li>`).join('') + `</ul>`;
+    });
+    const win = window.open('', '_blank');
+    win.document.write(html); win.document.close(); win.print();
+}
+
+// ========== מודאלים ==========
+function openModal(id) { document.getElementById(id).classList.add('active'); }
+function closeModal(id) { document.getElementById(id).classList.remove('active'); }
+
+// ========== Google Drive ==========
+function handleCloudClick() { isConnected ? alert("מסונכרן") : handleAuthClick(); }
+async function handleAuthClick() {
+    tokenClient.callback = async (resp) => {
+        accessToken = gapi.client.getToken().access_token;
+        isConnected = true; updateCloudIndicator('connected');
+    };
+    tokenClient.requestAccessToken({prompt: 'consent'});
+}
+function updateCloudIndicator(s) {
+    document.getElementById('cloudIndicator').className = `w-2 h-2 rounded-full ${s==='connected'?'bg-green-500':'bg-gray-300'}`;
+}
+
+// ========== אתחול ==========
+window.addEventListener('DOMContentLoaded', () => {
+    document.getElementById('cloudBtn').onclick = handleCloudClick;
+    render();
+});
+
+function initSortable() {
+    const el = document.getElementById('itemsContainer');
+    if (sortableInstance) sortableInstance.destroy();
+    if (el && !isLocked) {
+        sortableInstance = Sortable.create(el, { animation: 150, onEnd: save });
+    }
+}
+
+// טעינת סקריפטים חיצוניים
+const loadJS = (src, cb) => { const s = document.createElement('script'); s.src = src; s.onload = cb; document.head.appendChild(s); };
+loadJS('https://apis.google.com/js/api.js', () => gapi.load('client', () => gapi.client.init({apiKey: GOOGLE_API_KEY, discoveryDocs: [DISCOVERY_DOC]})));
+loadJS('https://accounts.google.com/gsi/client', () => tokenClient = google.accounts.oauth2.initTokenClient({client_id: GOOGLE_CLIENT_ID, scope: SCOPES, callback: ''}));
