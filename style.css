@@ -8,7 +8,7 @@ body {
     margin: 0; 
 }
 
-/* הבר התחתון הסגול - אפקט "יורד למטה" (Minimized) */
+/* הבר התחתון הסגול - עם אפקט ירידה/צמצום */
 .bottom-bar { 
     position: fixed; 
     bottom: 0; 
@@ -23,12 +23,11 @@ body {
     cursor: pointer;
 }
 
-/* מצב מוסתר/מצומצם - משאיר פס דק למעלה לצורך פתיחה */
+/* מצב מוסתר - יורד למטה ומשאיר פס דק */
 .bottom-bar.minimized {
-    transform: translateY(calc(100% - 15px));
+    transform: translateY(calc(100% - 12px));
 }
 
-/* כרטיסיית מוצר */
 .item-card { 
     background: white; 
     border-radius: 25px; 
@@ -38,15 +37,6 @@ body {
     display: flex; 
     flex-direction: column; 
     transition: all 0.3s ease;
-    border: 2px solid transparent;
-}
-
-/* הדגשה למוצר שנמצא בחיפוש */
-.highlight-search {
-    border-color: #7367f0 !important;
-    background-color: #f0eeff !important;
-    transform: scale(1.02);
-    box-shadow: 0 10px 20px rgba(115, 103, 240, 0.2);
 }
 
 .tab-btn { 
@@ -73,9 +63,10 @@ body {
     justify-content: center !important;
     border: 2px solid rgba(255,255,255,0.2) !important;
     box-shadow: 0 4px 10px rgba(0,0,0,0.2) !important;
+    cursor: pointer;
 }
 
-/* מודאלים מוצמדים למעלה */
+/* מודאלים מוצמדים למעלה ומהודקים */
 .modal-overlay { 
     display: none; 
     position: fixed; 
@@ -85,32 +76,36 @@ body {
     align-items: flex-start; 
     justify-content: center; 
     backdrop-filter: blur(8px); 
+    padding-top: 0; 
 }
 .modal-overlay.active { display: flex; }
 
 .edit-modal { 
-    width: 100%; 
+    width: 90%; 
     max-width: 400px; 
-    background-color: #ffffff; 
+    background-color: #ffffff !important; 
     border-radius: 0 0 30px 30px; 
-    padding: 20px 25px; 
+    padding: 6px 25px; 
     text-align: center; 
+    color: #333; 
+    border: 2px solid #eee; 
     box-shadow: 0 15px 35px rgba(0,0,0,0.3); 
 }
 
 .modal-input { 
     width: 100%; 
-    padding: 12px; 
+    padding: 6px; 
     border: 2px solid #f3f4f6; 
     border-radius: 16px; 
     font-size: 16px; 
     text-align: center; 
     outline: none; 
-    margin-bottom: 15px; 
-    background: #f9fafb; 
+    margin-bottom: 5px; 
+    font-weight: bold; 
+    background: #f9fafb !important; 
+    color: #333; 
 }
 
-/* הדר */
 .app-header { 
     background: white; 
     padding: 10px 20px; 
@@ -135,38 +130,18 @@ body {
     justify-content: center; 
     color: #ef4444; 
     border: none; 
+    cursor: pointer; 
     box-shadow: 0 2px 5px rgba(0,0,0,0.1); 
 }
-
-.category-separator { 
-    background: #7367f0; 
-    color: white; 
-    border-radius: 20px; 
-    padding: 15px; 
-    margin-bottom: 20px; 
-}
-
-/* מספר מוצר */
-.item-index {
-    background: #e0e7ff;
-    color: #4338ca;
-    font-size: 12px;
-    font-weight: bold;
-    width: 24px;
-    height: 24px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border-radius: 8px;
-    margin-left: 10px;
-}
+.category-separator { background: #7367f0; color: white; border-radius: 20px; padding: 15px; margin-bottom: 20px; text-align: center; }
 
 /* מצב לילה */
 body.dark-mode { background: #1a1a2e; color: #e0e0e0; }
 .dark-mode .app-header { background: #16213e; border-bottom: 1px solid #0f3460; }
-.dark-mode .item-card, .dark-mode .edit-modal { background-color: #0f3460 !important; color: white; }
+.dark-mode .item-card, .dark-mode .bg-white, .dark-mode .select-all-container { background-color: #0f3460 !important; border-color: #1a1a2e; color: white; }
 .dark-mode .modal-input { background: #16213e !important; color: white; border-color: #0f3460; }
-.dark-mode .bg-white { background-color: #0f3460 !important; }
+.dark-mode .item-card span.font-bold { color: white !important; }
+.dark-mode .item-card .bg-gray-50 { background-color: rgba(255,255,255,0.1) !important; border-color: rgba(255,255,255,0.2); }
 
 @media print {
     .no-print, .bottom-bar, .app-header, .tab-btn, .modal-overlay, .trash-btn, input, button { display: none !important; }
