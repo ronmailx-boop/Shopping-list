@@ -194,9 +194,8 @@ function render() {
         document.getElementById('pageSummary').classList.add('hidden');
         document.getElementById('pageStats').classList.add('hidden');
         
-        const list = db.lists[db.currentId];
-        const nameDisplay = list.name + (list.isTemplate ? '' : '');
-        document.getElementById('listNameDisplay').innerText = nameDisplay;
+        const list = db.lists[db.currentId] || { name: 'רשימה', items: [] };
+        document.getElementById('listNameDisplay').innerText = list.name;
         document.getElementById('itemCountDisplay').innerText = `${list.items.length} מוצרים`;
 
         if (container) {
@@ -539,10 +538,18 @@ function restoreFromHistory(idx) {
     showNotification('✅ רשימה שוחזרה!');
 }
 
+// תיקון פונקציית סיום רשימה
 function completeList() {
     const list = db.lists[db.currentId];
+    if (!list || list.items.length === 0) {
+        showNotification('הרשימה ריקה!', 'warning');
+        closeModal('confirmModal');
+        return;
+    }
+
     const total = list.items.reduce((sum, item) => sum + (item.price * item.qty), 0);
     
+    // שמירה להיסטוריה
     db.history.push({
         name: list.name,
         url: list.url,
@@ -551,6 +558,7 @@ function completeList() {
         completedAt: Date.now()
     });
     
+    // עדכון סטטיסטיקות
     db.stats.totalSpent += total;
     db.stats.listsCompleted++;
     
@@ -561,11 +569,16 @@ function completeList() {
     }
     db.stats.monthlyData[monthKey] += total;
     
+    // ניקוי הרשימה הנוכחית
     list.items = [];
     
     closeModal('confirmModal');
+    
+    // מעבר לדף סטטיסטיקות כדי לראות את השינוי
+    activePage = 'stats'; 
+    
     save();
-    showNotification('✅ הרשימה הושלמה ונשמרה!');
+    showNotification('✅ הרשימה הושלמה ונשמרה בהיסטוריה!');
 }
 
 function toggleTemplateMode() {
@@ -1041,7 +1054,6 @@ async function syncToCloud() {
     finally { isSyncing = false; updateCloudIndicator('connected'); }
 }
 
-// מנגנון ה-Load and Merge המשופר מהקובץ הישן עם הגנת מחיקה
 async function loadAndMerge() {
     if (!accessToken || isSyncing) return;
     isSyncing = true;
@@ -1060,16 +1072,12 @@ async function loadAndMerge() {
         });
         const cloudData = await response.json();
         
-        // הגנה: אם המכשיר ריק והענן מלא - תעדוף ענן בלבד (אל תמזג ואל תמחוק)
         const localItems = db.lists[db.currentId] ? [...db.lists[db.currentId].items] : [];
         const cloudHasData = Object.keys(cloudData.lists).some(k => cloudData.lists[k].items.length > 0);
 
         if (localItems.length === 0 && cloudHasData) {
-            console.log('🛡️ הגנת מחיקה: מכשיר ריק, טוען נתונים מהענן.');
             db = cloudData;
         } else {
-            // מיזוג רגיל לפי שמות מהקובץ הישן
-            const oldDb = db;
             db = cloudData;
             if (localItems.length > 0) {
                 const curId = db.currentId || 'L1';
