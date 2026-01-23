@@ -1,251 +1,227 @@
-// ========== Google Drive Configuration (מקור) ==========
-const GOOGLE_CLIENT_ID = '151476121869-b5lbrt5t89s8d342ftd1cg1q926518pt.apps.googleusercontent.com';
-const GOOGLE_API_KEY = 'AIzaSyDIMiuwL-phvwI7iAUeMQmTOowWE96mP6I'; 
-const DISCOVERY_DOC = 'https://www.googleapis.com/discovery/v1/apis/drive/v3/rest';
-const SCOPES = 'https://www.googleapis.com/auth/drive.file';
-const FOLDER_NAME = 'Vplus_Budget_Data';
-const FILE_NAME = 'budget_data.json';
-
-let gapiInited = false, gisInited = false, tokenClient, accessToken = null;
-let driveFileId = null, syncTimeout = null, isSyncing = false, isConnected = false;
-
 // ========== App State ==========
-let db = JSON.parse(localStorage.getItem('BUDGET_FINAL_V27')) || { 
+let db = JSON.parse(localStorage.getItem('VPLUS_DB')) || { 
     currentId: 'L1', 
-    selectedInSummary: [], 
-    lists: { 'L1': { name: 'הרשימה שלי', url: '', items: [] } },
+    lists: { 'L1': { name: 'הרשימה שלי', items: [] } },
     lastActivePage: 'lists'
 };
 
-let isLocked = true, activePage = db.lastActivePage || 'lists';
-let currentEditIdx = null, sortableInstance = null;
+let isLocked = true; // גרירה לא פעילה כברירת מחדל
+let activePage = db.lastActivePage || 'lists';
+let sortableInstance = null;
 
-// ========== Core Functions & Rendering ==========
+// ========== Core Functions ==========
 
 function save() { 
     db.lastActivePage = activePage;
-    localStorage.setItem('BUDGET_FINAL_V27', JSON.stringify(db));
-    render();
-    if (isConnected && !isSyncing) {
-        if (syncTimeout) clearTimeout(syncTimeout);
-        syncTimeout = setTimeout(() => syncToCloud(), 1500);
-    }
+    localStorage.setItem('VPLUS_DB', JSON.stringify(db)); 
+    render(); 
 }
 
 function render() {
-    const container = document.getElementById(activePage === 'lists' ? 'itemsContainer' : 'summaryContainer');
-    if (!container) return;
-    container.innerHTML = '';
+    const isListsPage = activePage === 'lists';
+    document.getElementById('pageLists').classList.toggle('hidden', !isListsPage);
+    document.getElementById('pageSummary').classList.toggle('hidden', isListsPage);
+    document.getElementById('tabLists').className = `tab-btn ${isListsPage ? 'tab-active' : ''}`;
+    document.getElementById('tabSummary').className = `tab-btn ${!isListsPage ? 'tab-active' : ''}`;
+
+    if (isListsPage) renderCurrentList();
+    else renderAllLists();
     
-    let total = 0, paid = 0;
+    updateTotals();
+}
 
-    document.getElementById('tabLists').className = `tab-btn ${activePage === 'lists' ? 'tab-active' : ''}`;
-    document.getElementById('tabSummary').className = `tab-btn ${activePage === 'summary' ? 'tab-active' : ''}`;
-    document.getElementById('pageLists').classList.toggle('hidden', activePage !== 'lists');
-    document.getElementById('pageSummary').classList.toggle('hidden', activePage !== 'summary');
-
-    if (activePage === 'lists') {
-        const list = db.lists[db.currentId];
-        document.getElementById('listNameDisplay').innerText = list.name;
-        
-        list.items.forEach((item, idx) => {
-            const sub = item.price * item.qty;
-            total += sub;
-            if (item.checked) paid += sub; // עדכון סכום שולם חי בבר הסגול
-
-            const div = document.createElement('div');
-            div.className = "item-card";
-            div.setAttribute('data-id', idx);
-            div.innerHTML = `
-                <div class="flex justify-between items-center mb-4">
-                    <div class="flex items-center gap-3 flex-1">
-                        <input type="checkbox" ${item.checked ? 'checked' : ''} onchange="toggleItem(${idx})" class="w-7 h-7 accent-indigo-600">
-                        <div class="flex-1 text-2xl font-bold ${item.checked ? 'line-through text-gray-300' : ''}">${item.name}</div>
-                    </div>
-                    <button onclick="removeItem(${idx})" class="trash-btn">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" stroke-width="2"></path></svg>
-                    </button>
+function renderCurrentList() {
+    const container = document.getElementById('itemsContainer');
+    const list = db.lists[db.currentId];
+    document.getElementById('listNameDisplay').innerText = list.name;
+    
+    container.innerHTML = list.items.map((item, idx) => `
+        <div class="item-card" data-id="${idx}">
+            <div class="flex items-center justify-between mb-2">
+                <div class="flex items-center">
+                    <span class="item-index">${idx + 1}</span>
+                    <span class="text-lg font-bold ${item.bought ? 'line-through opacity-50' : ''}">${item.name}</span>
                 </div>
-                <div class="flex justify-between items-center">
-                    <div class="flex items-center gap-4 bg-gray-50 rounded-xl px-3 py-1 border">
-                        <button onclick="changeQty(${idx}, 1)" class="text-green-500 text-2xl font-bold">+</button>
-                        <span class="font-bold text-xl">${item.qty}</span>
-                        <button onclick="changeQty(${idx}, -1)" class="text-red-500 text-2xl font-bold">-</button>
-                    </div>
-                    <span onclick="openEditTotalModal(${idx})" class="text-2xl font-black text-indigo-600">₪${sub.toFixed(2)}</span>
-                </div>`;
-            container.appendChild(div);
-        });
-    } else {
-        Object.keys(db.lists).forEach(id => {
-            const l = db.lists[id];
-            let lT = 0; l.items.forEach(i => lT += (i.price * i.qty));
-            const isSel = db.selectedInSummary.includes(id);
-            if (isSel) total += lT;
-            const div = document.createElement('div');
-            div.className = "item-card";
-            div.innerHTML = `<div class="flex justify-between items-center"><div class="flex items-center gap-3 flex-1"><input type="checkbox" ${isSel ? 'checked' : ''} onchange="toggleSum('${id}')" class="w-7 h-7 accent-indigo-600"><div class="flex-1 text-2xl font-bold" onclick="selectList('${id}')">${l.name}</div></div><span class="text-xl font-black text-indigo-600">₪${lT.toFixed(2)}</span></div>`;
-            container.appendChild(div);
-        });
-    }
+                <button onclick="removeItem(${idx})" class="trash-btn">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                </button>
+            </div>
+            <div class="flex items-center justify-between bg-gray-50 p-2 rounded-xl">
+                <div class="font-black text-indigo-600">₪${(item.price * (item.qty || 1)).toFixed(2)}</div>
+                <div class="flex items-center gap-3">
+                    <button onclick="updateQty(${idx}, 1)" class="w-8 h-8 bg-white shadow rounded-lg font-bold">+</button>
+                    <span class="font-bold">${item.qty || 1}</span>
+                    <button onclick="updateQty(${idx}, -1)" class="w-8 h-8 bg-white shadow rounded-lg font-bold">-</button>
+                </div>
+                <input type="checkbox" ${item.bought ? 'checked' : ''} onchange="toggleBought(${idx})" class="w-6 h-6 rounded-full border-2 border-indigo-600">
+            </div>
+        </div>
+    `).join('');
 
-    document.getElementById('displayTotal').innerText = total.toFixed(2);
-    document.getElementById('displayPaid').innerText = paid.toFixed(2);
-    document.getElementById('displayLeft').innerText = (total - paid).toFixed(2);
     initSortable();
 }
 
-// ========== Logic & Handlers ==========
-
-function toggleItem(idx) { db.lists[db.currentId].items[idx].checked = !db.lists[db.currentId].items[idx].checked; save(); }
-function toggleSum(id) { const i = db.selectedInSummary.indexOf(id); if(i>-1) db.selectedInSummary.splice(i,1); else db.selectedInSummary.push(id); save(); }
-function showPage(p) { activePage = p; save(); }
-function toggleLock() { 
-    isLocked = !isLocked; 
-    document.getElementById('lockIconPath').setAttribute('d', isLocked ? "M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" : "M8 11V7a4 4 0 118 0m-4 8v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2z");
-    render(); 
-}
-function selectList(id) { db.currentId = id; showPage('lists'); }
-function changeQty(idx, d) { if(db.lists[db.currentId].items[idx].qty + d >= 1) { db.lists[db.currentId].items[idx].qty += d; save(); } }
-function removeItem(idx) { db.lists[db.currentId].items.splice(idx, 1); save(); }
-
-function addItem() {
-    const n = document.getElementById('itemName').value.trim();
-    const p = parseFloat(document.getElementById('itemPrice').value) || 0;
-    if (n) { db.lists[db.currentId].items.push({ name: n, price: p, qty: 1, checked: false }); closeModal('inputForm'); save(); }
+function renderAllLists() {
+    const container = document.getElementById('summaryContainer');
+    container.innerHTML = Object.keys(db.lists).map(id => `
+        <div class="bg-white p-4 rounded-2xl mb-3 shadow-sm flex justify-between items-center">
+            <div>
+                <div class="font-bold text-lg">${db.lists[id].name}</div>
+                <div class="text-xs text-gray-400">${db.lists[id].items.length} מוצרים</div>
+            </div>
+            <div class="flex gap-2">
+                <button onclick="shareAnyList('${id}')" class="p-2 text-indigo-600 bg-indigo-50 rounded-full">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"></path></svg>
+                </button>
+                <button onclick="switchList('${id}')" class="bg-indigo-600 text-white px-4 py-2 rounded-xl text-sm font-bold">צפה</button>
+            </div>
+        </div>
+    `).join('');
 }
 
-function saveNewList() {
-    const n = document.getElementById('newListNameInput').value.trim();
-    if (n) {
-        const id = 'L' + Date.now();
-        db.lists[id] = { name: n, url: '', items: [] };
-        db.currentId = id; activePage = 'lists';
-        closeModal('newListModal'); save();
+// ========== Interactions ==========
+
+function toggleLock() {
+    isLocked = !isLocked;
+    const btn = document.getElementById('mainLockBtn');
+    const icon = document.getElementById('lockIcon');
+    
+    if (isLocked) {
+        btn.className = "bottom-circle-btn bg-blue-600";
+        icon.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>';
+    } else {
+        btn.className = "bottom-circle-btn bg-green-500 animate-pulse";
+        icon.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 11V7a4 4 0 118 0m-4 8v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2z"></path>';
     }
+    initSortable();
 }
-
-function importFromText() {
-    const text = document.getElementById('importText').value.trim();
-    if (!text) return;
-    const items = text.split('\n').filter(l => l.trim()).map(line => ({ name: line.replace(/^[\d\.\)\-\s•\*]+/, '').trim(), price: 0, qty: 1, checked: false }));
-    const id = 'L' + Date.now();
-    db.lists[id] = { name: 'ייבוא ' + new Date().toLocaleDateString(), url: '', items };
-    db.currentId = id; activePage = 'lists';
-    closeModal('importModal'); save();
-}
-
-function openEditTotalModal(idx) {
-    currentEditIdx = idx;
-    const item = db.lists[db.currentId].items[idx];
-    document.getElementById('editTotalInput').value = (item.price * item.qty).toFixed(2);
-    openModal('editTotalModal');
-}
-
-function saveTotal() {
-    const val = parseFloat(document.getElementById('editTotalInput').value);
-    if (!isNaN(val)) {
-        const item = db.lists[db.currentId].items[currentEditIdx];
-        item.price = val / item.qty;
-        save();
-    }
-    closeModal('editTotalModal');
-}
-
-// ========== Professional PDF & Dark Mode ==========
-
-function preparePrint() {
-    closeModal('settingsModal');
-    let grandTotal = 0;
-    let html = `<div dir="rtl" style="font-family:sans-serif; padding:20px;"><h1>Vplus - דוח קניות</h1>`;
-    Object.keys(db.lists).forEach(id => {
-        const l = db.lists[id];
-        let lT = 0;
-        html += `<h2>${l.name}</h2><ul>` + l.items.map(i => {
-            const s = i.price * i.qty; lT += s;
-            return `<li>${i.name} (x${i.qty}) - ₪${s.toFixed(2)}</li>`;
-        }).join('') + `</ul><p><b>סה"כ רשימה: ₪${lT.toFixed(2)}</b></p>`;
-        grandTotal += lT;
-    });
-    html += `<h2 style="border-top:2px solid #000; padding-top:10px;">סה"כ כללי: ₪${grandTotal.toFixed(2)}</h2></div>`;
-    const win = window.open('', '_blank');
-    win.document.write(html); win.document.close(); win.print();
-}
-
-function toggleDarkMode() { document.body.classList.toggle('dark-mode'); closeModal('settingsModal'); }
-function handleBottomBarClick(e) { if (!e.target.closest('button')) document.querySelector('.bottom-bar').classList.toggle('minimized'); }
-
-// ========== WhatsApp Share (מקור) ==========
-
-function shareFullToWhatsApp() {
-    const list = db.lists[db.currentId];
-    let text = `*${list.name}*\n\n`;
-    list.items.forEach(i => text += `${i.checked ? '✅' : '⬜'} ${i.name} (x${i.qty}) - ₪${(i.price*i.qty).toFixed(2)}\n`);
-    window.open(`https://wa.me/?text=${encodeURIComponent(text)}`);
-    closeModal('shareListModal');
-}
-
-function shareMissingToWhatsApp() {
-    const list = db.lists[db.currentId];
-    let text = `*חסרים ב-${list.name}:*\n\n`;
-    list.items.filter(i => !i.checked).forEach(i => text += `⬜ ${i.name} (x${i.qty})\n`);
-    window.open(`https://wa.me/?text=${encodeURIComponent(text)}`);
-    closeModal('shareListModal');
-}
-
-// ========== Google Sync Logic (מקור מלא) ==========
-
-async function handleCloudClick() { isConnected ? syncToCloud() : handleAuthClick(); }
-
-async function handleAuthClick() {
-    tokenClient.callback = async (resp) => {
-        accessToken = resp.access_token;
-        isConnected = true; updateCloudIndicator('connected');
-        syncToCloud();
-    };
-    tokenClient.requestAccessToken({prompt: 'consent'});
-}
-
-async function syncToCloud() {
-    if (!accessToken || isSyncing) return;
-    isSyncing = true; updateCloudIndicator('syncing');
-    try {
-        console.log("Syncing with Google Drive...");
-        // כאן יש להוסיף את ה-fetch המלא ל-Drive API כפי שמופיע במקור שלך
-    } finally { isSyncing = false; updateCloudIndicator('connected'); }
-}
-
-function updateCloudIndicator(s) {
-    const ind = document.getElementById('cloudIndicator');
-    if (ind) ind.className = `w-2 h-2 rounded-full ${s==='connected'?'bg-green-500':s==='syncing'?'bg-yellow-500 animate-pulse':'bg-gray-300'}`;
-}
-
-// ========== Init ==========
 
 function initSortable() {
     const el = document.getElementById('itemsContainer');
     if (sortableInstance) sortableInstance.destroy();
-    if (el && !isLocked) {
-        sortableInstance = Sortable.create(el, { animation: 150, onEnd: () => {
-            const order = Array.from(el.children).map(c => parseInt(c.dataset.id));
-            const items = db.lists[db.currentId].items;
-            db.lists[db.currentId].items = order.map(i => items[i]);
+    
+    sortableInstance = new Sortable(el, {
+        animation: 150,
+        disabled: isLocked, // נשלט ע"י כפתור המנעול
+        onEnd: (evt) => {
+            const list = db.lists[db.currentId].items;
+            const [movedItem] = list.splice(evt.oldIndex, 1);
+            list.splice(evt.newIndex, 0, movedItem);
             save();
-        }});
+        }
+    });
+}
+
+function clearCurrentList() {
+    if (confirm("למחוק את כל המוצרים מהרשימה?")) {
+        db.lists[db.currentId].items = [];
+        save();
     }
 }
 
-window.addEventListener('DOMContentLoaded', () => {
-    // טעינת סקריפטים של גוגל
-    const s1 = document.createElement('script'); s1.src = 'https://apis.google.com/js/api.js'; s1.onload = () => gapi.load('client', () => gapi.client.init({apiKey: GOOGLE_API_KEY, discoveryDocs: [DISCOVERY_DOC]})); document.head.appendChild(s1);
-    const s2 = document.createElement('script'); s2.src = 'https://accounts.google.com/gsi/client'; s2.onload = () => tokenClient = google.accounts.oauth2.initTokenClient({client_id: GOOGLE_CLIENT_ID, scope: SCOPES, callback: ''}); document.head.appendChild(s2);
+// ========== Share & PDF ==========
 
-    // Enter-Enter Logic
-    document.getElementById('itemName').addEventListener('keypress', (e) => { if (e.key === 'Enter') document.getElementById('itemPrice').focus(); });
-    document.getElementById('itemPrice').addEventListener('keypress', (e) => { if (e.key === 'Enter') addItem(); });
+async function shareCurrentList() {
+    shareAnyList(db.currentId);
+}
+
+async function shareAnyList(listId) {
+    const list = db.lists[listId];
+    let text = `📋 *${list.name}*\n\n`;
+    list.items.forEach((item, i) => {
+        text += `${i + 1}. ${item.bought ? '✅' : '⬜'} ${item.name} - ₪${(item.price * (item.qty || 1)).toFixed(2)}\n`;
+    });
+
+    if (navigator.share) {
+        try {
+            await navigator.share({ title: 'Vplus', text: text });
+        } catch (err) { console.log("Share failed"); }
+    } else {
+        alert("השיתוף לא נתמך בדפדפן זה");
+    }
+}
+
+function preparePrint() {
+    const list = db.lists[db.currentId];
+    let html = `<div id="printArea" style="direction:rtl; padding:20px;">
+        <h1 style="text-align:center;">${list.name}</h1>
+        <table style="width:100%; border-collapse:collapse; margin-top:20px;">
+            <thead><tr style="background:#eee;">
+                <th style="border:1px solid #ddd; padding:8px;">#</th>
+                <th style="border:1px solid #ddd; padding:8px;">מוצר</th>
+                <th style="border:1px solid #ddd; padding:8px;">כמות</th>
+                <th style="border:1px solid #ddd; padding:8px;">מחיר</th>
+            </tr></thead>
+            <tbody>`;
     
-    render();
-});
+    list.items.forEach((item, i) => {
+        html += `<tr>
+            <td style="border:1px solid #ddd; padding:8px; text-align:center;">${i+1}</td>
+            <td style="border:1px solid #ddd; padding:8px;">${item.name}</td>
+            <td style="border:1px solid #ddd; padding:8px; text-align:center;">${item.qty || 1}</td>
+            <td style="border:1px solid #ddd; padding:8px; text-align:left;">₪${(item.price * (item.qty || 1)).toFixed(2)}</td>
+        </tr>`;
+    });
 
-function openModal(id) { document.getElementById(id).classList.add('active'); if(id==='inputForm') document.getElementById('itemName').focus(); }
+    const total = list.items.reduce((sum, item) => sum + (item.price * (item.qty || 1)), 0);
+    html += `</tbody></table>
+        <h3 style="text-align:left; margin-top:20px;">סה"כ לתשלום: ₪${total.toFixed(2)}</h3>
+    </div>`;
+
+    const printWin = window.open('', '', 'width=800,height=600');
+    printWin.document.write('<html><head><title>Print PDF</title></head><body>' + html + '</body></html>');
+    printWin.document.close();
+    printWin.print();
+}
+
+// ========== Helpers & UI ==========
+
+function showPage(p) { activePage = p; save(); }
+
+function handleBottomBarClick(e) {
+    if (e.target.closest('button')) return;
+    document.querySelector('.bottom-bar').classList.toggle('minimized');
+}
+
+function updateTotals() {
+    const items = db.lists[db.currentId].items;
+    const total = items.reduce((sum, item) => sum + (item.price * (item.qty || 1)), 0);
+    const paid = items.filter(i => i.bought).reduce((sum, item) => sum + (item.price * (item.qty || 1)), 0);
+    
+    document.getElementById('displayTotal').innerText = total.toFixed(2);
+    document.getElementById('displayPaid').innerText = paid.toFixed(2);
+    document.getElementById('displayLeft').innerText = (total - paid).toFixed(2);
+}
+
+function addItem() {
+    const name = document.getElementById('itemName').value;
+    const price = parseFloat(document.getElementById('itemPrice').value) || 0;
+    if (name) {
+        db.lists[db.currentId].items.push({ name, price, qty: 1, bought: false });
+        document.getElementById('itemName').value = '';
+        document.getElementById('itemPrice').value = '';
+        closeModal('inputForm');
+        save();
+    }
+}
+
+function toggleBought(idx) {
+    db.lists[db.currentId].items[idx].bought = !db.lists[db.currentId].items[idx].bought;
+    save();
+}
+
+function updateQty(idx, delta) {
+    const item = db.lists[db.currentId].items[idx];
+    item.qty = Math.max(1, (item.qty || 1) + delta);
+    save();
+}
+
+function removeItem(idx) {
+    db.lists[db.currentId].items.splice(idx, 1);
+    save();
+}
+
+function openModal(id) { document.getElementById(id).classList.add('active'); }
 function closeModal(id) { document.getElementById(id).classList.remove('active'); }
+
+window.onload = render;
