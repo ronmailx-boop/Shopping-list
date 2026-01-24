@@ -345,32 +345,34 @@
 
         .floating-toggle-btn {
             position: fixed;
-            bottom: 280px;
-            left: 20px;
-            width: 50px;
-            height: 50px;
-            background: linear-gradient(135deg, #7367f0 0%, #9055ff 100%);
+            bottom: 220px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 35px;
+            height: 35px;
+            background: white;
             border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
-            box-shadow: 0 4px 15px rgba(115, 103, 240, 0.4);
+            box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.2);
             cursor: pointer;
-            z-index: 999;
+            z-index: 1001;
             transition: all 0.3s ease;
-            border: 3px solid white;
+            border: 2px solid rgba(115, 103, 240, 0.3);
         }
 
         .floating-toggle-btn:active {
-            transform: scale(0.9);
+            transform: translateX(-50%) scale(0.9);
         }
 
         .floating-toggle-btn svg {
             transition: transform 0.3s ease;
+            color: #7367f0;
         }
 
         .floating-toggle-btn.bar-hidden {
-            bottom: 20px;
+            bottom: 10px;
         }
 
         .floating-toggle-btn.bar-hidden svg {
@@ -571,8 +573,8 @@
 
     <!-- Floating Toggle Button -->
     <div id="floatingToggle" class="floating-toggle-btn no-print" onclick="toggleBottomBar()">
-        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M19 9l-7 7-7-7"></path>
         </svg>
     </div>
 
