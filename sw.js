@@ -1,10 +1,10 @@
-const CACHE_NAME = 'vplus-v1.0.0';
+const CACHE_NAME = 'vplus-pro-v1.0.0';
 const urlsToCache = [
   '/',
   '/index.html',
+  '/style.css',
   '/script.js',
   '/manifest.json',
-  '/icon.png',
   'https://cdn.tailwindcss.com',
   'https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js',
   'https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js'
@@ -49,10 +49,12 @@ self.addEventListener('fetch', event => {
       .then(response => {
         // Clone the response before caching
         const responseToCache = response.clone();
+        
         caches.open(CACHE_NAME)
           .then(cache => {
             cache.put(event.request, responseToCache);
           });
+        
         return response;
       })
       .catch(() => {
@@ -89,9 +91,9 @@ async function syncData() {
 // Push Notifications (for future budget alerts)
 self.addEventListener('push', event => {
   const options = {
-    body: event.data ? event.data.text() : 'התראה חדשה מ-vplus',
-    icon: '/icon.png',
-    badge: '/icon.png',
+    body: event.data ? event.data.text() : 'התראה חדשה מ-Vplus',
+    icon: '/icon-192.png',
+    badge: '/badge-72.png',
     vibrate: [200, 100, 200],
     data: {
       dateOfArrival: Date.now(),
@@ -101,24 +103,25 @@ self.addEventListener('push', event => {
       {
         action: 'open',
         title: 'פתח',
-        icon: '/icon.png'
+        icon: '/check.png'
       },
       {
         action: 'close',
         title: 'סגור',
-        icon: '/icon.png'
+        icon: '/cross.png'
       }
     ]
   };
 
   event.waitUntil(
-    self.registration.showNotification('vplus', options)
+    self.registration.showNotification('Vplus Pro', options)
   );
 });
 
 // Notification Click Handler
 self.addEventListener('notificationclick', event => {
   event.notification.close();
+  
   if (event.action === 'open') {
     event.waitUntil(
       clients.openWindow('/')
