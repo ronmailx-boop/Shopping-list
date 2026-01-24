@@ -343,42 +343,6 @@
             transform: translateX(0);
         }
 
-        .floating-toggle-btn {
-            position: fixed;
-            bottom: 220px;
-            left: 50%;
-            transform: translateX(-50%);
-            width: 35px;
-            height: 35px;
-            background: white;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.2);
-            cursor: pointer;
-            z-index: 1001;
-            transition: all 0.3s ease;
-            border: 2px solid rgba(115, 103, 240, 0.3);
-        }
-
-        .floating-toggle-btn:active {
-            transform: translateX(-50%) scale(0.9);
-        }
-
-        .floating-toggle-btn svg {
-            transition: transform 0.3s ease;
-            color: #7367f0;
-        }
-
-        .floating-toggle-btn.bar-hidden {
-            bottom: 10px;
-        }
-
-        .floating-toggle-btn.bar-hidden svg {
-            transform: rotate(180deg);
-        }
-
         .template-badge {
             background: #fbbf24;
             color: white;
@@ -467,19 +431,6 @@
                         class="bg-indigo-600 text-white flex-1 py-3 rounded-xl font-bold">+ רשימה חדשה</button>
                     <button onclick="openModal('importModal')"
                         class="bg-green-500 text-white flex-1 py-3 rounded-xl font-bold">📥 ייבוא</button>
-                </div>
-            </div>
-            <div class="mb-3">
-                <div class="relative">
-                    <input type="text" id="listSearchInput" oninput="searchInList()" placeholder="חפש מוצר ברשימה..."
-                        class="w-full p-3 pr-12 rounded-2xl border-2 border-indigo-200 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 text-base">
-                    <svg class="w-5 h-5 text-gray-400 absolute left-4 top-1/2 -translate-y-1/2" fill="none"
-                        stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                            d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
-                    </svg>
-                    <button onclick="clearListSearch()"
-                        class="absolute left-12 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">✕</button>
                 </div>
             </div>
             <div class="mb-3">
@@ -584,13 +535,6 @@
         </div>
     </div>
 
-    <!-- Floating Toggle Button -->
-    <div id="floatingToggle" class="floating-toggle-btn no-print" onclick="toggleBottomBar()">
-        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M19 9l-7 7-7-7"></path>
-        </svg>
-    </div>
-
     <div class="bottom-bar text-white no-print">
         <div class="flex items-center justify-between mb-4">
             <div class="flex-1 text-center">
@@ -622,13 +566,6 @@
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"></path>
                 </svg>
             </button>
-        </div>
-
-        <!-- Toggle Button -->
-        <div id="floatingToggle" class="floating-toggle-btn" onclick="toggleBottomBar()">
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M19 9l-7 7-7-7"></path>
-            </svg>
         </div>
     </div>
 
@@ -764,14 +701,6 @@
             <h2>⭐ תבניות רשימות</h2>
             <div id="templatesContent" style="max-height: 400px; overflow-y: auto;"></div>
             <button onclick="closeModal('templatesModal')" class="mt-4 text-gray-400 block w-full">סגור</button>
-        </div>
-    </div>
-
-    <div id="completedListsModal" class="modal-overlay no-print">
-        <div class="edit-modal">
-            <h2>✅ רשימות שהושלמו</h2>
-            <div id="completedListsContent" style="max-height: 400px; overflow-y: auto;"></div>
-            <button onclick="closeModal('completedListsModal')" class="mt-4 text-gray-400 block w-full">סגור</button>
         </div>
     </div>
 

@@ -108,19 +108,6 @@ function showPage(p) {
     save();
 }
 
-function toggleBottomBar() {
-    const bottomBar = document.querySelector('.bottom-bar');
-    const toggleBtn = document.getElementById('floatingToggle');
-
-    if (bottomBar.classList.contains('minimized')) {
-        bottomBar.classList.remove('minimized');
-        toggleBtn.classList.remove('bar-hidden');
-    } else {
-        bottomBar.classList.add('minimized');
-        toggleBtn.classList.add('bar-hidden');
-    }
-}
-
 function openModal(id) {
     const m = document.getElementById(id);
     if (!m) return;
