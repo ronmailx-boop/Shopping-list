@@ -196,12 +196,10 @@ function searchInList() {
         return;
     }
 
-    // Show first match highlighted
     const firstMatch = matches[0];
     highlightedItemIndex = firstMatch.idx;
     render();
 
-    // Scroll to highlighted item
     setTimeout(() => {
         const itemCard = document.querySelector(`[data-id="${firstMatch.idx}"]`);
         if (itemCard) {
@@ -216,9 +214,8 @@ function clearListSearch() {
     render();
 }
 
-// Search in summary (lists)
 function searchInSummary() {
-\n    const searchTerm = document.getElementById('searchInput').value.toLowerCase().trim();
+    const searchTerm = document.getElementById('searchInput').value.toLowerCase().trim();
 
     if (!searchTerm) {
         highlightedListId = null;
@@ -238,7 +235,7 @@ function searchInSummary() {
         render();
 
         setTimeout(() => {
-            const listCard = document.querySelector(`[data-id="${matches[0]}"]`);
+            const listCard = document.querySelector(`[data-list-id="${matches[0]}"]`);
             if (listCard) {
                 listCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
             }
@@ -316,13 +313,12 @@ function render() {
                             <span class="font-bold w-6 text-center">${item.qty}</span>
                             <button onclick="changeQty(${idx}, -1)" class="text-red-500 text-2xl font-bold">-</button>
                         </div>
-                        <span onclick="openEditTotalModal(${idx})" class="text-2xl font-black text-indigo-600">₪${sub.toFixed(2)}</span>
+                        <span onclick="openEditTotalModal(${idx})" class="text-2xl font-black text-indigo-600 cursor-pointer">₪${sub.toFixed(2)}</span>
                     </div>
                 `;
                 container.appendChild(div);
             });
 
-            // Add scroll listener to remove highlight
             if (highlightedItemIndex !== null) {
                 const removeHighlight = () => {
                     highlightedItemIndex = null;
@@ -378,10 +374,12 @@ function render() {
                 const isHighlighted = highlightedListId === id;
                 const div = document.createElement('div');
                 div.className = "item-card";
-                div.dataset.id = id;
-                div.style.background = isHighlighted ? 'linear-gradient(135deg, #e0f2fe 0%, #bae6fd 100%)' : '';
-                div.style.border = isHighlighted ? '3px solid #0ea5e9' : '';
-                div.style.boxShadow = isHighlighted ? '0 8px 20px rgba(14, 165, 233, 0.3)' : '';
+                div.setAttribute('data-list-id', id);
+                if (isHighlighted) {
+                    div.style.background = 'linear-gradient(135deg, #e0f2fe 0%, #bae6fd 100%)';
+                    div.style.border = '3px solid #0ea5e9';
+                    div.style.boxShadow = '0 8px 20px rgba(14, 165, 233, 0.3)';
+                }
 
                 const webBtn = l.url ? `
                     <button onclick="window.location.href='${l.url.startsWith('http') ? l.url : 'https://' + l.url}'" class="w-10 h-10 rounded-full bg-indigo-50 text-indigo-600 flex items-center justify-center border border-indigo-100 shadow-sm ml-2">
@@ -416,7 +414,6 @@ function render() {
                 container.appendChild(div);
             });
 
-            // Add scroll listener to remove highlight for lists
             if (highlightedListId !== null) {
                 const removeHighlight = () => {
                     highlightedListId = null;
@@ -605,7 +602,6 @@ function renderHistory() {
         div.className = 'mb-4 p-4 bg-gray-50 rounded-xl border border-gray-200';
         const date = new Date(entry.completedAt);
 
-        // Product list
         let productsList = '<div class="mt-3 mb-3 space-y-1">';
         entry.items.forEach((item, i) => {
             const itemTotal = (item.price * item.qty).toFixed(2);
@@ -660,13 +656,8 @@ function renderTemplates() {
                 <span class="font-bold text-yellow-800">⭐ ${template.name}</span>
             </div>
             <div class="text-sm text-yellow-700 mb-3">${template.items.length} מוצרים</div>
-            <button onclick="createFromTemplate('${id}')" class="w-full bg-yellow-500 text-white py-2 rounded-lg text-sm font-bold">
-                צור רשימה מתבנית
-            </button>
-        `;
-        container.appendChild(div);
-    });
-}
+            <button onclick="createFromTemplate('${id}')" class="w-full bg-yellow-500 text-white py-2 rounded
+// המשך מהחלק הקודם...
 
 function createFromTemplate(templateId) {
     const template = db.lists[templateId];
@@ -708,7 +699,6 @@ function restoreFromHistory(idx) {
     showNotification('✅ רשימה שוחזרה!');
 }
 
-// תיקון פונקציית סיום רשימה
 function completeList() {
     const list = db.lists[db.currentId];
     if (!list || list.items.length === 0) {
@@ -719,7 +709,6 @@ function completeList() {
 
     const total = list.items.reduce((sum, item) => sum + (item.price * item.qty), 0);
 
-    // שמירה להיסטוריה
     db.history.push({
         name: list.name,
         url: list.url,
@@ -728,7 +717,6 @@ function completeList() {
         completedAt: Date.now()
     });
 
-    // עדכון סטטיסטיקות
     db.stats.totalSpent += total;
     db.stats.listsCompleted++;
 
@@ -739,12 +727,9 @@ function completeList() {
     }
     db.stats.monthlyData[monthKey] += total;
 
-    // ניקוי הרשימה הנוכחית
     list.items = [];
 
     closeModal('confirmModal');
-
-    // מעבר לדף סטטיסטיקות כדי לראות את השינוי
     activePage = 'stats';
 
     save();
@@ -994,7 +979,7 @@ function initSortable() {
                     const items = db.lists[db.currentId].items;
                     db.lists[db.currentId].items = newOrder.map(oldIdx => items[oldIdx]);
                 } else {
-                    const newOrder = Array.from(el.children).map(c => c.getAttribute('data-id'));
+                    const newOrder = Array.from(el.children).map(c => c.getAttribute('data-list-id'));
                     const newLists = {};
                     newOrder.forEach(id => newLists[id] = db.lists[id]);
                     db.lists = newLists;
@@ -1112,7 +1097,7 @@ function importData(event) {
     reader.readAsText(file);
 }
 
-// ========== Google Drive Integration (UPDATED) ==========
+// ========== Google Drive Integration ==========
 function gapiLoaded() {
     gapi.load('client', initializeGapiClient);
 }
@@ -1280,19 +1265,31 @@ window.addEventListener('DOMContentLoaded', () => {
     const itemNameInput = document.getElementById('itemName');
     const itemPriceInput = document.getElementById('itemPrice');
     if (itemNameInput && itemPriceInput) {
-        itemNameInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') { e.preventDefault(); itemPriceInput.focus(); } });
-        itemPriceInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') { e.preventDefault(); addItem(); } });
+        itemNameInput.addEventListener('keypress', (e) => { 
+            if (e.key === 'Enter') { 
+                e.preventDefault(); 
+                itemPriceInput.focus(); 
+            } 
+        });
+        itemPriceInput.addEventListener('keypress', (e) => { 
+            if (e.key === 'Enter') { 
+                e.preventDefault(); 
+                addItem(); 
+            } 
+        });
     }
+
+    // טעינת Google APIs
+    const script1 = document.createElement('script');
+    script1.src = 'https://apis.google.com/js/api.js';
+    script1.onload = gapiLoaded;
+    document.head.appendChild(script1);
+
+    const script2 = document.createElement('script');
+    script2.src = 'https://accounts.google.com/gsi/client';
+    script2.onload = gisLoaded;
+    document.head.appendChild(script2);
+
+    // רינדור ראשוני
+    render();
 });
-
-const script1 = document.createElement('script');
-script1.src = 'https://apis.google.com/js/api.js';
-script1.onload = gapiLoaded;
-document.head.appendChild(script1);
-
-const script2 = document.createElement('script');
-script2.src = 'https://accounts.google.com/gsi/client';
-script2.onload = gisLoaded;
-document.head.appendChild(script2);
-
-render();
