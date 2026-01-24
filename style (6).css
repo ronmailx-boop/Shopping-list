@@ -1,0 +1,15 @@
+* { box-sizing: border-box; }
+body { background-color: #f8f9fa; font-family: 'Segoe UI', Tahoma, sans-serif; margin: 0; display: flex; justify-content: center; }
+.app-wrapper { width: 100%; max-width: 450px; padding: 40px 20px; }
+.card { background: #fff; padding: 30px; border-radius: 16px; box-shadow: 0 10px 30px rgba(0,0,0,0.05); }
+h1 { margin-top: 0; color: #1e293b; text-align: center; font-size: 24px; }
+.input-group { display: flex; gap: 8px; margin-bottom: 25px; }
+input { flex: 1; padding: 14px; border: 2px solid #e2e8f0; border-radius: 10px; font-size: 16px; outline: none; transition: border-color 0.2s; }
+input:focus { border-color: #3b82f6; }
+button#addBtn { background: #3b82f6; color: white; border: none; padding: 0 20px; border-radius: 10px; cursor: pointer; font-weight: 600; transition: background 0.2s; }
+button#addBtn:hover { background: #2563eb; }
+ul { list-style: none; padding: 0; margin: 0; }
+li { background: #fdfdfd; border: 1px solid #f1f5f9; padding: 14px; display: flex; justify-content: space-between; align-items: center; border-radius: 10px; margin-bottom: 10px; transition: all 0.2s; }
+li:hover { border-color: #cbd5e1; background: #fff; }
+.delete-btn { background: #fee2e2; color: #ef4444; border: none; padding: 8px 12px; border-radius: 8px; cursor: pointer; font-size: 13px; font-weight: 600; }
+.delete-btn:hover { background: #ef4444; color: white; }
