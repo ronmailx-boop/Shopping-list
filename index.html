@@ -343,6 +343,40 @@
             transform: translateX(0);
         }
 
+        .floating-toggle-btn {
+            position: fixed;
+            bottom: 280px;
+            left: 20px;
+            width: 50px;
+            height: 50px;
+            background: linear-gradient(135deg, #7367f0 0%, #9055ff 100%);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 15px rgba(115, 103, 240, 0.4);
+            cursor: pointer;
+            z-index: 999;
+            transition: all 0.3s ease;
+            border: 3px solid white;
+        }
+
+        .floating-toggle-btn:active {
+            transform: scale(0.9);
+        }
+
+        .floating-toggle-btn svg {
+            transition: transform 0.3s ease;
+        }
+
+        .floating-toggle-btn.bar-hidden {
+            bottom: 20px;
+        }
+
+        .floating-toggle-btn.bar-hidden svg {
+            transform: rotate(180deg);
+        }
+
         .template-badge {
             background: #fbbf24;
             color: white;
@@ -533,6 +567,13 @@
                 </button>
             </div>
         </div>
+    </div>
+
+    <!-- Floating Toggle Button -->
+    <div id="floatingToggle" class="floating-toggle-btn no-print" onclick="toggleBottomBar()">
+        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+        </svg>
     </div>
 
     <div class="bottom-bar text-white no-print">
