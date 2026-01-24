@@ -71,6 +71,7 @@
             border-radius: 35px 35px 0 0;
             box-shadow: 0 -10px 25px rgba(0, 0, 0, 0.15);
             transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            cursor: pointer;
         }
 
         .bottom-bar.minimized {
@@ -343,6 +344,42 @@
             transform: translateX(0);
         }
 
+        .floating-toggle-btn {
+            position: fixed;
+            bottom: 220px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 35px;
+            height: 35px;
+            background: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.2);
+            cursor: pointer;
+            z-index: 1001;
+            transition: all 0.3s ease;
+            border: 2px solid rgba(115, 103, 240, 0.3);
+        }
+
+        .floating-toggle-btn:active {
+            transform: translateX(-50%) scale(0.9);
+        }
+
+        .floating-toggle-btn svg {
+            transition: transform 0.3s ease;
+            color: #7367f0;
+        }
+
+        .floating-toggle-btn.bar-hidden {
+            bottom: 10px;
+        }
+
+        .floating-toggle-btn.bar-hidden svg {
+            transform: rotate(180deg);
+        }
+
         .template-badge {
             background: #fbbf24;
             color: white;
@@ -535,7 +572,14 @@
         </div>
     </div>
 
-    <div class="bottom-bar text-white no-print">
+    <!-- Floating Toggle Button -->
+    <div id="floatingToggle" class="floating-toggle-btn no-print" onclick="toggleBottomBar()">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M19 9l-7 7-7-7"></path>
+        </svg>
+    </div>
+
+    <div class="bottom-bar text-white no-print" onclick="toggleBottomBar()">
         <div class="flex items-center justify-between mb-4">
             <div class="flex-1 text-center">
                 <div class="text-[10px] opacity-70">סה"כ רשימה</div>
@@ -701,6 +745,14 @@
             <h2>⭐ תבניות רשימות</h2>
             <div id="templatesContent" style="max-height: 400px; overflow-y: auto;"></div>
             <button onclick="closeModal('templatesModal')" class="mt-4 text-gray-400 block w-full">סגור</button>
+        </div>
+    </div>
+
+    <div id="completedListsModal" class="modal-overlay no-print">
+        <div class="edit-modal">
+            <h2>✅ רשימות שהושלמו</h2>
+            <div id="completedListsContent" style="max-height: 400px; overflow-y: auto;"></div>
+            <button onclick="closeModal('completedListsModal')" class="mt-4 text-gray-400 block w-full">סגור</button>
         </div>
     </div>
 

@@ -108,6 +108,19 @@ function showPage(p) {
     save();
 }
 
+function toggleBottomBar() {
+    const bottomBar = document.querySelector('.bottom-bar');
+    const toggleBtn = document.getElementById('floatingToggle');
+
+    if (bottomBar.classList.contains('minimized')) {
+        bottomBar.classList.remove('minimized');
+        toggleBtn.classList.remove('bar-hidden');
+    } else {
+        bottomBar.classList.add('minimized');
+        toggleBtn.classList.add('bar-hidden');
+    }
+}
+
 function openModal(id) {
     const m = document.getElementById(id);
     if (!m) return;
@@ -349,7 +362,8 @@ function render() {
         document.getElementById('pageSummary').classList.remove('hidden');
         document.getElementById('pageStats').classList.add('hidden');
 
-        const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+        const searchInput = document.getElementById('searchInput');
+        const searchTerm = searchInput ? searchInput.value.toLowerCase() : '';
 
         if (container) {
             container.innerHTML = '';
