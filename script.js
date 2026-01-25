@@ -731,6 +731,21 @@ function completeList() {
         return;
     }
 
+    // אתחול שדות חסרים אם לא קיימים (למקרה של נתונים מהענן)
+    if (!db.history) {
+        db.history = [];
+    }
+    if (!db.stats) {
+        db.stats = {
+            totalSpent: 0,
+            listsCompleted: 0,
+            monthlyData: {}
+        };
+    }
+    if (!db.stats.monthlyData) {
+        db.stats.monthlyData = {};
+    }
+
     const total = list.items.reduce((sum, item) => sum + (item.price * item.qty), 0);
 
     // שמירה להיסטוריה
@@ -1255,6 +1270,19 @@ async function loadAndMerge() {
             headers: { 'Authorization': `Bearer ${accessToken}` }
         });
         const cloudData = await response.json();
+
+        // אתחול שדות חסרים בנתונים מהענן
+        if (!cloudData.history) cloudData.history = [];
+        if (!cloudData.stats) {
+            cloudData.stats = {
+                totalSpent: 0,
+                listsCompleted: 0,
+                monthlyData: {}
+            };
+        }
+        if (!cloudData.stats.monthlyData) cloudData.stats.monthlyData = {};
+        if (!cloudData.templates) cloudData.templates = [];
+        if (!cloudData.selectedInSummary) cloudData.selectedInSummary = [];
 
         const localItems = db.lists[db.currentId] ? [...db.lists[db.currentId].items] : [];
         const cloudHasData = Object.keys(cloudData.lists).some(k => cloudData.lists[k].items.length > 0);
