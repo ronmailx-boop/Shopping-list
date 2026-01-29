@@ -1,7 +1,7 @@
-// שם המחסן (Cache) - עדכון הגרסה כאן יגרום לדפדפן לרענן את כל הקבצים
+// שם המחסן - עדכון הגרסה ל-1.0.0 לסנכרון מלא
 const CACHE_NAME = 'vplus-pro-v1.0.0';
 
-// רשימת הקבצים לשמירה לגישה לא מקוונת
+// רשימת הקבצים לשמירה (כולל ספריות חיצוניות שאתה משתמש בהן)
 const urlsToCache = [
   './',
   './index.html',
@@ -12,26 +12,26 @@ const urlsToCache = [
   'https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js'
 ];
 
-// שלב ההתקנה - שמירת הקבצים ב-Cache
+// התקנה ראשונית של ה-Service Worker
 self.addEventListener('install', event => {
   event.waitUntil(
     caches.open(CACHE_NAME)
       .then(cache => {
-        console.log('Vplus Cache: Opening and storing files');
+        console.log('Vplus: קבצי האפליקציה נשמרו ב-Cache');
         return cache.addAll(urlsToCache);
       })
   );
   self.skipWaiting();
 });
 
-// שלב ההפעלה - מחיקת גרסאות Cache ישנות
+// ניקוי גרסאות ישנות מהזיכרון
 self.addEventListener('activate', event => {
   event.waitUntil(
     caches.keys().then(cacheNames => {
       return Promise.all(
         cacheNames.map(cacheName => {
           if (cacheName !== CACHE_NAME) {
-            console.log('Vplus Cache: Deleting old version', cacheName);
+            console.log('Vplus: מוחק גרסת Cache ישנה', cacheName);
             return caches.delete(cacheName);
           }
         })
@@ -41,12 +41,11 @@ self.addEventListener('activate', event => {
   self.clients.claim();
 });
 
-// ניהול בקשות רשת - ניסיון להביא מהרשת, ואם אין קליטה - להביא מה-Cache
+// אסטרטגיית טעינה: ניסיון להביא מהרשת, ואם נכשל (Offline) - מהזיכרון
 self.addEventListener('fetch', event => {
   event.respondWith(
     fetch(event.request)
       .then(response => {
-        // אם הצלחנו להביא מהרשת, נעדכן את ה-Cache במידת הצורך
         if (event.request.method === 'GET' && response.status === 200) {
           const responseToCache = response.clone();
           caches.open(CACHE_NAME).then(cache => {
@@ -56,7 +55,6 @@ self.addEventListener('fetch', event => {
         return response;
       })
       .catch(() => {
-        // אם אין רשת, ננסה למצוא ב-Cache
         return caches.match(event.request).then(response => {
           return response || caches.match('./index.html');
         });
