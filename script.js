@@ -200,7 +200,8 @@ function toggleCategorySorting() {
 
     const btn = document.getElementById('categorySortText');
     if (btn) {
-        btn.textContent = categorySortEnabled ? '📋 מיון ידני' : '🔤 מיון לפי קטגוריות';
+        // Show current active state, not next action
+        btn.textContent = categorySortEnabled ? '🔤 מיון לפי קטגוריות' : '📋 מיון ידני';
     }
 
     render();
@@ -466,7 +467,9 @@ async function processReceipt() {
                         progressBar.style.width = progress + '%';
                         statusDiv.textContent = `מזהה טקסט... ${progress}%`;
                     }
-                }
+                },
+                tessedit_pageseg_mode: Tesseract.PSM.SINGLE_BLOCK,
+                preserve_interword_spaces: '1'
             }
         );
 
@@ -514,19 +517,20 @@ function parseReceiptText(text) {
 
     for (let i = 0; i < lines.length; i++) {
         const line = lines[i].trim();
-        if (!line || line.length < 3) continue;
+        if (!line || line.length < 2) continue;
 
-        // Skip common receipt headers/footers
-        if (line.match(/סה"כ|total|תאריך|date|קופה|קבלה|receipt|ח\.פ|vat|מע"מ/i)) continue;
+        // Skip common receipt headers/footers (Hebrew and English)
+        if (line.match(/סה"כ|סהכ|total|sum|תאריך|date|קופה|קבלה|receipt|ח\.פ|חפ|vat|מע"מ|מעמ|ברקוד|barcode|תודה|thank|שעה|time|כתובת|address|טלפון|phone|אשראי|credit|מזומן|cash/i)) continue;
 
-        // Pattern: Name followed by price (12.50 or ₪12.50)
-        const match1 = line.match(/^(.+?)\s+(₪?[\d.]+)$/);
+        // Pattern: Name followed by price (12.50 or ₪12.50 or ש"ח12.50)
+        // Support both Hebrew (₪, ש"ח) and English formats
+        const match1 = line.match(/^(.+?)\s+(₪|ש"ח|שח)?\s*([\d.,]+)\s*(₪|ש"ח|שח)?$/);
         if (match1) {
             const name = match1[1].trim();
-            const priceStr = match1[2].replace('₪', '').trim();
+            const priceStr = match1[3].replace(/,/g, '.').trim(); // Handle comma as decimal separator
             const price = parseFloat(priceStr);
 
-            if (name.length > 2 && price > 0 && price < 1000) {
+            if (name.length > 2 && !name.match(/^[\d\s]+$/) && price > 0 && price < 1000) {
                 items.push({
                     name: name,
                     price: price,
@@ -541,10 +545,12 @@ function parseReceiptText(text) {
         // Pattern: Just a name, check next line for price
         if (i < lines.length - 1) {
             const nextLine = lines[i + 1].trim();
-            const priceMatch = nextLine.match(/^₪?([\d.]+)$/);
+            // Support Hebrew (₪, ש"ח) and English price formats
+            const priceMatch = nextLine.match(/^(₪|ש"ח|שח)?\s*([\d.,]+)\s*(₪|ש"ח|שח)?$/);
             if (priceMatch) {
-                const price = parseFloat(priceMatch[1]);
-                if (line.length > 2 && price > 0 && price < 1000) {
+                const priceStr = priceMatch[2].replace(/,/g, '.').trim();
+                const price = parseFloat(priceStr);
+                if (line.length > 2 && !line.match(/^[\d\s]+$/) && price > 0 && price < 1000) {
                     items.push({
                         name: line,
                         price: price,
