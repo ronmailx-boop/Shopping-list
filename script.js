@@ -29,6 +29,90 @@ const CATEGORIES = {
     'אחר': '#6b7280'
 };
 
+// ========== Category Keywords ==========
+const CATEGORY_KEYWORDS = {
+    'פירות וירקות': [
+        'עגבניות', 'עגבנייה', 'מלפפון', 'מלפפונים', 'חסה', 'חציל', 'גזר', 'בצל', 'שום', 'תפוח', 'תפוחים',
+        'בננה', 'בננות', 'תפוז', 'תפוזים', 'אבוקדו', 'לימון', 'לימונים', 'תות', 'תותים', 'ענבים',
+        'אבטיח', 'מלון', 'אפרסק', 'אפרסקים', 'שזיף', 'שזיפים', 'אגס', 'אגסים', 'תרד', 'כרוב',
+        'ברוקולי', 'כרובית', 'פלפל', 'פלפלים', 'קישוא', 'קישואים', 'דלעת', 'תירס', 'פטריות',
+        'ירקות', 'פירות', 'ירק', 'פרי', 'סלט', 'פטרוזיליה', 'כוסברה', 'נענע', 'בזיליקום'
+    ],
+    'בשר ודגים': [
+        'בשר', 'עוף', 'תרנגולת', 'הודו', 'נקניק', 'נקניקיות', 'קבב', 'המבורגר', 'שניצל',
+        'סטייק', 'אנטריקוט', 'צלי', 'כבד', 'לב', 'קורנדביף', 'סלמי', 'נתחי', 'כנפיים',
+        'דג', 'דגים', 'סלמון', 'טונה', 'בקלה', 'אמנון', 'דניס', 'לוקוס', 'מושט', 'בורי',
+        'שרימפס', 'קלמרי', 'פירות ים', 'סרדינים', 'מקרל'
+    ],
+    'חלב וביצים': [
+        'חלב', 'גבינה', 'גבינות', 'קוטג', 'קוטג׳', 'יוגורט', 'שמנת', 'חמאה', 'ביצים', 'ביצה',
+        'לבן', 'לבנה', 'צפתית', 'בולגרית', 'צהובה', 'מוצרלה', 'פרמזן', 'עמק', 'גילה',
+        'גד', 'תנובה', 'שטראוס', 'יופלה', 'דנונה', 'מילקי', 'פודינג', 'חלבון', 'מעדן',
+        'גלידה', 'גלידות', 'חלבי', 'חלביים'
+    ],
+    'לחם ומאפים': [
+        'לחם', 'לחמניה', 'לחמניות', 'פיתה', 'פיתות', 'בגט', 'חלה', 'חלות', 'טוסט', 'כריך',
+        'רוגלך', 'בורקס', 'בורקסים', 'קרואסון', 'קרואסונים', 'מאפה', 'מאפים', 'עוגה', 'עוגות',
+        'עוגיות', 'עוגייה', 'ביסקוויט', 'קרקר', 'קרקרים', 'פריכיות', 'לחמית', 'בייגל',
+        'מצה', 'מצות', 'פיצה', 'פסטה', 'ספגטי', 'מקרוני', 'אטריות', 'קוסקוס', 'בורגול',
+        'קמח', 'שמרים', 'אבקת אפייה', 'סוכר', 'אורז', 'פתיתים'
+    ],
+    'שימורים': [
+        'שימורים', 'קופסא', 'קופסת', 'שימורי', 'תירס שימורי', 'פטריות שימורי', 'זיתים',
+        'מלפפונים חמוצים', 'חמוצים', 'כבושים', 'רוטב עגבניות', 'עגבניות מרוסקות', 'ממרח',
+        'טונה קופסא', 'סרדינים קופסא', 'הומוס', 'טחינה', 'חומוס', 'פול', 'חומוס מוכן',
+        'סלט', 'פסטה מוכנה', 'רוטב', 'רטבים', 'קטשופ', 'מיונז', 'חרדל', 'ריבה', 'דבש',
+        'ממרחים', 'נוטלה', 'שוקולד ממרח'
+    ],
+    'חטיפים': [
+        'חטיף', 'חטיפים', 'במבה', 'ביסלי', 'דוריטוס', 'צ׳יפס', 'צ׳יטוס', 'אפרופו', 'טורטית',
+        'פופקורן', 'בוטנים', 'אגוזים', 'שקדים', 'קשיו', 'פיסטוק', 'גרעינים', 'צימוקים',
+        'פירות יבשים', 'תמרים', 'משמש מיובש', 'שוקולד', 'ממתק', 'ממתקים', 'סוכריות',
+        'גומי', 'מנטה', 'מסטיק', 'וופל', 'וופלים', 'חטיף אנרגיה', 'חטיף חלבון', 'גרנולה',
+        'בר', 'ברים', 'קליק', 'פסק זמן', 'קינדר', 'מרס', 'סניקרס', 'טוויקס', 'קיט קט'
+    ],
+    'משקאות': [
+        'מים', 'מי', 'מינרלים', 'נביעות', 'עדן', 'נווה', 'קולה', 'פפסי', 'ספרייט', 'פאנטה',
+        'שוופס', 'סודה', 'משקה', 'משקאות', 'מיץ', 'מיצים', 'תפוזים', 'פריגת', 'פרימור',
+        'בירה', 'יין', 'וודקה', 'ויסקי', 'אלכוהול', 'קפה', 'נס', 'נסקפה', 'תה', 'תיונים',
+        'ויסוצקי', 'חליבה', 'שוקו', 'חלב שוקולד', 'אייס קפה', 'אנרגיה', 'רד בול', 'XL',
+        'פחית', 'בקבוק', 'שתייה', 'לימונדה', 'לימונענע', 'תפוזינה'
+    ],
+    'ניקיון': [
+        'סבון', 'סבונים', 'ניקוי', 'ניקיון', 'דטרגנט', 'אבקת כביסה', 'מרכך', 'מרככים',
+        'אקונומיקה', 'סנו', 'כלורקס', 'ווניש', 'פרסיל', 'אריאל', 'ביומט', 'סיף', 'מטליות',
+        'ספוג', 'ספוגים', 'מגבונים', 'נייר מגבת', 'נייר טואלט', 'טישו', 'מברשת', 'מברשות',
+        'שואב', 'שקיות אשפה', 'אשפה', 'סמרטוט', 'דלי', 'מנקה', 'מנקים', 'אקונומיקה',
+        'ג׳ל כלים', 'נוזל כלים', 'פיירי', 'סודה לשתייה', 'חומץ', 'אלכוהול ניקוי', 'כפפות'
+    ],
+    'היגיינה': [
+        'שמפו', 'מרכך שיער', 'סבון גוף', 'ג׳ל רחצה', 'משחת שיניים', 'מברשת שיניים', 'חוט דנטלי',
+        'דאודורנט', 'בושם', 'קרם', 'קרמים', 'תחליב', 'לוסיון', 'קצף גילוח', 'סכין גילוח',
+        'מכונת גילוח', 'ג׳ילט', 'ואקס', 'תחבושות', 'פלסטרים', 'צמר גפן', 'מקלוני אוזניים',
+        'טמפונים', 'תחבושות היגייניות', 'מגבונים לחים', 'חיתולים', 'האגיס', 'פמפרס',
+        'קרם ידיים', 'קרם פנים', 'מסכה', 'מסכות', 'איפור', 'שפתון', 'מסקרה', 'טיפוח'
+    ]
+};
+
+// Function to detect category from product name
+function detectCategory(productName) {
+    if (!productName) return '';
+
+    const nameLower = productName.toLowerCase().trim();
+
+    // Check each category's keywords
+    for (const [category, keywords] of Object.entries(CATEGORY_KEYWORDS)) {
+        for (const keyword of keywords) {
+            if (nameLower.includes(keyword.toLowerCase())) {
+                return category;
+            }
+        }
+    }
+
+    return ''; // Return empty string if no match (will become 'כללי' in render)
+}
+
+
 // ========== App Data ==========
 let db = JSON.parse(localStorage.getItem('BUDGET_FINAL_V28')) || {
     currentId: 'L1',
@@ -61,6 +145,8 @@ let sortableInstance = null;
 let monthlyChart = null;
 let highlightedItemIndex = null;
 let highlightedListId = null;
+let categorySortEnabled = localStorage.getItem('categorySortEnabled') === 'true' || false;
+
 
 // ========== Core Functions ==========
 function save() {
@@ -108,6 +194,390 @@ function showPage(p) {
     save();
 }
 
+function toggleCategorySorting() {
+    categorySortEnabled = !categorySortEnabled;
+    localStorage.setItem('categorySortEnabled', categorySortEnabled);
+
+    const btn = document.getElementById('categorySortText');
+    if (btn) {
+        btn.textContent = categorySortEnabled ? '📋 מיון ידני' : '🔤 מיון לפי קטגוריות';
+    }
+
+    render();
+    showNotification(categorySortEnabled ? '✅ מיון לפי קטגוריות מופעל' : '✅ מיון ידני מופעל');
+}
+
+
+// ========== Voice Input Functions ==========
+let recognition = null;
+let isRecording = false;
+
+function initVoiceRecognition() {
+    if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+        return null;
+    }
+
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    const recog = new SpeechRecognition();
+
+    recog.lang = 'he-IL'; // Hebrew
+    recog.continuous = false;
+    recog.interimResults = false;
+    recog.maxAlternatives = 1;
+
+    return recog;
+}
+
+function startVoiceInput() {
+    if (!recognition) {
+        recognition = initVoiceRecognition();
+        if (!recognition) {
+            showNotification('הדפדפן לא תומך בזיהוי קולי', 'error');
+            return;
+        }
+    }
+
+    if (isRecording) {
+        stopVoiceInput();
+        return;
+    }
+
+    const voiceBtn = document.getElementById('voiceBtn');
+    voiceBtn.classList.add('recording');
+    isRecording = true;
+
+    recognition.onresult = (event) => {
+        const transcript = event.results[0][0].transcript;
+        parseVoiceInput(transcript);
+    };
+
+    recognition.onerror = (event) => {
+        console.error('Speech recognition error:', event.error);
+        stopVoiceInput();
+        if (event.error === 'no-speech') {
+            showNotification('לא זוהה דיבור, נסה שוב', 'warning');
+        } else {
+            showNotification('שגיאה בזיהוי קולי', 'error');
+        }
+    };
+
+    recognition.onend = () => {
+        stopVoiceInput();
+    };
+
+    try {
+        recognition.start();
+        showNotification('🎤 מקשיב...', 'success');
+    } catch (error) {
+        console.error('Error starting recognition:', error);
+        stopVoiceInput();
+        showNotification('שגיאה בהפעלת המיקרופון', 'error');
+    }
+}
+
+function stopVoiceInput() {
+    const voiceBtn = document.getElementById('voiceBtn');
+    if (voiceBtn) {
+        voiceBtn.classList.remove('recording');
+    }
+    isRecording = false;
+
+    if (recognition) {
+        try {
+            recognition.stop();
+        } catch (error) {
+            // Already stopped
+        }
+    }
+}
+
+function parseVoiceInput(text) {
+    console.log('Voice input:', text);
+
+    // Common separators in Hebrew
+    const separators = [
+        'ו', 'וגם', 'גם', ',', 'עוד', 'בנוסף', 'ועוד'
+    ];
+
+    // Build regex pattern
+    const pattern = new RegExp(`\\s+(${separators.join('|')})\\s+`, 'gi');
+
+    // Split by separators
+    let items = text.split(pattern).filter(item => {
+        const trimmed = item.trim();
+        // Filter out the separators themselves and empty strings
+        return trimmed && !separators.some(sep => sep.toLowerCase() === trimmed.toLowerCase());
+    });
+
+    // Clean up common phrases
+    const phrasesToRemove = [
+        'צריך לקנות', 'לקנות', 'קנה', 'תקנה', 'רוצה', 'צריך'
+    ];
+
+    items = items.map(item => {
+        let cleaned = item.trim();
+        phrasesToRemove.forEach(phrase => {
+            const regex = new RegExp(`^${phrase}\\s+`, 'gi');
+            cleaned = cleaned.replace(regex, '');
+        });
+        return cleaned.trim();
+    }).filter(item => item.length > 0);
+
+    if (items.length === 0) {
+        showNotification('לא זוהו מוצרים, נסה שוב', 'warning');
+        return;
+    }
+
+    // Smart behavior: single item fills the form, multiple items add directly
+    if (items.length === 1) {
+        // Fill the input field with the single item
+        const itemName = items[0];
+        const category = detectCategory(itemName);
+
+        document.getElementById('itemName').value = itemName;
+        if (category) {
+            document.getElementById('itemCategory').value = category;
+        }
+        document.getElementById('itemPrice').focus();
+
+        showNotification(`🎤 "${itemName}" - הוסף מחיר או לחץ הוסף`);
+    } else {
+        // Multiple items - add them all and close modal
+        let addedCount = 0;
+        items.forEach(itemName => {
+            if (itemName) {
+                const category = detectCategory(itemName);
+                db.lists[db.currentId].items.push({
+                    name: itemName,
+                    price: 0,
+                    qty: 1,
+                    checked: false,
+                    category: category
+                });
+                addedCount++;
+            }
+        });
+
+        save();
+        closeModal('inputForm');
+        showNotification(`✅ נוספו ${addedCount} מוצרים: ${items.join(', ')}`);
+    }
+}
+
+
+// ========== Translation Functions ==========
+async function performTranslation() {
+    const targetLang = document.getElementById('targetLanguage').value;
+    const list = db.lists[db.currentId];
+
+    if (!list || list.items.length === 0) {
+        showNotification('אין מוצרים לתרגום', 'warning');
+        return;
+    }
+
+    const progressDiv = document.getElementById('translationProgress');
+    const statusDiv = document.getElementById('translationStatus');
+    progressDiv.classList.remove('hidden');
+
+    let translated = 0;
+    const total = list.items.length;
+
+    try {
+        for (let i = 0; i < list.items.length; i++) {
+            const item = list.items[i];
+            statusDiv.textContent = `מתרגם ${i + 1} מתוך ${total}...`;
+
+            const translatedName = await translateText(item.name, targetLang);
+            if (translatedName) {
+                list.items[i].name = translatedName;
+                translated++;
+            }
+
+            // Small delay to avoid rate limiting
+            await new Promise(resolve => setTimeout(resolve, 200));
+        }
+
+        save();
+        closeModal('translateModal');
+        progressDiv.classList.add('hidden');
+        showNotification(`✅ תורגמו ${translated} מוצרים!`);
+    } catch (error) {
+        console.error('Translation error:', error);
+        progressDiv.classList.add('hidden');
+        showNotification('שגיאה בתרגום', 'error');
+    }
+}
+
+async function translateText(text, targetLang) {
+    try {
+        const url = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=${targetLang}&dt=t&q=${encodeURIComponent(text)}`;
+        const response = await fetch(url);
+        const data = await response.json();
+
+        if (data && data[0] && data[0][0] && data[0][0][0]) {
+            return data[0][0][0];
+        }
+        return null;
+    } catch (error) {
+        console.error('Translation API error:', error);
+        return null;
+    }
+}
+
+// ========== Receipt Scanning Functions ==========
+async function processReceipt() {
+    const fileInput = document.getElementById('receiptImage');
+    const file = fileInput.files[0];
+
+    if (!file) {
+        showNotification('אנא בחר תמונה', 'warning');
+        return;
+    }
+
+    // Show preview
+    const preview = document.getElementById('scanPreview');
+    const previewImg = document.getElementById('previewImg');
+    const reader = new FileReader();
+
+    reader.onload = function (e) {
+        previewImg.src = e.target.result;
+        preview.classList.remove('hidden');
+    };
+    reader.readAsDataURL(file);
+
+    // Show progress
+    const progressDiv = document.getElementById('scanProgress');
+    const progressBar = document.getElementById('scanProgressBar');
+    const statusDiv = document.getElementById('scanStatus');
+    const scanBtn = document.getElementById('scanBtn');
+
+    progressDiv.classList.remove('hidden');
+    scanBtn.disabled = true;
+    scanBtn.classList.add('opacity-50');
+
+    try {
+        const { data: { text } } = await Tesseract.recognize(
+            file,
+            'heb+eng',
+            {
+                logger: m => {
+                    if (m.status === 'recognizing text') {
+                        const progress = Math.round(m.progress * 100);
+                        progressBar.style.width = progress + '%';
+                        statusDiv.textContent = `מזהה טקסט... ${progress}%`;
+                    }
+                }
+            }
+        );
+
+        console.log('OCR Result:', text);
+
+        // Parse receipt
+        const items = parseReceiptText(text);
+
+        if (items.length === 0) {
+            showNotification('לא נמצאו מוצרים בקבלה', 'warning');
+            progressDiv.classList.add('hidden');
+            scanBtn.disabled = false;
+            scanBtn.classList.remove('opacity-50');
+            return;
+        }
+
+        // Create new list from receipt
+        createListFromReceipt(items);
+
+        closeModal('receiptScanModal');
+        progressDiv.classList.add('hidden');
+        preview.classList.add('hidden');
+        fileInput.value = '';
+        scanBtn.disabled = false;
+        scanBtn.classList.remove('opacity-50');
+
+        showNotification(`✅ נוצרה רשימה עם ${items.length} מוצרים!`);
+
+    } catch (error) {
+        console.error('OCR Error:', error);
+        showNotification('שגיאה בסריקת הקבלה', 'error');
+        progressDiv.classList.add('hidden');
+        scanBtn.disabled = false;
+        scanBtn.classList.remove('opacity-50');
+    }
+}
+
+function parseReceiptText(text) {
+    const lines = text.split('\n');
+    const items = [];
+
+    // Common patterns for receipt items
+    // Pattern 1: "Item Name 12.50" or "Item Name ₪12.50"
+    // Pattern 2: "Item Name" followed by price on next line
+
+    for (let i = 0; i < lines.length; i++) {
+        const line = lines[i].trim();
+        if (!line || line.length < 3) continue;
+
+        // Skip common receipt headers/footers
+        if (line.match(/סה"כ|total|תאריך|date|קופה|קבלה|receipt|ח\.פ|vat|מע"מ/i)) continue;
+
+        // Pattern: Name followed by price (12.50 or ₪12.50)
+        const match1 = line.match(/^(.+?)\s+(₪?[\d.]+)$/);
+        if (match1) {
+            const name = match1[1].trim();
+            const priceStr = match1[2].replace('₪', '').trim();
+            const price = parseFloat(priceStr);
+
+            if (name.length > 2 && price > 0 && price < 1000) {
+                items.push({
+                    name: name,
+                    price: price,
+                    qty: 1,
+                    checked: false,
+                    category: detectCategory(name)
+                });
+            }
+            continue;
+        }
+
+        // Pattern: Just a name, check next line for price
+        if (i < lines.length - 1) {
+            const nextLine = lines[i + 1].trim();
+            const priceMatch = nextLine.match(/^₪?([\d.]+)$/);
+            if (priceMatch) {
+                const price = parseFloat(priceMatch[1]);
+                if (line.length > 2 && price > 0 && price < 1000) {
+                    items.push({
+                        name: line,
+                        price: price,
+                        qty: 1,
+                        checked: false,
+                        category: detectCategory(line)
+                    });
+                    i++; // Skip next line since we used it
+                }
+            }
+        }
+    }
+
+    return items;
+}
+
+function createListFromReceipt(items) {
+    const newId = 'L' + Date.now();
+    const listName = 'קבלה - ' + new Date().toLocaleDateString('he-IL');
+
+    db.lists[newId] = {
+        name: listName,
+        url: '',
+        budget: 0,
+        isTemplate: false,
+        items: items
+    };
+
+    db.currentId = newId;
+    activePage = 'lists';
+    save();
+}
+
 function toggleBottomBar() {
     const bottomBar = document.querySelector('.bottom-bar');
     const toggleBtn = document.getElementById('floatingToggle');
@@ -130,7 +600,17 @@ function openModal(id) {
         document.getElementById('itemName').value = '';
         document.getElementById('itemPrice').value = '';
         document.getElementById('itemCategory').value = '';
-        setTimeout(() => document.getElementById('itemName').focus(), 150);
+
+        // Setup autocomplete
+        const itemNameInput = document.getElementById('itemName');
+        itemNameInput.oninput = function () {
+            showAutocompleteSuggestions(this.value);
+        };
+        itemNameInput.onblur = function () {
+            hideAutocompleteSuggestions();
+        };
+
+        setTimeout(() => itemNameInput.focus(), 150);
     }
 
     if (id === 'newListModal') {
@@ -185,6 +665,100 @@ function showNotification(message, type = 'success') {
         notif.classList.remove('show');
         setTimeout(() => notif.remove(), 300);
     }, 3000);
+}
+
+// ========== Autocomplete Functions ==========
+function getProductHistory() {
+    const productMap = {};
+
+    // Extract products from history
+    if (db.history && db.history.length > 0) {
+        db.history.forEach(entry => {
+            entry.items.forEach(item => {
+                const name = item.name.trim();
+                // Keep the most recent price for each product
+                if (!productMap[name] || productMap[name].lastUsed < entry.completedAt) {
+                    productMap[name] = {
+                        price: item.price,
+                        category: item.category || '',
+                        lastUsed: entry.completedAt
+                    };
+                }
+            });
+        });
+    }
+
+    return productMap;
+}
+
+function showAutocompleteSuggestions(searchTerm) {
+    const container = document.getElementById('autocompleteContainer');
+    if (!container) return;
+
+    if (!searchTerm || searchTerm.length < 2) {
+        container.classList.remove('active');
+        container.innerHTML = '';
+        return;
+    }
+
+    const productHistory = getProductHistory();
+    const searchLower = searchTerm.toLowerCase();
+
+    // Filter products that match the search term
+    const matches = Object.entries(productHistory)
+        .filter(([name]) => name.toLowerCase().includes(searchLower))
+        .sort((a, b) => b[1].lastUsed - a[1].lastUsed) // Sort by most recent
+        .slice(0, 5); // Limit to 5 suggestions
+
+    if (matches.length === 0) {
+        container.classList.remove('active');
+        container.innerHTML = '';
+        return;
+    }
+
+    // Build HTML for suggestions
+    container.innerHTML = matches.map(([name, data]) => `
+        <div class="autocomplete-item" onclick="selectAutocompleteSuggestion('${name.replace(/'/g, "\\'")}', ${data.price}, '${data.category.replace(/'/g, "\\'")}')">
+            <div>
+                <div class="autocomplete-item-name">${name}</div>
+                ${data.category ? `<div class="autocomplete-item-category">${data.category}</div>` : ''}
+            </div>
+            <div class="autocomplete-item-price">₪${data.price.toFixed(2)}</div>
+        </div>
+    `).join('');
+
+    container.classList.add('active');
+}
+
+function selectAutocompleteSuggestion(name, price, category) {
+    document.getElementById('itemName').value = name;
+    document.getElementById('itemPrice').value = price;
+
+    // Use provided category or auto-detect
+    const finalCategory = category || detectCategory(name);
+    if (finalCategory) {
+        document.getElementById('itemCategory').value = finalCategory;
+    }
+
+    // Hide autocomplete
+    const container = document.getElementById('autocompleteContainer');
+    if (container) {
+        container.classList.remove('active');
+        container.innerHTML = '';
+    }
+
+    // Focus on price field for easy editing
+    setTimeout(() => document.getElementById('itemPrice').focus(), 100);
+}
+
+function hideAutocompleteSuggestions() {
+    const container = document.getElementById('autocompleteContainer');
+    if (container) {
+        setTimeout(() => {
+            container.classList.remove('active');
+            container.innerHTML = '';
+        }, 200);
+    }
 }
 
 // ========== Search Functions ==========
@@ -288,52 +862,151 @@ function render() {
         document.getElementById('listNameDisplay').innerText = list.name;
         document.getElementById('itemCountDisplay').innerText = `${list.items.length} מוצרים`;
 
+
         if (container) {
             container.innerHTML = '';
-            list.items.forEach((item, idx) => {
-                const sub = item.price * item.qty;
-                total += sub;
-                if (item.checked) paid += sub;
 
-                const categoryBadge = item.category ? `<span class="category-badge" style="background: ${CATEGORIES[item.category] || '#6b7280'}20; color: ${CATEGORIES[item.category] || '#6b7280'}">${item.category}</span>` : '';
+            // Update category sort button text
+            const categorySortText = document.getElementById('categorySortText');
+            if (categorySortText) {
+                categorySortText.textContent = categorySortEnabled ? '📋 מיון ידני' : '🔤 מיון לפי קטגוריות';
+            }
 
-                const isHighlighted = highlightedItemIndex === idx;
-                const div = document.createElement('div');
-                div.className = "item-card";
-                div.setAttribute('data-id', idx);
-                if (isHighlighted) {
-                    div.style.background = 'linear-gradient(135deg, #fef3c7 0%, #fde68a 100%)';
-                    div.style.border = '3px solid #f59e0b';
-                    div.style.boxShadow = '0 8px 20px rgba(245, 158, 11, 0.3)';
-                }
-                div.innerHTML = `
-                    <div class="flex justify-between items-center mb-4">
-                        <div class="flex items-center gap-3 flex-1">
-                            <input type="checkbox" ${item.checked ? 'checked' : ''} onchange="toggleItem(${idx})" class="w-7 h-7 accent-indigo-600">
-                            <div class="flex-1">
-                                <div class="text-2xl font-bold ${item.checked ? 'line-through text-gray-300' : ''}">
-                                    <span class="item-number">${idx + 1}.</span> ${item.name}
+            if (categorySortEnabled) {
+                // Category sorting mode
+                const categoryOrder = [
+                    'פירות וירקות',
+                    'בשר ודגים',
+                    'חלב וביצים',
+                    'לחם ומאפים',
+                    'שימורים',
+                    'חטיפים',
+                    'משקאות',
+                    'ניקיון',
+                    'היגיינה',
+                    'אחר',
+                    'כללי'
+                ];
+
+                // Group items by category
+                const categorizedItems = {};
+                list.items.forEach((item, idx) => {
+                    const category = item.category || 'כללי';
+                    if (!categorizedItems[category]) {
+                        categorizedItems[category] = [];
+                    }
+                    categorizedItems[category].push({ item, idx });
+                });
+
+                // Render by category
+                let itemNumber = 1;
+                categoryOrder.forEach(category => {
+                    if (categorizedItems[category] && categorizedItems[category].length > 0) {
+                        // Render category header
+                        const categoryHeader = document.createElement('div');
+                        categoryHeader.className = 'category-separator';
+                        categoryHeader.style.background = `linear-gradient(135deg, ${CATEGORIES[category] || '#6b7280'} 0%, ${CATEGORIES[category] || '#6b7280'}dd 100%)`;
+                        categoryHeader.innerHTML = `
+                            <div class="text-lg font-black">${category} (${categorizedItems[category].length})</div>
+                        `;
+                        container.appendChild(categoryHeader);
+
+                        // Render items in this category
+                        categorizedItems[category].forEach(({ item, idx }) => {
+                            const sub = item.price * item.qty;
+                            total += sub;
+                            if (item.checked) paid += sub;
+
+                            const categoryBadge = item.category ? `<span class="category-badge" style="background: ${CATEGORIES[item.category] || '#6b7280'}20; color: ${CATEGORIES[item.category] || '#6b7280'}">${item.category}</span>` : '';
+
+                            const isHighlighted = highlightedItemIndex === idx;
+                            const div = document.createElement('div');
+                            div.className = "item-card";
+                            div.setAttribute('data-id', idx);
+                            if (isHighlighted) {
+                                div.style.background = 'linear-gradient(135deg, #fef3c7 0%, #fde68a 100%)';
+                                div.style.border = '3px solid #f59e0b';
+                                div.style.boxShadow = '0 8px 20px rgba(245, 158, 11, 0.3)';
+                            }
+                            div.innerHTML = `
+                                <div class="flex justify-between items-center mb-4">
+                                    <div class="flex items-center gap-3 flex-1">
+                                        <input type="checkbox" ${item.checked ? 'checked' : ''} onchange="toggleItem(${idx})" class="w-7 h-7 accent-indigo-600">
+                                        <div class="flex-1">
+                                            <div class="text-2xl font-bold ${item.checked ? 'line-through text-gray-300' : ''}">
+                                                <span class="item-number">${itemNumber}.</span> ${item.name}
+                                            </div>
+                                            ${categoryBadge}
+                                        </div>
+                                    </div>
+                                    <button onclick="removeItem(${idx})" class="trash-btn">
+                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path>
+                                        </svg>
+                                    </button>
                                 </div>
-                                ${categoryBadge}
+                                <div class="flex justify-between items-center">
+                                    <div class="flex items-center gap-3 bg-gray-50 rounded-xl px-2 py-1 border">
+                                        <button onclick="changeQty(${idx}, 1)" class="text-green-500 text-2xl font-bold">+</button>
+                                        <span class="font-bold w-6 text-center">${item.qty}</span>
+                                        <button onclick="changeQty(${idx}, -1)" class="text-red-500 text-2xl font-bold">-</button>
+                                    </div>
+                                    <span onclick="openEditTotalModal(${idx})" class="text-2xl font-black text-indigo-600">₪${sub.toFixed(2)}</span>
+                                </div>
+                            `;
+                            container.appendChild(div);
+                            itemNumber++;
+                        });
+                    }
+                });
+            } else {
+                // Manual sorting mode (original behavior)
+                list.items.forEach((item, idx) => {
+                    const sub = item.price * item.qty;
+                    total += sub;
+                    if (item.checked) paid += sub;
+
+                    const categoryBadge = item.category ? `<span class="category-badge" style="background: ${CATEGORIES[item.category] || '#6b7280'}20; color: ${CATEGORIES[item.category] || '#6b7280'}">${item.category}</span>` : '';
+
+                    const isHighlighted = highlightedItemIndex === idx;
+                    const div = document.createElement('div');
+                    div.className = "item-card";
+                    div.setAttribute('data-id', idx);
+                    if (isHighlighted) {
+                        div.style.background = 'linear-gradient(135deg, #fef3c7 0%, #fde68a 100%)';
+                        div.style.border = '3px solid #f59e0b';
+                        div.style.boxShadow = '0 8px 20px rgba(245, 158, 11, 0.3)';
+                    }
+                    div.innerHTML = `
+                        <div class="flex justify-between items-center mb-4">
+                            <div class="flex items-center gap-3 flex-1">
+                                <input type="checkbox" ${item.checked ? 'checked' : ''} onchange="toggleItem(${idx})" class="w-7 h-7 accent-indigo-600">
+                                <div class="flex-1">
+                                    <div class="text-2xl font-bold ${item.checked ? 'line-through text-gray-300' : ''}">
+                                        <span class="item-number">${idx + 1}.</span> ${item.name}
+                                    </div>
+                                    ${categoryBadge}
+                                </div>
                             </div>
+                            <button onclick="removeItem(${idx})" class="trash-btn">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path>
+                                </svg>
+                            </button>
                         </div>
-                        <button onclick="removeItem(${idx})" class="trash-btn">
-                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path>
-                            </svg>
-                        </button>
-                    </div>
-                    <div class="flex justify-between items-center">
-                        <div class="flex items-center gap-3 bg-gray-50 rounded-xl px-2 py-1 border">
-                            <button onclick="changeQty(${idx}, 1)" class="text-green-500 text-2xl font-bold">+</button>
-                            <span class="font-bold w-6 text-center">${item.qty}</span>
-                            <button onclick="changeQty(${idx}, -1)" class="text-red-500 text-2xl font-bold">-</button>
+                        <div class="flex justify-between items-center">
+                            <div class="flex items-center gap-3 bg-gray-50 rounded-xl px-2 py-1 border">
+                                <button onclick="changeQty(${idx}, 1)" class="text-green-500 text-2xl font-bold">+</button>
+                                <span class="font-bold w-6 text-center">${item.qty}</span>
+                                <button onclick="changeQty(${idx}, -1)" class="text-red-500 text-2xl font-bold">-</button>
+                            </div>
+                            <span onclick="openEditTotalModal(${idx})" class="text-2xl font-black text-indigo-600">₪${sub.toFixed(2)}</span>
                         </div>
-                        <span onclick="openEditTotalModal(${idx})" class="text-2xl font-black text-indigo-600">₪${sub.toFixed(2)}</span>
-                    </div>
-                `;
-                container.appendChild(div);
-            });
+                    `;
+                    container.appendChild(div);
+                });
+            }
+
 
             // Add scroll listener to remove highlight
             if (highlightedItemIndex !== null) {
@@ -826,13 +1499,17 @@ function addItem() {
     const n = document.getElementById('itemName').value.trim();
     const p = parseFloat(document.getElementById('itemPrice').value) || 0;
     const c = document.getElementById('itemCategory').value;
+
     if (n) {
+        // Auto-detect category if not manually selected
+        const finalCategory = c || detectCategory(n);
+
         db.lists[db.currentId].items.push({
             name: n,
             price: p,
             qty: 1,
             checked: false,
-            category: c
+            category: finalCategory
         });
         closeModal('inputForm');
         save();
@@ -941,7 +1618,7 @@ function importFromText() {
             const totalPrice = parseFloat(fullMatch[3]);
             const price = totalPrice / qty;
             const checked = line.includes('✅');
-            items.push({ name, price, qty, checked, category: '' });
+            items.push({ name, price, qty, checked, category: detectCategory(name) });
             itemAdded = true;
         }
         if (!itemAdded) {
@@ -950,7 +1627,7 @@ function importFromText() {
                 const name = bulletQtyMatch[1].trim().replace(/\*/g, '');
                 const qty = parseInt(bulletQtyMatch[2]);
                 if (name) {
-                    items.push({ name, price: 0, qty, checked: false, category: '' });
+                    items.push({ name, price: 0, qty, checked: false, category: detectCategory(name) });
                     itemAdded = true;
                 }
             }
@@ -960,7 +1637,7 @@ function importFromText() {
             if (bulletMatch) {
                 const name = bulletMatch[1].trim().replace(/\*/g, '');
                 if (name) {
-                    items.push({ name, price: 0, qty: 1, checked: false, category: '' });
+                    items.push({ name, price: 0, qty: 1, checked: false, category: detectCategory(name) });
                     itemAdded = true;
                 }
             }
@@ -970,7 +1647,7 @@ function importFromText() {
             if (starMatch) {
                 const name = starMatch[1].trim();
                 if (name) {
-                    items.push({ name, price: 0, qty: 1, checked: false, category: '' });
+                    items.push({ name, price: 0, qty: 1, checked: false, category: detectCategory(name) });
                     itemAdded = true;
                 }
             }
@@ -978,7 +1655,7 @@ function importFromText() {
         if (!itemAdded && line.length > 0) {
             const name = line.replace(/^[\d\.\)\-\s]+/, '').trim();
             if (name && !/^\d+$/.test(name)) {
-                items.push({ name, price: 0, qty: 1, checked: false, category: '' });
+                items.push({ name, price: 0, qty: 1, checked: false, category: detectCategory(name) });
             }
         }
     }

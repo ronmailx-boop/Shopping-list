@@ -347,8 +347,7 @@
         .floating-toggle-btn {
             position: fixed;
             bottom: 220px;
-            left: 50%;
-            transform: translateX(-50%);
+            right: 10px;
             width: 35px;
             height: 35px;
             background: white;
@@ -364,7 +363,7 @@
         }
 
         .floating-toggle-btn:active {
-            transform: translateX(-50%) scale(0.9);
+            transform: scale(0.9);
         }
 
         .floating-toggle-btn svg {
@@ -389,7 +388,106 @@
             font-weight: bold;
             margin-right: 8px;
         }
+
+        .autocomplete-container {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: white;
+            border: 2px solid #e5e7eb;
+            border-top: none;
+            border-radius: 0 0 16px 16px;
+            max-height: 200px;
+            overflow-y: auto;
+            z-index: 1000;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            display: none;
+        }
+
+        .autocomplete-container.active {
+            display: block;
+        }
+
+        .autocomplete-item {
+            padding: 12px 15px;
+            cursor: pointer;
+            border-bottom: 1px solid #f3f4f6;
+            transition: background 0.2s;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .autocomplete-item:last-child {
+            border-bottom: none;
+        }
+
+        .autocomplete-item:hover {
+            background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+        }
+
+        .autocomplete-item-name {
+            font-weight: bold;
+            color: #1f2937;
+        }
+
+        .autocomplete-item-price {
+            color: #7367f0;
+            font-weight: bold;
+            font-size: 14px;
+        }
+
+        .autocomplete-item-category {
+            font-size: 11px;
+            color: #6b7280;
+            margin-top: 2px;
+        }
+
+        .dark-mode .autocomplete-container {
+            background: #0f3460;
+            border-color: #1a1a2e;
+        }
+
+        .dark-mode .autocomplete-item {
+            border-bottom-color: #1a1a2e;
+        }
+
+        .dark-mode .autocomplete-item:hover {
+            background: rgba(115, 103, 240, 0.2);
+        }
+
+        .dark-mode .autocomplete-item-name {
+            color: white;
+        }
+
+        .dark-mode .autocomplete-item-category {
+            color: #9ca3af;
+        }
+
+        /* Voice button recording animation */
+        @keyframes pulse-recording {
+
+            0%,
+            100% {
+                transform: scale(1);
+                box-shadow: 0 0 0 0 rgba(168, 85, 247, 0.7);
+            }
+
+            50% {
+                transform: scale(1.05);
+                box-shadow: 0 0 0 10px rgba(168, 85, 247, 0);
+            }
+        }
+
+        #voiceBtn.recording {
+            animation: pulse-recording 1.5s infinite;
+            background: #ef4444 !important;
+        }
     </style>
+
+    <!-- Tesseract.js for OCR -->
+    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@4/dist/tesseract.min.js"></script>
 
     <script>
         if ('serviceWorker' in navigator) {
@@ -468,6 +566,8 @@
                         class="bg-indigo-600 text-white flex-1 py-3 rounded-xl font-bold">+ רשימה חדשה</button>
                     <button onclick="openModal('importModal')"
                         class="bg-green-500 text-white flex-1 py-3 rounded-xl font-bold">📥 ייבוא</button>
+                    <button onclick="openModal('receiptScanModal')"
+                        class="bg-blue-500 text-white flex-1 py-3 rounded-xl font-bold">📸 סרוק קבלה</button>
                 </div>
             </div>
             <div class="mb-3">
@@ -492,6 +592,13 @@
                             </path>
                         </svg>
                     </button>
+                    <button onclick="openModal('translateModal')" class="text-white opacity-90" title="תרגם רשימה">
+                        <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9h7M11 21l5-10 5 10M12.751 5C11.783 10.77 8.07 15.61 3 18.129">
+                            </path>
+                        </svg>
+                    </button>
                     <div class="flex-1 text-center">
                         <div id="listNameDisplay" class="text-2xl font-black truncate"
                             onclick="openModal('editListNameModal')"></div>
@@ -507,6 +614,10 @@
                     </button>
                 </div>
                 <div id="statusTag" class="text-[10px] font-bold mt-2 opacity-80 text-center">נעול</div>
+                <button onclick="toggleCategorySorting()" id="categorySortBtn"
+                    class="text-[10px] font-bold mt-1 bg-white/20 hover:bg-white/30 text-white py-1 px-3 rounded-full transition">
+                    <span id="categorySortText">🔤 מיון לפי קטגוריות</span>
+                </button>
                 <div id="budgetWarning"
                     class="hidden text-[10px] font-bold mt-2 bg-red-500 text-white py-1 px-3 rounded-full inline-block">
                     ⚠️ חריגה מתקציב!</div>
@@ -585,7 +696,8 @@
                 <div class="text-[10px] opacity-70">סה"כ רשימה</div>
                 <div class="text-xl font-bold">₪<span id="displayTotal">0.00</span></div>
             </div>
-            <div class="flex-shrink-0"><button onclick="openModal('inputForm')"
+            <div class="flex-shrink-0 flex gap-3">
+                <button onclick="openModal('inputForm')"
                     class="w-16 h-16 bg-green-500 rounded-full flex items-center justify-center shadow-2xl border-4 border-white/20 text-white text-4xl font-bold">+</button>
             </div>
             <div class="flex-1 text-center">
@@ -617,9 +729,24 @@
 
     <!-- Modals -->
     <div id="inputForm" class="modal-overlay no-print">
-        <div class="edit-modal">
+        <div class="edit-modal" style="position: relative;">
             <h2>הוספת מוצר</h2>
-            <input type="text" id="itemName" placeholder="שם המוצר" class="modal-input">
+
+            <!-- Voice Input Button - Top Right Corner -->
+            <button onclick="startVoiceInput()" id="voiceBtn"
+                class="absolute top-4 left-4 w-12 h-12 bg-purple-500 rounded-full flex items-center justify-center shadow-lg border-2 border-white/30 text-white hover:bg-purple-600 transition-all hover:scale-110"
+                style="z-index: 10;" title="הקלט קולי">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z">
+                    </path>
+                </svg>
+            </button>
+
+            <div style="position: relative;">
+                <input type="text" id="itemName" placeholder="שם המוצר" class="modal-input" autocomplete="off">
+                <div id="autocompleteContainer" class="autocomplete-container"></div>
+            </div>
             <input type="number" id="itemPrice" inputmode="decimal" placeholder="מחיר" class="modal-input">
             <select id="itemCategory" class="modal-input">
                 <option value="">בחר קטגוריה (אופציונלי)</option>
@@ -787,6 +914,75 @@
             </button>
             <input type="file" id="importDataFile" accept=".json" style="display: none;" onchange="importData(event)">
             <button onclick="closeModal('settingsModal')" class="mt-4 text-gray-400 block w-full">סגור</button>
+        </div>
+    </div>
+
+    <!-- Translation Modal -->
+    <div id="translateModal" class="modal-overlay no-print">
+        <div class="edit-modal">
+            <h2>תרגם רשימה</h2>
+            <p class="text-sm text-gray-600 mb-4">בחר שפת יעד לתרגום כל המוצרים ברשימה</p>
+            <select id="targetLanguage" class="modal-input mb-4">
+                <option value="he">עברית - Hebrew</option>
+                <option value="en">English - אנגלית</option>
+                <option value="ar">العربية - ערבית</option>
+                <option value="ru">Русский - רוסית</option>
+                <option value="fr">Français - צרפתית</option>
+                <option value="es">Español - ספרדית</option>
+                <option value="de">Deutsch - גרמנית</option>
+                <option value="it">Italiano - איטלקית</option>
+                <option value="pt">Português - פורטוגזית</option>
+                <option value="tr">Türkçe - טורקית</option>
+                <option value="pl">Polski - פולנית</option>
+            </select>
+            <div class="flex gap-3">
+                <button onclick="performTranslation()"
+                    class="flex-1 bg-indigo-600 text-white py-3 rounded-xl font-bold">
+                    🌐 תרגם
+                </button>
+                <button onclick="closeModal('translateModal')"
+                    class="flex-1 bg-gray-300 text-gray-700 py-3 rounded-xl font-bold">
+                    ביטול
+                </button>
+            </div>
+            <div id="translationProgress" class="hidden mt-4 text-center">
+                <div class="text-sm text-gray-600">מתרגם...</div>
+                <div class="text-xs text-gray-500 mt-1" id="translationStatus"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Receipt Scan Modal -->
+    <div id="receiptScanModal" class="modal-overlay no-print">
+        <div class="edit-modal">
+            <h2>סריקת קבלה</h2>
+            <p class="text-sm text-gray-600 mb-4">העלה תמונת קבלה לזיהוי אוטומטי של מוצרים</p>
+
+            <input type="file" id="receiptImage" accept="image/*" capture="camera" class="modal-input mb-4">
+
+            <div id="scanPreview" class="mb-4 hidden">
+                <img id="previewImg" class="w-full rounded-lg border-2 border-gray-200"
+                    style="max-height: 300px; object-fit: contain;">
+            </div>
+
+            <div id="scanProgress" class="hidden mb-4">
+                <div class="bg-gray-200 rounded-full h-4 overflow-hidden">
+                    <div id="scanProgressBar" class="bg-indigo-600 h-full transition-all duration-300"
+                        style="width: 0%"></div>
+                </div>
+                <div class="text-sm text-gray-600 text-center mt-2" id="scanStatus">מעבד תמונה...</div>
+            </div>
+
+            <div class="flex gap-3">
+                <button onclick="processReceipt()" id="scanBtn"
+                    class="flex-1 bg-blue-500 text-white py-3 rounded-xl font-bold">
+                    📸 סרוק
+                </button>
+                <button onclick="closeModal('receiptScanModal')"
+                    class="flex-1 bg-gray-300 text-gray-700 py-3 rounded-xl font-bold">
+                    ביטול
+                </button>
+            </div>
         </div>
     </div>
 
