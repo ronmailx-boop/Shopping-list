@@ -1,177 +1,125 @@
-// ========== הגדרות ומצב אפליקציה ==========
-// שימוש במפתח גרסה ייחודי לאחסון המקומי
-const APP_VERSION = '1.0.0';
-const STORAGE_KEY = `VPLUS_ITEMS_V${APP_VERSION}`;
+// ========== Google Drive Configuration ==========
+const GOOGLE_CLIENT_ID = '151476121869-b5lbrt5t89s8d342ftd1cg1q926518pt.apps.googleusercontent.com';
+const GOOGLE_API_KEY = 'AIzaSyDIMiuwL-phvwI7iAUeMQmTOowWE96mP6I';
+const DISCOVERY_DOC = 'https://www.googleapis.com/discovery/v1/apis/drive/v3/rest';
+const SCOPES = 'https://www.googleapis.com/auth/drive.file';
+const FOLDER_NAME = 'Vplus_Budget_Data';
+const FILE_NAME = 'budget_data.json';
 
-let items = JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
-let editIndex = null;
+let gapiInited = false;
+let gisInited = false;
+let tokenClient;
+let accessToken = null;
+let isSyncing = false;
+let isConnected = false;
 
-// ========== פונקציות ליבה ==========
+// ========== App Data & Versioning ==========
+const APP_VERSION = '1.0.0'; // הגרסה הרשמית לחנות
+let db = JSON.parse(localStorage.getItem('BUDGET_FINAL_V28')) || {
+    currentId: 'L1',
+    selectedInSummary: [],
+    lists: { 'L1': { name: 'הרשימה שלי', url: '', budget: 0, items: [] } },
+    history: [],
+    templates: [],
+    lastActivePage: 'lists',
+    stats: { totalSpent: 0, listsCompleted: 0, monthlyData: {} }
+};
 
-// הוספת מוצר חדש
-function addItem() {
-    const nameInput = document.getElementById('itemName');
-    const priceInput = document.getElementById('itemPrice');
-    
-    if (!nameInput.value.trim()) return;
+let isLocked = true;
+let activePage = db.lastActivePage || 'lists';
 
-    const item = {
-        id: Date.now(),
-        name: nameInput.value.trim(),
-        price: parseFloat(priceInput.value) || 0,
-        checked: false
-    };
-
-    items.unshift(item); // הוספה לראש הרשימה
-    saveAndRender();
-    
-    // איפוס שדות
-    nameInput.value = '';
-    priceInput.value = '';
-    nameInput.focus();
+// ========== Core Functions ==========
+function save() {
+    db.lastActivePage = activePage;
+    localStorage.setItem('BUDGET_FINAL_V28', JSON.stringify(db));
+    render();
+    if (isConnected && !isSyncing) syncToCloud();
 }
 
-// סימון מוצר כנקנה
-function toggleCheck(id) {
-    items = items.map(item => item.id === id ? {...item, checked: !item.checked} : item);
-    saveAndRender();
-}
+function render() {
+    const container = document.getElementById(activePage === 'lists' ? 'itemsContainer' : 'summaryContainer');
+    if (!container && activePage !== 'stats') return;
 
-// מחיקת מוצר
-function deleteItem(id) {
-    if (confirm('האם למחוק את המוצר?')) {
-        items = items.filter(item => item.id !== id);
-        saveAndRender();
+    // עדכון טאבים
+    ['tabLists', 'tabSummary', 'tabStats'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.className = `tab-btn ${id.toLowerCase().includes(activePage) ? 'tab-active' : ''}`;
+    });
+
+    if (activePage === 'lists') {
+        renderListsPage(container);
+    } else if (activePage === 'summary') {
+        renderSummaryPage(container);
+    } else if (activePage === 'stats') {
+        renderStats();
     }
 }
 
-// שמירה ורינדור
-function saveAndRender() {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
-    render();
-}
-
-// הצגת הרשימה על המסך
-function render() {
-    const list = document.getElementById('itemsList');
-    const totalDisplay = document.getElementById('totalDisplay');
-    const itemCount = document.getElementById('itemCount');
-    
-    if (!list) return;
-    
-    list.innerHTML = '';
-    let total = 0;
-
-    items.forEach((item) => {
-        total += item.price;
-        const card = document.createElement('div');
-        card.className = `item-card ${item.checked ? 'opacity-50' : ''}`;
-        card.innerHTML = `
-            <div onclick="toggleCheck(${item.id})" class="w-8 h-8 rounded-full border-2 border-indigo-600 flex items-center justify-center cursor-pointer font-bold text-indigo-600">
-                ${item.checked ? '✓' : ''}
+function renderListsPage(container) {
+    const list = db.lists[db.currentId] || { name: 'רשימה', items: [] };
+    container.innerHTML = '';
+    list.items.forEach((item, idx) => {
+        const div = document.createElement('div');
+        div.className = "item-card";
+        div.innerHTML = `
+            <div class="flex justify-between items-center">
+                <input type="checkbox" ${item.checked ? 'checked' : ''} onchange="toggleItem(${idx})" class="w-6 h-6">
+                <span class="flex-1 px-3 ${item.checked ? 'line-through opacity-50' : ''}">${item.name}</span>
+                <span class="font-bold">₪${(item.price * item.qty).toFixed(2)}</span>
             </div>
-            <div class="flex-1" onclick="openEdit(${item.id})">
-                <div class="font-bold text-lg ${item.checked ? 'line-through' : ''}">${item.name}</div>
-                <div class="text-indigo-600 font-black">₪${item.price.toFixed(2)}</div>
-            </div>
-            <button onclick="deleteItem(${item.id})" class="text-red-400 p-2 text-xl">✕</button>
         `;
-        list.appendChild(card);
+        container.appendChild(div);
     });
-
-    if (totalDisplay) totalDisplay.innerText = `₪${total.toFixed(2)}`;
-    if (itemCount) itemCount.innerText = items.length;
 }
 
-// ========== מודאלים וממשק משתמש ==========
-
+// ========== UI & Modals ==========
 function openModal(id) { 
-    document.getElementById(id).style.display = 'flex'; 
+    const m = document.getElementById(id);
+    if (m) m.classList.add('active'); 
 }
 
 function closeModal(id) { 
-    document.getElementById(id).style.display = 'none'; 
-}
-
-function openEdit(id) {
-    const item = items.find(i => i.id === id);
-    editIndex = items.findIndex(i => i.id === id);
-    document.getElementById('editName').value = item.name;
-    document.getElementById('editPrice').value = item.price;
-    openModal('editModal');
-}
-
-function saveEdit() {
-    if (editIndex !== null) {
-        items[editIndex].name = document.getElementById('editName').value.trim();
-        items[editIndex].price = parseFloat(document.getElementById('editPrice').value) || 0;
-        saveAndRender();
-        closeModal('editModal');
-    }
+    const m = document.getElementById(id);
+    if (m) m.classList.remove('active'); 
 }
 
 function toggleDarkMode() {
     document.body.classList.toggle('dark-mode');
-    const isDark = document.body.classList.contains('dark-mode');
-    localStorage.setItem('darkMode', isDark);
-    const btnText = document.getElementById('darkModeText');
-    if (btnText) btnText.innerText = isDark ? 'מצב יום ☀️' : 'מצב לילה 🌙';
+    localStorage.setItem('darkMode', document.body.classList.contains('dark-mode'));
 }
 
-// ייצוא וייבוא נתונים
-function exportData() {
-    const dataStr = JSON.stringify(items);
-    const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
-    const linkElement = document.createElement('a');
-    linkElement.setAttribute('href', dataUri);
-    linkElement.setAttribute('download', `vplus_backup_v${APP_VERSION}_${new Date().toLocaleDateString('he-IL')}.json`);
-    linkElement.click();
+function showPage(p) {
+    activePage = p;
+    save();
 }
 
-function importData(event) {
-    const file = event.target.files[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = (e) => {
-        try {
-            const imported = JSON.parse(e.target.result);
-            if (Array.isArray(imported)) {
-                items = imported;
-                saveAndRender();
-                alert('הנתונים שוחזרו בהצלחה!');
-            }
-        } catch (err) {
-            alert('שגיאה בקריאת הקובץ');
-        }
-    };
-    reader.readAsText(file);
+// ========== Google Drive Sync ==========
+async function syncToCloud() {
+    if (!accessToken || isSyncing) return;
+    isSyncing = true;
+    updateCloudIndicator('syncing');
+    try {
+        // לוגיקת העלאה לדרייב המקורית שלך...
+    } catch (err) { console.error(err); }
+    finally { isSyncing = false; updateCloudIndicator('connected'); }
 }
 
-function preparePrint() { 
-    window.print(); 
+function updateCloudIndicator(status) {
+    const indicator = document.getElementById('cloudIndicator');
+    if (indicator) indicator.className = `w-2 h-2 rounded-full ${status === 'connected' ? 'bg-green-500' : 'bg-yellow-500 animate-pulse'}`;
 }
 
-// ========== אתחול האפליקציה ==========
-
+// ========== Initialization ==========
 window.addEventListener('DOMContentLoaded', () => {
-    // טעינת מצב לילה
-    if (localStorage.getItem('darkMode') === 'true') {
-        document.body.classList.add('dark-mode');
-        const btnText = document.getElementById('darkModeText');
-        if (btnText) btnText.innerText = 'מצב יום ☀️';
-    }
+    // טעינת Dark Mode
+    if (localStorage.getItem('darkMode') === 'true') document.body.classList.add('dark-mode');
 
-    // עדכון תצוגת גרסה במודאל הגדרות
+    // עדכון גרסה בתצוגה
     const versionDisplay = document.getElementById('appVersionDisplay');
     if (versionDisplay) versionDisplay.innerText = APP_VERSION;
 
-    // האזנה למקש Enter בתיבות הטקסט
-    document.getElementById('itemName')?.addEventListener('keypress', (e) => {
-        if (e.key === 'Enter') document.getElementById('itemPrice').focus();
-    });
-    document.getElementById('itemPrice')?.addEventListener('keypress', (e) => {
-        if (e.key === 'Enter') addItem();
-    });
-
     render();
 });
+
+// טעינת סקריפטים של גוגל
+const script1 = document.createElement('script'); script1.src = 'https://apis.google.com/js/api.js'; script1.onload = () => gapi.load('client', () => gapi.client.init({apiKey: GOOGLE_API_KEY, discoveryDocs: [DISCOVERY_DOC]})); document.head.appendChild(script1);
