@@ -1,17 +1,13 @@
 {
-  "name": "Vplus - ניהול תקציב חכם",
+  "name": "Vplus",
   "short_name": "Vplus",
   "description": "אפליקציה מתקדמת לניהול רשימות קניות ותקציב אישי",
-  "id": "/index.html",
   "start_url": "./index.html",
   "display": "standalone",
   "background_color": "#7367f0",
   "theme_color": "#7367f0",
   "orientation": "portrait",
   "scope": "./",
-  "lang": "he",
-  "dir": "rtl",
-  "version": "1.0.0",
   "icons": [
     {
       "src": "./icon.png",
@@ -64,13 +60,13 @@
   ],
   "screenshots": [
     {
-      "src": "./screenshot1.png",
+      "src": "/screenshot1.png",
       "sizes": "540x720",
       "type": "image/png",
       "form_factor": "narrow"
     },
     {
-      "src": "./screenshot2.png",
+      "src": "/screenshot2.png",
       "sizes": "540x720",
       "type": "image/png",
       "form_factor": "narrow"
@@ -85,8 +81,28 @@
     {
       "name": "רשימה חדשה",
       "short_name": "חדש",
-      "url": "./index.html?action=new",
-      "icons": [{ "src": "./icon.png", "sizes": "192x192" }]
+      "description": "צור רשימת קניות חדשה",
+      "url": "/?action=new",
+      "icons": [
+        {
+          "src": "/icon.png",
+          "sizes": "96x96"
+        }
+      ]
+    },
+    {
+      "name": "סטטיסטיקות",
+      "short_name": "סטטיסטיקות",
+      "description": "צפה בסטטיסטיקות הוצאות",
+      "url": "/?action=stats",
+      "icons": [
+        {
+          "src": "/icon.png",
+          "sizes": "96x96"
+        }
+      ]
     }
-  ]
+  ],
+  "prefer_related_applications": false,
+  "related_applications": []
 }
