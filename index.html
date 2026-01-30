@@ -506,32 +506,39 @@
             });
         }
     </script>
-    
+
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
         import { getAuth, signInWithRedirect, GoogleAuthProvider, getRedirectResult, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
         import { getFirestore, doc, setDoc, onSnapshot, getDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-        const firebaseConfig = { apiKey: "AIzaSyBqIqxoiwwqeKkjlYJpEiqgCG09PgabwhI", authDomain: "vplus-pro.firebaseapp.com", projectId: "vplus-pro", storageBucket: "vplus-pro.firebasestorage.app", messagingSenderId: "386740827706", appId: "1:386740827706:web:a3c95c895826df4bb26703" };
+        try {
+            const firebaseConfig = { apiKey: "AIzaSyBqIqxoiwwqeKkjlYJpEiqgCG09PgabwhI", authDomain: "vplus-pro.firebaseapp.com", projectId: "vplus-pro", storageBucket: "vplus-pro.firebasestorage.app", messagingSenderId: "386740827706", appId: "1:386740827706:web:a3c95c895826df4bb26703" };
 
-        const app = initializeApp(firebaseConfig);
-        const auth = getAuth(app);
-        const db = getFirestore(app);
-        const provider = new GoogleAuthProvider();
+            const app = initializeApp(firebaseConfig);
+            const auth = getAuth(app);
+            const db = getFirestore(app);
+            const provider = new GoogleAuthProvider();
 
-        window.firebaseApp = app;
-        window.firebaseAuth = auth;
-        window.firebaseDb = db;
-        window.googleProvider = provider;
-        
-        window.signInWithRedirect = signInWithRedirect;
-        window.getRedirectResult = getRedirectResult;
-        window.signOut = signOut;
-        window.onAuthStateChanged = onAuthStateChanged;
-        window.doc = doc;
-        window.setDoc = setDoc;
-        window.onSnapshot = onSnapshot;
-        window.getDoc = getDoc;
+            window.firebaseApp = app;
+            window.firebaseAuth = auth;
+            window.firebaseDb = db;
+            window.googleProvider = provider;
+
+            window.signInWithRedirect = signInWithRedirect;
+            window.getRedirectResult = getRedirectResult;
+            window.signOut = signOut;
+            window.onAuthStateChanged = onAuthStateChanged;
+            window.doc = doc;
+            window.setDoc = setDoc;
+            window.onSnapshot = onSnapshot;
+            window.getDoc = getDoc;
+
+            console.log("Firebase initialized successfully");
+        } catch (e) {
+            console.error("Firebase initialization failed:", e);
+            alert("שגיאה בטעינת פיירבייס: " + e.message);
+        }
     </script>
 </head>
 
@@ -545,7 +552,7 @@
         </h1>
 
         <div class="header-controls">
-            <div id="cloudBtn"
+            <div id="cloudBtn" onclick="loginWithGoogle()"
                 class="bg-indigo-50 text-indigo-600 px-3 py-1 rounded-full text-[10px] font-bold border border-indigo-100 flex items-center gap-1 cursor-pointer">
                 <span id="cloudSyncText">סנכרון ענן</span>
                 <div id="cloudIndicator" class="w-2 h-2 bg-gray-300 rounded-full"></div>
@@ -919,8 +926,10 @@
     <div id="settingsModal" class="modal-overlay no-print">
         <div class="edit-modal">
             <h2 id="settingsModalTitle">הגדרות</h2>
-            <div id="userEmailDisplay" class="text-indigo-600 font-bold mb-2 text-center"></div>
-            <button onclick="logoutFromCloud()" class="w-full bg-red-50 text-red-600 py-3 rounded-xl font-bold border border-red-100 mb-4">התנתק מהענן 🚪</button>
+            <div id="userEmailDisplay" class="text-indigo-600 font-bold mb-2 text-center text-sm"></div>
+            <button onclick="logoutFromCloud()"
+                class="w-full bg-red-50 text-red-600 py-3 rounded-xl font-bold border border-red-100 mb-4">התנתק מהענן
+                🚪</button>
             <button onclick="toggleDarkMode()"
                 class="w-full bg-indigo-50 text-indigo-600 py-4 rounded-xl font-bold mb-3">
                 <span id="darkModeText">מצב לילה 🌙</span>

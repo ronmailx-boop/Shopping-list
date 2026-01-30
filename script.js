@@ -2385,33 +2385,39 @@ function importData(event) {
 // ========== Firebase Integration ==========
 
 // Check for redirect result on load
-document.addEventListener('DOMContentLoaded', async () => {
-    // Wait for firebase to be available
-    const checkFirebase = setInterval(async () => {
-        if (window.firebaseAuth) {
-            clearInterval(checkFirebase);
-            initFirebaseAuth();
-            
-            try {
-                const result = await window.getRedirectResult(window.firebaseAuth);
-                if (result) {
-                    showNotification('👋 ברוך הבא ' + result.user.displayName);
-                }
-            } catch (error) {
-                console.error("Auth Redirect Error", error);
-                // Don't show error notification endlessly if just no redirect happened
+// ========== Firebase Integration ==========
+
+// Check for firebase availability immediately and poll
+const checkFirebase = setInterval(async () => {
+    if (window.firebaseAuth) {
+        clearInterval(checkFirebase);
+        initFirebaseAuth();
+
+        try {
+            const result = await window.getRedirectResult(window.firebaseAuth);
+            if (result) {
+                showNotification('👋 ברוך הבא ' + result.user.displayName);
             }
+        } catch (error) {
+            console.error("Auth Redirect Error", error);
         }
-    }, 100);
-});
+    }
+}, 100);
+
+// Timeout check to warn user if firebase doesn't load
+setTimeout(() => {
+    if (!window.firebaseAuth) {
+        console.warn("Firebase still not loaded after 10 seconds");
+    }
+}, 10000);
 
 function initFirebaseAuth() {
     window.onAuthStateChanged(window.firebaseAuth, (user) => {
         currentUser = user;
         isConnected = !!user;
-        
+
         updateCloudIndicator(user ? 'connected' : 'disconnected');
-        
+
         const emailDisplay = document.getElementById('userEmailDisplay');
         if (emailDisplay) {
             emailDisplay.textContent = user ? user.email : '';
@@ -2432,15 +2438,20 @@ function initFirebaseAuth() {
     // Override cloud button click
     const cloudBtn = document.getElementById('cloudBtn');
     if (cloudBtn) {
-        cloudBtn.onclick = loginWithGoogle; 
+        cloudBtn.onclick = loginWithGoogle;
     }
 }
 
 function loginWithGoogle() {
+    if (!window.firebaseAuth) {
+        showNotification('⏳ שירות הענן עדיין נטען... נסה שוב בעוד רגע', 'warning');
+        return;
+    }
+
     // Login Loop Fix: Check if already logged in first
     if (window.firebaseAuth.currentUser) {
-         showNotification('✅ כבר מחובר כ-' + window.firebaseAuth.currentUser.displayName);
-         return;
+        showNotification('אתה כבר מחובר');
+        return;
     }
 
     try {
@@ -2464,7 +2475,7 @@ function updateCloudIndicator(status) {
     const indicator = document.getElementById('cloudIndicator');
     const text = document.getElementById('cloudSyncText');
     if (!indicator) return;
-    
+
     if (status === 'connected') {
         indicator.className = 'w-2 h-2 bg-green-500 rounded-full';
         // if (text) text.textContent = "מחובר ✅"; // Keep original text style unless requested to change
@@ -2478,20 +2489,20 @@ function updateCloudIndicator(status) {
 
 function setupFirestoreListener(user) {
     const userDocRef = window.doc(window.firebaseDb, "shopping_lists", user.uid);
-    
+
     unsubscribeSnapshot = window.onSnapshot(userDocRef, (docSnap) => {
         if (docSnap.exists()) {
             const cloudData = docSnap.data();
-            
+
             // Sync instantly
             // Avoid loop: if the data is same as local, don't re-render
             // Simple comparison of stringified JSON
             if (JSON.stringify(cloudData) !== JSON.stringify(db)) {
-                 db = cloudData;
-                 // Update localStorage
-                 localStorage.setItem('BUDGET_FINAL_V28', JSON.stringify(db));
-                 render();
-                 showNotification('☁️ סונכרן מהענן!');
+                db = cloudData;
+                // Update localStorage
+                localStorage.setItem('BUDGET_FINAL_V28', JSON.stringify(db));
+                render();
+                showNotification('☁️ סונכרן מהענן!');
             }
         } else {
             // Document doesn't exist? Create it from local
@@ -2504,12 +2515,12 @@ function setupFirestoreListener(user) {
 
 async function syncToCloud() {
     if (!currentUser) return;
-    
+
     updateCloudIndicator('syncing');
-    
+
     try {
         const userDocRef = window.doc(window.firebaseDb, "shopping_lists", currentUser.uid);
-        await window.setDoc(userDocRef, db); 
+        await window.setDoc(userDocRef, db);
     } catch (error) {
         console.error("Error writing to cloud:", error);
     } finally {
