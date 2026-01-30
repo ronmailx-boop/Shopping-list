@@ -113,6 +113,203 @@ function detectCategory(productName) {
 }
 
 
+// ========== Category Translations ==========
+const categoryTranslations = {
+    he: {
+        'פירות וירקות': '🥬 פירות וירקות',
+        'בשר ודגים': '🥩 בשר ודגים',
+        'חלב וביצים': '🥛 חלב וביצים',
+        'לחם ומאפים': '🍞 לחם ומאפים',
+        'שימורים': '🥫 שימורים',
+        'חטיפים': '🍪 חטיפים',
+        'משקאות': '🥤 משקאות',
+        'ניקיון': '🧹 ניקיון',
+        'היגיינה': '🧴 היגיינה',
+        'אחר': '📦 אחר'
+    },
+    en: {
+        'פירות וירקות': '🥬 Fruits & Vegetables',
+        'בשר ודגים': '🥩 Meat & Fish',
+        'חלב וביצים': '🥛 Dairy & Eggs',
+        'לחם ומאפים': '🍞 Bread & Bakery',
+        'שימורים': '🥫 Canned Goods',
+        'חטיפים': '🍪 Snacks',
+        'משקאות': '🥤 Beverages',
+        'ניקיון': '🧹 Cleaning',
+        'היגיינה': '🧴 Hygiene',
+        'אחר': '📦 Other'
+    },
+    ru: {
+        'פירות וירקות': '🥬 Фрукты и Овощи',
+        'בשר ודגים': '🥩 Мясо и Рыба',
+        'חלב וביצים': '🥛 Молочные и Яйца',
+        'לחם ומאפים': '🍞 Хлеб и Выпечка',
+        'שימורים': '🥫 Консервы',
+        'חטיפים': '🍪 Закуски',
+        'משקאות': '🥤 Напитки',
+        'ניקיון': '🧹 Уборка',
+        'היגיינה': '🧴 Гигиена',
+        'אחר': '📦 Другое'
+    },
+    ro: {
+        'פירות וירקות': '🥬 Fructe și Legume',
+        'בשר ודגים': '🥩 Carne și Pește',
+        'חלב וביצים': '🥛 Lactate și Ouă',
+        'לחם ומאפים': '🍞 Pâine și Patiserie',
+        'שימורים': '🥫 Conserve',
+        'חטיפים': '🍪 Gustări',
+        'משקאות': '🥤 Băuturi',
+        'ניקיון': '🧹 Curățenie',
+        'היגיינה': '🧴 Igienă',
+        'אחר': '📦 Altele'
+    }
+};
+
+// ========== Translations ==========
+const translations = {
+    he: {
+        appName: 'Vplus', cloudSync: 'סנכרון ענן', myList: 'הרשימה שלי', myLists: 'הרשימות שלי',
+        statistics: '📊 סטטיסטיקות', newList: '+ רשימה חדשה', import: '📥 ייבוא', scanReceipt: '📸 סרוק קבלה',
+        addItem: '+', share: 'שתף', translate: 'תרגם', settings: 'הגדרות', items: 'מוצרים',
+        locked: 'נעול', unlocked: 'עריכה (גרירה פעילה)', categorySortBtn: '🔤 מיון לפי קטגוריות', manualSortBtn: '📋 מיון ידני',
+        budgetWarning: '⚠️ חריגה מתקציב!', searchPlaceholder: 'חפש מוצר ברשימה...', totalList: 'סה"כ רשימה',
+        paidInList: 'שולם ברשימה', remainingToPay: 'נשאר לשלם', addItemTitle: 'הוספת מוצר',
+        productName: 'שם המוצר', price: 'מחיר', selectCategory: 'בחר קטגוריה (אופציונלי)', add: 'הוסף',
+        cancel: 'ביטול', importTitle: 'ייבוא רשימה מטקסט', importDesc: 'הדבק טקסט מוואטסאפ או כל רשימה',
+        importPlaceholder: 'הדבק כאן טקסט לייבוא...', importBtn: 'ייבא', newListTitle: 'רשימה חדשה',
+        listName: 'שם הרשימה', websiteUrl: 'כתובת אתר (אופציונלי)', budget: 'תקציב (אופציונלי)',
+        saveAsTemplate: '⭐ שמור כתבנית', create: 'צור', completeListTitle: 'סיום רשימה',
+        completeListMsg: 'לסמן רשימה זו כהושלמה ולשמור בהיסטוריה?', complete: 'השלם',
+        deleteListTitle: 'מחיקת רשימה', delete: 'מחק', editListTitle: 'עריכת רשימה', save: 'שמור',
+        updatePriceTitle: 'עדכון מחיר', update: 'עדכן', historyTitle: '📁 היסטוריית רכישות', close: 'סגור',
+        templatesTitle: '⭐ תבניות רשימות', completedListsTitle: '✅ רשימות שהושלמו', settingsTitle: 'הגדרות',
+        darkMode: 'מצב לילה 🌙', lightMode: 'מצב יום ☀️', savedTemplates: '⭐ תבניות שמורות',
+        printPDF: 'הדפס PDF 🖨️', backupData: '💾 גיבוי נתונים', restoreData: '📂 שחזר נתונים',
+        language: 'שפת ממשק', translateListTitle: 'תרגם רשימה', translateDesc: 'בחר שפת יעד לתרגום כל המוצרים ברשימה',
+        translateBtn: '🌐 תרגם', scanReceiptTitle: 'סריקת קבלה', scanReceiptDesc: 'העלה תמונת קבלה לזיהוי אוטומטי של מוצרים', selectImage: 'בחר תמונה', scan: 'סרוק',
+        uploading: 'מעלה תמונה...', detectingText: 'מזהה טקסט...', processingResults: 'מעבד תוצאות...',
+        completed: 'הושלם!', monthlyStats: '📊 סטטיסטיקות חודשיות', monthlyExpenses: 'הוצאות החודש',
+        completedListsCount: 'רשימות הושלמו 👆', avgPerList: 'ממוצע לרשימה', popularItems: '🏆 מוצרים פופולריים',
+        history: '📁 היסטוריה', viewCompletedLists: 'צפה ברשימות שהושלמו', pleaseSelectImage: 'אנא בחר תמונה',
+        noTextDetected: 'לא זוהה טקסט בתמונה - נסה תמונה ברורה יותר', noItemsFound: 'לא נמצאו מוצרים בקבלה - נסה תמונה אחרת',
+        listCreated: 'נוצרה רשימה עם', items2: 'מוצרים!', scanError: 'שגיאה בסריקת הקבלה',
+        apiError: 'שגיאת הרשאה - ה-API Key לא תקין או אין הרשאות', formatError: 'שגיאה בפורמט הבקשה',
+        quotaError: 'חרגת ממכסת ה-API - נסה שוב מאוחר יותר', categorySortEnabled: '✅ מיון לפי קטגוריות מופעל',
+        manualSortEnabled: '✅ מיון ידני מופעל', listening: '🎤 מקשיב...', noSpeechDetected: 'לא זוהה דיבור, נסה שוב',
+        voiceError: 'שגיאה בזיהוי קולי', browserNotSupported: 'הדפדפן לא תומך בזיהוי קולי',
+        micError: 'שגיאה בהפעלת המיקרופון', noItemsDetected: 'לא זוהו מוצרים, נסה שוב', addedItems: 'נוספו',
+        selectAll: 'בחר את כל הרשימות'
+    },
+    en: {
+        appName: 'Vplus', cloudSync: 'Cloud Sync', myList: 'My List', myLists: 'My Lists',
+        statistics: '📊 Statistics', newList: '+ New List', import: '📥 Import', scanReceipt: '📸 Scan Receipt',
+        addItem: '+', share: 'Share', translate: 'Translate', settings: 'Settings', items: 'items',
+        locked: 'Locked', unlocked: 'Editing (Drag Active)', categorySortBtn: '🔤 Sort by Categories', manualSortBtn: '📋 Manual Sort',
+        budgetWarning: '⚠️ Over Budget!', searchPlaceholder: 'Search for product...', totalList: 'Total',
+        paidInList: 'Paid', remainingToPay: 'Remaining', addItemTitle: 'Add Item',
+        productName: 'Product Name', price: 'Price', selectCategory: 'Select Category (optional)', add: 'Add',
+        cancel: 'Cancel', importTitle: 'Import List from Text', importDesc: 'Paste text from WhatsApp or any list',
+        importPlaceholder: 'Paste text here to import...', importBtn: 'Import', newListTitle: 'New List',
+        listName: 'List Name', websiteUrl: 'Website URL (optional)', budget: 'Budget (optional)',
+        saveAsTemplate: '⭐ Save as Template', create: 'Create', completeListTitle: 'Complete List',
+        completeListMsg: 'Mark this list as completed and save to history?', complete: 'Complete',
+        deleteListTitle: 'Delete List', delete: 'Delete', editListTitle: 'Edit List', save: 'Save',
+        updatePriceTitle: 'Update Price', update: 'Update', historyTitle: '📁 Purchase History', close: 'Close',
+        templatesTitle: '⭐ List Templates', completedListsTitle: '✅ Completed Lists', settingsTitle: 'Settings',
+        darkMode: 'Dark Mode 🌙', lightMode: 'Light Mode ☀️', savedTemplates: '⭐ Saved Templates',
+        printPDF: 'Print PDF 🖨️', backupData: '💾 Backup Data', restoreData: '📂 Restore Data',
+        language: 'Interface Language', translateListTitle: 'Translate List', translateDesc: 'Select target language to translate all items',
+        translateBtn: '🌐 Translate', scanReceiptTitle: 'Scan Receipt', scanReceiptDesc: 'Upload receipt image for automatic product detection', selectImage: 'Select Image', scan: 'Scan',
+        uploading: 'Uploading image...', detectingText: 'Detecting text...', processingResults: 'Processing results...',
+        completed: 'Completed!', monthlyStats: '📊 Monthly Statistics', monthlyExpenses: 'Monthly Expenses',
+        completedListsCount: 'Lists Completed 👆', avgPerList: 'Average per List', popularItems: '🏆 Popular Items',
+        history: '📁 History', viewCompletedLists: 'View Completed Lists', pleaseSelectImage: 'Please select an image',
+        noTextDetected: 'No text detected - try a clearer image', noItemsFound: 'No items found in receipt - try another image',
+        listCreated: 'Created list with', items2: 'items!', scanError: 'Error scanning receipt',
+        apiError: 'Authorization error - API Key invalid or no permissions', formatError: 'Request format error',
+        quotaError: 'API quota exceeded - try again later', categorySortEnabled: '✅ Category sort enabled',
+        manualSortEnabled: '✅ Manual sort enabled', listening: '🎤 Listening...', noSpeechDetected: 'No speech detected, try again',
+        voiceError: 'Voice recognition error', browserNotSupported: 'Browser does not support voice recognition',
+        micError: 'Error activating microphone', noItemsDetected: 'No items detected, try again', addedItems: 'Added',
+        selectAll: 'Select All Lists'
+    },
+    ru: {
+        appName: 'Vplus', cloudSync: 'Синхронизация', myList: 'Мой Список', myLists: 'Мои Списки',
+        statistics: '📊 Статистика', newList: '+ Новый Список', import: '📥 Импорт', scanReceipt: '📸 Сканировать Чек',
+        addItem: '+', share: 'Поделиться', translate: 'Перевести', settings: 'Настройки', items: 'товаров',
+        locked: 'Заблокировано', unlocked: 'Редактирование (перетаскивание активно)', categorySortBtn: '🔤 Сортировка по Категориям', manualSortBtn: '📋 Ручная Сортировка',
+        budgetWarning: '⚠️ Превышен Бюджет!', searchPlaceholder: 'Поиск товара...', totalList: 'Всего',
+        paidInList: 'Оплачено', remainingToPay: 'Осталось', addItemTitle: 'Добавить Товар',
+        productName: 'Название Товара', price: 'Цена', selectCategory: 'Выбрать Категорию (необязательно)', add: 'Добавить',
+        cancel: 'Отмена', importTitle: 'Импорт Списка из Текста', importDesc: 'Вставьте текст из WhatsApp или любого списка',
+        importPlaceholder: 'Вставьте текст для импорта...', importBtn: 'Импортировать', newListTitle: 'Новый Список',
+        listName: 'Название Списка', websiteUrl: 'URL Сайта (необязательно)', budget: 'Бюджет (необязательно)',
+        saveAsTemplate: '⭐ Сохранить как Шаблон', create: 'Создать', completeListTitle: 'Завершить Список',
+        completeListMsg: 'Отметить этот список как завершенный и сохранить в истории?', complete: 'Завершить',
+        deleteListTitle: 'Удалить Список', delete: 'Удалить', editListTitle: 'Редактировать Список', save: 'Сохранить',
+        updatePriceTitle: 'Обновить Цену', update: 'Обновить', historyTitle: '📁 История Покупок', close: 'Закрыть',
+        templatesTitle: '⭐ Шаблоны Списков', completedListsTitle: '✅ Завершенные Списки', settingsTitle: 'Настройки',
+        darkMode: 'Темный Режим 🌙', lightMode: 'Светлый Режим ☀️', savedTemplates: '⭐ Сохраненные Шаблоны',
+        printPDF: 'Печать PDF 🖨️', backupData: '💾 Резервное Копирование', restoreData: '📂 Восстановить Данные',
+        language: 'Язык Интерфейса', translateListTitle: 'Перевести Список', translateDesc: 'Выберите язык для перевода всех товаров',
+        translateBtn: '🌐 Перевести', scanReceiptTitle: 'Сканирование Чека', scanReceiptDesc: 'Загрузите фото чека для автоматического распознавания товаров', selectImage: 'Выбрать Изображение', scan: 'Сканировать',
+        uploading: 'Загрузка изображения...', detectingText: 'Распознавание текста...', processingResults: 'Обработка результатов...',
+        completed: 'Завершено!', monthlyStats: '📊 Месячная Статистика', monthlyExpenses: 'Расходы за Месяц',
+        completedListsCount: 'Завершено Списков 👆', avgPerList: 'Средний на Список', popularItems: '🏆 Популярные Товары',
+        history: '📁 История', viewCompletedLists: 'Просмотр Завершенных Списков', pleaseSelectImage: 'Пожалуйста, выберите изображение',
+        noTextDetected: 'Текст не обнаружен - попробуйте более четкое изображение', noItemsFound: 'Товары не найдены в чеке - попробуйте другое изображение',
+        listCreated: 'Создан список с', items2: 'товарами!', scanError: 'Ошибка сканирования чека',
+        apiError: 'Ошибка авторизации - API ключ недействителен или нет разрешений', formatError: 'Ошибка формата запроса',
+        quotaError: 'Превышена квота API - попробуйте позже', categorySortEnabled: '✅ Сортировка по категориям включена',
+        manualSortEnabled: '✅ Ручная сортировка включена', listening: '🎤 Слушаю...', noSpeechDetected: 'Речь не обнаружена, попробуйте снова',
+        voiceError: 'Ошибка распознавания голоса', browserNotSupported: 'Браузер не поддерживает распознавание голоса',
+        micError: 'Ошибка активации микрофона', noItemsDetected: 'Товары не обнаружены, попробуйте снова', addedItems: 'Добавлено',
+        selectAll: 'Выбрать Все Списки'
+    },
+    ro: {
+        appName: 'Vplus', cloudSync: 'Sincronizare Cloud', myList: 'Lista Mea', myLists: 'Listele Mele',
+        statistics: '📊 Statistici', newList: '+ Listă Nouă', import: '📥 Import', scanReceipt: '📸 Scanează Bon',
+        addItem: '+', share: 'Distribuie', translate: 'Traduce', settings: 'Setări', items: 'produse',
+        locked: 'Blocat', unlocked: 'Editare (Tragere Activă)', categorySortBtn: '🔤 Sortare după Categorii', manualSortBtn: '📋 Sortare Manuală',
+        budgetWarning: '⚠️ Buget Depășit!', searchPlaceholder: 'Caută produs...', totalList: 'Total',
+        paidInList: 'Plătit', remainingToPay: 'Rămas', addItemTitle: 'Adaugă Produs',
+        productName: 'Nume Produs', price: 'Preț', selectCategory: 'Selectează Categorie (opțional)', add: 'Adaugă',
+        cancel: 'Anulează', importTitle: 'Import Listă din Text', importDesc: 'Lipește text din WhatsApp sau orice listă',
+        importPlaceholder: 'Lipește text aici pentru import...', importBtn: 'Importă', newListTitle: 'Listă Nouă',
+        listName: 'Nume Listă', websiteUrl: 'URL Site (opțional)', budget: 'Buget (opțional)',
+        saveAsTemplate: '⭐ Salvează ca Șablon', create: 'Creează', completeListTitle: 'Finalizare Listă',
+        completeListMsg: 'Marchează această listă ca finalizată și salvează în istoric?', complete: 'Finalizează',
+        deleteListTitle: 'Șterge Listă', delete: 'Șterge', editListTitle: 'Editează Listă', save: 'Salvează',
+        updatePriceTitle: 'Actualizare Preț', update: 'Actualizează', historyTitle: '📁 Istoric Achiziții', close: 'Închide',
+        templatesTitle: '⭐ Șabloane Liste', completedListsTitle: '✅ Liste Finalizate', settingsTitle: 'Setări',
+        darkMode: 'Mod Întunecat 🌙', lightMode: 'Mod Luminos ☀️', savedTemplates: '⭐ Șabloane Salvate',
+        printPDF: 'Printează PDF 🖨️', backupData: '💾 Backup Date', restoreData: '📂 Restaurare Date',
+        language: 'Limba Interfeței', translateListTitle: 'Traduce Listă', translateDesc: 'Selectează limba țintă pentru traducerea tuturor produselor',
+        translateBtn: '🌐 Traduce', scanReceiptTitle: 'Scanare Bon', scanReceiptDesc: 'Încărcați imaginea bonului pentru detectarea automată a produselor', selectImage: 'Selectează Imagine', scan: 'Scanează',
+        uploading: 'Se încarcă imaginea...', detectingText: 'Se detectează textul...', processingResults: 'Se procesează rezultatele...',
+        completed: 'Finalizat!', monthlyStats: '📊 Statistici Lunare', monthlyExpenses: 'Cheltuieli Lunare',
+        completedListsCount: 'Liste Finalizate 👆', avgPerList: 'Medie pe Listă', popularItems: '🏆 Produse Populare',
+        history: '📁 Istoric', viewCompletedLists: 'Vezi Liste Finalizate', pleaseSelectImage: 'Vă rugăm selectați o imagine',
+        noTextDetected: 'Nu s-a detectat text - încercați o imagine mai clară', noItemsFound: 'Nu s-au găsit produse în bon - încercați altă imagine',
+        listCreated: 'Listă creată cu', items2: 'produse!', scanError: 'Eroare la scanarea bonului',
+        apiError: 'Eroare de autorizare - Cheia API invalidă sau fără permisiuni', formatError: 'Eroare de format cerere',
+        quotaError: 'Cotă API depășită - încercați mai târziu', categorySortEnabled: '✅ Sortare după categorii activată',
+        manualSortEnabled: '✅ Sortare manuală activată', listening: '🎤 Ascult...', noSpeechDetected: 'Nu s-a detectat vorbire, încercați din nou',
+        voiceError: 'Eroare recunoaștere vocală', browserNotSupported: 'Browserul nu suportă recunoașterea vocală',
+        micError: 'Eroare activare microfon', noItemsDetected: 'Nu s-au detectat produse, încercați din nou', addedItems: 'Adăugate',
+        selectAll: 'Selectează Toate Listele'
+    }
+};
+
+// Current language (default: Hebrew)
+let currentLang = localStorage.getItem('appLanguage') || 'he';
+
+// Translation helper function
+function t(key) {
+    return translations[currentLang][key] || translations['he'][key] || key;
+}
+
+
 // ========== App Data ==========
 let db = JSON.parse(localStorage.getItem('BUDGET_FINAL_V28')) || {
     currentId: 'L1',
@@ -208,6 +405,309 @@ function toggleCategorySorting() {
     showNotification(categorySortEnabled ? '✅ מיון לפי קטגוריות מופעל' : '✅ מיון ידני מופעל');
 }
 
+// ========== Language Functions ==========
+function confirmLanguageChange() {
+    const selector = document.getElementById('languageSelector');
+    const newLang = selector.value;
+
+    if (newLang === currentLang) {
+        showNotification('✓ ' + t('language') + ' ' + selector.options[selector.selectedIndex].text);
+        return;
+    }
+
+    changeLanguage(newLang);
+}
+
+function changeLanguage(lang) {
+    currentLang = lang;
+    localStorage.setItem('appLanguage', lang);
+
+    // Update HTML direction and lang attribute
+    const html = document.documentElement;
+    if (lang === 'he') {
+        html.setAttribute('dir', 'rtl');
+        html.setAttribute('lang', 'he');
+    } else {
+        html.setAttribute('dir', 'ltr');
+        html.setAttribute('lang', lang);
+    }
+
+    // Update all UI text
+    updateUILanguage();
+
+    // Reset voice recognition to use new language
+    recognition = null;
+
+    // Re-render to update dynamic content
+    render();
+
+    // Show success notification
+    showNotification('✓ ' + t('language') + ' ' + document.getElementById('languageSelector').options[document.getElementById('languageSelector').selectedIndex].text);
+}
+
+function updateUILanguage() {
+    // Update settings modal
+    const settingsTitle = document.getElementById('settingsModalTitle');
+    if (settingsTitle) settingsTitle.textContent = t('settingsTitle');
+
+    const languageLabel = document.getElementById('languageLabel');
+    if (languageLabel) languageLabel.textContent = t('language');
+
+    const confirmLangBtn = document.getElementById('confirmLangBtn');
+    if (confirmLangBtn) confirmLangBtn.innerHTML = '✓ ' + (currentLang === 'he' ? 'אשר שינוי שפה' : currentLang === 'en' ? 'Confirm Language Change' : currentLang === 'ru' ? 'Подтвердить Изменение Языка' : 'Confirmă Schimbarea Limbii');
+
+    const savedTemplatesBtn = document.getElementById('savedTemplatesBtn');
+    if (savedTemplatesBtn) savedTemplatesBtn.textContent = t('savedTemplates');
+
+    const printPDFBtn = document.getElementById('printPDFBtn');
+    if (printPDFBtn) printPDFBtn.textContent = t('printPDF');
+
+    const backupDataBtn = document.getElementById('backupDataBtn');
+    if (backupDataBtn) backupDataBtn.textContent = t('backupData');
+
+    const restoreDataBtn = document.getElementById('restoreDataBtn');
+    if (restoreDataBtn) restoreDataBtn.textContent = t('restoreData');
+
+    // Update dark mode text
+    const darkModeText = document.getElementById('darkModeText');
+    if (darkModeText) {
+        darkModeText.textContent = document.body.classList.contains('dark-mode') ? t('lightMode') : t('darkMode');
+    }
+
+    // Update category sort button text
+    const categorySortText = document.getElementById('categorySortText');
+    if (categorySortText) {
+        categorySortText.textContent = categorySortEnabled ? t('categorySortBtn') : t('manualSortBtn');
+    }
+
+    // Update language selector value
+    const langSelector = document.getElementById('languageSelector');
+    if (langSelector) {
+        langSelector.value = currentLang;
+    }
+
+    // Update bottom bar labels
+    const totalListLabel = document.getElementById('totalListLabel');
+    if (totalListLabel) totalListLabel.textContent = t('totalList');
+
+    const paidInListLabel = document.getElementById('paidInListLabel');
+    if (paidInListLabel) paidInListLabel.textContent = t('paidInList');
+
+    const remainingToPayLabel = document.getElementById('remainingToPayLabel');
+    if (remainingToPayLabel) remainingToPayLabel.textContent = t('remainingToPay');
+
+    // Update statistics page labels
+    const completedListsCountLabel = document.getElementById('completedListsCountLabel');
+    if (completedListsCountLabel) completedListsCountLabel.textContent = t('completedListsCount');
+
+    const avgPerListLabel = document.getElementById('avgPerListLabel');
+    if (avgPerListLabel) avgPerListLabel.textContent = t('avgPerList');
+
+    const popularItemsTitle = document.getElementById('popularItemsTitle');
+    if (popularItemsTitle) popularItemsTitle.textContent = t('popularItems');
+
+    const historyStatsTitle = document.getElementById('historyStatsTitle');
+    if (historyStatsTitle) historyStatsTitle.textContent = t('history');
+
+    const viewCompletedListsBtn = document.getElementById('viewCompletedListsBtn');
+    if (viewCompletedListsBtn) viewCompletedListsBtn.textContent = t('viewCompletedLists');
+
+    // Update select all lists label
+    const selectAllLabel = document.getElementById('selectAllLabel');
+    if (selectAllLabel) selectAllLabel.textContent = t('selectAll');
+
+    // Update tabs
+    const tabs = document.querySelectorAll('.tab-btn');
+    if (tabs.length >= 3) {
+        tabs[0].textContent = t('myList');
+        tabs[1].textContent = t('myLists');
+        tabs[2].textContent = t('statistics');
+    }
+
+    // Update header buttons
+    const cloudSyncText = document.getElementById('cloudSyncText');
+    if (cloudSyncText) cloudSyncText.textContent = t('cloudSync');
+
+    const cloudSyncBtn = document.querySelector('[onclick="handleAuthClick()"]');
+    if (cloudSyncBtn) cloudSyncBtn.textContent = t('cloudSync');
+
+    // Update action buttons
+    const newListBtn = document.querySelector('[onclick="openModal(\'newListModal\')"]');
+    if (newListBtn) newListBtn.textContent = t('newList');
+
+    const importBtn = document.querySelector('[onclick="openModal(\'importModal\')"]');
+    if (importBtn) importBtn.textContent = t('import');
+
+    const scanReceiptBtn = document.querySelector('[onclick="openModal(\'receiptScanModal\')"]');
+    if (scanReceiptBtn) scanReceiptBtn.textContent = t('scanReceipt');
+
+    // Update search input placeholder
+    const listSearchInput = document.getElementById('listSearchInput');
+    if (listSearchInput) listSearchInput.placeholder = t('searchPlaceholder');
+
+    // Update modal titles and buttons
+    updateModalTexts();
+
+    // Update category options
+    updateCategoryOptions();
+}
+
+function updateCategoryOptions() {
+    const categorySelect = document.getElementById('itemCategory');
+    if (!categorySelect) return;
+
+    const currentValue = categorySelect.value;
+    const categories = categoryTranslations[currentLang] || categoryTranslations['he'];
+
+    // Update all option texts except the first one (placeholder)
+    const options = categorySelect.options;
+    options[0].textContent = t('selectCategory');
+
+    // Update category options
+    let optionIndex = 1;
+    for (const hebrewKey in categories) {
+        if (options[optionIndex]) {
+            options[optionIndex].textContent = categories[hebrewKey];
+            optionIndex++;
+        }
+    }
+
+    // Restore selected value
+    categorySelect.value = currentValue;
+}
+
+function updateModalTexts() {
+    // Update statistics page
+    const monthlyStatsTitle = document.getElementById('monthlyStatsTitle');
+    if (monthlyStatsTitle) monthlyStatsTitle.textContent = t('monthlyStats');
+
+    const monthlyExpensesLabel = document.getElementById('monthlyExpensesLabel');
+    if (monthlyExpensesLabel) monthlyExpensesLabel.textContent = t('monthlyExpenses');
+
+    // Add Item Modal
+    const addItemModalTitle = document.getElementById('addItemModalTitle');
+    if (addItemModalTitle) addItemModalTitle.textContent = t('addItemTitle');
+
+    const addItemTitle = document.querySelector('#addItemModal h2');
+    if (addItemTitle) addItemTitle.textContent = t('addItemTitle');
+
+    const itemNameInput = document.getElementById('itemName');
+    if (itemNameInput) itemNameInput.placeholder = t('productName');
+
+    const itemPriceInput = document.getElementById('itemPrice');
+    if (itemPriceInput) itemPriceInput.placeholder = t('price');
+
+    const categorySelect = document.getElementById('itemCategory');
+    if (categorySelect && categorySelect.options.length > 0) {
+        categorySelect.options[0].textContent = t('selectCategory');
+    }
+
+    // Import Modal
+    const importTitle = document.querySelector('#importModal h2');
+    if (importTitle) importTitle.textContent = t('importTitle');
+
+    const importTextarea = document.getElementById('importText');
+    if (importTextarea) importTextarea.placeholder = t('importPlaceholder');
+
+    // New List Modal
+    const newListTitle = document.querySelector('#newListModal h2');
+    if (newListTitle) newListTitle.textContent = t('newListTitle');
+
+    const newListNameInput = document.getElementById('newListName');
+    if (newListNameInput) newListNameInput.placeholder = t('listName');
+
+    const newListUrlInput = document.getElementById('newListUrl');
+    if (newListUrlInput) newListUrlInput.placeholder = t('websiteUrl');
+
+    const newListBudgetInput = document.getElementById('newListBudget');
+    if (newListBudgetInput) newListBudgetInput.placeholder = t('budget');
+
+    // Receipt Scan Modal
+    const scanReceiptModalTitle = document.getElementById('scanReceiptModalTitle');
+    if (scanReceiptModalTitle) scanReceiptModalTitle.textContent = t('scanReceiptTitle');
+
+    const scanReceiptDesc = document.getElementById('scanReceiptDesc');
+    if (scanReceiptDesc) scanReceiptDesc.textContent = t('scanReceiptDesc');
+
+    // Confirm Modal
+    const confirmTitle = document.querySelector('#confirmModal h2');
+    if (confirmTitle) confirmTitle.textContent = t('completeListTitle');
+
+    const confirmMsg = document.querySelector('#confirmModal p');
+    if (confirmMsg) confirmMsg.textContent = t('completeListMsg');
+
+    // Delete List Modal
+    const deleteListTitle = document.querySelector('#deleteListModal h2');
+    if (deleteListTitle) deleteListTitle.textContent = t('deleteListTitle');
+
+    // Edit List Modal
+    const editListTitle = document.querySelector('#editListNameModal h2');
+    if (editListTitle) editListTitle.textContent = t('editListTitle');
+
+    const editListNameInput = document.getElementById('editListNameInput');
+    if (editListNameInput) editListNameInput.placeholder = t('listName');
+
+    const editListUrlInput = document.getElementById('editListUrlInput');
+    if (editListUrlInput) editListUrlInput.placeholder = t('websiteUrl');
+
+    const editListBudget = document.getElementById('editListBudget');
+    if (editListBudget) editListBudget.placeholder = t('budget');
+
+    // Edit Total Modal
+    const editTotalTitle = document.querySelector('#editTotalModal h2');
+    if (editTotalTitle) editTotalTitle.textContent = t('updatePriceTitle');
+
+    // History Modal
+    const historyTitle = document.querySelector('#historyModal h2');
+    if (historyTitle) historyTitle.textContent = t('historyTitle');
+
+    // Templates Modal
+    const templatesTitle = document.querySelector('#templatesModal h2');
+    if (templatesTitle) templatesTitle.textContent = t('templatesTitle');
+
+    // Completed Lists Modal
+    const completedTitle = document.querySelector('#completedListsModal h2');
+    if (completedTitle) completedTitle.textContent = t('completedListsTitle');
+
+    // Receipt Scan Modal
+    const scanTitle = document.querySelector('#receiptScanModal h2');
+    if (scanTitle) scanTitle.textContent = t('scanReceiptTitle');
+
+    const scanBtn = document.getElementById('scanBtn');
+    if (scanBtn) scanBtn.textContent = t('scan');
+
+    // Translate Modal
+    const translateTitle = document.querySelector('#translateModal h2');
+    if (translateTitle) translateTitle.textContent = t('translateListTitle');
+
+    const translateDesc = document.querySelector('#translateModal p');
+    if (translateDesc) translateDesc.textContent = t('translateDesc');
+
+    // Update all buttons with common text
+    document.querySelectorAll('button').forEach(btn => {
+        const text = btn.textContent.trim();
+        if (text === 'הוסף' || text === 'Add' || text === 'Добавить' || text === 'Adaugă') {
+            btn.textContent = t('add');
+        } else if (text === 'ביטול' || text === 'Cancel' || text === 'Отмена' || text === 'Anulează') {
+            btn.textContent = t('cancel');
+        } else if (text === 'שמור' || text === 'Save' || text === 'Сохранить' || text === 'Salvează') {
+            btn.textContent = t('save');
+        } else if (text === 'צור' || text === 'Create' || text === 'Создать' || text === 'Creează') {
+            btn.textContent = t('create');
+        } else if (text === 'מחק' || text === 'Delete' || text === 'Удалить' || text === 'Șterge') {
+            btn.textContent = t('delete');
+        } else if (text === 'השלם' || text === 'Complete' || text === 'Завершить' || text === 'Finalizează') {
+            btn.textContent = t('complete');
+        } else if (text === 'עדכן' || text === 'Update' || text === 'Обновить' || text === 'Actualizează') {
+            btn.textContent = t('update');
+        } else if (text === 'סגור' || text === 'Close' || text === 'Закрыть' || text === 'Închide') {
+            btn.textContent = t('close');
+        } else if (text === 'ייבא' || text === 'Import' || text === 'Импортировать' || text === 'Importă') {
+            btn.textContent = t('importBtn');
+        }
+    });
+}
+
 
 // ========== Voice Input Functions ==========
 let recognition = null;
@@ -221,7 +721,15 @@ function initVoiceRecognition() {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     const recog = new SpeechRecognition();
 
-    recog.lang = 'he-IL'; // Hebrew
+    // Map language codes to speech recognition locale codes
+    const langMap = {
+        'he': 'he-IL',
+        'en': 'en-US',
+        'ru': 'ru-RU',
+        'ro': 'ro-RO'
+    };
+
+    recog.lang = langMap[currentLang] || 'he-IL';
     recog.continuous = false;
     recog.interimResults = false;
     recog.maxAlternatives = 1;
@@ -233,7 +741,7 @@ function startVoiceInput() {
     if (!recognition) {
         recognition = initVoiceRecognition();
         if (!recognition) {
-            showNotification('הדפדפן לא תומך בזיהוי קולי', 'error');
+            showNotification(t('browserNotSupported'), 'error');
             return;
         }
     }
@@ -256,9 +764,9 @@ function startVoiceInput() {
         console.error('Speech recognition error:', event.error);
         stopVoiceInput();
         if (event.error === 'no-speech') {
-            showNotification('לא זוהה דיבור, נסה שוב', 'warning');
+            showNotification(t('noSpeechDetected'), 'warning');
         } else {
-            showNotification('שגיאה בזיהוי קולי', 'error');
+            showNotification(t('voiceError'), 'error');
         }
     };
 
@@ -268,11 +776,11 @@ function startVoiceInput() {
 
     try {
         recognition.start();
-        showNotification('🎤 מקשיב...', 'success');
+        showNotification(t('listening'), 'success');
     } catch (error) {
         console.error('Error starting recognition:', error);
         stopVoiceInput();
-        showNotification('שגיאה בהפעלת המיקרופון', 'error');
+        showNotification(t('micError'), 'error');
     }
 }
 
@@ -930,7 +1438,7 @@ function render() {
     if (btn && path && tag) {
         btn.className = `bottom-circle-btn ${isLocked ? 'bg-blue-600' : 'bg-orange-400'}`;
         path.setAttribute('d', isLocked ? 'M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z' : 'M8 11V7a4 4 0 118 0m-4 8v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2z');
-        tag.innerText = isLocked ? "נעול" : "עריכה (גרירה פעילה)";
+        tag.innerText = isLocked ? t('locked') : t('unlocked');
     }
 
     if (activePage === 'lists') {
@@ -940,7 +1448,7 @@ function render() {
 
         const list = db.lists[db.currentId] || { name: 'רשימה', items: [] };
         document.getElementById('listNameDisplay').innerText = list.name;
-        document.getElementById('itemCountDisplay').innerText = `${list.items.length} מוצרים`;
+        document.getElementById('itemCountDisplay').innerText = `${list.items.length} ${t('items')}`;
 
 
         if (container) {
@@ -1176,7 +1684,7 @@ function render() {
                         </div>
                     </div>
                     <div class="flex justify-between items-center">
-                        <div class="text-sm text-gray-500">${l.items.length} מוצרים</div>
+                        <div class="text-sm text-gray-500">${l.items.length} ${t('items')}</div>
                         <span class="text-2xl font-black text-indigo-600">₪${lT.toFixed(2)}</span>
                     </div>
                 `;
@@ -2066,5 +2574,16 @@ script2.src = 'https://accounts.google.com/gsi/client';
 script2.onload = gisLoaded;
 document.head.appendChild(script2);
 
+// Initialize language on page load
+const html = document.documentElement;
+if (currentLang === 'he') {
+    html.setAttribute('dir', 'rtl');
+    html.setAttribute('lang', 'he');
+} else {
+    html.setAttribute('dir', 'ltr');
+    html.setAttribute('lang', currentLang);
+}
+
 render();
+updateUILanguage();
 

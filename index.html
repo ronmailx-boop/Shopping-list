@@ -520,7 +520,7 @@
         <div class="header-controls">
             <div id="cloudBtn"
                 class="bg-indigo-50 text-indigo-600 px-3 py-1 rounded-full text-[10px] font-bold border border-indigo-100 flex items-center gap-1 cursor-pointer">
-                <span>סנכרון ענן</span>
+                <span id="cloudSyncText">סנכרון ענן</span>
                 <div id="cloudIndicator" class="w-2 h-2 bg-gray-300 rounded-full"></div>
             </div>
 
@@ -642,10 +642,10 @@
 
         <div id="pageStats" class="hidden">
             <div class="stat-card">
-                <h3 class="text-xl font-bold mb-4">📊 סטטיסטיקות חודשיות</h3>
+                <h3 class="text-xl font-bold mb-4" id="monthlyStatsTitle">📊 סטטיסטיקות חודשיות</h3>
                 <div class="mb-4">
                     <div class="flex justify-between mb-2">
-                        <span class="font-bold">הוצאות החודש</span>
+                        <span class="font-bold" id="monthlyExpensesLabel">הוצאות החודש</span>
                         <span class="text-indigo-600 font-black" id="monthlyTotal">₪0.00</span>
                     </div>
                     <div class="progress-bar">
@@ -655,11 +655,11 @@
                 <div class="grid grid-cols-2 gap-3 mb-4">
                     <div class="bg-green-50 p-3 rounded-xl cursor-pointer hover:bg-green-100 transition"
                         onclick="showCompletedListsModal()">
-                        <div class="text-xs text-green-600 mb-1">רשימות הושלמו 👆</div>
+                        <div class="text-xs text-green-600 mb-1" id="completedListsCountLabel">רשימות הושלמו 👆</div>
                         <div class="text-2xl font-black text-green-600" id="completedLists">0</div>
                     </div>
                     <div class="bg-blue-50 p-3 rounded-xl">
-                        <div class="text-xs text-blue-600 mb-1">ממוצע לרשימה</div>
+                        <div class="text-xs text-blue-600 mb-1" id="avgPerListLabel">ממוצע לרשימה</div>
                         <div class="text-2xl font-black text-blue-600" id="avgPerList">₪0</div>
                     </div>
                 </div>
@@ -667,15 +667,15 @@
             </div>
 
             <div class="stat-card">
-                <h3 class="text-xl font-bold mb-4">🏆 מוצרים פופולריים</h3>
+                <h3 class="text-xl font-bold mb-4" id="popularItemsTitle">🏆 מוצרים פופולריים</h3>
                 <div id="popularItems"></div>
             </div>
 
             <div class="stat-card">
-                <h3 class="text-xl font-bold mb-4">📁 היסטוריה</h3>
+                <h3 class="text-xl font-bold mb-4" id="historyStatsTitle">📁 היסטוריה</h3>
                 <button onclick="openModal('historyModal')"
                     class="w-full bg-indigo-600 text-white py-3 rounded-xl font-bold">
-                    צפה ברשימות שהושלמו
+                    <span id="viewCompletedListsBtn">צפה ברשימות שהושלמו</span>
                 </button>
             </div>
         </div>
@@ -691,7 +691,7 @@
     <div class="bottom-bar text-white no-print" onclick="toggleBottomBar()">
         <div class="flex items-center justify-between mb-4">
             <div class="flex-1 text-center">
-                <div class="text-[10px] opacity-70">סה"כ רשימה</div>
+                <div class="text-[10px] opacity-70" id="totalListLabel">סה"כ רשימה</div>
                 <div class="text-xl font-bold">₪<span id="displayTotal">0.00</span></div>
             </div>
             <div class="flex-shrink-0 flex gap-3">
@@ -699,7 +699,7 @@
                     class="w-16 h-16 bg-green-500 rounded-full flex items-center justify-center shadow-2xl border-4 border-white/20 text-white text-4xl font-bold">+</button>
             </div>
             <div class="flex-1 text-center">
-                <div class="text-[10px] opacity-70">שולם ברשימה</div>
+                <div class="text-[10px] opacity-70" id="paidInListLabel">שולם ברשימה</div>
                 <div class="text-xl font-bold">₪<span id="displayPaid">0.00</span></div>
             </div>
         </div>
@@ -712,7 +712,7 @@
                 </svg>
             </button>
             <div class="text-center flex-1">
-                <div class="text-[10px] opacity-70">נשאר לשלם</div>
+                <div class="text-[10px] opacity-70" id="remainingToPayLabel">נשאר לשלם</div>
                 <div class="text-2xl font-black text-orange-300">₪<span id="displayLeft">0.00</span></div>
             </div>
             <button onclick="openModal('confirmModal')" class="bottom-circle-btn bg-red-500">
@@ -728,7 +728,7 @@
     <!-- Modals -->
     <div id="inputForm" class="modal-overlay no-print">
         <div class="edit-modal" style="position: relative;">
-            <h2>הוספת מוצר</h2>
+            <h2 id="addItemModalTitle">הוספת מוצר</h2>
 
             <!-- Voice Input Button - Top Right Corner -->
             <button onclick="startVoiceInput()" id="voiceBtn"
@@ -891,23 +891,42 @@
 
     <div id="settingsModal" class="modal-overlay no-print">
         <div class="edit-modal">
-            <h2>הגדרות</h2>
+            <h2 id="settingsModalTitle">הגדרות</h2>
             <button onclick="toggleDarkMode()"
                 class="w-full bg-indigo-50 text-indigo-600 py-4 rounded-xl font-bold mb-3">
                 <span id="darkModeText">מצב לילה 🌙</span>
             </button>
+
+            <!-- Language Selector -->
+            <div class="mb-3">
+                <label class="block text-sm font-bold mb-2 text-gray-700" id="languageLabel">שפת ממשק</label>
+                <select id="languageSelector"
+                    class="w-full p-3 rounded-xl border-2 border-gray-200 font-bold text-center bg-white mb-2">
+                    <option value="he">🇮🇱 עברית</option>
+                    <option value="en">🇬🇧 English</option>
+                    <option value="ru">🇷🇺 Русский</option>
+                    <option value="ro">🇷🇴 Română</option>
+                </select>
+                <button onclick="confirmLanguageChange()"
+                    class="w-full bg-green-500 text-white py-3 rounded-xl font-bold" id="confirmLangBtn">
+                    ✓ אשר שינוי שפה
+                </button>
+            </div>
+
             <button onclick="openModal('templatesModal'); closeModal('settingsModal')"
-                class="w-full bg-yellow-50 text-yellow-600 py-4 rounded-xl font-bold mb-3">
+                class="w-full bg-yellow-50 text-yellow-600 py-4 rounded-xl font-bold mb-3" id="savedTemplatesBtn">
                 ⭐ תבניות שמורות
             </button>
-            <button onclick="preparePrint()" class="w-full bg-orange-500 text-white py-4 rounded-xl font-bold mb-3">
+            <button onclick="preparePrint()" class="w-full bg-orange-500 text-white py-4 rounded-xl font-bold mb-3"
+                id="printPDFBtn">
                 הדפס PDF 🖨️
             </button>
-            <button onclick="exportData()" class="w-full bg-blue-500 text-white py-4 rounded-xl font-bold mb-3">
+            <button onclick="exportData()" class="w-full bg-blue-500 text-white py-4 rounded-xl font-bold mb-3"
+                id="backupDataBtn">
                 💾 גיבוי נתונים
             </button>
             <button onclick="document.getElementById('importDataFile').click()"
-                class="w-full bg-purple-500 text-white py-4 rounded-xl font-bold mb-3">
+                class="w-full bg-purple-500 text-white py-4 rounded-xl font-bold mb-3" id="restoreDataBtn">
                 📂 שחזר נתונים
             </button>
             <input type="file" id="importDataFile" accept=".json" style="display: none;" onchange="importData(event)">
@@ -953,10 +972,15 @@
     <!-- Receipt Scan Modal -->
     <div id="receiptScanModal" class="modal-overlay no-print">
         <div class="edit-modal">
-            <h2>סריקת קבלה</h2>
-            <p class="text-sm text-gray-600 mb-4">העלה תמונת קבלה לזיהוי אוטומטי של מוצרים</p>
+            <h2 id="scanReceiptModalTitle">סריקת קבלה</h2>
+            <p class="text-sm text-gray-600 mb-4" id="scanReceiptDesc">העלה תמונת קבלה לזיהוי אוטומטי של מוצרים</p>
 
-            <input type="file" id="receiptImage" accept="image/*" capture="camera" class="modal-input mb-4">
+            <input type="file" id="receiptImage" accept="image/*" capture="camera" style="display: none;"
+                onchange="updateFileLabel()">
+            <button onclick="document.getElementById('receiptImage').click()"
+                class="w-full bg-gray-100 border-2 border-gray-300 rounded-xl py-3 px-4 text-gray-700 font-bold mb-4 hover:bg-gray-200 transition">
+                <span id="fileLabel">📁 בחר קובץ</span>
+            </button>
 
             <div id="scanPreview" class="mb-4 hidden">
                 <img id="previewImg" class="w-full rounded-lg border-2 border-gray-200"
