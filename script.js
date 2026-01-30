@@ -192,7 +192,6 @@ function editItem(id) {
     const list = getActiveList();
     const item = list.items.find(i => i.id === id);
     if (item) {
-        // Implement simple prompt edit for compatibility
         const newName = prompt('שם המוצר:', item.name);
         const newPrice = prompt('מחיר:', item.price);
         if (newName !== null) {
@@ -204,7 +203,6 @@ function editItem(id) {
 }
 
 function saveEdit(id) {
-    // Legacy function, kept for compatibility if needed
     save();
 }
 
@@ -289,17 +287,12 @@ function saveTotal() {
     closeModal('editTotalModal');
 }
 
-
-function toggleSum() {
-    // Legacy/Feature toggle
-}
+function toggleSum() { }
 
 function toggleSelectAll(checked) {
-    // Implementation for select all in summary view
     const checkboxes = document.querySelectorAll('.list-checkbox');
     checkboxes.forEach(cb => cb.checked = checked);
 }
-
 
 function shareNative(type) {
     const list = getActiveList();
@@ -476,17 +469,14 @@ function openEditTotalModal() {
 
 // ========== Render Functions ==========
 function render() {
-    // Update Dark Mode
     document.body.classList.toggle('dark-mode', db.darkMode);
 
-    // Render Lists or Summary based on ActiveList
     if (activePage === 'lists') {
         renderList();
         document.getElementById('pageLists').classList.remove('hidden');
         document.getElementById('pageSummary').classList.add('hidden');
         document.getElementById('pageStats').classList.add('hidden');
 
-        // Update Bottom Bar
         const list = getActiveList();
         const total = list.items.reduce((sum, i) => sum + i.price, 0);
         const paid = list.items.filter(i => i.completed).reduce((sum, i) => sum + i.price, 0);
@@ -509,7 +499,6 @@ function render() {
         document.getElementById('pageStats').classList.remove('hidden');
     }
 
-    // Update Tabs
     document.getElementById('tabLists').classList.toggle('tab-active', activePage === 'lists');
     document.getElementById('tabSummary').classList.toggle('tab-active', activePage === 'summary');
     document.getElementById('tabStats').classList.toggle('tab-active', activePage === 'stats');
@@ -526,9 +515,28 @@ function renderList() {
 
     if (list.sortByCategory) {
         items.sort((a, b) => a.category.localeCompare(b.category));
+
+        // Group by category if needed or just display sorted
+        // Implementing simple category headers could be nice here but let's stick to user request
     }
 
+    // Group items by category if sorting is enabled, or just render
+    // For now assuming previous logic was simple Render
+
+    let currentCategory = null;
+
     items.forEach(item => {
+        if (list.sortByCategory && item.category !== currentCategory) {
+            currentCategory = item.category;
+            const catHeader = document.createElement('div');
+            catHeader.className = `font-bold text-sm text-gray-500 mt-4 mb-2 px-2 flex items-center gap-2`;
+            catHeader.innerHTML = `
+                <span class="w-3 h-3 rounded-full" style="background:${CATEGORIES[currentCategory] || '#999'}"></span>
+                ${currentCategory}
+            `;
+            container.appendChild(catHeader);
+        }
+
         const div = document.createElement('div');
         div.className = `item-card ${item.completed ? 'opacity-50' : ''}`;
         div.innerHTML = `
@@ -557,9 +565,8 @@ function renderSummary() {
         div.className = `bg-white p-4 rounded-xl mb-3 shadow-sm border border-gray-100 ${list.id === db.activeListId ? 'ring-2 ring-indigo-500' : ''}`;
         div.onclick = () => {
             db.activeListId = list.id;
-            // Removed redundant save() to avoid too many writes, just switch page
             activePage = 'lists';
-            save(); // Save the active page change
+            save();
         };
 
         const total = list.items.reduce((sum, i) => sum + i.price, 0);
@@ -576,7 +583,7 @@ function renderSummary() {
 }
 
 function renderStats() {
-    // Basic stats implementation
+    // Basic stats placeholder
 }
 
 function showPage(page) {
@@ -586,7 +593,6 @@ function showPage(page) {
 
 function openModal(id) {
     document.getElementById(id).classList.add('active');
-    // Pre-fill fields if needed
     if (id === 'editListNameModal') {
         const list = getActiveList();
         document.getElementById('editListNameInput').value = list.name;
@@ -612,12 +618,10 @@ function showNotification(msg, type = 'success') {
 }
 
 function updateUILanguage() {
-    // Only basic support for now
     const labels = {
         'he': { 'tabLists': 'הרשימה שלי', 'tabSummary': 'הרשימות שלי' },
         'en': { 'tabLists': 'My List', 'tabSummary': 'My Lists' }
     };
-    // Update texts...
 }
 
 function toggleLock() {
@@ -649,13 +653,13 @@ function initFirebaseAuth() {
         return;
     }
 
-    // Capture Redirect Data - CRITICAL FOR ANDROID
+    // Handle Redirect Result - Check if pending redirect exists
     if (window.firebaseGetRedirectResult) {
         window.firebaseGetRedirectResult(window.firebaseAuth)
             .then((result) => {
                 if (result) {
                     console.log('User signed in via redirect:', result.user.email);
-                    // The onAuthStateChanged listener will handle the UI update
+                    // UI update happens in onAuthStateChanged
                 }
             })
             .catch((error) => {
@@ -670,16 +674,20 @@ function initFirebaseAuth() {
 
     // Listen for Auth State Changes
     window.firebaseOnAuthStateChanged(window.firebaseAuth, (user) => {
+        const userDisplay = document.getElementById('currentUserDisplay');
+
         if (user) {
             currentUser = user;
             isConnected = true;
             updateCloudIndicator('connected');
+            if (userDisplay) userDisplay.textContent = `מחובר כרגע כ: ${user.email}`;
             console.log('User signed in:', user.email);
             setupFirestoreListener();
         } else {
             currentUser = null;
             isConnected = false;
             updateCloudIndicator('disconnected');
+            if (userDisplay) userDisplay.textContent = 'לא מחובר לענן';
             console.log('User signed out');
             if (unsubscribeSnapshot) {
                 unsubscribeSnapshot();
@@ -705,8 +713,9 @@ function handleCloudClick() {
 
 // 2. Login Function - Using Redirect
 async function loginWithGoogle() {
+    // Check if already logged in to prevent redirect loop
     if (currentUser) {
-        showNotification('✅ אתה כבר מחובר לענן');
+        showNotification('אתה כבר מחובר לסנכרון');
         return;
     }
 
@@ -739,6 +748,10 @@ async function logoutFromCloud() {
         currentUser = null;
         isConnected = false;
         updateCloudIndicator('disconnected');
+
+        const userDisplay = document.getElementById('currentUserDisplay');
+        if (userDisplay) userDisplay.textContent = 'לא מחובר לענן';
+
         showNotification('התנתקת מהענן בהצלחה 👋');
         closeModal('settingsModal');
     } catch (e) {
@@ -803,7 +816,6 @@ function setupFirestoreListener() {
                 }
             }
         } else {
-            console.log('No cloud data found, creating initial sync');
             syncToFirestore();
         }
     }, (error) => {
@@ -847,7 +859,6 @@ window.addEventListener('DOMContentLoaded', () => {
         document.body.classList.add('dark-mode');
     }
 
-    // Input listeners
     const itemNameInput = document.getElementById('itemName');
     const itemPriceInput = document.getElementById('itemPrice');
     if (itemNameInput && itemPriceInput) {
@@ -855,7 +866,6 @@ window.addEventListener('DOMContentLoaded', () => {
         itemPriceInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') { e.preventDefault(); addItem(); } });
     }
 
-    // Start App
     startFirebase();
     render();
     updateUILanguage();

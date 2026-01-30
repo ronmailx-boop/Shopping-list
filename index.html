@@ -881,17 +881,15 @@
         </div>
     </div>
 
-    <div id="completedListsModal" class="modal-overlay no-print">
-        <div class="edit-modal">
-            <h2>✅ רשימות שהושלמו</h2>
-            <div id="completedListsContent" style="max-height: 400px; overflow-y: auto;"></div>
-            <button onclick="closeModal('completedListsModal')" class="mt-4 text-gray-400 block w-full">סגור</button>
-        </div>
-    </div>
-
     <div id="settingsModal" class="modal-overlay no-print">
         <div class="edit-modal">
             <h2 id="settingsModalTitle">הגדרות</h2>
+
+            <!-- User Info Display -->
+            <div id="currentUserDisplay" class="text-sm font-bold text-gray-600 mb-3 p-2 bg-gray-100 rounded-lg">
+                לא מחובר לענן
+            </div>
+
             <button onclick="toggleDarkMode()"
                 class="w-full bg-indigo-50 text-indigo-600 py-4 rounded-xl font-bold mb-3">
                 <span id="darkModeText">מצב לילה 🌙</span>
@@ -929,8 +927,10 @@
                 class="w-full bg-purple-500 text-white py-4 rounded-xl font-bold mb-3" id="restoreDataBtn">
                 📂 שחזר נתונים
             </button>
+
+            <!-- Logout Button -->
             <button onclick="logoutFromCloud()"
-                class="w-full bg-red-100 text-red-600 py-4 rounded-xl font-bold mb-3 border border-red-200">
+                class="w-full bg-red-50 text-red-600 py-3 rounded-xl font-bold mb-4 border border-red-100">
                 התנתק מהענן 🚪
             </button>
 
