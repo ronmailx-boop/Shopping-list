@@ -2419,8 +2419,19 @@ function initFirebaseAuth() {
         updateCloudIndicator(user ? 'connected' : 'disconnected');
 
         const emailDisplay = document.getElementById('userEmailDisplay');
+        const logoutBtn = document.getElementById('logoutBtn');
+        
         if (emailDisplay) {
-            emailDisplay.textContent = user ? user.email : '';
+            emailDisplay.textContent = user ? `מחובר כ: ${user.email}` : '';
+        }
+        
+        // Show/hide logout button
+        if (logoutBtn) {
+            if (user) {
+                logoutBtn.classList.remove('hidden');
+            } else {
+                logoutBtn.classList.add('hidden');
+            }
         }
 
         if (user) {
@@ -2438,7 +2449,15 @@ function initFirebaseAuth() {
     // Override cloud button click
     const cloudBtn = document.getElementById('cloudBtn');
     if (cloudBtn) {
-        cloudBtn.onclick = loginWithGoogle;
+        cloudBtn.onclick = function() {
+            if (currentUser) {
+                // Already logged in, show settings or email
+                openModal('settingsModal');
+            } else {
+                // Not logged in, trigger login
+                loginWithGoogle();
+            }
+        };
     }
 }
 
@@ -2463,27 +2482,52 @@ function loginWithGoogle() {
 }
 
 function logoutFromCloud() {
+    if (!window.firebaseAuth) {
+        showNotification('⚠️ שירות הענן לא זמין', 'warning');
+        return;
+    }
+    
     window.signOut(window.firebaseAuth).then(() => {
+        currentUser = null;
+        isConnected = false;
         showNotification('👋 התנתקת מהענן');
+        updateCloudIndicator('disconnected');
         closeModal('settingsModal');
     }).catch((error) => {
-        showNotification('❌ שגיאה בהתנתקות', 'error');
+        console.error("Logout error:", error);
+        showNotification('❌ שגיאה בהתנתקות: ' + error.message, 'error');
     });
 }
 
 function updateCloudIndicator(status) {
     const indicator = document.getElementById('cloudIndicator');
     const text = document.getElementById('cloudSyncText');
-    if (!indicator) return;
+    const cloudBtn = document.getElementById('cloudBtn');
+    
+    if (!indicator || !cloudBtn) return;
 
     if (status === 'connected') {
+        // Green indicator
         indicator.className = 'w-2 h-2 bg-green-500 rounded-full';
-        // if (text) text.textContent = "מחובר ✅"; // Keep original text style unless requested to change
+        
+        // Update button style to green
+        cloudBtn.className = 'cloud-btn-connected px-3 py-1 rounded-full text-[10px] font-bold border flex items-center gap-1 cursor-pointer transition-all';
+        
+        // Show email if available
+        if (currentUser && currentUser.email) {
+            if (text) text.textContent = currentUser.email;
+        } else {
+            if (text) text.textContent = "מחובר ✅";
+        }
     } else if (status === 'syncing') {
         indicator.className = 'w-2 h-2 bg-yellow-500 rounded-full animate-pulse';
+        cloudBtn.className = 'cloud-btn-disconnected px-3 py-1 rounded-full text-[10px] font-bold border flex items-center gap-1 cursor-pointer transition-all';
+        if (text) text.textContent = "מסנכרן...";
     } else {
-        indicator.className = 'w-2 h-2 bg-gray-300 rounded-full';
-        // if (text) text.textContent = "סנכרון ענן";
+        // Disconnected state
+        indicator.className = 'w-2 h-2 bg-gray-400 rounded-full';
+        cloudBtn.className = 'cloud-btn-disconnected px-3 py-1 rounded-full text-[10px] font-bold border flex items-center gap-1 cursor-pointer transition-all';
+        if (text) text.textContent = "סנכרון ענן";
     }
 }
 
@@ -2540,4 +2584,3 @@ if (currentLang === 'he') {
 
 render();
 updateUILanguage();
-
