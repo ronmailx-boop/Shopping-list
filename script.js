@@ -286,10 +286,6 @@ function saveListName() {
 function saveTotal() {
     const list = getActiveList();
     const newTotal = parseFloat(document.getElementById('editTotalInput').value);
-    // This logic seems to be for editing a calculated total, which is tricky.
-    // Instead, we'll assume it's adjusting the budget or ignored.
-    // For now, let's update the budget effectively if that's the intent, 
-    // or just close the modal.
     closeModal('editTotalModal');
 }
 
@@ -462,7 +458,11 @@ function processReceipt() {
 }
 
 function updateFileLabel() {
-    // Update UI for file upload
+    const fileInput = document.getElementById('receiptImage');
+    const label = document.getElementById('fileLabel');
+    if (fileInput.files.length > 0) {
+        label.textContent = `📁 ${fileInput.files[0].name}`;
+    }
 }
 
 function startVoiceInput() {
@@ -655,16 +655,14 @@ function initFirebaseAuth() {
             .then((result) => {
                 if (result) {
                     console.log('User signed in via redirect:', result.user.email);
-                    showNotification('☁️ מחובר לענן בהצלחה!');
+                    // The onAuthStateChanged listener will handle the UI update
                 }
             })
             .catch((error) => {
                 console.error('Redirect login error:', error);
                 let errorMsg = 'שגיאה בחזרה מהתחברות';
-                // Handle the specific unauthorized domain error for better UX
                 if (error.code === 'auth/unauthorized-domain') {
                     errorMsg = 'הדומיין לא מאושר ב-Firebase Console';
-                    alert(`שגיאת דומיין: ${error.message}\nאנא וודא שהוספת את הכתובת ב-Firebase Console.`);
                 }
                 showNotification(`❌ ${errorMsg} (${error.code})`, 'error');
             });
@@ -707,6 +705,11 @@ function handleCloudClick() {
 
 // 2. Login Function - Using Redirect
 async function loginWithGoogle() {
+    if (currentUser) {
+        showNotification('✅ אתה כבר מחובר לענן');
+        return;
+    }
+
     if (!window.firebaseAuth || !window.firebaseSignInWithRedirect || !window.GoogleAuthProvider) {
         showNotification('❌ Firebase לא מוכן', 'error');
         return;
@@ -717,9 +720,7 @@ async function loginWithGoogle() {
         updateCloudIndicator('syncing');
         showNotification('🔄 מעביר להתחברות...', 'info');
 
-        // CRITICAL: Use signInWithRedirect for mobile
         await window.firebaseSignInWithRedirect(window.firebaseAuth, provider);
-        // Page will reload/redirect, logic continues in initFirebaseAuth after return
     } catch (error) {
         console.error('Login error:', error);
         let errorMsg = 'שגיאה בהתחברות';
@@ -729,7 +730,24 @@ async function loginWithGoogle() {
     }
 }
 
-// 3. Sync Logic
+// 3. Logout Function
+async function logoutFromCloud() {
+    if (!window.firebaseAuth || !window.firebaseSignOut) return;
+
+    try {
+        await window.firebaseSignOut(window.firebaseAuth);
+        currentUser = null;
+        isConnected = false;
+        updateCloudIndicator('disconnected');
+        showNotification('התנתקת מהענן בהצלחה 👋');
+        closeModal('settingsModal');
+    } catch (e) {
+        console.error('Logout error:', e);
+        showNotification('שגיאה בהתנתקות', 'error');
+    }
+}
+
+// 4. Sync Logic
 async function syncToFirestore() {
     if (!currentUser || isSyncing || !window.firebaseDb) return;
 
@@ -761,7 +779,7 @@ function manualSync() {
     syncToFirestore().then(() => showNotification('✅ סונכרן!'));
 }
 
-// 4. Firestore Listener
+// 5. Firestore Listener
 function setupFirestoreListener() {
     if (!currentUser || !window.firebaseDb || !window.firebaseOnSnapshot) return;
 
@@ -844,8 +862,7 @@ window.addEventListener('DOMContentLoaded', () => {
 });
 
 
-// ========== GLOBAL EXPORTS FOR HTML ONCLICK ==========
-// This is mandated for the PWA environment
+// ========== GLOBAL EXPORTS ==========
 window.openModal = openModal;
 window.closeModal = closeModal;
 window.showPage = showPage;
@@ -884,3 +901,4 @@ window.render = render;
 window.loginWithGoogle = loginWithGoogle;
 window.handleCloudClick = handleCloudClick;
 window.manualSync = manualSync;
+window.logoutFromCloud = logoutFromCloud;

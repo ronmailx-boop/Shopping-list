@@ -881,6 +881,14 @@
         </div>
     </div>
 
+    <div id="completedListsModal" class="modal-overlay no-print">
+        <div class="edit-modal">
+            <h2>✅ רשימות שהושלמו</h2>
+            <div id="completedListsContent" style="max-height: 400px; overflow-y: auto;"></div>
+            <button onclick="closeModal('completedListsModal')" class="mt-4 text-gray-400 block w-full">סגור</button>
+        </div>
+    </div>
+
     <div id="settingsModal" class="modal-overlay no-print">
         <div class="edit-modal">
             <h2 id="settingsModalTitle">הגדרות</h2>
@@ -921,6 +929,11 @@
                 class="w-full bg-purple-500 text-white py-4 rounded-xl font-bold mb-3" id="restoreDataBtn">
                 📂 שחזר נתונים
             </button>
+            <button onclick="logoutFromCloud()"
+                class="w-full bg-red-100 text-red-600 py-4 rounded-xl font-bold mb-3 border border-red-200">
+                התנתק מהענן 🚪
+            </button>
+
             <input type="file" id="importDataFile" accept=".json" style="display: none;" onchange="importData(event)">
             <button onclick="closeModal('settingsModal')" class="mt-4 text-gray-400 block w-full">סגור</button>
         </div>
@@ -1005,7 +1018,7 @@
         // Import Firebase modules
         import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
         import { getFirestore, doc, setDoc, onSnapshot } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
-        import { getAuth, signInWithRedirect, getRedirectResult, GoogleAuthProvider, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
+        import { getAuth, signInWithRedirect, getRedirectResult, signOut, GoogleAuthProvider, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
 
         // Firebase configuration - Ensure strict match
         const firebaseConfig = {
@@ -1031,6 +1044,7 @@
         window.firebaseOnSnapshot = onSnapshot;
         window.firebaseSignInWithRedirect = signInWithRedirect;
         window.firebaseGetRedirectResult = getRedirectResult;
+        window.firebaseSignOut = signOut;
         window.GoogleAuthProvider = GoogleAuthProvider;
         window.firebaseOnAuthStateChanged = onAuthStateChanged;
 
