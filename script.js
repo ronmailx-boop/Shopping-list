@@ -371,8 +371,6 @@ async function performTranslation() {
     const targetLang = document.getElementById('targetLanguage').value;
     const list = db.lists[db.currentId];
 
-    if (!targetLang) return; // Language must be selected
-
     if (!list || list.items.length === 0) {
         showNotification('אין מוצרים לתרגום', 'warning');
         return;
@@ -427,7 +425,7 @@ async function translateText(text, targetLang) {
     }
 }
 
-// ========== Receipt Scanning Functions (UPDATED TO GOOGLE VISION) ==========
+// ========== Receipt Scanning Functions ==========
 async function processReceipt() {
     const fileInput = document.getElementById('receiptImage');
     const file = fileInput.files[0];
@@ -436,6 +434,17 @@ async function processReceipt() {
         showNotification('אנא בחר תמונה', 'warning');
         return;
     }
+
+    // Show preview
+    const preview = document.getElementById('scanPreview');
+    const previewImg = document.getElementById('previewImg');
+    const reader = new FileReader();
+
+    reader.onload = function (e) {
+        previewImg.src = e.target.result;
+        preview.classList.remove('hidden');
+    };
+    reader.readAsDataURL(file);
 
     // Show progress
     const progressDiv = document.getElementById('scanProgress');
@@ -446,59 +455,55 @@ async function processReceipt() {
     progressDiv.classList.remove('hidden');
     scanBtn.disabled = true;
     scanBtn.classList.add('opacity-50');
-    statusDiv.textContent = 'מעבד עם Google Vision...';
-    progressBar.style.width = '30%';
 
     try {
-        // Convert image to Base64
-        const reader = new FileReader();
-        const base64Promise = new Promise(resolve => {
-            reader.onload = () => resolve(reader.result.split(',')[1]);
-        });
-        reader.readAsDataURL(file);
-        const base64Image = await base64Promise;
-        progressBar.style.width = '60%';
+        const { data: { text } } = await Tesseract.recognize(
+            file,
+            'heb+eng',
+            {
+                logger: m => {
+                    if (m.status === 'recognizing text') {
+                        const progress = Math.round(m.progress * 100);
+                        progressBar.style.width = progress + '%';
+                        statusDiv.textContent = `מזהה טקסט... ${progress}%`;
+                    }
+                },
+                tessedit_pageseg_mode: Tesseract.PSM.SINGLE_BLOCK,
+                preserve_interword_spaces: '1'
+            }
+        );
 
-        // Send to Google Vision API
-        const response = await fetch(`https://vision.googleapis.com/v1/images:annotate?key=${GOOGLE_API_KEY}`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                requests: [{
-                    image: { content: base64Image },
-                    features: [{ type: 'TEXT_DETECTION' }]
-                }]
-            })
-        });
+        console.log('OCR Result:', text);
 
-        const data = await response.json();
-        const fullText = data.responses[0]?.fullTextAnnotation?.text;
-
-        if (!fullText) throw new Error('לא זוהה טקסט בתמונה');
-        
-        console.log('Google OCR Result:', fullText);
-        progressBar.style.width = '90%';
-
-        // Parse result using existing logic
-        const items = parseReceiptText(fullText);
+        // Parse receipt
+        const items = parseReceiptText(text);
 
         if (items.length === 0) {
             showNotification('לא נמצאו מוצרים בקבלה', 'warning');
-        } else {
-            createListFromReceipt(items);
-            closeModal('receiptScanModal');
-            showNotification(`✅ נוצרה רשימה עם ${items.length} מוצרים!`);
+            progressDiv.classList.add('hidden');
+            scanBtn.disabled = false;
+            scanBtn.classList.remove('opacity-50');
+            return;
         }
+
+        // Create new list from receipt
+        createListFromReceipt(items);
+
+        closeModal('receiptScanModal');
+        progressDiv.classList.add('hidden');
+        preview.classList.add('hidden');
+        fileInput.value = '';
+        scanBtn.disabled = false;
+        scanBtn.classList.remove('opacity-50');
+
+        showNotification(`✅ נוצרה רשימה עם ${items.length} מוצרים!`);
 
     } catch (error) {
         console.error('OCR Error:', error);
-        showNotification('שגיאה בסריקת הקבלה. וודא שהפעלת את ה-API בגוגל', 'error');
-    } finally {
+        showNotification('שגיאה בסריקת הקבלה', 'error');
         progressDiv.classList.add('hidden');
         scanBtn.disabled = false;
         scanBtn.classList.remove('opacity-50');
-        fileInput.value = '';
-        progressBar.style.width = '0%';
     }
 }
 
@@ -507,18 +512,22 @@ function parseReceiptText(text) {
     const items = [];
 
     // Common patterns for receipt items
+    // Pattern 1: "Item Name 12.50" or "Item Name ₪12.50"
+    // Pattern 2: "Item Name" followed by price on next line
+
     for (let i = 0; i < lines.length; i++) {
         const line = lines[i].trim();
         if (!line || line.length < 2) continue;
 
-        // Skip headers/footers
+        // Skip common receipt headers/footers (Hebrew and English)
         if (line.match(/סה"כ|סהכ|total|sum|תאריך|date|קופה|קבלה|receipt|ח\.פ|חפ|vat|מע"מ|מעמ|ברקוד|barcode|תודה|thank|שעה|time|כתובת|address|טלפון|phone|אשראי|credit|מזומן|cash/i)) continue;
 
-        // Pattern 1: Name followed by price
+        // Pattern: Name followed by price (12.50 or ₪12.50 or ש"ח12.50)
+        // Support both Hebrew (₪, ש"ח) and English formats
         const match1 = line.match(/^(.+?)\s+(₪|ש"ח|שח)?\s*([\d.,]+)\s*(₪|ש"ח|שח)?$/);
         if (match1) {
             const name = match1[1].trim();
-            const priceStr = match1[3].replace(/,/g, '.').trim();
+            const priceStr = match1[3].replace(/,/g, '.').trim(); // Handle comma as decimal separator
             const price = parseFloat(priceStr);
 
             if (name.length > 2 && !name.match(/^[\d\s]+$/) && price > 0 && price < 1000) {
@@ -533,9 +542,10 @@ function parseReceiptText(text) {
             continue;
         }
 
-        // Pattern 2: Name, check next line for price
+        // Pattern: Just a name, check next line for price
         if (i < lines.length - 1) {
             const nextLine = lines[i + 1].trim();
+            // Support Hebrew (₪, ש"ח) and English price formats
             const priceMatch = nextLine.match(/^(₪|ש"ח|שח)?\s*([\d.,]+)\s*(₪|ש"ח|שח)?$/);
             if (priceMatch) {
                 const priceStr = priceMatch[2].replace(/,/g, '.').trim();
@@ -548,7 +558,7 @@ function parseReceiptText(text) {
                         checked: false,
                         category: detectCategory(line)
                     });
-                    i++; 
+                    i++; // Skip next line since we used it
                 }
             }
         }
@@ -836,12 +846,9 @@ function render() {
     const container = document.getElementById(activePage === 'lists' ? 'itemsContainer' : activePage === 'summary' ? 'summaryContainer' : null);
     let total = 0, paid = 0;
 
-    const tabLists = document.getElementById('tabLists');
-    const tabSummary = document.getElementById('tabSummary');
-    const tabStats = document.getElementById('tabStats');
-    if (tabLists) tabLists.className = `tab-btn ${activePage === 'lists' ? 'tab-active' : ''}`;
-    if (tabSummary) tabSummary.className = `tab-btn ${activePage === 'summary' ? 'tab-active' : ''}`;
-    if (tabStats) tabStats.className = `tab-btn ${activePage === 'stats' ? 'tab-active' : ''}`;
+    document.getElementById('tabLists').className = `tab-btn ${activePage === 'lists' ? 'tab-active' : ''}`;
+    document.getElementById('tabSummary').className = `tab-btn ${activePage === 'summary' ? 'tab-active' : ''}`;
+    document.getElementById('tabStats').className = `tab-btn ${activePage === 'stats' ? 'tab-active' : ''}`;
 
     const btn = document.getElementById('mainLockBtn');
     const path = document.getElementById('lockIconPath');
@@ -853,18 +860,13 @@ function render() {
     }
 
     if (activePage === 'lists') {
-        const pageLists = document.getElementById('pageLists');
-        const pageSummary = document.getElementById('pageSummary');
-        const pageStats = document.getElementById('pageStats');
-        if (pageLists) pageLists.classList.remove('hidden');
-        if (pageSummary) pageSummary.classList.add('hidden');
-        if (pageStats) pageStats.classList.add('hidden');
+        document.getElementById('pageLists').classList.remove('hidden');
+        document.getElementById('pageSummary').classList.add('hidden');
+        document.getElementById('pageStats').classList.add('hidden');
 
         const list = db.lists[db.currentId] || { name: 'רשימה', items: [] };
-        const listNameDisplay = document.getElementById('listNameDisplay');
-        const itemCountDisplay = document.getElementById('itemCountDisplay');
-        if (listNameDisplay) listNameDisplay.innerText = list.name;
-        if (itemCountDisplay) itemCountDisplay.innerText = `${list.items.length} מוצרים`;
+        document.getElementById('listNameDisplay').innerText = list.name;
+        document.getElementById('itemCountDisplay').innerText = `${list.items.length} מוצרים`;
 
 
         if (container) {
@@ -1035,12 +1037,9 @@ function render() {
         }
 
     } else if (activePage === 'summary') {
-        const pageLists = document.getElementById('pageLists');
-        const pageSummary = document.getElementById('pageSummary');
-        const pageStats = document.getElementById('pageStats');
-        if (pageLists) pageLists.classList.add('hidden');
-        if (pageSummary) pageSummary.classList.remove('hidden');
-        if (pageStats) pageStats.classList.add('hidden');
+        document.getElementById('pageLists').classList.add('hidden');
+        document.getElementById('pageSummary').classList.remove('hidden');
+        document.getElementById('pageStats').classList.add('hidden');
 
         const searchInput = document.getElementById('searchInput');
         const searchTerm = searchInput ? searchInput.value.toLowerCase() : '';
@@ -1123,21 +1122,15 @@ function render() {
             }
         }
     } else if (activePage === 'stats') {
-        const pageLists = document.getElementById('pageLists');
-        const pageSummary = document.getElementById('pageSummary');
-        const pageStats = document.getElementById('pageStats');
-        if (pageLists) pageLists.classList.add('hidden');
-        if (pageSummary) pageSummary.classList.add('hidden');
-        if (pageStats) pageStats.classList.remove('hidden');
+        document.getElementById('pageLists').classList.add('hidden');
+        document.getElementById('pageSummary').classList.add('hidden');
+        document.getElementById('pageStats').classList.remove('hidden');
         renderStats();
     }
 
-    const displayTotal = document.getElementById('displayTotal');
-    const displayPaid = document.getElementById('displayPaid');
-    const displayLeft = document.getElementById('displayLeft');
-    if (displayTotal) displayTotal.innerText = total.toFixed(2);
-    if (displayPaid) displayPaid.innerText = paid.toFixed(2);
-    if (displayLeft) displayLeft.innerText = (total - paid).toFixed(2);
+    document.getElementById('displayTotal').innerText = total.toFixed(2);
+    document.getElementById('displayPaid').innerText = paid.toFixed(2);
+    document.getElementById('displayLeft').innerText = (total - paid).toFixed(2);
     initSortable();
 }
 
@@ -1151,19 +1144,14 @@ function renderStats() {
     }
 
     const monthlyTotal = db.stats.monthlyData[monthKey] || 0;
-    const monthlyTotalEl = document.getElementById('monthlyTotal');
-    const completedListsEl = document.getElementById('completedLists');
-    const avgPerListEl = document.getElementById('avgPerList');
-    const monthlyProgressEl = document.getElementById('monthlyProgress');
-
-    if (monthlyTotalEl) monthlyTotalEl.innerText = `₪${monthlyTotal.toFixed(2)}`;
-    if (completedListsEl) completedListsEl.innerText = db.stats.listsCompleted || 0;
+    document.getElementById('monthlyTotal').innerText = `₪${monthlyTotal.toFixed(2)}`;
+    document.getElementById('completedLists').innerText = db.stats.listsCompleted || 0;
 
     const avgPerList = db.stats.listsCompleted > 0 ? db.stats.totalSpent / db.stats.listsCompleted : 0;
-    if (avgPerListEl) avgPerListEl.innerText = `₪${avgPerList.toFixed(0)}`;
+    document.getElementById('avgPerList').innerText = `₪${avgPerList.toFixed(0)}`;
 
     const monthlyProgress = Math.min((monthlyTotal / 5000) * 100, 100);
-    if (monthlyProgressEl) monthlyProgressEl.style.width = `${monthlyProgress}%`;
+    document.getElementById('monthlyProgress').style.width = `${monthlyProgress}%`;
 
     renderMonthlyChart();
     renderPopularItems();
@@ -1477,8 +1465,7 @@ async function shareNative(type) {
             const catEmoji = i.category ? i.category.split(' ')[0] : '';
             text += `${idx + 1}. ${i.checked ? '✅' : '⬜'} *${i.name}* ${catEmoji} (x${i.qty}) - ₪${(i.price * i.qty).toFixed(2)}\n`;
         });
-        const displayTotal = document.getElementById('displayTotal');
-        text += `\n💰 *סה"כ: ₪${displayTotal ? displayTotal.innerText : '0.00'}*`;
+        text += `\n💰 *סה"כ: ₪${document.getElementById('displayTotal').innerText}*`;
     } else {
         const selectedIds = db.selectedInSummary;
         if (selectedIds.length === 0) {
@@ -1760,12 +1747,9 @@ function preparePrint() {
 }
 
 function saveListName() {
-    const editListNameInput = document.getElementById('editListNameInput');
-    const editListUrlInput = document.getElementById('editListUrlInput');
-    const editListBudget = document.getElementById('editListBudget');
-    const n = editListNameInput ? editListNameInput.value.trim() : '';
-    const u = editListUrlInput ? editListUrlInput.value.trim() : '';
-    const b = editListBudget ? parseFloat(editListBudget.value) || 0 : 0;
+    const n = document.getElementById('editListNameInput').value.trim();
+    const u = document.getElementById('editListUrlInput').value.trim();
+    const b = parseFloat(document.getElementById('editListBudget').value) || 0;
     if (n) {
         db.lists[db.currentId].name = n;
         db.lists[db.currentId].url = u;
@@ -1777,14 +1761,12 @@ function saveListName() {
 
 function openEditTotalModal(idx) {
     currentEditIdx = idx;
-    const editTotalInput = document.getElementById('editTotalInput');
-    if (editTotalInput) editTotalInput.value = '';
+    document.getElementById('editTotalInput').value = '';
     openModal('editTotalModal');
 }
 
 function saveTotal() {
-    const editTotalInput = document.getElementById('editTotalInput');
-    const val = editTotalInput ? parseFloat(editTotalInput.value) : NaN;
+    const val = parseFloat(document.getElementById('editTotalInput').value);
     if (!isNaN(val)) {
         const item = db.lists[db.currentId].items[currentEditIdx];
         item.price = val / item.qty;
@@ -1853,8 +1835,7 @@ function gisLoaded() {
 
 function maybeEnableButtons() {
     if (gapiInited && gisInited) {
-        const cloudBtn = document.getElementById('cloudBtn');
-        if (cloudBtn) cloudBtn.onclick = handleCloudClick;
+        document.getElementById('cloudBtn').onclick = handleCloudClick;
     }
 }
 
