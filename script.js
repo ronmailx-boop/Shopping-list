@@ -494,26 +494,55 @@ async function processReceipt() {
             })
         });
 
+        // Check if response is OK
         if (!response.ok) {
-            throw new Error(`Google Vision API error: ${response.status}`);
+            const errorText = await response.text();
+            console.error('Google Vision API HTTP Error:', response.status, errorText);
+
+            let errorMessage = 'שגיאה בסריקת הקבלה';
+            if (response.status === 403) {
+                errorMessage = 'שגיאת הרשאה - ה-API Key לא תקין או אין הרשאות';
+            } else if (response.status === 400) {
+                errorMessage = 'שגיאה בפורמט הבקשה';
+            } else if (response.status === 429) {
+                errorMessage = 'חרגת ממכסת ה-API - נסה שוב מאוחר יותר';
+            }
+
+            throw new Error(`${errorMessage} (${response.status})`);
         }
 
         const result = await response.json();
-        
+
+        // Check for API errors in response
+        if (result.responses && result.responses[0] && result.responses[0].error) {
+            const apiError = result.responses[0].error;
+            console.error('Google Vision API Error:', apiError);
+            throw new Error(`שגיאת API: ${apiError.message || 'שגיאה לא ידועה'}`);
+        }
+
         // Update progress
         progressBar.style.width = '90%';
         statusDiv.textContent = 'מעבד תוצאות...';
 
         // Extract text from response
         const text = result.responses[0]?.fullTextAnnotation?.text || '';
-        
+
         console.log('OCR Result:', text);
+
+        // Check if any text was detected
+        if (!text || text.trim().length === 0) {
+            showNotification('לא זוהה טקסט בתמונה - נסה תמונה ברורה יותר', 'warning');
+            progressDiv.classList.add('hidden');
+            scanBtn.disabled = false;
+            scanBtn.classList.remove('opacity-50');
+            return;
+        }
 
         // Parse receipt
         const items = parseReceiptText(text);
 
         if (items.length === 0) {
-            showNotification('לא נמצאו מוצרים בקבלה', 'warning');
+            showNotification('לא נמצאו מוצרים בקבלה - נסה תמונה אחרת', 'warning');
             progressDiv.classList.add('hidden');
             scanBtn.disabled = false;
             scanBtn.classList.remove('opacity-50');
@@ -537,8 +566,15 @@ async function processReceipt() {
         showNotification(`✅ נוצרה רשימה עם ${items.length} מוצרים!`);
 
     } catch (error) {
-        console.error('OCR Error:', error);
-        showNotification('שגיאה בסריקת הקבלה', 'error');
+        console.error('OCR Error Details:', error);
+
+        // Show detailed error message
+        let errorMessage = 'שגיאה בסריקת הקבלה';
+        if (error.message) {
+            errorMessage = error.message;
+        }
+
+        showNotification(errorMessage, 'error');
         progressDiv.classList.add('hidden');
         scanBtn.disabled = false;
         scanBtn.classList.remove('opacity-50');
