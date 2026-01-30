@@ -401,108 +401,48 @@
             max-height: 200px;
             overflow-y: auto;
             z-index: 1000;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-            display: none;
-        }
-
-        .autocomplete-container.active {
-            display: block;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
         }
 
         .autocomplete-item {
-            padding: 12px 15px;
+            padding: 10px;
             cursor: pointer;
             border-bottom: 1px solid #f3f4f6;
             transition: background 0.2s;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
+        }
+
+        .autocomplete-item:hover {
+            background: #f9fafb;
         }
 
         .autocomplete-item:last-child {
             border-bottom: none;
         }
 
-        .autocomplete-item:hover {
-            background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+        /* Cloud Button Connected State */
+        .cloud-btn-connected {
+            background: #dcfce7 !important;
+            color: #15803d !important;
+            border-color: #86efac !important;
         }
 
-        .autocomplete-item-name {
-            font-weight: bold;
-            color: #1f2937;
-        }
-
-        .autocomplete-item-price {
-            color: #7367f0;
-            font-weight: bold;
-            font-size: 14px;
-        }
-
-        .autocomplete-item-category {
-            font-size: 11px;
+        .cloud-btn-disconnected {
+            background: #f3f4f6;
             color: #6b7280;
-            margin-top: 2px;
-        }
-
-        .dark-mode .autocomplete-container {
-            background: #0f3460;
-            border-color: #1a1a2e;
-        }
-
-        .dark-mode .autocomplete-item {
-            border-bottom-color: #1a1a2e;
-        }
-
-        .dark-mode .autocomplete-item:hover {
-            background: rgba(115, 103, 240, 0.2);
-        }
-
-        .dark-mode .autocomplete-item-name {
-            color: white;
-        }
-
-        .dark-mode .autocomplete-item-category {
-            color: #9ca3af;
-        }
-
-        /* Voice button recording animation */
-        @keyframes pulse-recording {
-
-            0%,
-            100% {
-                transform: scale(1);
-                box-shadow: 0 0 0 0 rgba(168, 85, 247, 0.7);
-            }
-
-            50% {
-                transform: scale(1.05);
-                box-shadow: 0 0 0 10px rgba(168, 85, 247, 0);
-            }
-        }
-
-        #voiceBtn.recording {
-            animation: pulse-recording 1.5s infinite;
-            background: #ef4444 !important;
+            border-color: #e5e7eb;
         }
     </style>
-
 
     <script>
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
-                navigator.serviceWorker.register('./sw.js')
-                    .then(reg => console.log('Service Worker Registered'))
-                    .catch(err => console.log('Registration Failed', err));
-            });
-        }
-
-        // Auto dark mode based on system preference
-        if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
-            document.addEventListener('DOMContentLoaded', () => {
-                const savedDarkMode = localStorage.getItem('darkMode');
-                if (savedDarkMode === null) {
-                    document.body.classList.add('dark-mode');
-                }
+                navigator.serviceWorker.register('sw.js')
+                    .then(registration => {
+                        console.log('SW registered:', registration);
+                    })
+                    .catch(error => {
+                        console.log('SW registration failed:', error);
+                    });
             });
         }
     </script>
@@ -553,9 +493,9 @@
 
         <div class="header-controls">
             <div id="cloudBtn" onclick="loginWithGoogle()"
-                class="bg-indigo-50 text-indigo-600 px-3 py-1 rounded-full text-[10px] font-bold border border-indigo-100 flex items-center gap-1 cursor-pointer">
+                class="cloud-btn-disconnected px-3 py-1 rounded-full text-[10px] font-bold border flex items-center gap-1 cursor-pointer transition-all">
                 <span id="cloudSyncText">סנכרון ענן</span>
-                <div id="cloudIndicator" class="w-2 h-2 bg-gray-300 rounded-full"></div>
+                <div id="cloudIndicator" class="w-2 h-2 bg-gray-400 rounded-full"></div>
             </div>
 
             <div
@@ -915,20 +855,12 @@
         </div>
     </div>
 
-    <div id="completedListsModal" class="modal-overlay no-print">
-        <div class="edit-modal">
-            <h2>✅ רשימות שהושלמו</h2>
-            <div id="completedListsContent" style="max-height: 400px; overflow-y: auto;"></div>
-            <button onclick="closeModal('completedListsModal')" class="mt-4 text-gray-400 block w-full">סגור</button>
-        </div>
-    </div>
-
     <div id="settingsModal" class="modal-overlay no-print">
         <div class="edit-modal">
             <h2 id="settingsModalTitle">הגדרות</h2>
             <div id="userEmailDisplay" class="text-indigo-600 font-bold mb-2 text-center text-sm"></div>
-            <button onclick="logoutFromCloud()"
-                class="w-full bg-red-50 text-red-600 py-3 rounded-xl font-bold border border-red-100 mb-4">התנתק מהענן
+            <button id="logoutBtn" onclick="logoutFromCloud()"
+                class="w-full bg-red-50 text-red-600 py-3 rounded-xl font-bold border border-red-100 mb-4 hidden">התנתק מהענן
                 🚪</button>
             <button onclick="toggleDarkMode()"
                 class="w-full bg-indigo-50 text-indigo-600 py-4 rounded-xl font-bold mb-3">
