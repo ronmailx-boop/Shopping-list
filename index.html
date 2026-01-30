@@ -386,7 +386,7 @@
             border-radius: 8px;
             font-size: 10px;
             font-weight: bold;
-            margin-right: 8px;
+            margin: right: 8px;
         }
 
         .autocomplete-container {
@@ -881,14 +881,6 @@
         </div>
     </div>
 
-    <div id="completedListsModal" class="modal-overlay no-print">
-        <div class="edit-modal">
-            <h2>✅ רשימות שהושלמו</h2>
-            <div id="completedListsContent" style="max-height: 400px; overflow-y: auto;"></div>
-            <button onclick="closeModal('completedListsModal')" class="mt-4 text-gray-400 block w-full">סגור</button>
-        </div>
-    </div>
-
     <div id="settingsModal" class="modal-overlay no-print">
         <div class="edit-modal">
             <h2 id="settingsModalTitle">הגדרות</h2>
@@ -1013,9 +1005,9 @@
         // Import Firebase modules
         import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
         import { getFirestore, doc, setDoc, onSnapshot } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
-        import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
+        import { getAuth, signInWithRedirect, getRedirectResult, GoogleAuthProvider, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
 
-        // Firebase configuration
+        // Firebase configuration - Ensure strict match
         const firebaseConfig = {
             apiKey: "AIzaSyBqIqxoiwwqeKkjlYJpEiqgCG09PgabwhI",
             authDomain: "vplus-pro.firebaseapp.com",
@@ -1031,15 +1023,21 @@
         const db = getFirestore(app);
         const auth = getAuth(app);
 
-        // Make Firebase instances globally accessible
+        // Make Firebase instances globally accessible for script.js
         window.firebaseDb = db;
         window.firebaseAuth = auth;
         window.firebaseDoc = doc;
         window.firebaseSetDoc = setDoc;
         window.firebaseOnSnapshot = onSnapshot;
-        window.firebaseSignInWithPopup = signInWithPopup;
-        window.firebaseGoogleAuthProvider = GoogleAuthProvider;
+        window.firebaseSignInWithRedirect = signInWithRedirect;
+        window.firebaseGetRedirectResult = getRedirectResult;
+        window.GoogleAuthProvider = GoogleAuthProvider;
         window.firebaseOnAuthStateChanged = onAuthStateChanged;
+
+        // Signal that Firebase is initialized
+        window.firebaseReady = true;
+        window.dispatchEvent(new Event('firebaseInitialized'));
+        console.log("Firebase initialized from index.html");
     </script>
 
     <script src="script.js"></script>
