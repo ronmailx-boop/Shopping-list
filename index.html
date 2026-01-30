@@ -1,6 +1,5 @@
 <!DOCTYPE html>
 <html lang="he" dir="rtl">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
@@ -11,12 +10,78 @@
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 
+    <style>
+        * { box-sizing: border-box; touch-action: manipulation; }
+        body { font-family: system-ui, -apple-system, sans-serif; background: linear-gradient(135deg, #f4f7fa 0%, #e8ecf3 100%); padding-bottom: 240px; min-height: 100vh; transition: background 0.3s; margin: 0; }
+        .item-card { background: white; border-radius: 25px; padding: 18px; margin-bottom: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); border: 1px solid rgba(255,255,255,0.8); transition: all 0.3s ease; animation: slideUp 0.4s ease-out; }
+        .dark-mode { background: #1a1a1a; color: white; }
+        .dark-mode .item-card { background: #2d2d2d; border-color: #404040; box-shadow: 0 4px 15px rgba(0,0,0,0.2); }
+        .dark-mode .bg-white\/80 { background-color: rgba(45, 45, 45, 0.8); }
+        .category-tag { font-size: 0.7rem; padding: 4px 12px; border-radius: 100px; font-weight: 700; text-transform: uppercase; }
+        @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        .floating-input { transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
+        .floating-input:focus { transform: translateY(-5px); box-shadow: 0 10px 25px rgba(115, 103, 240, 0.2); }
+    </style>
+</head>
+<body>
+    <div class="fixed top-0 left-0 right-0 bg-white/80 backdrop-blur-md shadow-sm z-40 px-4 py-3 flex justify-between items-center transition-colors duration-300">
+        <h1 class="text-2xl font-black text-indigo-600 tracking-tight">vplus</h1>
+        <div class="flex gap-2">
+            <button onclick="loginWithGoogle()" id="syncBtn" class="p-2 bg-indigo-100 text-indigo-600 rounded-full hover:bg-indigo-200 transition relative">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                </svg>
+            </button>
+            <button onclick="showStats()" class="p-2 bg-pink-100 text-pink-600 rounded-full">📊</button>
+            <button onclick="toggleDarkMode()" class="p-2 bg-gray-100 text-gray-600 rounded-full transition-colors" id="darkModeBtn">
+                <span id="darkModeIcon">🌙</span>
+            </button>
+        </div>
+    </div>
+
+    <div class="max-w-md mx-auto px-4 pt-20">
+        <div class="flex justify-between items-center mb-6">
+            <h2 class="text-lg font-bold text-gray-400 uppercase tracking-widest">רשימת קניות</h2>
+            <button onclick="clearList()" class="text-sm text-red-400 font-bold hover:text-red-500 transition">נקה רשימה</button>
+        </div>
+        <div id="shoppingList" class="space-y-3"></div>
+    </div>
+
+    <div class="fixed bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-white via-white/95 to-transparent z-40 dark:from-[#1a1a1a]">
+        <div class="max-w-md mx-auto flex flex-col gap-3">
+            <div class="flex gap-2">
+                <select id="itemCategory" class="p-4 rounded-2xl border-2 border-indigo-100 bg-white dark:bg-gray-800 dark:border-gray-700 outline-none text-lg shadow-lg">
+                    <option value="כללי">🛒</option>
+                    <option value="פירות וירקות">🍏</option>
+                    <option value="חלב וביצים">🥛</option>
+                    <option value="בשר ודגים">🥩</option>
+                    <option value="מאפים">🥖</option>
+                    <option value="קפואים">❄️</option>
+                    <option value="ניקיון">✨</option>
+                </select>
+                <input type="text" id="itemName" placeholder="מה קונים?" class="floating-input flex-1 p-4 rounded-2xl border-2 border-indigo-100 dark:bg-gray-800 dark:border-gray-700 outline-none text-lg shadow-lg">
+            </div>
+            <div class="flex gap-2">
+                <input type="number" id="itemPrice" placeholder="מחיר" class="floating-input w-1/3 p-4 rounded-2xl border-2 border-indigo-100 dark:bg-gray-800 dark:border-gray-700 outline-none text-lg shadow-lg">
+                <button onclick="addItem()" class="flex-1 bg-indigo-600 text-white rounded-2xl font-bold text-lg shadow-lg shadow-indigo-200 active:scale-95 transition-all">הוסף +</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="statsModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white dark:bg-gray-900 w-full max-w-md rounded-[35px] p-6 shadow-2xl">
+            <div class="flex justify-between items-center mb-6">
+                <h3 class="text-2xl font-black">סיכום הוצאות</h3>
+                <button onclick="closeStats()" class="text-3xl">&times;</button>
+            </div>
+            <canvas id="statsChart" class="mb-6"></canvas>
+            <div id="statsSummary" class="space-y-2"></div>
+        </div>
+    </div>
+
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-app.js";
-        import { getAnalytics } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-analytics.js";
-        import { getFirestore } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-firestore.js";
-        import { getAuth } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-auth.js";
-
+        
         const firebaseConfig = {
             apiKey: "AIzaSyBqIqxoiwwqeKkjlYJpEiqgCG09PgabwhI",
             authDomain: "vplus-pro.firebaseapp.com",
@@ -26,53 +91,9 @@
             appId: "1:386740827706:web:a3c95c895826df4bb26703",
             measurementId: "G-F1G26VP41G"
         };
-
-        const app = initializeApp(firebaseConfig);
-        const analytics = getAnalytics(app);
         
-        // הפיכת Firebase לזמין לשאר הסקריפטים
-        window.firebaseApp = app;
+        window.firebaseApp = initializeApp(firebaseConfig);
     </script>
-
-    <style>
-        /* הסטייל המקורי שלך נשמר כאן במלואו */
-        * { box-sizing: border-box; touch-action: manipulation; }
-        body { font-family: system-ui, sans-serif; background: linear-gradient(135deg, #f4f7fa 0%, #e8ecf3 100%); padding-bottom: 240px; min-height: 100vh; transition: background 0.3s; margin: 0; }
-        .item-card { background: white; border-radius: 25px; padding: 15px; margin-bottom: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }
-        .dark-mode { background: #1a1a1a; color: white; }
-        .dark-mode .item-card { background: #2d2d2d; color: white; }
-    </style>
-</head>
-
-<body>
-    <div class="fixed top-0 left-0 right-0 bg-white/80 backdrop-blur-md shadow-sm z-40 px-4 py-3 flex justify-between items-center dark:bg-gray-800/80">
-        <h1 class="text-2xl font-black text-indigo-600 tracking-tight">vplus</h1>
-        <div class="flex gap-2">
-            <button onclick="loginWithGoogle()" id="syncBtn" class="p-2 bg-indigo-100 text-indigo-600 rounded-full hover:bg-indigo-200 transition">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                </svg>
-            </button>
-            <button onclick="toggleDarkMode()" class="p-2 bg-gray-100 text-gray-600 rounded-full hover:bg-gray-200 transition">
-                <span id="darkModeIcon">🌙</span>
-            </button>
-        </div>
-    </div>
-
-    <div class="max-w-md mx-auto px-4 pt-20">
-        <div id="shoppingList" class="space-y-3"></div>
-    </div>
-
-    <div class="fixed bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-white via-white/95 to-transparent z-40">
-        <div class="max-w-md mx-auto flex flex-col gap-3">
-             <input type="text" id="itemName" placeholder="מה קונים?" class="w-full p-4 rounded-2xl border-2 border-indigo-100 focus:border-indigo-500 outline-none text-lg shadow-lg">
-             <div class="flex gap-2">
-                <input type="number" id="itemPrice" placeholder="מחיר" class="w-1/3 p-4 rounded-2xl border-2 border-indigo-100 focus:border-indigo-500 outline-none text-lg shadow-lg">
-                <button onclick="addItem()" class="flex-1 bg-indigo-600 text-white rounded-2xl font-bold text-lg shadow-lg shadow-indigo-200 active:scale-95 transition">הוסף לרשימה +</button>
-             </div>
-        </div>
-    </div>
-
     <script src="script.js" type="module"></script>
 </body>
 </html>
