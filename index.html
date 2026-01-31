@@ -12,7 +12,6 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 
     <style>
-        /* כאן נשאר העיצוב המקורי שלך ללא שינוי */
         * { box-sizing: border-box; touch-action: manipulation; }
         body { font-family: system-ui, sans-serif; background: linear-gradient(135deg, #f4f7fa 0%, #e8ecf3 100%); padding-bottom: 240px; min-height: 100vh; transition: background 0.3s; margin: 0; }
         .item-card { background: white; border-radius: 25px; padding: 15px; margin-bottom: 12px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03); display: flex; flex-direction: column; transition: transform 0.2s, box-shadow 0.2s; }
@@ -30,19 +29,59 @@
         .modal-overlay.active { display: flex; }
         .edit-modal { width: 90%; max-width: 400px; background-color: #ffffff !important; border-radius: 0 0 30px 30px; padding: 6px 25px; text-align: center; color: #333; border: 2px solid #eee; box-shadow: 0 15px 35px rgba(0, 0, 0, 0.3); max-height: 90vh; overflow-y: auto; }
         .modal-input { width: 100%; padding: 6px; border: 2px solid #f3f4f6; border-radius: 16px; font-size: 16px; text-align: center; outline: none; margin-bottom: 5px; font-weight: bold; background: #f9fafb !important; color: #333; }
+        .edit-modal h2 { margin-top: 2px; margin-bottom: 8px; font-size: 1.15rem; }
         .app-header { background: white; padding: 10px 20px; display: flex; flex-direction: row-reverse; justify-content: space-between; align-items: center; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05); position: sticky; top: 0; z-index: 2000; height: 60px; }
+        .header-controls { display: flex; align-items: center; gap: 8px; direction: rtl; }
+        .gear-btn { flex-shrink: 0; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; }
+        .trash-btn { width: 44px; height: 44px; background: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #ef4444; border: none; cursor: pointer; box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1); }
         .category-separator { background: linear-gradient(135deg, #7367f0 0%, #9055ff 100%); color: white; border-radius: 20px; padding: 15px; margin-bottom: 20px; text-align: center; }
+        .category-badge { display: inline-block; padding: 4px 12px; border-radius: 12px; font-size: 11px; font-weight: bold; margin: 2px; }
+        .stat-card { background: white; border-radius: 20px; padding: 20px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05); margin-bottom: 15px; }
+        .progress-bar { width: 100%; height: 8px; background: #e5e7eb; border-radius: 10px; overflow: hidden; margin-top: 8px; }
+        .progress-fill { height: 100%; background: linear-gradient(90deg, #22c55e 0%, #16a34a 100%); border-radius: 10px; transition: width 0.3s ease; }
         body.dark-mode { background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%); color: #e0e0e0; }
         .dark-mode .app-header { background: #16213e; border-bottom: 1px solid #0f3460; }
         .dark-mode .item-card, .dark-mode .bg-white, .dark-mode .stat-card { background-color: #0f3460 !important; border-color: #1a1a2e; color: white; }
+        .dark-mode #selectAllLabel { color: white !important; }
+        .dark-mode .select-all-container { background-color: #0f3460 !important; }
+        .dark-mode #searchInput { background-color: #0f3460 !important; color: white; }
+        .dark-mode .item-number { color: #a5a2f7; }
+        .dark-mode .item-card span.font-bold { color: white !important; }
+        .dark-mode .item-card .bg-gray-50 { background-color: rgba(255, 255, 255, 0.1) !important; border-color: rgba(255, 255, 255, 0.2); }
+        .dark-mode .modal-input { background-color: #0f3460 !important; color: white !important; border-color: #1a1a2e; }
+        .dark-mode .edit-modal { background-color: #16213e !important; color: white; border-color: #0f3460; }
+        @media print { .no-print, .bottom-bar, .app-header, .tab-btn, .modal-overlay, .trash-btn, input, button { display: none !important; } #printArea { display: block !important; width: 100%; direction: rtl; } }
+        .notification { position: fixed; top: 70px; right: 20px; background: white; padding: 15px 20px; border-radius: 15px; box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15); z-index: 9000; transform: translateX(400px); transition: transform 0.3s ease; }
+        .notification.show { transform: translateX(0); }
+        .floating-toggle-btn { position: fixed; bottom: 220px; right: 10px; width: 35px; height: 35px; background: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.2); cursor: pointer; z-index: 1001; transition: all 0.3s ease; border: 2px solid rgba(115, 103, 240, 0.3); }
+        .floating-toggle-btn:active { transform: scale(0.9); }
+        .floating-toggle-btn svg { transition: transform 0.3s ease; color: #7367f0; }
+        .floating-toggle-btn.bar-hidden { bottom: 10px; }
+        .floating-toggle-btn.bar-hidden svg { transform: rotate(180deg); }
+        .template-badge { background: #fbbf24; color: white; padding: 2px 8px; border-radius: 8px; font-size: 10px; font-weight: bold; margin-right: 8px; }
+        .autocomplete-container { position: absolute; top: 100%; left: 0; right: 0; background: white; border: 2px solid #e5e7eb; border-top: none; border-radius: 0 0 16px 16px; max-height: 200px; overflow-y: auto; z-index: 1000; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); }
+        .autocomplete-item { padding: 10px; cursor: pointer; border-bottom: 1px solid #f3f4f6; transition: background 0.2s; }
+        .autocomplete-item:hover { background: #f9fafb; }
+        .autocomplete-item:last-child { border-bottom: none; }
         .cloud-btn-connected { background: #dcfce7 !important; color: #15803d !important; border-color: #86efac !important; }
         .cloud-btn-disconnected { background: #f3f4f6; color: #6b7280; border-color: #e5e7eb; }
+        .error-modal { width: 90%; max-width: 450px; background-color: #ffffff !important; border-radius: 20px; padding: 25px; text-align: right; color: #333; border: 3px solid #ef4444; box-shadow: 0 20px 50px rgba(239, 68, 68, 0.3); max-height: 85vh; overflow-y: auto; animation: errorSlideIn 0.4s ease-out; }
+        body.dark-mode .error-modal { background: #1e293b !important; color: #e2e8f0; border-color: #ef4444; }
+        @keyframes errorSlideIn { from { opacity: 0; transform: translateY(-30px) scale(0.95); } to { opacity: 1; transform: translateY(0) scale(1); } }
+        .error-icon { font-size: 3.5em; text-align: center; margin-bottom: 15px; animation: errorPulse 1s ease-in-out infinite; }
+        @keyframes errorPulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.1); } }
+        .error-title { font-size: 1.4em; font-weight: 900; color: #ef4444; margin-bottom: 15px; text-align: center; }
+        body.dark-mode .error-title { color: #fca5a5; }
+        .error-message { background: #fef2f2; border-radius: 15px; padding: 15px; margin-bottom: 20px; font-size: 0.95em; line-height: 1.6; white-space: pre-line; border-right: 4px solid #ef4444; text-align: right; }
+        body.dark-mode .error-message { background: #7f1d1d; color: #fecaca; border-color: #ef4444; }
+        .error-code { font-family: 'Courier New', monospace; background: #fee; padding: 8px 12px; border-radius: 8px; font-size: 0.85em; color: #991b1b; margin-top: 10px; text-align: center; border: 1px dashed #ef4444; }
+        body.dark-mode .error-code { background: #450a0a; color: #fca5a5; }
     </style>
 
     <script>
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
-                navigator.serviceWorker.register('sw.js').catch(error => console.log('SW failed:', error));
+                navigator.serviceWorker.register('sw.js').catch(err => console.log('SW fail', err));
             });
         }
     </script>
@@ -53,10 +92,9 @@
         import { getFirestore, doc, setDoc, onSnapshot, getDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
         try {
-            // תוקן: authDomain חייב להיות הדומיין של Firebase ולא של GitHub
             const firebaseConfig = { 
                 apiKey: "AIzaSyBqIqxoiwwqeKkjlYJpEiqgCG09PgabwhI", 
-                authDomain: "vplus-pro.firebaseapp.com", 
+                authDomain: "vplus-pro.firebaseapp.com", // תוקן
                 projectId: "vplus-pro", 
                 storageBucket: "vplus-pro.firebasestorage.app", 
                 messagingSenderId: "386740827706", 
@@ -80,27 +118,25 @@
             window.onSnapshot = onSnapshot;
             window.getDoc = getDoc;
 
-            console.log("Firebase initialized");
-
             getRedirectResult(auth).then((result) => {
-                if (result?.user) {
-                    console.log('התחברת בהצלחה:', result.user.email);
-                }
-            }).catch((error) => {
-                console.error('שגיאה ב-redirect:', error);
-                alert('שגיאת התחברות: ' + error.code);
-            });
-        } catch (e) {
-            console.error("Firebase fail:", e);
-        }
+                if (result?.user) console.log('מחובר:', result.user.email);
+            }).catch((err) => alert('שגיאה: ' + err.code));
+        } catch (e) { console.error(e); }
     </script>
 </head>
 
 <body>
+    <div id="firebaseErrorModal" class="modal-overlay">
+        <div class="error-modal">
+            <div class="error-icon">⚠️</div>
+            <h2 class="error-title" id="firebaseErrorTitle">שגיאה</h2>
+            <div class="error-message" id="firebaseErrorMessage">תיאור השגיאה יופיע כאן</div>
+            <button onclick="document.getElementById('firebaseErrorModal').classList.remove('active')" class="w-full bg-red-500 text-white py-3 rounded-xl font-bold">סגור</button>
+        </div>
+    </div>
+
     <div class="app-header no-print">
-        <h1 class="font-bold text-2xl" style="direction: ltr;">
-            <span style="color: #22c55e !important;">V</span><span class="text-indigo-600">plus</span><span style="font-size: 10px; color: #9055ff; vertical-align: super;">PRO</span>
-        </h1>
+        <h1 class="font-bold text-2xl" style="direction: ltr;"><span style="color: #22c55e !important;">V</span><span class="text-indigo-600">plus</span><span style="font-size: 10px; color: #9055ff; vertical-align: super;">PRO</span></h1>
         <div class="header-controls">
             <div id="cloudBtn" class="cloud-btn-disconnected px-3 py-1 rounded-full text-[10px] font-bold border flex items-center gap-1 cursor-pointer transition-all">
                 <span id="cloudSyncText">סנכרון ענן</span>
@@ -119,10 +155,17 @@
             <div id="tabStats" onclick="showPage('stats')" class="tab-btn">📊 סטטיסטיקות</div>
         </div>
         <div id="pageLists">
+            <div class="lists-header-card bg-white p-2 rounded-2xl border border-gray-100 shadow-sm mb-4">
+                <div class="flex gap-2">
+                    <button onclick="openModal('newListModal')" class="bg-indigo-600 text-white flex-1 py-3 rounded-xl font-bold">+ רשימה חדשה</button>
+                    <button onclick="openModal('importModal')" class="bg-green-500 text-white flex-1 py-3 rounded-xl font-bold">📥 ייבוא</button>
+                    <button onclick="openModal('receiptScanModal')" class="bg-blue-500 text-white flex-1 py-3 rounded-xl font-bold">📸 סרוק קבלה</button>
+                </div>
+            </div>
             <div id="itemsContainer"></div>
         </div>
-    </div>
-
+        </div>
+    
     <script src="script.js"></script>
 </body>
 </html>
