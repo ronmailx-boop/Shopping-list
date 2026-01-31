@@ -94,7 +94,7 @@
         try {
             const firebaseConfig = { 
                 apiKey: "AIzaSyBqIqxoiwwqeKkjlYJpEiqgCG09PgabwhI", 
-                authDomain: "vplus-pro.firebaseapp.com", // <-- התיקון הקריטי כאן!
+                authDomain: "vplus-pro.firebaseapp.com", // <-- תוקן כאן
                 projectId: "vplus-pro", 
                 storageBucket: "vplus-pro.firebasestorage.app", 
                 messagingSenderId: "386740827706", 
@@ -119,8 +119,8 @@
             window.getDoc = getDoc;
 
             getRedirectResult(auth).then((result) => {
-                if (result && result.user) console.log('✅ התחברות הצליחה:', result.user.email);
-            }).catch((err) => alert('שגיאת התחברות: ' + err.code));
+                if (result && result.user) console.log('✅ מחובר:', result.user.email);
+            }).catch((err) => alert('שגיאה: ' + err.code));
         } catch (e) { console.error(e); }
     </script>
 </head>
@@ -136,9 +136,7 @@
     </div>
 
     <div class="app-header no-print">
-        <h1 class="font-bold text-2xl" style="direction: ltr;">
-            <span style="color: #22c55e !important;">V</span><span class="text-indigo-600">plus</span><span style="font-size: 10px; color: #9055ff; vertical-align: super;">PRO</span>
-        </h1>
+        <h1 class="font-bold text-2xl" style="direction: ltr;"><span style="color: #22c55e !important;">V</span><span class="text-indigo-600">plus</span><span style="font-size: 10px; color: #9055ff; vertical-align: super;">PRO</span></h1>
         <div class="header-controls">
             <div id="cloudBtn" onclick="loginWithGoogle()" class="cloud-btn-disconnected px-3 py-1 rounded-full text-[10px] font-bold border flex items-center gap-1 cursor-pointer transition-all">
                 <span id="cloudSyncText">סנכרון ענן</span>
@@ -156,7 +154,6 @@
             <div id="tabSummary" onclick="showPage('summary')" class="tab-btn">הרשימות שלי</div>
             <div id="tabStats" onclick="showPage('stats')" class="tab-btn">📊 סטטיסטיקות</div>
         </div>
-
         <div id="pageLists">
             <div class="lists-header-card bg-white p-2 rounded-2xl border border-gray-100 shadow-sm mb-4">
                 <div class="flex gap-2">
@@ -181,7 +178,7 @@
                     <button onclick="toggleTemplateMode()" class="text-white opacity-90"><svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path></svg></button>
                 </div>
                 <div id="statusTag" class="text-[10px] font-bold mt-2 opacity-80 text-center">נעול</div>
-                <button onclick="toggleCategorySorting()" id="categorySortBtn" class="text-[10px] font-bold mt-1 bg-white/20 text-white py-1 px-3 rounded-full"><span id="categorySortText">🔤 מיון לפי קטגוריות</span></button>
+                <button onclick="toggleCategorySorting()" id="categorySortBtn" class="text-[10px] font-bold mt-1 bg-white/20 text-white py-1 px-3 rounded-full transition"><span id="categorySortText">🔤 מיון לפי קטגוריות</span></button>
             </div>
             <div id="itemsContainer"></div>
         </div>
@@ -198,13 +195,7 @@
         <div id="pageStats" class="hidden">
             <div class="stat-card">
                 <h3 class="text-xl font-bold mb-4" id="monthlyStatsTitle">📊 סטטיסטיקות חודשיות</h3>
-                <div class="flex justify-between mb-2"><span class="font-bold" id="monthlyExpensesLabel">הוצאות החודש</span><span class="text-indigo-600 font-black" id="monthlyTotal">₪0.00</span></div>
-                <div class="progress-bar"><div class="progress-fill" id="monthlyProgress" style="width: 0%"></div></div>
-                <div class="grid grid-cols-2 gap-3 mt-4">
-                    <div class="bg-green-50 p-3 rounded-xl cursor-pointer" onclick="showCompletedListsModal()"><div class="text-xs text-green-600 mb-1" id="completedListsCountLabel">רשימות הושלמו 👆</div><div class="text-2xl font-black text-green-600" id="completedLists">0</div></div>
-                    <div class="bg-blue-50 p-3 rounded-xl"><div class="text-xs text-blue-600 mb-1" id="avgPerListLabel">ממוצע לרשימה</div><div class="text-2xl font-black text-blue-600" id="avgPerList">₪0</div></div>
-                </div>
-                <canvas id="monthlyChart" height="200" class="mt-4"></canvas>
+                <canvas id="monthlyChart" height="200"></canvas>
             </div>
         </div>
     </div>
@@ -215,57 +206,51 @@
 
     <div class="bottom-bar text-white no-print" onclick="toggleBottomBar()">
         <div class="flex items-center justify-between mb-4">
-            <div class="flex-1 text-center"><div class="text-[10px] opacity-70" id="totalListLabel">סה"כ רשימה</div><div class="text-xl font-bold">₪<span id="displayTotal">0.00</span></div></div>
+            <div class="flex-1 text-center">
+                <div class="text-[10px] opacity-70" id="totalListLabel">סה"כ רשימה</div>
+                <div class="text-xl font-bold">₪<span id="displayTotal">0.00</span></div>
+            </div>
             <div class="flex-shrink-0"><button onclick="openModal('inputForm')" class="w-16 h-16 bg-green-500 rounded-full flex items-center justify-center shadow-2xl border-4 border-white/20 text-white text-4xl font-bold">+</button></div>
-            <div class="flex-1 text-center"><div class="text-[10px] opacity-70" id="paidInListLabel">שולם ברשימה</div><div class="text-xl font-bold">₪<span id="displayPaid">0.00</span></div></div>
+            <div class="flex-1 text-center">
+                <div class="text-[10px] opacity-70" id="paidInListLabel">שולם ברשימה</div>
+                <div class="text-xl font-bold">₪<span id="displayPaid">0.00</span></div>
+            </div>
         </div>
         <div class="flex items-center justify-between gap-4">
             <button id="mainLockBtn" onclick="toggleLock()" class="bottom-circle-btn bg-blue-600"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path id="lockIconPath" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg></button>
-            <div class="text-center flex-1"><div class="text-[10px] opacity-70" id="remainingToPayLabel">נשאר לשלם</div><div class="text-2xl font-black text-orange-300">₪<span id="displayLeft">0.00</span></div></div>
+            <div class="text-center flex-1">
+                <div class="text-[10px] opacity-70" id="remainingToPayLabel">נשאר לשלם</div>
+                <div class="text-2xl font-black text-orange-300">₪<span id="displayLeft">0.00</span></div>
+            </div>
             <button onclick="openModal('confirmModal')" class="bottom-circle-btn bg-red-500"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"></path></svg></button>
         </div>
     </div>
 
-    <div id="printArea" class="hidden"></div>
-
-    <div id="inputForm" class="modal-overlay no-print">
-        <div class="edit-modal" style="position: relative;">
+    <div id="inputForm" class="modal-overlay">
+        <div class="edit-modal">
             <h2 id="addItemModalTitle">הוספת מוצר</h2>
-            <button onclick="startVoiceInput()" id="voiceBtn" class="absolute top-4 left-4 w-12 h-12 bg-purple-500 rounded-full flex items-center justify-center shadow-lg border-2 border-white/30 text-white"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg></button>
-            <div style="position: relative;">
-                <input type="text" id="itemName" placeholder="שם המוצר" class="modal-input" autocomplete="off">
-                <div id="autocompleteContainer" class="autocomplete-container"></div>
-            </div>
-            <input type="number" id="itemPrice" inputmode="decimal" placeholder="מחיר" class="modal-input">
+            <input type="text" id="itemName" placeholder="שם המוצר" class="modal-input">
+            <input type="number" id="itemPrice" placeholder="מחיר" class="modal-input">
             <select id="itemCategory" class="modal-input">
-                <option value="">בחר קטגוריה (אופציונלי)</option>
+                <option value="">בחר קטגוריה</option>
                 <option value="פירות וירקות">🥬 פירות וירקות</option>
                 <option value="בשר ודגים">🥩 בשר ודגים</option>
                 <option value="חלב וביצים">🥛 חלב וביצים</option>
                 <option value="לחם ומאפים">🍞 לחם ומאפים</option>
-                <option value="שימורים">🥫 שימורים</option>
-                <option value="חטיפים">🍪 חטיפים</option>
-                <option value="משקאות">🥤 משקאות</option>
-                <option value="ניקיון">🧹 ניקיון</option>
-                <option value="היגיינה">🧴 היגיינה</option>
-                <option value="אחר">📦 אחר</option>
             </select>
             <div class="flex gap-3">
                 <button class="bg-green-500 text-white flex-1 py-4 rounded-xl font-bold" onclick="addItem()">הוסף</button>
-                <button class="bg-gray-100 text-gray-500 flex-1 py-4 rounded-xl font-bold" onclick="closeModal('inputForm')">ביטול</button>
+                <button class="bg-gray-100 flex-1 py-4 rounded-xl font-bold" onclick="closeModal('inputForm')">ביטול</button>
             </div>
         </div>
     </div>
 
-    <div id="importModal" class="modal-overlay no-print"><div class="edit-modal"><h2>ייבוא רשימה מטקסט</h2><textarea id="importText" placeholder="הדבק כאן טקסט לייבוא..." class="modal-input" rows="8"></textarea><div class="flex gap-3"><button class="bg-green-500 text-white flex-1 py-4 rounded-xl font-bold" onclick="importFromText()">ייבא</button><button class="bg-gray-100 flex-1 py-4 rounded-xl font-bold" onclick="closeModal('importModal')">ביטול</button></div></div></div>
-    <div id="newListModal" class="modal-overlay no-print"><div class="edit-modal"><h2>רשימה חדשה</h2><input type="text" id="newListNameInput" placeholder="שם הרשימה" class="modal-input"><input type="number" id="newListBudget" placeholder="תקציב (אופציונלי)" class="modal-input"><div class="flex gap-3 mt-4"><button class="bg-indigo-600 text-white flex-1 py-4 rounded-xl font-bold" onclick="saveNewList()">צור</button><button class="bg-gray-100 flex-1 py-4 rounded-xl font-bold" onclick="closeModal('newListModal')">ביטול</button></div></div></div>
-    <div id="confirmModal" class="modal-overlay no-print"><div class="edit-modal"><h2 class="text-green-600">סיום רשימה</h2><p class="mb-6">לסמן רשימה זו כהושלמה ולשמור בהיסטוריה?</p><div class="flex gap-3"><button class="bg-green-500 text-white flex-1 py-4 rounded-xl font-bold" onclick="completeList()">השלם</button><button class="bg-gray-100 flex-1 py-4 rounded-xl font-bold" onclick="closeModal('confirmModal')">ביטול</button></div></div></div>
-    <div id="deleteListModal" class="modal-overlay no-print"><div class="edit-modal"><h2 class="text-red-600">מחיקת רשימה</h2><div class="flex gap-3 mt-4"><button class="bg-red-500 text-white flex-1 py-4 rounded-xl font-bold" onclick="deleteFullList()">מחק</button><button class="bg-gray-100 flex-1 py-4 rounded-xl font-bold" onclick="closeModal('deleteListModal')">ביטול</button></div></div></div>
-    <div id="historyModal" class="modal-overlay no-print"><div class="edit-modal"><h2>📁 היסטוריית רכישות</h2><div id="historyContent" style="max-height: 400px; overflow-y: auto;"></div><button onclick="closeModal('historyModal')" class="mt-4 text-gray-400 block w-full">סגור</button></div></div>
-    <div id="settingsModal" class="modal-overlay no-print"><div class="edit-modal"><h2>הגדרות</h2><div id="userEmailDisplay" class="text-indigo-600 font-bold mb-4"></div><button onclick="toggleDarkMode()" class="w-full bg-indigo-50 text-indigo-600 py-4 rounded-xl font-bold mb-3"><span id="darkModeText">מצב לילה 🌙</span></button><button onclick="closeModal('settingsModal')" class="mt-4 text-gray-400 block w-full">סגור</button></div></div>
-    <div id="receiptScanModal" class="modal-overlay no-print"><div class="edit-modal"><h2>סריקת קבלה</h2><input type="file" id="receiptImage" accept="image/*" capture="camera" style="display: none;" onchange="updateFileLabel()"><button onclick="document.getElementById('receiptImage').click()" class="w-full bg-gray-100 rounded-xl py-3 px-4 font-bold mb-4">📁 בחר קובץ</button><div id="scanPreview" class="mb-4 hidden"><img id="previewImg" class="w-full rounded-lg" style="max-height: 200px; object-fit: contain;"></div><div class="flex gap-3"><button onclick="processReceipt()" class="bg-blue-500 text-white flex-1 py-3 rounded-xl font-bold">📸 סרוק</button><button onclick="closeModal('receiptScanModal')" class="bg-gray-300 flex-1 py-3 rounded-xl font-bold">ביטול</button></div></div></div>
+    <div id="newListModal" class="modal-overlay"><div class="edit-modal"><h2>רשימה חדשה</h2><input type="text" id="newListNameInput" placeholder="שם הרשימה" class="modal-input"><div class="flex gap-3 mt-4"><button class="bg-indigo-600 text-white flex-1 py-4 rounded-xl font-bold" onclick="saveNewList()">צור</button><button class="bg-gray-100 flex-1 py-4 rounded-xl font-bold" onclick="closeModal('newListModal')">ביטול</button></div></div></div>
+    <div id="settingsModal" class="modal-overlay"><div class="edit-modal"><h2>הגדרות</h2><button onclick="toggleDarkMode()" class="w-full bg-indigo-50 text-indigo-600 py-4 rounded-xl font-bold mb-3">מצב לילה 🌙</button><button onclick="closeModal('settingsModal')" class="mt-4 text-gray-400 block w-full">סגור</button></div></div>
+    <div id="confirmModal" class="modal-overlay"><div class="edit-modal"><h2 class="text-green-600">סיום רשימה</h2><p class="mb-6">לסמן רשימה זו כהושלמה ולשמור בהיסטוריה?</p><div class="flex gap-3"><button class="bg-green-500 text-white flex-1 py-4 rounded-xl font-bold" onclick="completeList()">השלם</button><button class="bg-gray-100 flex-1 py-4 rounded-xl font-bold" onclick="closeModal('confirmModal')">ביטול</button></div></div></div>
+    <div id="importModal" class="modal-overlay"><div class="edit-modal"><h2>ייבוא רשימה</h2><textarea id="importText" class="modal-input" rows="5" placeholder="הדבק טקסט כאן..."></textarea><div class="flex gap-3 mt-4"><button class="bg-green-500 text-white flex-1 py-4 rounded-xl font-bold" onclick="importFromText()">ייבא</button><button class="bg-gray-100 flex-1 py-4 rounded-xl font-bold" onclick="closeModal('importModal')">ביטול</button></div></div></div>
+    <div id="receiptScanModal" class="modal-overlay"><div class="edit-modal"><h2>סריקת קבלה</h2><input type="file" id="receiptImage" accept="image/*" class="modal-input"><div id="scanPreview" class="hidden"><img id="previewImg" class="w-full rounded-lg my-2"></div><div class="flex gap-3 mt-4"><button id="scanBtn" class="bg-blue-500 text-white flex-1 py-4 rounded-xl font-bold" onclick="processReceipt()">סרוק</button><button class="bg-gray-100 flex-1 py-4 rounded-xl font-bold" onclick="closeModal('receiptScanModal')">ביטול</button></div></div></div>
 
     <script src="script.js"></script>
 </body>
-
 </html>
