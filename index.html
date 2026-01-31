@@ -98,17 +98,19 @@
         }
 
         .bottom-circle-btn {
-            width: 48px !important;
-            height: 48px !important;
-            flex-shrink: 0 !important;
-            border-radius: 50% !important;
-            display: flex !important;
-            align-items: center !important;
-            justify-content: center !important;
-            border: 2px solid rgba(255, 255, 255, 0.2) !important;
-            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2) !important;
+            width: 55px;
+            height: 55px;
+            background: linear-gradient(135deg, #7367f0 0%, #9055ff 100%);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
             cursor: pointer;
-            transition: transform 0.2s;
+            transition: 0.2s;
+            box-shadow: 0 6px 16px rgba(115, 103, 240, 0.4);
+            color: white;
+            border: 3px solid #f4f7fa;
         }
 
         .bottom-circle-btn:active {
@@ -116,15 +118,17 @@
         }
 
         .modal-overlay {
-            display: none;
             position: fixed;
-            inset: 0;
-            background: rgba(0, 0, 0, 0.75);
-            z-index: 7000;
-            align-items: flex-start;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.7);
+            z-index: 2000;
+            display: none;
+            align-items: center;
             justify-content: center;
-            backdrop-filter: blur(8px);
-            padding-top: 0;
+            animation: fadeIn 0.2s;
         }
 
         .modal-overlay.active {
@@ -132,304 +136,234 @@
         }
 
         .edit-modal {
-            width: 90%;
+            background: white;
+            border-radius: 35px;
+            padding: 30px;
             max-width: 400px;
-            background-color: #ffffff !important;
-            border-radius: 0 0 30px 30px;
-            padding: 6px 25px;
-            text-align: center;
-            color: #333;
-            border: 2px solid #eee;
-            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.3);
-            max-height: 90vh;
+            width: 90%;
+            max-height: 85vh;
             overflow-y: auto;
+            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.3);
+            animation: slideUp 0.3s;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+
+            to {
+                opacity: 1;
+            }
+        }
+
+        @keyframes slideUp {
+            from {
+                transform: translateY(50px);
+                opacity: 0;
+            }
+
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
         }
 
         .modal-input {
             width: 100%;
-            padding: 6px;
-            border: 2px solid #f3f4f6;
-            border-radius: 16px;
-            font-size: 16px;
-            text-align: center;
+            padding: 12px;
+            border-radius: 15px;
+            border: 2px solid #e0e0e0;
+            margin-bottom: 12px;
             outline: none;
-            margin-bottom: 5px;
-            font-weight: bold;
-            background: #f9fafb !important;
-            color: #333;
+            transition: 0.2s;
+            font-size: 16px;
         }
 
-        .edit-modal h2 {
-            margin-top: 2px;
-            margin-bottom: 8px;
-            font-size: 1.15rem;
+        .modal-input:focus {
+            border-color: #7367f0;
+            box-shadow: 0 0 10px rgba(115, 103, 240, 0.1);
+        }
+
+        .category-tag {
+            display: inline-block;
+            padding: 6px 12px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: bold;
+            color: white;
+            margin-right: 6px;
         }
 
         .app-header {
-            background: white;
-            padding: 10px 20px;
-            display: flex;
-            flex-direction: row-reverse;
-            justify-content: space-between;
-            align-items: center;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
             position: sticky;
             top: 0;
-            z-index: 2000;
-            height: 60px;
+            background: white;
+            z-index: 100;
+            padding: 15px 20px;
+            box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
         }
 
         .header-controls {
             display: flex;
-            align-items: center;
             gap: 8px;
-            direction: rtl;
-        }
-
-        .gear-btn {
-            flex-shrink: 0;
-            width: 40px;
-            height: 40px;
-            display: flex;
             align-items: center;
-            justify-content: center;
         }
 
-        .trash-btn {
-            width: 44px;
-            height: 44px;
-            background: white;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: #ef4444;
-            border: none;
-            cursor: pointer;
-            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-        }
-
-        .category-separator {
-            background: linear-gradient(135deg, #7367f0 0%, #9055ff 100%);
+        .cloud-btn-connected {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
             color: white;
-            border-radius: 20px;
-            padding: 15px;
-            margin-bottom: 20px;
-            text-align: center;
+            border: none !important;
         }
 
-        .category-badge {
-            display: inline-block;
-            padding: 4px 12px;
-            border-radius: 12px;
-            font-size: 11px;
-            font-weight: bold;
-            margin: 2px;
+        .cloud-btn-disconnected {
+            background: white;
+            color: #6b7280;
+            border: 1px solid #e5e7eb !important;
+        }
+
+        .content-area {
+            padding: 20px;
         }
 
         .stat-card {
             background: white;
             border-radius: 20px;
-            padding: 20px;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
-            margin-bottom: 15px;
+            padding: 15px;
+            margin-bottom: 12px;
+            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.05);
         }
 
-        .progress-bar {
-            width: 100%;
-            height: 8px;
-            background: #e5e7eb;
-            border-radius: 10px;
-            overflow: hidden;
-            margin-top: 8px;
+        .product-name {
+            font-size: 15px;
+            font-weight: 600;
+            color: #333;
         }
 
-        .progress-fill {
-            height: 100%;
-            background: linear-gradient(90deg, #22c55e 0%, #16a34a 100%);
-            border-radius: 10px;
-            transition: width 0.3s ease;
+        .product-price {
+            font-size: 14px;
+            color: #7367f0;
+            font-weight: bold;
         }
 
-        body.dark-mode {
-            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
-            color: #e0e0e0;
+        .paid-indicator {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            border: 2px solid #d1d5db;
+            display: inline-block;
+            transition: 0.2s;
+            cursor: pointer;
         }
 
-        .dark-mode .app-header {
-            background: #16213e;
-            border-bottom: 1px solid #0f3460;
+        .paid-indicator.paid {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            border-color: #10b981;
         }
 
-        .dark-mode .item-card,
-        .dark-mode .bg-white,
-        .dark-mode .stat-card {
-            background-color: #0f3460 !important;
-            border-color: #1a1a2e;
-            color: white;
+        body.dark {
+            background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
         }
 
-        .dark-mode #selectAllLabel {
-            color: white !important;
+        body.dark .item-card,
+        body.dark .edit-modal,
+        body.dark .stat-card,
+        body.dark .app-header {
+            background: #1e293b;
+            color: #e2e8f0;
         }
 
-        .dark-mode .select-all-container {
-            background-color: #0f3460 !important;
+        body.dark .modal-input {
+            background: #334155;
+            color: #e2e8f0;
+            border-color: #475569;
         }
 
-        .dark-mode #searchInput {
-            background-color: #0f3460 !important;
-            color: white;
+        body.dark .product-name {
+            color: #e2e8f0;
         }
 
-        .dark-mode .item-number {
-            color: #a5a2f7;
-        }
-
-        .dark-mode .item-card span.font-bold {
-            color: white !important;
-        }
-
-        .dark-mode .item-card .bg-gray-50 {
-            background-color: rgba(255, 255, 255, 0.1) !important;
-            border-color: rgba(255, 255, 255, 0.2);
-        }
-
-        .dark-mode .modal-input {
-            background-color: #0f3460 !important;
-            color: white !important;
-            border-color: #1a1a2e;
-        }
-
-        .dark-mode .edit-modal {
-            background-color: #16213e !important;
-            color: white;
-            border-color: #0f3460;
+        body.dark .tab-btn {
+            background: #334155;
+            color: #94a3b8;
+            border-color: #475569;
         }
 
         @media print {
-
-            .no-print,
-            .bottom-bar,
-            .app-header,
-            .tab-btn,
-            .modal-overlay,
-            .trash-btn,
-            input,
-            button {
+            .no-print {
                 display: none !important;
             }
 
-            #printArea {
-                display: block !important;
-                width: 100%;
-                direction: rtl;
+            body {
+                background: white;
+                padding: 0;
+            }
+
+            .item-card {
+                break-inside: avoid;
+                box-shadow: none;
+                border: 1px solid #ddd;
+            }
+
+            .content-area {
+                padding: 10px;
             }
         }
 
-        .notification {
-            position: fixed;
-            top: 70px;
-            right: 20px;
-            background: white;
-            padding: 15px 20px;
-            border-radius: 15px;
-            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
-            z-index: 9000;
-            transform: translateX(400px);
-            transition: transform 0.3s ease;
-        }
-
-        .notification.show {
-            transform: translateX(0);
-        }
-
-        .floating-toggle-btn {
-            position: fixed;
-            bottom: 220px;
-            right: 10px;
-            width: 35px;
-            height: 35px;
-            background: white;
+        /* Loading spinner */
+        .spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #7367f0;
             border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+            margin: 20px auto;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Error message styling */
+        .error-message {
+            background: #fee2e2;
+            border: 2px solid #ef4444;
+            color: #991b1b;
+            padding: 12px 16px;
+            border-radius: 12px;
+            margin: 10px 0;
+            font-size: 14px;
             display: flex;
             align-items: center;
-            justify-content: center;
-            box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.2);
-            cursor: pointer;
-            z-index: 1001;
-            transition: all 0.3s ease;
-            border: 2px solid rgba(115, 103, 240, 0.3);
+            gap: 8px;
         }
 
-        .floating-toggle-btn:active {
-            transform: scale(0.9);
+        .error-message::before {
+            content: "⚠️";
+            font-size: 18px;
         }
 
-        .floating-toggle-btn svg {
-            transition: transform 0.3s ease;
-            color: #7367f0;
+        .success-message {
+            background: #d1fae5;
+            border: 2px solid #10b981;
+            color: #065f46;
+            padding: 12px 16px;
+            border-radius: 12px;
+            margin: 10px 0;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
         }
 
-        .floating-toggle-btn.bar-hidden {
-            bottom: 10px;
-        }
-
-        .floating-toggle-btn.bar-hidden svg {
-            transform: rotate(180deg);
-        }
-
-        .template-badge {
-            background: #fbbf24;
-            color: white;
-            padding: 2px 8px;
-            border-radius: 8px;
-            font-size: 10px;
-            font-weight: bold;
-            margin-right: 8px;
-        }
-
-        .autocomplete-container {
-            position: absolute;
-            top: 100%;
-            left: 0;
-            right: 0;
-            background: white;
-            border: 2px solid #e5e7eb;
-            border-top: none;
-            border-radius: 0 0 16px 16px;
-            max-height: 200px;
-            overflow-y: auto;
-            z-index: 1000;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-        }
-
-        .autocomplete-item {
-            padding: 10px;
-            cursor: pointer;
-            border-bottom: 1px solid #f3f4f6;
-            transition: background 0.2s;
-        }
-
-        .autocomplete-item:hover {
-            background: #f9fafb;
-        }
-
-        .autocomplete-item:last-child {
-            border-bottom: none;
-        }
-
-        /* Cloud Button Connected State */
-        .cloud-btn-connected {
-            background: #dcfce7 !important;
-            color: #15803d !important;
-            border-color: #86efac !important;
-        }
-
-        .cloud-btn-disconnected {
-            background: #f3f4f6;
-            color: #6b7280;
-            border-color: #e5e7eb;
+        .success-message::before {
+            content: "✅";
+            font-size: 18px;
         }
     </style>
 
@@ -437,12 +371,8 @@
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
                 navigator.serviceWorker.register('sw.js')
-                    .then(registration => {
-                        console.log('SW registered:', registration);
-                    })
-                    .catch(error => {
-                        console.log('SW registration failed:', error);
-                    });
+                    .then(reg => console.log('SW registered'))
+                    .catch(err => console.log('SW registration failed'));
             });
         }
     </script>
@@ -453,12 +383,23 @@
         import { getFirestore, doc, setDoc, onSnapshot, getDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
         try {
-            const firebaseConfig = { apiKey: "AIzaSyBqIqxoiwwqeKkjlYJpEiqgCG09PgabwhI", authDomain: "vplus-pro.firebaseapp.com", projectId: "vplus-pro", storageBucket: "vplus-pro.firebasestorage.app", messagingSenderId: "386740827706", appId: "1:386740827706:web:a3c95c895826df4bb26703" };
+            const firebaseConfig = { 
+                apiKey: "AIzaSyBqIqxoiwwqeKkjlYJpEiqgCG09PgabwhI", 
+                authDomain: "vplus-pro.firebaseapp.com", 
+                projectId: "vplus-pro", 
+                storageBucket: "vplus-pro.firebasestorage.app", 
+                messagingSenderId: "386740827706", 
+                appId: "1:386740827706:web:a3c95c895826df4bb26703" 
+            };
 
             const app = initializeApp(firebaseConfig);
             const auth = getAuth(app);
             const db = getFirestore(app);
             const provider = new GoogleAuthProvider();
+
+            // Add required scopes for Gmail
+            provider.addScope('email');
+            provider.addScope('profile');
 
             window.firebaseApp = app;
             window.firebaseAuth = auth;
@@ -474,9 +415,55 @@
             window.onSnapshot = onSnapshot;
             window.getDoc = getDoc;
 
-            console.log("Firebase initialized successfully");
+            console.log("✅ Firebase initialized successfully");
+
+            // **CRITICAL FIX**: Check for redirect result immediately on page load
+            getRedirectResult(auth).then((result) => {
+                if (result && result.user) {
+                    console.log("✅ התחברות הושלמה בהצלחה:", result.user.email);
+                    // The onAuthStateChanged listener will handle the rest
+                } else if (result === null) {
+                    console.log("ℹ️ אין תוצאת redirect (טעינה רגילה של הדף)");
+                }
+            }).catch((error) => {
+                console.error("❌ שגיאה בטיפול ב-redirect result:", error);
+                
+                // Show detailed error to user
+                let errorMsg = "שגיאה בהתחברות: ";
+                
+                if (error.code === 'auth/popup-blocked') {
+                    errorMsg += "חלון ה-popup נחסם. אנא אפשר חלונות קופצים עבור אתר זה.";
+                } else if (error.code === 'auth/popup-closed-by-user') {
+                    errorMsg += "חלון ההתחברות נסגר. נסה שוב.";
+                } else if (error.code === 'auth/cancelled-popup-request') {
+                    errorMsg += "בקשת ההתחברות בוטלה.";
+                } else if (error.code === 'auth/unauthorized-domain') {
+                    errorMsg += "הדומיין לא מורשה. יש להוסיף את הדומיין ב-Firebase Console.";
+                } else if (error.code === 'auth/operation-not-allowed') {
+                    errorMsg += "שיטת ההתחברות Google לא מופעלת ב-Firebase Console.";
+                } else if (error.code === 'auth/account-exists-with-different-credential') {
+                    errorMsg += "קיים כבר חשבון עם אותה כתובת אימייל אבל שיטת התחברות שונה.";
+                } else if (error.code === 'auth/network-request-failed') {
+                    errorMsg += "בעיית רשת. בדוק את החיבור לאינטרנט.";
+                } else {
+                    errorMsg += `${error.code || 'שגיאה לא ידועה'} - ${error.message}`;
+                }
+                
+                // Display error in UI
+                if (window.showNotification) {
+                    window.showNotification(errorMsg, 'error');
+                } else {
+                    alert(errorMsg);
+                }
+                
+                // Reset cloud indicator
+                if (window.updateCloudIndicator) {
+                    window.updateCloudIndicator('disconnected');
+                }
+            });
+
         } catch (e) {
-            console.error("Firebase initialization failed:", e);
+            console.error("❌ Firebase initialization failed:", e);
             alert("שגיאה בטעינת פיירבייס: " + e.message);
         }
     </script>
@@ -498,229 +485,102 @@
                 <div id="cloudIndicator" class="w-2 h-2 bg-gray-400 rounded-full"></div>
             </div>
 
-            <div
-                class="w-10 h-10 rounded-full border border-gray-200 flex items-center justify-center bg-white shadow-sm cursor-pointer overflow-hidden">
-                <svg class="w-6 h-6 flex-shrink-0" viewBox="0 0 24 24" style="width: 24px; height: 24px;">
-                    <path fill="#4285F4"
-                        d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
-                    <path fill="#34A853"
-                        d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-1 .67-2.28 1.07-3.71 1.07-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
-                    <path fill="#FBBC05"
-                        d="M5.84 14.11c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.09H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.91l3.66-2.8z" />
-                    <path fill="#EA4335"
-                        d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.09l3.66 2.84c.87-2.6 3.3-4.55 6.16-4.55z" />
-                </svg>
-            </div>
-
-            <button onclick="openModal('settingsModal')" class="p-2 rounded-full hover:bg-gray-100 gear-btn">
-                <svg class="w-7 h-7 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                        d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z">
-                    </path>
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                        d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
-                </svg>
+            <button id="logoutBtn" onclick="logoutFromCloud()"
+                class="hidden px-3 py-1 rounded-full text-[10px] font-bold bg-red-50 text-red-600 border border-red-200 cursor-pointer hover:bg-red-100 transition-all">
+                התנתק
             </button>
         </div>
     </div>
 
-    <div class="max-w-md mx-auto p-4 no-print">
-        <div class="flex gap-3 mb-6">
-            <div id="tabLists" onclick="showPage('lists')" class="tab-btn">הרשימה שלי</div>
-            <div id="tabSummary" onclick="showPage('summary')" class="tab-btn">הרשימות שלי</div>
-            <div id="tabStats" onclick="showPage('stats')" class="tab-btn">📊 סטטיסטיקות</div>
+    <div class="content-area">
+        <div class="stat-card" style="margin-bottom: 15px;">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <div>
+                    <div id="currentListTitle" class="text-xl font-bold" style="color: #7367f0;">הרשימה שלי</div>
+                    <div id="currentListItems" class="text-sm text-gray-500">0 מוצרים</div>
+                </div>
+                <div id="currentListMenu" class="flex gap-2">
+                    <button onclick="openShareListModal()" title="שתף"
+                        class="px-3 py-2 bg-blue-50 text-blue-600 rounded-xl text-xs font-bold">📤</button>
+                    <button onclick="openEditListModal()" title="ערוך"
+                        class="px-3 py-2 bg-gray-100 text-gray-700 rounded-xl text-xs font-bold">✏️</button>
+                    <button onclick="openCompleteListModal()" title="השלם"
+                        class="px-3 py-2 bg-green-50 text-green-600 rounded-xl text-xs font-bold">✅</button>
+                    <button onclick="confirmDeleteList()" title="מחק"
+                        class="px-3 py-2 bg-red-50 text-red-600 rounded-xl text-xs font-bold">🗑️</button>
+                </div>
+            </div>
         </div>
 
-        <div id="pageLists">
-            <div class="lists-header-card bg-white p-2 rounded-2xl border border-gray-100 shadow-sm mb-4">
-                <div class="flex gap-2">
-                    <button onclick="openModal('newListModal')"
-                        class="bg-indigo-600 text-white flex-1 py-3 rounded-xl font-bold">+ רשימה חדשה</button>
-                    <button onclick="openModal('importModal')"
-                        class="bg-green-500 text-white flex-1 py-3 rounded-xl font-bold">📥 ייבוא</button>
-                    <button onclick="openModal('receiptScanModal')"
-                        class="bg-blue-500 text-white flex-1 py-3 rounded-xl font-bold">📸 סרוק קבלה</button>
-                </div>
+        <div class="stat-card" id="budgetCard" style="margin-bottom: 15px;">
+            <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                <div class="text-sm font-bold">סה"כ רשימה:</div>
+                <div id="totalPrice" class="text-lg font-bold" style="color: #7367f0;">₪0.00</div>
             </div>
-            <div class="mb-3">
-                <div class="relative">
-                    <input type="text" id="listSearchInput" oninput="searchInList()" placeholder="חפש מוצר ברשימה..."
-                        class="w-full p-3 pr-12 rounded-2xl border-2 border-indigo-200 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 text-base">
-                    <svg class="w-5 h-5 text-gray-400 absolute left-4 top-1/2 -translate-y-1/2" fill="none"
-                        stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                            d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
-                    </svg>
-                    <button onclick="clearListSearch()"
-                        class="absolute left-12 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">✕</button>
+            <div id="budgetInfo" style="display: none;">
+                <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+                    <div class="text-xs text-gray-600">שולם:</div>
+                    <div id="paidPrice" class="text-sm font-bold" style="color: #10b981;">₪0.00</div>
                 </div>
-            </div>
-            <div class="category-separator">
-                <div class="flex justify-between items-center px-2">
-                    <button onclick="shareNative('list')" class="text-white opacity-90">
-                        <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z">
-                            </path>
-                        </svg>
-                    </button>
-                    <button onclick="openModal('translateModal')" class="text-white opacity-90" title="תרגם רשימה">
-                        <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                d="M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9h7M11 21l5-10 5 10M12.751 5C11.783 10.77 8.07 15.61 3 18.129">
-                            </path>
-                        </svg>
-                    </button>
-                    <div class="flex-1 text-center">
-                        <div id="listNameDisplay" class="text-2xl font-black truncate"
-                            onclick="openModal('editListNameModal')"></div>
-                        <div id="itemCountDisplay"
-                            class="text-[10px] font-bold opacity-80 uppercase tracking-wider mt-0.5">0 מוצרים</div>
+                <div style="display: flex; justify-content: space-between;">
+                    <div class="text-xs text-gray-600">נשאר:</div>
+                    <div id="remainingPrice" class="text-sm font-bold" style="color: #f59e0b;">₪0.00</div>
+                </div>
+                <div id="budgetBar"
+                    style="height: 8px; background: #e5e7eb; border-radius: 10px; margin-top: 8px; overflow: hidden;">
+                    <div id="budgetProgress" style="height: 100%; background: linear-gradient(90deg, #10b981, #7367f0); transition: width 0.3s;">
                     </div>
-                    <button onclick="toggleTemplateMode()" class="text-white opacity-90">
-                        <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2">
-                            </path>
-                        </svg>
-                    </button>
                 </div>
-                <div id="statusTag" class="text-[10px] font-bold mt-2 opacity-80 text-center">נעול</div>
-                <button onclick="toggleCategorySorting()" id="categorySortBtn"
-                    class="text-[10px] font-bold mt-1 bg-white/20 hover:bg-white/30 text-white py-1 px-3 rounded-full transition">
-                    <span id="categorySortText">🔤 מיון לפי קטגוריות</span>
-                </button>
-                <div id="budgetWarning"
-                    class="hidden text-[10px] font-bold mt-2 bg-red-500 text-white py-1 px-3 rounded-full inline-block">
-                    ⚠️ חריגה מתקציב!</div>
+                <div id="budgetWarning" class="text-xs font-bold mt-2" style="color: #ef4444; display: none;">⚠️ חריגה מתקציב!</div>
             </div>
-            <div id="itemsContainer"></div>
         </div>
 
-        <div id="pageSummary" class="hidden">
-            <div
-                class="bg-white rounded-2xl p-4 mb-4 shadow-sm border border-gray-100 flex items-center gap-3 select-all-container">
-                <input type="checkbox" id="selectAllLists" onchange="toggleSelectAll(this.checked)"
-                    class="w-7 h-7 accent-indigo-600">
-                <span id="selectAllLabel" class="font-bold text-slate-700 text-lg flex-1">בחר את כל הרשימות</span>
-                <button onclick="shareNative('summary')" class="text-indigo-600">
-                    <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                            d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z">
-                        </path>
-                    </svg>
-                </button>
-            </div>
-            <div id="summaryContainer"></div>
+        <div style="margin-bottom: 15px; display: flex; gap: 8px;">
+            <input type="text" id="searchInput" placeholder="חפש מוצר ברשימה..."
+                style="flex: 1; padding: 12px 16px; border-radius: 15px; border: 2px solid #e0e0e0; outline: none; font-size: 14px;"
+                oninput="searchItems()">
+            <button onclick="toggleSortMode()" id="sortModeBtn"
+                class="px-4 py-2 bg-indigo-50 text-indigo-600 rounded-xl text-xs font-bold whitespace-nowrap">
+                🔤 קטגוריות
+            </button>
+            <button onclick="toggleLockMode()" id="lockBtn"
+                class="px-4 py-2 bg-gray-100 text-gray-700 rounded-xl text-xs font-bold">
+                🔒
+            </button>
         </div>
 
-        <div id="pageStats" class="hidden">
-            <div class="stat-card">
-                <h3 class="text-xl font-bold mb-4" id="monthlyStatsTitle">📊 סטטיסטיקות חודשיות</h3>
-                <div class="mb-4">
-                    <div class="flex justify-between mb-2">
-                        <span class="font-bold" id="monthlyExpensesLabel">הוצאות החודש</span>
-                        <span class="text-indigo-600 font-black" id="monthlyTotal">₪0.00</span>
-                    </div>
-                    <div class="progress-bar">
-                        <div class="progress-fill" id="monthlyProgress" style="width: 0%"></div>
-                    </div>
-                </div>
-                <div class="grid grid-cols-2 gap-3 mb-4">
-                    <div class="bg-green-50 p-3 rounded-xl cursor-pointer hover:bg-green-100 transition"
-                        onclick="showCompletedListsModal()">
-                        <div class="text-xs text-green-600 mb-1" id="completedListsCountLabel">רשימות הושלמו 👆</div>
-                        <div class="text-2xl font-black text-green-600" id="completedLists">0</div>
-                    </div>
-                    <div class="bg-blue-50 p-3 rounded-xl">
-                        <div class="text-xs text-blue-600 mb-1" id="avgPerListLabel">ממוצע לרשימה</div>
-                        <div class="text-2xl font-black text-blue-600" id="avgPerList">₪0</div>
-                    </div>
-                </div>
-                <canvas id="monthlyChart" height="200"></canvas>
-            </div>
+        <div id="itemsContainer"></div>
+    </div>
 
-            <div class="stat-card">
-                <h3 class="text-xl font-bold mb-4" id="popularItemsTitle">🏆 מוצרים פופולריים</h3>
-                <div id="popularItems"></div>
-            </div>
+    <div class="bottom-bar no-print" id="bottomBar" onclick="toggleBottomBar()">
+        <div style="text-align: center; margin-bottom: 15px; color: white; opacity: 0.7; font-size: 12px;">
+            לחץ להרחבה / כיווץ
+        </div>
 
-            <div class="stat-card">
-                <h3 class="text-xl font-bold mb-4" id="historyStatsTitle">📁 היסטוריה</h3>
-                <button onclick="openModal('historyModal')"
-                    class="w-full bg-indigo-600 text-white py-3 rounded-xl font-bold">
-                    <span id="viewCompletedListsBtn">צפה ברשימות שהושלמו</span>
-                </button>
-            </div>
+        <div id="tabsContainer" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin-bottom: 15px;">
+            <button class="tab-btn tab-active" onclick="switchTab('myList')">הרשימה שלי</button>
+            <button class="tab-btn" onclick="switchTab('myLists')">הרשימות שלי</button>
+            <button class="tab-btn" onclick="switchTab('statistics')">📊 סטטיסטיקות</button>
+            <button class="tab-btn" onclick="openModal('newListModal')">+ רשימה חדשה</button>
+            <button class="tab-btn" onclick="openModal('importModal')">📥 ייבוא</button>
+            <button class="tab-btn" onclick="openModal('receiptScanModal')">📸 סרוק קבלה</button>
+        </div>
+
+        <div style="display: flex; justify-content: center; gap: 12px; margin-top: 10px;">
+            <div class="bottom-circle-btn" onclick="openModal('addItemModal'); event.stopPropagation();">+</div>
+            <div class="bottom-circle-btn" onclick="shareList(); event.stopPropagation();">📤</div>
+            <div class="bottom-circle-btn" onclick="openModal('translateModal'); event.stopPropagation();">🌐</div>
+            <div class="bottom-circle-btn" onclick="openModal('settingsModal'); event.stopPropagation();">⚙️</div>
         </div>
     </div>
 
-    <!-- Floating Toggle Button -->
-    <div id="floatingToggle" class="floating-toggle-btn no-print" onclick="toggleBottomBar()">
-        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M19 9l-7 7-7-7"></path>
-        </svg>
-    </div>
-
-    <div class="bottom-bar text-white no-print" onclick="toggleBottomBar()">
-        <div class="flex items-center justify-between mb-4">
-            <div class="flex-1 text-center">
-                <div class="text-[10px] opacity-70" id="totalListLabel">סה"כ רשימה</div>
-                <div class="text-xl font-bold">₪<span id="displayTotal">0.00</span></div>
-            </div>
-            <div class="flex-shrink-0 flex gap-3">
-                <button onclick="openModal('inputForm')"
-                    class="w-16 h-16 bg-green-500 rounded-full flex items-center justify-center shadow-2xl border-4 border-white/20 text-white text-4xl font-bold">+</button>
-            </div>
-            <div class="flex-1 text-center">
-                <div class="text-[10px] opacity-70" id="paidInListLabel">שולם ברשימה</div>
-                <div class="text-xl font-bold">₪<span id="displayPaid">0.00</span></div>
-            </div>
-        </div>
-        <div class="flex items-center justify-between gap-4">
-            <button id="mainLockBtn" onclick="toggleLock()" class="bottom-circle-btn bg-blue-600">
-                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path id="lockIconPath" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                        d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z">
-                    </path>
-                </svg>
-            </button>
-            <div class="text-center flex-1">
-                <div class="text-[10px] opacity-70" id="remainingToPayLabel">נשאר לשלם</div>
-                <div class="text-2xl font-black text-orange-300">₪<span id="displayLeft">0.00</span></div>
-            </div>
-            <button onclick="openModal('confirmModal')" class="bottom-circle-btn bg-red-500">
-                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"></path>
-                </svg>
-            </button>
-        </div>
-    </div>
-
-    <div id="printArea" class="hidden"></div>
-
-    <!-- Modals -->
-    <div id="inputForm" class="modal-overlay no-print">
-        <div class="edit-modal" style="position: relative;">
-            <h2 id="addItemModalTitle">הוספת מוצר</h2>
-
-            <!-- Voice Input Button - Top Right Corner -->
-            <button onclick="startVoiceInput()" id="voiceBtn"
-                class="absolute top-4 left-4 w-12 h-12 bg-purple-500 rounded-full flex items-center justify-center shadow-lg border-2 border-white/30 text-white hover:bg-purple-600 transition-all hover:scale-110"
-                style="z-index: 10;" title="הקלט קולי">
-                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                        d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z">
-                    </path>
-                </svg>
-            </button>
-
-            <div style="position: relative;">
-                <input type="text" id="itemName" placeholder="שם המוצר" class="modal-input" autocomplete="off">
-                <div id="autocompleteContainer" class="autocomplete-container"></div>
-            </div>
-            <input type="number" id="itemPrice" inputmode="decimal" placeholder="מחיר" class="modal-input">
-            <select id="itemCategory" class="modal-input">
+    <!-- Add Item Modal -->
+    <div id="addItemModal" class="modal-overlay no-print">
+        <div class="edit-modal">
+            <h2>הוספת מוצר</h2>
+            <input type="text" id="newItemName" class="modal-input" placeholder="שם המוצר" autocomplete="off">
+            <input type="number" id="newItemPrice" class="modal-input" placeholder="מחיר (אופציונלי)" step="0.01" min="0">
+            <select id="newItemCategory" class="modal-input">
                 <option value="">בחר קטגוריה (אופציונלי)</option>
                 <option value="פירות וירקות">🥬 פירות וירקות</option>
                 <option value="בשר ודגים">🥩 בשר ודגים</option>
@@ -734,103 +594,110 @@
                 <option value="אחר">📦 אחר</option>
             </select>
             <div class="flex gap-3">
-                <button class="bg-green-500 text-white flex-1 py-4 rounded-xl font-bold shadow-md"
-                    onclick="addItem()">הוסף</button>
-                <button class="bg-gray-100 text-gray-500 flex-1 py-4 rounded-xl font-bold"
-                    onclick="closeModal('inputForm')">ביטול</button>
+                <button onclick="addItem()" class="flex-1 bg-indigo-600 text-white py-3 rounded-xl font-bold">הוסף
+                </button>
+                <button onclick="closeModal('addItemModal')"
+                    class="flex-1 bg-gray-300 text-gray-700 py-3 rounded-xl font-bold">ביטול</button>
             </div>
         </div>
     </div>
 
+    <!-- Import Modal -->
     <div id="importModal" class="modal-overlay no-print">
         <div class="edit-modal">
-            <h2 class="mb-2">ייבוא רשימה מטקסט</h2>
-            <p class="text-sm text-gray-500 mb-4">הדבק טקסט מוואטסאפ או כל רשימה</p>
-            <textarea id="importText" placeholder="הדבק כאן טקסט לייבוא..." class="modal-input" rows="8"
-                style="resize: vertical; min-height: 150px;"></textarea>
+            <h2>ייבוא רשימה מטקסט</h2>
+            <p class="text-sm text-gray-600 mb-3">הדבק טקסט מוואטסאפ או כל רשימה</p>
+            <textarea id="importText" class="modal-input" rows="8" placeholder="הדבק כאן טקסט לייבוא..."></textarea>
             <div class="flex gap-3">
-                <button class="bg-green-500 text-white flex-1 py-4 rounded-xl font-bold shadow-md"
-                    onclick="importFromText()">ייבא</button>
-                <button class="bg-gray-100 flex-1 py-4 rounded-xl font-bold"
-                    onclick="closeModal('importModal')">ביטול</button>
+                <button onclick="importFromText()" class="flex-1 bg-blue-500 text-white py-3 rounded-xl font-bold">ייבא
+                </button>
+                <button onclick="closeModal('importModal')"
+                    class="flex-1 bg-gray-300 text-gray-700 py-3 rounded-xl font-bold">ביטול</button>
             </div>
         </div>
     </div>
 
+    <!-- New List Modal -->
     <div id="newListModal" class="modal-overlay no-print">
         <div class="edit-modal">
             <h2>רשימה חדשה</h2>
-            <input type="text" id="newListNameInput" placeholder="שם הרשימה" class="modal-input">
-            <input type="url" id="newListUrlInput" placeholder="כתובת אתר (אופציונלי)" class="modal-input">
-            <input type="number" id="newListBudget" placeholder="תקציב (אופציונלי)" class="modal-input">
-            <div class="flex items-center justify-center gap-2 mb-3">
-                <label class="flex items-center gap-2 cursor-pointer">
-                    <input type="checkbox" id="newListTemplate" class="w-5 h-5 accent-indigo-600">
-                    <span class="text-sm font-bold">⭐ שמור כתבנית</span>
-                </label>
-            </div>
+            <input type="text" id="newListName" class="modal-input" placeholder="שם הרשימה" value="רשימת קניות">
+            <input type="url" id="newListWebsite" class="modal-input" placeholder="כתובת אתר (אופציונלי)">
+            <input type="number" id="newListBudget" class="modal-input" placeholder="תקציב (אופציונלי)" step="1" min="0">
+            <label class="flex items-center gap-2 mb-3">
+                <input type="checkbox" id="saveAsTemplate">
+                <span class="text-sm">⭐ שמור כתבנית</span>
+            </label>
             <div class="flex gap-3">
-                <button class="bg-indigo-600 text-white flex-1 py-4 rounded-xl font-bold shadow-md"
-                    onclick="saveNewList()">צור</button>
-                <button class="bg-gray-100 flex-1 py-4 rounded-xl font-bold"
-                    onclick="closeModal('newListModal')">ביטול</button>
+                <button onclick="createNewList()"
+                    class="flex-1 bg-green-500 text-white py-3 rounded-xl font-bold">צור</button>
+                <button onclick="closeModal('newListModal')"
+                    class="flex-1 bg-gray-300 text-gray-700 py-3 rounded-xl font-bold">ביטול</button>
             </div>
         </div>
     </div>
 
-    <div id="confirmModal" class="modal-overlay no-print">
+    <!-- Complete List Modal -->
+    <div id="completeListModal" class="modal-overlay no-print">
         <div class="edit-modal">
-            <h2 class="text-green-600">סיום רשימה</h2>
-            <p class="mb-6">לסמן רשימה זו כהושלמה ולשמור בהיסטוריה?</p>
+            <h2>סיום רשימה</h2>
+            <p class="text-sm text-gray-600 mb-4">לסמן רשימה זו כהושלמה ולשמור בהיסטוריה?</p>
             <div class="flex gap-3">
-                <button class="bg-green-500 text-white flex-1 py-4 rounded-xl font-bold shadow-lg"
-                    onclick="completeList()">השלם</button>
-                <button class="bg-gray-100 flex-1 py-4 rounded-xl font-bold"
-                    onclick="closeModal('confirmModal')">ביטול</button>
+                <button onclick="completeList()"
+                    class="flex-1 bg-green-500 text-white py-3 rounded-xl font-bold">השלם</button>
+                <button onclick="closeModal('completeListModal')"
+                    class="flex-1 bg-gray-300 text-gray-700 py-3 rounded-xl font-bold">ביטול</button>
             </div>
         </div>
     </div>
 
+    <!-- Delete List Confirmation -->
     <div id="deleteListModal" class="modal-overlay no-print">
         <div class="edit-modal">
-            <h2 class="text-red-600">מחיקת רשימה</h2>
+            <h2>מחיקת רשימה</h2>
+            <p class="text-sm text-gray-600 mb-4">האם אתה בטוח שברצונך למחוק רשימה זו?</p>
             <div class="flex gap-3">
-                <button id="confirmDeleteListBtn" class="bg-red-500 text-white flex-1 py-4 rounded-xl font-bold"
-                    onclick="deleteFullList()">מחק</button>
-                <button class="bg-gray-100 flex-1 py-4 rounded-xl font-bold"
-                    onclick="closeModal('deleteListModal')">ביטול</button>
+                <button onclick="deleteList()" class="flex-1 bg-red-500 text-white py-3 rounded-xl font-bold">מחק
+                </button>
+                <button onclick="closeModal('deleteListModal')"
+                    class="flex-1 bg-gray-300 text-gray-700 py-3 rounded-xl font-bold">ביטול</button>
             </div>
         </div>
     </div>
 
-    <div id="editListNameModal" class="modal-overlay no-print">
+    <!-- Edit List Modal -->
+    <div id="editListModal" class="modal-overlay no-print">
         <div class="edit-modal">
             <h2>עריכת רשימה</h2>
-            <input type="text" id="editListNameInput" placeholder="שם הרשימה" class="modal-input">
-            <input type="url" id="editListUrlInput" placeholder="כתובת אתר (אופציונלי)" class="modal-input">
-            <input type="number" id="editListBudget" placeholder="תקציב (אופציונלי)" class="modal-input">
+            <input type="text" id="editListName" class="modal-input" placeholder="שם הרשימה">
+            <input type="url" id="editListWebsite" class="modal-input" placeholder="כתובת אתר (אופציונלי)">
+            <input type="number" id="editListBudget" class="modal-input" placeholder="תקציב (אופציונלי)" step="1"
+                min="0">
             <div class="flex gap-3">
-                <button class="bg-indigo-600 text-white flex-1 py-4 rounded-xl font-bold"
-                    onclick="saveListName()">שמור</button>
-                <button class="bg-gray-100 flex-1 py-4 rounded-xl font-bold"
-                    onclick="closeModal('editListNameModal')">ביטול</button>
+                <button onclick="saveListEdit()" class="flex-1 bg-blue-500 text-white py-3 rounded-xl font-bold">שמור
+                </button>
+                <button onclick="closeModal('editListModal')"
+                    class="flex-1 bg-gray-300 text-gray-700 py-3 rounded-xl font-bold">ביטול</button>
             </div>
         </div>
     </div>
 
-    <div id="editTotalModal" class="modal-overlay no-print">
+    <!-- Update Price Modal -->
+    <div id="updatePriceModal" class="modal-overlay no-print">
         <div class="edit-modal">
             <h2>עדכון מחיר</h2>
-            <input type="number" id="editTotalInput" class="modal-input">
+            <div id="updatePriceName" class="text-lg font-bold mb-3"></div>
+            <input type="number" id="updatePriceInput" class="modal-input" placeholder="מחיר חדש" step="0.01" min="0">
             <div class="flex gap-3">
-                <button class="bg-indigo-600 text-white flex-1 py-4 rounded-xl font-bold"
-                    onclick="saveTotal()">עדכן</button>
-                <button class="bg-gray-100 flex-1 py-4 rounded-xl font-bold"
-                    onclick="closeModal('editTotalModal')">ביטול</button>
+                <button onclick="savePrice()" class="flex-1 bg-blue-500 text-white py-3 rounded-xl font-bold">עדכן
+                </button>
+                <button onclick="closeModal('updatePriceModal')"
+                    class="flex-1 bg-gray-300 text-gray-700 py-3 rounded-xl font-bold">ביטול</button>
             </div>
         </div>
     </div>
 
+    <!-- History Modal -->
     <div id="historyModal" class="modal-overlay no-print">
         <div class="edit-modal">
             <h2>📁 היסטוריית רכישות</h2>
@@ -839,6 +706,7 @@
         </div>
     </div>
 
+    <!-- Templates Modal -->
     <div id="templatesModal" class="modal-overlay no-print">
         <div class="edit-modal">
             <h2>⭐ תבניות רשימות</h2>
@@ -847,6 +715,7 @@
         </div>
     </div>
 
+    <!-- Completed Lists Modal -->
     <div id="completedListsModal" class="modal-overlay no-print">
         <div class="edit-modal">
             <h2>✅ רשימות שהושלמו</h2>
@@ -855,48 +724,43 @@
         </div>
     </div>
 
+    <!-- Settings Modal -->
     <div id="settingsModal" class="modal-overlay no-print">
         <div class="edit-modal">
-            <h2 id="settingsModalTitle">הגדרות</h2>
-            <div id="userEmailDisplay" class="text-indigo-600 font-bold mb-2 text-center text-sm"></div>
-            <button id="logoutBtn" onclick="logoutFromCloud()"
-                class="w-full bg-red-50 text-red-600 py-3 rounded-xl font-bold border border-red-100 mb-4 hidden">התנתק מהענן
-                🚪</button>
-            <button onclick="toggleDarkMode()"
-                class="w-full bg-indigo-50 text-indigo-600 py-4 rounded-xl font-bold mb-3">
-                <span id="darkModeText">מצב לילה 🌙</span>
-            </button>
-
-            <!-- Language Selector -->
-            <div class="mb-3">
-                <label class="block text-sm font-bold mb-2 text-gray-700" id="languageLabel">שפת ממשק</label>
-                <select id="languageSelector"
-                    class="w-full p-3 rounded-xl border-2 border-gray-200 font-bold text-center bg-white mb-2">
-                    <option value="he">🇮🇱 עברית</option>
-                    <option value="en">🇬🇧 English</option>
-                    <option value="ru">🇷🇺 Русский</option>
-                    <option value="ro">🇷🇴 Română</option>
-                </select>
-                <button onclick="confirmLanguageChange()"
-                    class="w-full bg-green-500 text-white py-3 rounded-xl font-bold" id="confirmLangBtn">
-                    ✓ אשר שינוי שפה
-                </button>
+            <h2>הגדרות</h2>
+            
+            <!-- User info section -->
+            <div id="userInfoSection" class="mb-4 p-4 bg-gray-50 rounded-xl">
+                <div class="text-sm font-bold mb-2">חשבון</div>
+                <div id="userEmailDisplay" class="text-xs text-gray-600">לא מחובר</div>
             </div>
 
-            <button onclick="openModal('templatesModal'); closeModal('settingsModal')"
-                class="w-full bg-yellow-50 text-yellow-600 py-4 rounded-xl font-bold mb-3" id="savedTemplatesBtn">
+            <button onclick="toggleDarkMode()" id="darkModeBtn"
+                class="w-full bg-gray-800 text-white py-3 rounded-xl font-bold mb-3">
+                מצב לילה 🌙
+            </button>
+            <button onclick="openModal('templatesModal')"
+                class="w-full bg-yellow-500 text-white py-3 rounded-xl font-bold mb-3">
                 ⭐ תבניות שמורות
             </button>
-            <button onclick="preparePrint()" class="w-full bg-orange-500 text-white py-4 rounded-xl font-bold mb-3"
-                id="printPDFBtn">
+            <button onclick="window.print()" class="w-full bg-blue-500 text-white py-3 rounded-xl font-bold mb-3">
                 הדפס PDF 🖨️
             </button>
-            <button onclick="exportData()" class="w-full bg-blue-500 text-white py-4 rounded-xl font-bold mb-3"
-                id="backupDataBtn">
+
+            <select id="languageSelect" onchange="changeLanguage()"
+                class="w-full modal-input mb-3 bg-white border-2 border-gray-300">
+                <option value="he">עברית - Hebrew</option>
+                <option value="en">English - אנגלית</option>
+                <option value="ru">Русский - רוסית</option>
+                <option value="ro">Română - רומנית</option>
+            </select>
+
+            <button onclick="exportData()"
+                class="w-full bg-green-500 text-white py-3 rounded-xl font-bold mb-3">
                 💾 גיבוי נתונים
             </button>
             <button onclick="document.getElementById('importDataFile').click()"
-                class="w-full bg-purple-500 text-white py-4 rounded-xl font-bold mb-3" id="restoreDataBtn">
+                class="w-full bg-purple-500 text-white py-3 rounded-xl font-bold mb-3">
                 📂 שחזר נתונים
             </button>
             <input type="file" id="importDataFile" accept=".json" style="display: none;" onchange="importData(event)">
@@ -982,4 +846,3 @@
 </body>
 
 </html>
-
