@@ -128,3 +128,4 @@ self.addEventListener('notificationclick', event => {
     );
   }
 });
+
