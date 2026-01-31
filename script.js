@@ -393,7 +393,8 @@ function toggleCategorySorting() {
     }
 
     render();
-    showNotification(categorySortEnabled ? '✅ מיון לפי קטגוריות מופעל' : '✅ מיון ידני מופעל');}
+    showNotification(categorySortEnabled ? '✅ מיון לפי קטגוריות מופעל' : '✅ מיון ידני מופעל');
+}
 
 // ========== Language Functions ==========
 function confirmLanguageChange() {
@@ -823,7 +824,7 @@ function parseVoiceInput(text) {
     }).filter(item => item.length > 0);
 
     if (items.length === 0) {
-        showNotification('לא זוהו מוצרים, נסה שוב', 'warning');
+        showNotification(t('noItemsDetected'), 'warning');
         return;
     }
 
@@ -2415,16 +2416,16 @@ function importData(event) {
 function showDetailedError(context, error) {
     const errorCode = error.code || 'UNKNOWN_ERROR';
     const errorMessage = error.message || 'Unknown error occurred';
-    
+
     console.error(`❌ [${context}] שגיאה מפורטת:`, {
         code: errorCode,
         message: errorMessage,
         fullError: error
     });
-    
+
     let errorTitle = context;
     let userMessage = '';
-    
+
     // Handle common Firebase Auth errors
     if (errorCode.includes('auth/')) {
         if (errorCode === 'auth/unauthorized-domain') {
@@ -2467,7 +2468,7 @@ function showDetailedError(context, error) {
     else {
         userMessage = `קוד: ${errorCode}\n\n${errorMessage}`;
     }
-    
+
     // Show visual error if function exists
     if (typeof window.showFirebaseError === 'function') {
         window.showFirebaseError(errorTitle, userMessage);
@@ -2483,7 +2484,7 @@ const checkFirebase = setInterval(() => {
         clearInterval(checkFirebase);
         console.log('✅ Firebase זמין, מאתחל...');
         initFirebaseAuth();
-        
+
         // NOTE: redirect result is checked in index.html script
         // We don't check it again here to avoid duplicate checks
     }
@@ -2505,25 +2506,25 @@ setTimeout(() => {
 
 function initFirebaseAuth() {
     console.log('🔄 מאתחל Firebase Auth...');
-    
+
     window.onAuthStateChanged(window.firebaseAuth, (user) => {
         currentUser = user;
         isConnected = !!user;
 
         console.log('👤 מצב משתמש:', user ? `מחובר: ${user.email} (UID: ${user.uid})` : 'מנותק');
-        
+
         // Update UI
         updateCloudIndicator(user ? 'connected' : 'disconnected');
 
         const emailDisplay = document.getElementById('userEmailDisplay');
         const logoutBtn = document.getElementById('logoutBtn');
-        
+
         // Update email display in settings
         if (emailDisplay) {
             emailDisplay.textContent = user ? `מחובר כ: ${user.email}` : 'לא מחובר';
             emailDisplay.style.color = user ? '#059669' : '#6b7280';
         }
-        
+
         // Show/hide logout button
         if (logoutBtn) {
             if (user) {
@@ -2549,7 +2550,7 @@ function initFirebaseAuth() {
     // Override cloud button click handler
     const cloudBtn = document.getElementById('cloudBtn');
     if (cloudBtn) {
-        cloudBtn.onclick = function() {
+        cloudBtn.onclick = function () {
             if (currentUser) {
                 // Already logged in, show settings
                 openModal('settingsModal');
@@ -2578,7 +2579,7 @@ function loginWithGoogle() {
 
     console.log('🔐 מתחיל תהליך התחברות Google...');
     updateCloudIndicator('syncing');
-    
+
     try {
         // Trigger Google sign-in redirect
         window.signInWithPopup(window.firebaseAuth, window.googleProvider);
@@ -2596,10 +2597,10 @@ function logoutFromCloud() {
         console.warn('⚠️ Firebase Auth לא זמין להתנתקות');
         return;
     }
-    
+
     console.log('🚪 מתנתק מהענן...');
     updateCloudIndicator('syncing');
-    
+
     window.signOut(window.firebaseAuth).then(() => {
         currentUser = null;
         isConnected = false;
@@ -2618,7 +2619,7 @@ function updateCloudIndicator(status) {
     const indicator = document.getElementById('cloudIndicator');
     const text = document.getElementById('cloudSyncText');
     const cloudBtn = document.getElementById('cloudBtn');
-    
+
     if (!indicator || !cloudBtn) {
         console.warn('⚠️ לא נמצאו אלמנטים של כפתור הענן');
         return;
@@ -2629,10 +2630,10 @@ function updateCloudIndicator(status) {
     if (status === 'connected') {
         // Green indicator - connected successfully
         indicator.className = 'w-2 h-2 bg-green-500 rounded-full';
-        
+
         // Update button style to green (connected style)
         cloudBtn.className = 'cloud-btn-connected px-3 py-1 rounded-full text-[10px] font-bold border flex items-center gap-1 cursor-pointer transition-all';
-        
+
         // Show email if available
         if (currentUser && currentUser.email) {
             if (text) text.textContent = currentUser.email;
@@ -2654,7 +2655,7 @@ function updateCloudIndicator(status) {
 
 function setupFirestoreListener(user) {
     console.log('📡 מגדיר Firestore listener עבור UID:', user.uid);
-    
+
     const userDocRef = window.doc(window.firebaseDb, "shopping_lists", user.uid);
 
     unsubscribeSnapshot = window.onSnapshot(userDocRef, (docSnap) => {
