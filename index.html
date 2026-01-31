@@ -542,6 +542,7 @@
     </script>
 
     <script type="module">
+        alert('✅ קובץ עודכן! גרסה: 31-01-2026 10:45');
         console.log('🔵 Starting Firebase initialization...');
         
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
@@ -605,13 +606,16 @@
 
             // בדיקת תוצאת redirect מיד כשהדף נטען
             console.log('🔍 בודק תוצאת redirect...');
+            alert('🔍 עומד לבדוק תוצאת התחברות...');
             getRedirectResult(auth)
                 .then((result) => {
                     if (result && result.user) {
                         console.log('✅ התחברות הצליחה:', result.user.email);
+                        alert('✅ התחברות הצליחה! ' + result.user.email);
                         // הצלחה - המערכת תעדכן אוטומטית דרך onAuthStateChanged
                     } else {
                         console.log('ℹ️ אין תוצאת redirect (משתמש לא חזר מ-Google)');
+                        alert('ℹ️ אין תוצאת redirect - זה טעינת דף רגילה');
                     }
                 })
                 .catch((error) => {
