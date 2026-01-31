@@ -1364,6 +1364,97 @@ function addItem() {
     showNotification(`✅ ${name} נוסף לרשימה`);
 }
 
+function saveNewList() {
+    const name = document.getElementById('newListNameInput').value.trim();
+    const url = document.getElementById('newListUrlInput').value.trim();
+    const budget = parseFloat(document.getElementById('newListBudget').value) || 0;
+    const isTemplate = document.getElementById('newListTemplate').checked;
+
+    if (!name) {
+        showNotification('אנא הזן שם לרשימה', 'warning');
+        return;
+    }
+
+    const newId = 'L' + Date.now();
+    db.lists[newId] = {
+        name: name,
+        url: url,
+        budget: budget,
+        isTemplate: isTemplate,
+        items: []
+    };
+
+    db.currentId = newId;
+    activePage = 'lists';
+    save();
+    closeModal('newListModal');
+    showNotification(`✅ רשימה "${name}" נוצרה בהצלחה!`);
+}
+
+function importFromText() {
+    const text = document.getElementById('importText').value.trim();
+
+    if (!text) {
+        showNotification('אנא הזן טקסט לייבוא', 'warning');
+        return;
+    }
+
+    // Split by newlines and filter empty lines
+    const lines = text.split('\n').map(line => line.trim()).filter(line => line.length > 0);
+
+    if (lines.length === 0) {
+        showNotification('לא נמצאו מוצרים בטקסט', 'warning');
+        return;
+    }
+
+    let addedCount = 0;
+
+    lines.forEach(line => {
+        // Try to parse line with price: "Product Name 12.50" or "Product Name - 12.50"
+        const priceMatch = line.match(/^(.+?)[\s\-–—]+([₪]?\s*[\d.,]+)\s*([₪]?)$/);
+
+        if (priceMatch) {
+            const name = priceMatch[1].trim();
+            const priceStr = priceMatch[2].replace(/[₪\s]/g, '').replace(/,/g, '.');
+            const price = parseFloat(priceStr) || 0;
+
+            if (name) {
+                const category = detectCategory(name);
+                db.lists[db.currentId].items.push({
+                    name: name,
+                    price: price,
+                    qty: 1,
+                    checked: false,
+                    category: category
+                });
+                addedCount++;
+            }
+        } else {
+            // No price found, add item with price 0
+            const name = line.trim();
+            if (name) {
+                const category = detectCategory(name);
+                db.lists[db.currentId].items.push({
+                    name: name,
+                    price: 0,
+                    qty: 1,
+                    checked: false,
+                    category: category
+                });
+                addedCount++;
+            }
+        }
+    });
+
+    if (addedCount > 0) {
+        save();
+        closeModal('importModal');
+        showNotification(`✅ יובאו ${addedCount} מוצרים!`);
+    } else {
+        showNotification('לא נמצאו מוצרים תקינים לייבוא', 'warning');
+    }
+}
+
 // ========== Search Functions ==========
 function searchInList() {
     const searchTerm = document.getElementById('listSearchInput').value.toLowerCase().trim();
