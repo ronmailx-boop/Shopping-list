@@ -376,6 +376,42 @@
             });
         }
     </script>
+    
+    <style>
+        /* Notification styles */
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 50%;
+            transform: translateX(50%) translateY(-150px);
+            background: #22c55e;
+            color: white;
+            padding: 16px 24px;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+            z-index: 9999;
+            min-width: 300px;
+            max-width: 90%;
+            text-align: center;
+            font-weight: bold;
+            font-size: 14px;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            transition: transform 0.3s ease-out, opacity 0.3s ease-out;
+            opacity: 0;
+        }
+        
+        .notification.show {
+            transform: translateX(50%) translateY(0);
+            opacity: 1;
+        }
+        
+        .notification strong {
+            display: block;
+            line-height: 1.5;
+        }
+    </style>
+
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
@@ -397,7 +433,7 @@
             const db = getFirestore(app);
             const provider = new GoogleAuthProvider();
 
-            // Add required scopes for Gmail
+            // Add required scopes
             provider.addScope('email');
             provider.addScope('profile');
 
@@ -417,54 +453,56 @@
 
             console.log("✅ Firebase initialized successfully");
 
-            // **CRITICAL FIX**: Check for redirect result immediately on page load
+            // Check redirect result after page load
             getRedirectResult(auth).then((result) => {
                 if (result && result.user) {
-                    console.log("✅ התחברות הושלמה בהצלחה:", result.user.email);
-                    // The onAuthStateChanged listener will handle the rest
+                    console.log("✅ התחברות הושלמה:", result.user.email);
+                    setTimeout(() => {
+                        if (window.showNotification) {
+                            window.showNotification('✅ התחברת בהצלחה!', 'success');
+                        }
+                    }, 1000);
                 } else if (result === null) {
-                    console.log("ℹ️ אין תוצאת redirect (טעינה רגילה של הדף)");
+                    console.log("ℹ️ אין תוצאת redirect");
                 }
             }).catch((error) => {
-                console.error("❌ שגיאה בטיפול ב-redirect result:", error);
+                console.error("❌ שגיאה:", error);
+                console.error("קוד שגיאה:", error.code);
+                console.error("הודעת שגיאה:", error.message);
                 
-                // Show detailed error to user
-                let errorMsg = "שגיאה בהתחברות: ";
+                let errorMsg = "";
                 
-                if (error.code === 'auth/popup-blocked') {
-                    errorMsg += "חלון ה-popup נחסם. אנא אפשר חלונות קופצים עבור אתר זה.";
-                } else if (error.code === 'auth/popup-closed-by-user') {
-                    errorMsg += "חלון ההתחברות נסגר. נסה שוב.";
-                } else if (error.code === 'auth/cancelled-popup-request') {
-                    errorMsg += "בקשת ההתחברות בוטלה.";
-                } else if (error.code === 'auth/unauthorized-domain') {
-                    errorMsg += "הדומיין לא מורשה. יש להוסיף את הדומיין ב-Firebase Console.";
+                if (error.code === 'auth/unauthorized-domain') {
+                    errorMsg = "⚠️ הדומיין לא מורשה!\n\nיש להוסיף את:\n" + window.location.hostname + "\n\nב-Firebase Console > Authentication > Settings > Authorized domains";
                 } else if (error.code === 'auth/operation-not-allowed') {
-                    errorMsg += "שיטת ההתחברות Google לא מופעלת ב-Firebase Console.";
-                } else if (error.code === 'auth/account-exists-with-different-credential') {
-                    errorMsg += "קיים כבר חשבון עם אותה כתובת אימייל אבל שיטת התחברות שונה.";
+                    errorMsg = "⚠️ Google Sign-In לא מופעל!\n\nפתח את Firebase Console > Authentication > Sign-in method\nואפשר את Google";
+                } else if (error.code === 'auth/popup-blocked') {
+                    errorMsg = "⚠️ חלון ההתחברות נחסם!\n\nאפשר חלונות קופצים לאתר זה";
+                } else if (error.code === 'auth/cancelled-popup-request') {
+                    errorMsg = "ℹ️ ההתחברות בוטלה";
                 } else if (error.code === 'auth/network-request-failed') {
-                    errorMsg += "בעיית רשת. בדוק את החיבור לאינטרנט.";
+                    errorMsg = "⚠️ בעיית רשת!\n\nבדוק את החיבור לאינטרנט";
                 } else {
-                    errorMsg += `${error.code || 'שגיאה לא ידועה'} - ${error.message}`;
+                    errorMsg = "❌ שגיאה בהתחברות:\n\n" + (error.code || 'UNKNOWN') + "\n\n" + error.message;
                 }
                 
-                // Display error in UI
-                if (window.showNotification) {
-                    window.showNotification(errorMsg, 'error');
-                } else {
-                    alert(errorMsg);
-                }
+                // Show alert immediately  
+                alert(errorMsg);
                 
-                // Reset cloud indicator
-                if (window.updateCloudIndicator) {
-                    window.updateCloudIndicator('disconnected');
-                }
+                // Also try notification
+                setTimeout(() => {
+                    if (window.showNotification) {
+                        window.showNotification(errorMsg, 'error');
+                    }
+                    if (window.updateCloudIndicator) {
+                        window.updateCloudIndicator('disconnected');
+                    }
+                }, 500);
             });
 
         } catch (e) {
-            console.error("❌ Firebase initialization failed:", e);
-            alert("שגיאה בטעינת פיירבייס: " + e.message);
+            console.error("❌ Firebase init failed:", e);
+            alert("שגיאה בטעינת Firebase:\n\n" + e.message);
         }
     </script>
 </head>
