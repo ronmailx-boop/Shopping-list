@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>התחברות - Vplus</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: system-ui, sans-serif;
+            background: linear-gradient(135deg, #7367f0 0%, #9055ff 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+        }
+        .card {
+            background: rgba(255,255,255,0.15);
+            backdrop-filter: blur(12px);
+            border-radius: 24px;
+            padding: 40px 32px;
+            text-align: center;
+            max-width: 340px;
+            width: 90%;
+            border: 1px solid rgba(255,255,255,0.25);
+        }
+        .logo { font-size: 2.2rem; font-weight: 900; margin-bottom: 8px; }
+        .logo span { color: #22c55e; }
+        .subtitle { font-size: 0.85rem; opacity: 0.75; margin-bottom: 28px; }
+        #status {
+            font-size: 0.95rem;
+            opacity: 0.9;
+            min-height: 1.4em;
+            margin-bottom: 8px;
+        }
+        .spinner {
+            width: 36px; height: 36px;
+            border: 4px solid rgba(255,255,255,0.3);
+            border-top-color: white;
+            border-radius: 50%;
+            animation: spin 0.7s linear infinite;
+            margin: 16px auto 0;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .error-text { color: #fca5a5; font-size: 0.8rem; margin-top: 12px; }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <div class="logo"><span>V</span>plus <span style="font-size:0.5em;color:#c4b5fd;">PRO</span></div>
+        <div class="subtitle">התחברות עם חשבון Google</div>
+        <div id="status">מתכנס...</div>
+        <div class="spinner" id="spinner"></div>
+        <div class="error-text" id="errorText"></div>
+    </div>
+
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+    import { getAuth, signInWithPopup, GoogleAuthProvider } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+
+    const status  = document.getElementById('status');
+    const spinner = document.getElementById('spinner');
+    const errDiv  = document.getElementById('errorText');
+
+    function done(msg) {
+        status.textContent = msg;
+        spinner.style.display = 'none';
+    }
+
+    function fail(msg, err) {
+        done('שגיאה');
+        errDiv.textContent = msg;
+        console.error(err);
+        // Post error back to parent so it can show its own UI
+        if (window.opener) {
+            window.opener.postMessage({ type: 'vplus-login-error', message: msg, code: err?.code || '' }, '*');
+        }
+        // Auto-close after 4s so user isn't stuck
+        setTimeout(() => window.close(), 4000);
+    }
+
+    try {
+        const firebaseConfig = {
+            apiKey: "AIzaSyBqIqxoiwwqeKkjlYJpEiqgCG09PgabwhI",
+            authDomain: "vplus-pro.firebaseapp.com",
+            projectId: "vplus-pro",
+            storageBucket: "vplus-pro.firebasestorage.app",
+            messagingSenderId: "386740827706",
+            appId: "1:386740827706:web:a3c95c895826df4bb26703"
+        };
+
+        const app      = initializeApp(firebaseConfig);
+        const auth     = getAuth(app);
+        const provider = new GoogleAuthProvider();
+        provider.addScope('email');
+        provider.addScope('profile');
+
+        status.textContent = 'מתחברים עם Google...';
+
+        const result = await signInWithPopup(auth, provider);
+        const user   = result.user;
+
+        status.textContent = `✅ מחובר כ: ${user.email}`;
+
+        // Post success back to the parent window
+        if (window.opener) {
+            window.opener.postMessage({
+                type:  'vplus-login-success',
+                email: user.email,
+                uid:   user.uid
+            }, '*');
+        }
+
+        // Close popup after short delay so user sees the success message
+        setTimeout(() => window.close(), 1200);
+
+    } catch (error) {
+        if (error.code === 'auth/popup-closed-by-user') {
+            done('ביטול התחברות');
+            if (window.opener) {
+                window.opener.postMessage({ type: 'vplus-login-cancelled' }, '*');
+            }
+            setTimeout(() => window.close(), 1500);
+        } else if (error.code === 'auth/unauthorized-domain') {
+            fail(`הדומיין לא מורשה ב-Firebase.\nהוסף: ${location.hostname}`, error);
+        } else if (error.code === 'auth/operation-not-allowed') {
+            fail('Google Sign-In לא מופעל בפרויקט.', error);
+        } else {
+            fail(error.message || 'שגיאה לא ידועה', error);
+        }
+    }
+</script>
+</body>
+</html>

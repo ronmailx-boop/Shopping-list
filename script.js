@@ -6,6 +6,10 @@ let isConnected = false;
 let currentUser = null;
 let syncTimeout = null;
 
+// ========== Google Vision API Key ==========
+// Replace with your actual Google Cloud Vision API key to enable receipt scanning
+const GOOGLE_API_KEY = '';
+
 // ========== Categories ==========
 const CATEGORIES = {
     'פירות וירקות': '#22c55e',
@@ -1340,120 +1344,8 @@ function hideAutocompleteSuggestions() {
     }
 }
 
-// ========== Item Management Functions ==========
-function addItem() {
-    const name = document.getElementById('itemName').value.trim();
-    const price = parseFloat(document.getElementById('itemPrice').value) || 0;
-    const category = document.getElementById('itemCategory').value || detectCategory(name);
 
-    if (!name) {
-        showNotification('אנא הזן שם מוצר', 'warning');
-        return;
-    }
 
-    db.lists[db.currentId].items.push({
-        name: name,
-        price: price,
-        qty: 1,
-        checked: false,
-        category: category
-    });
-
-    save();
-    closeModal('inputForm');
-    showNotification(`✅ ${name} נוסף לרשימה`);
-}
-
-function saveNewList() {
-    const name = document.getElementById('newListNameInput').value.trim();
-    const url = document.getElementById('newListUrlInput').value.trim();
-    const budget = parseFloat(document.getElementById('newListBudget').value) || 0;
-    const isTemplate = document.getElementById('newListTemplate').checked;
-
-    if (!name) {
-        showNotification('אנא הזן שם לרשימה', 'warning');
-        return;
-    }
-
-    const newId = 'L' + Date.now();
-    db.lists[newId] = {
-        name: name,
-        url: url,
-        budget: budget,
-        isTemplate: isTemplate,
-        items: []
-    };
-
-    db.currentId = newId;
-    activePage = 'lists';
-    save();
-    closeModal('newListModal');
-    showNotification(`✅ רשימה "${name}" נוצרה בהצלחה!`);
-}
-
-function importFromText() {
-    const text = document.getElementById('importText').value.trim();
-
-    if (!text) {
-        showNotification('אנא הזן טקסט לייבוא', 'warning');
-        return;
-    }
-
-    // Split by newlines and filter empty lines
-    const lines = text.split('\n').map(line => line.trim()).filter(line => line.length > 0);
-
-    if (lines.length === 0) {
-        showNotification('לא נמצאו מוצרים בטקסט', 'warning');
-        return;
-    }
-
-    let addedCount = 0;
-
-    lines.forEach(line => {
-        // Try to parse line with price: "Product Name 12.50" or "Product Name - 12.50"
-        const priceMatch = line.match(/^(.+?)[\s\-–—]+([₪]?\s*[\d.,]+)\s*([₪]?)$/);
-
-        if (priceMatch) {
-            const name = priceMatch[1].trim();
-            const priceStr = priceMatch[2].replace(/[₪\s]/g, '').replace(/,/g, '.');
-            const price = parseFloat(priceStr) || 0;
-
-            if (name) {
-                const category = detectCategory(name);
-                db.lists[db.currentId].items.push({
-                    name: name,
-                    price: price,
-                    qty: 1,
-                    checked: false,
-                    category: category
-                });
-                addedCount++;
-            }
-        } else {
-            // No price found, add item with price 0
-            const name = line.trim();
-            if (name) {
-                const category = detectCategory(name);
-                db.lists[db.currentId].items.push({
-                    name: name,
-                    price: 0,
-                    qty: 1,
-                    checked: false,
-                    category: category
-                });
-                addedCount++;
-            }
-        }
-    });
-
-    if (addedCount > 0) {
-        save();
-        closeModal('importModal');
-        showNotification(`✅ יובאו ${addedCount} מוצרים!`);
-    } else {
-        showNotification('לא נמצאו מוצרים תקינים לייבוא', 'warning');
-    }
-}
 
 // ========== Search Functions ==========
 function searchInList() {
@@ -2194,21 +2086,24 @@ function addItem() {
     const p = parseFloat(document.getElementById('itemPrice').value) || 0;
     const c = document.getElementById('itemCategory').value;
 
-    if (n) {
-        // Auto-detect category if not manually selected
-        const finalCategory = c || detectCategory(n);
-
-        db.lists[db.currentId].items.push({
-            name: n,
-            price: p,
-            qty: 1,
-            checked: false,
-            category: finalCategory
-        });
-        closeModal('inputForm');
-        save();
-        showNotification('✅ מוצר נוסף!');
+    if (!n) {
+        showNotification('אנא הזן שם מוצר', 'warning');
+        return;
     }
+
+    // Auto-detect category if not manually selected
+    const finalCategory = c || detectCategory(n);
+
+    db.lists[db.currentId].items.push({
+        name: n,
+        price: p,
+        qty: 1,
+        checked: false,
+        category: finalCategory
+    });
+    closeModal('inputForm');
+    save();
+    showNotification(`✅ ${n} נוסף לרשימה`);
 }
 
 function changeQty(idx, d) {
@@ -2233,22 +2128,26 @@ function saveNewList() {
     const n = document.getElementById('newListNameInput').value.trim();
     const u = document.getElementById('newListUrlInput').value.trim();
     const b = parseFloat(document.getElementById('newListBudget').value) || 0;
-    const t = document.getElementById('newListTemplate').checked;
-    if (n) {
-        const id = 'L' + Date.now();
-        db.lists[id] = {
-            name: n,
-            url: u,
-            budget: b,
-            isTemplate: t,
-            items: []
-        };
-        db.currentId = id;
-        activePage = 'lists';
-        closeModal('newListModal');
-        save();
-        showNotification(t ? '⭐ תבנית נוצרה!' : '✅ רשימה נוצרה!');
+    const isTemplateSave = document.getElementById('newListTemplate').checked;
+
+    if (!n) {
+        showNotification('אנא הזן שם לרשימה', 'warning');
+        return;
     }
+
+    const id = 'L' + Date.now();
+    db.lists[id] = {
+        name: n,
+        url: u,
+        budget: b,
+        isTemplate: isTemplateSave,
+        items: []
+    };
+    db.currentId = id;
+    activePage = 'lists';
+    closeModal('newListModal');
+    save();
+    showNotification(isTemplateSave ? '⭐ תבנית נוצרה!' : `✅ רשימה "${n}" נוצרה בהצלחה!`);
 }
 
 function deleteFullList() {
@@ -2598,6 +2497,9 @@ setTimeout(() => {
 function initFirebaseAuth() {
     console.log('🔄 מאתחל Firebase Auth...');
 
+    // Register the postMessage listener for login.html popup results
+    setupLoginMessageListener();
+
     window.onAuthStateChanged(window.firebaseAuth, (user) => {
         currentUser = user;
         isConnected = !!user;
@@ -2653,6 +2555,31 @@ function initFirebaseAuth() {
     }
 }
 
+// ========== postMessage listener for login.html popup result ==========
+function setupLoginMessageListener() {
+    window.addEventListener('message', function onLoginMessage(event) {
+        // Only accept messages from same origin (login.html is same origin)
+        if (event.origin !== window.location.origin) return;
+
+        const data = event.data;
+        if (!data || !data.type) return;
+
+        if (data.type === 'vplus-login-success') {
+            console.log('✅ Login success received via postMessage:', data.email);
+            showNotification(`✅ מחובר כ: ${data.email}`, 'success');
+            // onAuthStateChanged will fire automatically and handle the rest
+        } else if (data.type === 'vplus-login-error') {
+            console.error('❌ Login error received via postMessage:', data.message);
+            showDetailedError('שגיאה בהתחברות', { code: data.code, message: data.message });
+            updateCloudIndicator('disconnected');
+        } else if (data.type === 'vplus-login-cancelled') {
+            console.log('⚠️ Login cancelled by user');
+            showNotification('התחברות בוטלה', 'warning');
+            updateCloudIndicator('disconnected');
+        }
+    });
+}
+
 function loginWithGoogle() {
     if (!window.firebaseAuth) {
         showNotification('⏳ שירות הענן עדיין נטען... נסה שוב בעוד רגע', 'warning');
@@ -2660,25 +2587,53 @@ function loginWithGoogle() {
         return;
     }
 
-    // Check if already logged in
+    // Already logged in → just open settings
     if (window.firebaseAuth.currentUser) {
         showNotification('✅ אתה כבר מחובר', 'success');
-        console.log('ℹ️ משתמש כבר מחובר:', window.firebaseAuth.currentUser.email);
-        openModal('settingsModal'); // Show settings instead
+        openModal('settingsModal');
         return;
     }
 
-    console.log('🔐 מתחיל תהליך התחברות Google...');
+    console.log('🔐 פתוח חלון התחברות Google...');
     updateCloudIndicator('syncing');
 
-    try {
-        // Trigger Google sign-in redirect
-        window.signInWithPopup(window.firebaseAuth, window.googleProvider);
-        console.log('🔄 מפנה לדף התחברות Google...');
-    } catch (error) {
-        console.error("❌ שגיאת התחברות:", error);
-        showDetailedError('Login', error);
+    // Compute the login.html URL relative to this page
+    const baseUrl = window.location.href.replace(/[^/]*$/, '');
+    const loginUrl = baseUrl + 'login.html';
+
+    // Open login.html in a new popup window
+    // This window is a clean top-level context → signInWithPopup works without sessionStorage issues
+    const popupWidth  = 480;
+    const popupHeight = 560;
+    const left = Math.round((window.screen.width  - popupWidth)  / 2);
+    const top  = Math.round((window.screen.height - popupHeight) / 2);
+
+    const popup = window.open(
+        loginUrl,
+        'vplus-google-login',
+        `width=${popupWidth},height=${popupHeight},left=${left},top=${top},resizable=no,scrollbars=no`
+    );
+
+    if (!popup) {
+        // Popup was blocked by browser
+        console.warn('⚠️ Popup נחסם');
+        showNotification('⚠️ הדפדפן חסם את חלון התחברות.\nאפשר popups לאתר הזה בהגדרות הדפדפן.', 'warning');
         updateCloudIndicator('disconnected');
+    } else {
+        console.log('🪟 חלון התחברות נפתח');
+        // Poll to detect if popup was closed without sending a message (user closed manually)
+        const pollClosed = setInterval(() => {
+            if (popup.closed) {
+                clearInterval(pollClosed);
+                // Small delay — if login succeeded the message arrives before we get here
+                setTimeout(() => {
+                    if (!window.firebaseAuth.currentUser) {
+                        console.log('⚠️ חלון נסגר ללא תוצאה');
+                        updateCloudIndicator('disconnected');
+                    }
+                }, 500);
+            }
+        }, 300);
     }
 }
 
@@ -2750,15 +2705,25 @@ function setupFirestoreListener(user) {
     const userDocRef = window.doc(window.firebaseDb, "shopping_lists", user.uid);
 
     unsubscribeSnapshot = window.onSnapshot(userDocRef, (docSnap) => {
+        // If we are currently writing to cloud, ignore this snapshot (it's our own write echoing back)
+        if (isSyncing) {
+            console.log('⏭️ מדלג snapshot כי אנחנו כותבים כרגע');
+            return;
+        }
+
         if (docSnap.exists()) {
             console.log('☁️ מסמך נמצא בענן');
             const cloudData = docSnap.data();
 
-            // Sync instantly - avoid loop by checking if data is different
-            if (JSON.stringify(cloudData) !== JSON.stringify(db)) {
+            // Compare only the meaningful data (ignore lastSync timestamp)
+            const localCopy = JSON.parse(JSON.stringify(db));
+            const cloudCopy = JSON.parse(JSON.stringify(cloudData));
+            delete localCopy.lastSync;
+            delete cloudCopy.lastSync;
+
+            if (JSON.stringify(cloudCopy) !== JSON.stringify(localCopy)) {
                 console.log('🔄 מסנכרן נתונים מהענן...');
                 db = cloudData;
-                // Update localStorage
                 localStorage.setItem('BUDGET_FINAL_V28', JSON.stringify(db));
                 render();
                 showNotification('☁️ סונכרן מהענן!', 'success');
@@ -2767,13 +2732,11 @@ function setupFirestoreListener(user) {
             }
         } else {
             console.log('📝 מסמך לא קיים בענן, יוצר חדש...');
-            // Document doesn't exist? Create it from local data
             syncToCloud();
         }
     }, (error) => {
         console.error("❌ שגיאת Firestore sync:", error);
         showDetailedError('Firestore Sync', error);
-        // Keep showing connected if we have a user, just failed to sync
         if (currentUser) {
             updateCloudIndicator('connected');
         }
@@ -2786,7 +2749,14 @@ async function syncToCloud() {
         return;
     }
 
+    // Prevent concurrent sync writes
+    if (isSyncing) {
+        console.log('⏭️ סנכרון כבר בתהליך, מדלג');
+        return;
+    }
+
     console.log('☁️ מסנכרן לענן... UID:', currentUser.uid);
+    isSyncing = true;
     updateCloudIndicator('syncing');
 
     try {
@@ -2798,7 +2768,7 @@ async function syncToCloud() {
         console.error("❌ שגיאה בכתיבה לענן:", error);
         showDetailedError('Cloud Sync', error);
     } finally {
-        // Return to connected state
+        isSyncing = false;
         updateCloudIndicator('connected');
     }
 }
