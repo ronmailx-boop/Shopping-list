@@ -2700,4 +2700,3 @@ if (currentLang === 'he') {
 
 render();
 updateUILanguage();
-

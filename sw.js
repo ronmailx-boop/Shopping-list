@@ -130,4 +130,3 @@ self.addEventListener('notificationclick', event => {
 });
 
 
-
