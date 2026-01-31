@@ -393,8 +393,7 @@ function toggleCategorySorting() {
     }
 
     render();
-    showNotification(categorySortEnabled ? '✅ מיון לפי קטגוריות מופעל' : '✅ מיון ידני מופעל');
-}
+    showNotification(categorySortEnabled ? '✅ מיון לפי קטגוריות מופעל' : '✅ מיון ידני מופעל');}
 
 // ========== Language Functions ==========
 function confirmLanguageChange() {
