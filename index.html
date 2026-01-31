@@ -448,7 +448,105 @@
     </script>
 
 
+    <style>
+        /* ERROR DISPLAY STYLES */
+        #firebaseErrorDisplay {
+            position: fixed;
+            top: 80px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #fee2e2;
+            border: 3px solid #ef4444;
+            color: #991b1b;
+            padding: 20px;
+            border-radius: 20px;
+            box-shadow: 0 10px 40px rgba(239, 68, 68, 0.3);
+            z-index: 10000;
+            max-width: 90%;
+            width: 500px;
+            display: none;
+            animation: slideDown 0.3s ease-out;
+        }
+
+        #firebaseErrorDisplay.show {
+            display: block;
+        }
+
+        @keyframes slideDown {
+            from {
+                transform: translateX(-50%) translateY(-100px);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(-50%) translateY(0);
+                opacity: 1;
+            }
+        }
+
+        .error-title {
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .error-message {
+            font-size: 14px;
+            line-height: 1.6;
+            white-space: pre-wrap;
+            margin-bottom: 15px;
+        }
+
+        .error-close-btn {
+            background: #ef4444;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 10px;
+            font-weight: bold;
+            cursor: pointer;
+            width: 100%;
+        }
+
+        .error-close-btn:active {
+            transform: scale(0.95);
+        }
+    </style>
+
+    <script>
+        // Helper function to show errors visually
+        function showFirebaseError(title, message) {
+            console.error('🔴 Firebase Error:', title, message);
+            
+            // Create error display if it doesn't exist
+            let errorDiv = document.getElementById('firebaseErrorDisplay');
+            if (!errorDiv) {
+                errorDiv = document.createElement('div');
+                errorDiv.id = 'firebaseErrorDisplay';
+                document.body.appendChild(errorDiv);
+            }
+            
+            errorDiv.innerHTML = `
+                <div class="error-title">⚠️ ${title}</div>
+                <div class="error-message">${message}</div>
+                <button class="error-close-btn" onclick="document.getElementById('firebaseErrorDisplay').classList.remove('show')">סגור</button>
+            `;
+            
+            errorDiv.classList.add('show');
+            
+            // Also log to console
+            console.log('%c══════════════════════════════════', 'color: red; font-weight: bold');
+            console.log('%c🔴 ' + title, 'color: red; font-size: 16px; font-weight: bold');
+            console.log('%c' + message, 'color: red; font-size: 14px');
+            console.log('%c══════════════════════════════════', 'color: red; font-weight: bold');
+        }
+    </script>
+
     <script type="module">
+        console.log('🔵 Starting Firebase initialization...');
+        
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
         import { getAuth, signInWithRedirect, GoogleAuthProvider, getRedirectResult, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
         import { getFirestore, doc, setDoc, onSnapshot, getDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
@@ -463,11 +561,17 @@
                 appId: "1:386740827706:web:a3c95c895826df4bb26703" 
             };
 
+            console.log('🔵 Initializing Firebase app...');
             const app = initializeApp(firebaseConfig);
+            
+            console.log('🔵 Getting Auth instance...');
             const auth = getAuth(app);
+            
+            console.log('🔵 Getting Firestore instance...');
             const db = getFirestore(app);
+            
+            console.log('🔵 Creating Google provider...');
             const provider = new GoogleAuthProvider();
-
             provider.addScope('email');
             provider.addScope('profile');
 
@@ -485,58 +589,79 @@
             window.onSnapshot = onSnapshot;
             window.getDoc = getDoc;
 
-            console.log("✅ Firebase initialized successfully");
+            console.log('✅ Firebase initialized successfully');
 
             // Check for redirect result
+            console.log('🔵 Checking for redirect result...');
             getRedirectResult(auth).then((result) => {
                 if (result && result.user) {
-                    console.log("✅ התחברות הושלמה בהצלחה:", result.user.email);
+                    console.log('✅ Login successful!', result.user.email);
+                    showFirebaseError('התחברות הצליחה! ✅', 'ברוך הבא ' + result.user.email);
                     setTimeout(() => {
-                        if (window.showNotification) {
-                            window.showNotification('✅ התחברת בהצלחה! 👋 ' + result.user.email, 'success');
-                        }
-                    }, 1000);
-                } else if (result === null) {
-                    console.log("ℹ️ אין תוצאת redirect (טעינה רגילה של הדף)");
+                        document.getElementById('firebaseErrorDisplay').classList.remove('show');
+                    }, 3000);
+                } else {
+                    console.log('ℹ️ No redirect result (normal page load)');
                 }
             }).catch((error) => {
-                console.error("❌ שגיאה בטיפול ב-redirect:", error);
-                console.error("קוד שגיאה:", error.code);
-                console.error("הודעת שגיאה:", error.message);
+                console.error('❌ Redirect error caught:', error);
                 
+                let errorTitle = "שגיאה בהתחברות";
                 let errorMsg = "";
                 
                 if (error.code === 'auth/unauthorized-domain') {
-                    errorMsg = "⚠️ שגיאת הרשאה!\n\nהדומיין הזה לא מורשה ב-Firebase.\n\nפתח Firebase Console → Authentication → Settings → Authorized domains\n\nהוסף את: " + window.location.hostname;
+                    errorTitle = "⚠️ הדומיין לא מורשה";
+                    errorMsg = `הדומיין הזה לא מורשה להתחברות ב-Firebase.
+
+צעדים לפתרון:
+1. פתח את Firebase Console
+2. עבור ל: Authentication → Settings
+3. גלול ל: Authorized domains
+4. הוסף את הדומיין: ${window.location.hostname}
+
+לחץ על "Add domain" והדבק: ${window.location.hostname}`;
                 } else if (error.code === 'auth/operation-not-allowed') {
-                    errorMsg = "⚠️ Google Sign-In לא מופעל!\n\nפתח Firebase Console → Authentication → Sign-in method\n\nאפשר את Google";
+                    errorTitle = "⚠️ Google Sign-In לא מופעל";
+                    errorMsg = `שיטת ההתחברות של Google לא מופעלת בפרויקט.
+
+צעדים לפתרון:
+1. פתח את Firebase Console
+2. עבור ל: Authentication → Sign-in method
+3. מצא את "Google" ברשימה
+4. לחץ עליו ואפשר אותו (Enable)
+5. שמור את השינויים`;
                 } else if (error.code === 'auth/popup-blocked') {
-                    errorMsg = "⚠️ חלון ההתחברות נחסם!\n\nאפשר חלונות קופצים (pop-ups) לאתר זה";
-                } else if (error.code === 'auth/cancelled-popup-request') {
-                    errorMsg = "ℹ️ ההתחברות בוטלה";
+                    errorTitle = "⚠️ חלון נחסם";
+                    errorMsg = `הדפדפן חסם את חלון ההתחברות.
+
+אפשר חלונות קופצים (pop-ups) לאתר זה בהגדרות הדפדפן.`;
                 } else if (error.code === 'auth/network-request-failed') {
-                    errorMsg = "⚠️ בעיית רשת!\n\nבדוק את החיבור לאינטרנט ונסה שוב";
+                    errorTitle = "⚠️ בעיית רשת";
+                    errorMsg = `לא ניתן להתחבר לשרתי Firebase.
+
+בדוק את החיבור לאינטרנט ונסה שוב.`;
                 } else {
-                    errorMsg = "❌ שגיאה בהתחברות:\n\nקוד: " + (error.code || 'UNKNOWN') + "\n\n" + error.message;
+                    errorMsg = `קוד שגיאה: ${error.code || 'UNKNOWN'}
+
+הודעה טכנית:
+${error.message}
+
+פתח את Console (F12) למידע נוסף.`;
                 }
                 
-                // Show alert immediately
-                alert(errorMsg);
+                showFirebaseError(errorTitle, errorMsg);
                 
-                // Try to show notification too
+                // Also update cloud indicator
                 setTimeout(() => {
-                    if (window.showNotification) {
-                        window.showNotification(errorMsg, 'error');
-                    }
                     if (window.updateCloudIndicator) {
                         window.updateCloudIndicator('disconnected');
                     }
-                }, 500);
+                }, 100);
             });
 
         } catch (e) {
-            console.error("❌ Firebase initialization failed:", e);
-            alert("שגיאה בטעינת Firebase:\n\n" + e.message);
+            console.error('❌ Firebase initialization failed:', e);
+            showFirebaseError('שגיאה קריטית', 'Firebase לא הצליח לטעון:\n\n' + e.message);
         }
     </script>
 </head>
