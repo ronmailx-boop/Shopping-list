@@ -2388,7 +2388,7 @@ function importData(event) {
 // ========== Firebase Integration ==========
 
 // Helper function to show detailed errors
-// Helper function to show detailed errors with better formatting
+// Helper function to show detailed errors with visual display
 function showDetailedError(context, error) {
     const errorCode = error.code || 'UNKNOWN_ERROR';
     const errorMessage = error.message || 'Unknown error occurred';
@@ -2399,46 +2399,59 @@ function showDetailedError(context, error) {
         fullError: error
     });
     
-    // Create user-friendly error message
+    let errorTitle = context;
     let userMessage = '';
     
     // Handle common Firebase Auth errors
     if (errorCode.includes('auth/')) {
-        const friendlyErrors = {
-            'auth/popup-blocked': 'חלון ההתחברות נחסם - אנא אפשר חלונות קופצים',
-            'auth/popup-closed-by-user': 'חלון ההתחברות נסגר - נסה שוב',
-            'auth/cancelled-popup-request': 'פעולת ההתחברות בוטלה',
-            'auth/unauthorized-domain': 'הדומיין לא מורשה ב-Firebase Console',
-            'auth/operation-not-allowed': 'שיטת התחברות Google לא מופעלת',
-            'auth/account-exists-with-different-credential': 'קיים חשבון עם אימייל זה בשיטה אחרת',
-            'auth/network-request-failed': 'בעיית רשת - בדוק חיבור לאינטרנט',
-            'auth/invalid-credential': 'פרטי ההתחברות לא תקינים',
-            'auth/user-disabled': 'החשבון חסום',
-            'auth/user-not-found': 'המשתמש לא נמצא',
-            'auth/wrong-password': 'סיסמה שגויה',
-            'auth/too-many-requests': 'יותר מדי ניסיונות התחברות - נסה מאוחר יותר',
-            'auth/internal-error': 'שגיאה פנימית - נסה שוב',
-            'auth/requires-recent-login': 'יש להתחבר מחדש לביצוע פעולה זו'
-        };
-        
-        userMessage = friendlyErrors[errorCode] || `שגיאת התחברות: ${errorCode}`;
+        if (errorCode === 'auth/unauthorized-domain') {
+            errorTitle = "⚠️ הדומיין לא מורשה";
+            userMessage = `הדומיין הזה לא מורשה להתחברות ב-Firebase.
+
+צעדים לפתרון:
+1. פתח את Firebase Console
+2. עבור ל: Authentication → Settings
+3. גלול ל: Authorized domains
+4. הוסף את הדומיין: ${window.location.hostname}`;
+        } else if (errorCode === 'auth/operation-not-allowed') {
+            errorTitle = "⚠️ Google Sign-In לא מופעל";
+            userMessage = `שיטת ההתחברות של Google לא מופעלת.
+
+צעדים לפתרון:
+1. פתח Firebase Console
+2. עבור ל: Authentication → Sign-in method
+3. מצא את "Google" ברשימה
+4. לחץ עליו ואפשר אותו (Enable)`;
+        } else if (errorCode === 'auth/popup-blocked') {
+            errorTitle = "⚠️ חלון נחסם";
+            userMessage = "הדפדפן חסם את חלון ההתחברות.\n\nאפשר חלונות קופצים לאתר זה.";
+        } else if (errorCode === 'auth/network-request-failed') {
+            errorTitle = "⚠️ בעיית רשת";
+            userMessage = "לא ניתן להתחבר לשרתי Firebase.\n\nבדוק את החיבור לאינטרנט.";
+        } else {
+            userMessage = `קוד שגיאה: ${errorCode}\n\n${errorMessage}`;
+        }
     }
     // Handle Firestore errors  
     else if (errorCode.includes('permission-denied')) {
-        userMessage = 'אין הרשאה לגשת לנתונים - בדוק הגדרות Firebase';
+        errorTitle = "⚠️ אין הרשאה";
+        userMessage = 'אין הרשאה לגשת לנתונים.\n\nבדוק הגדרות Firebase Security Rules.';
     }
     else if (errorCode.includes('unavailable')) {
-        userMessage = 'השירות לא זמין - נסה שוב מאוחר יותר';
+        errorTitle = "⚠️ שירות לא זמין";
+        userMessage = 'השירות לא זמין כרגע.\n\nנסה שוב מאוחר יותר.';
     }
     else {
-        userMessage = `שגיאה: ${errorCode}`;
+        userMessage = `קוד: ${errorCode}\n\n${errorMessage}`;
     }
     
-    // Show the error notification with full details
-    showNotification(
-        `❌ ${context}: ${userMessage}\n\nפרטים טכניים: ${errorMessage}`,
-        'error'
-    );
+    // Show visual error if function exists
+    if (typeof window.showFirebaseError === 'function') {
+        window.showFirebaseError(errorTitle, userMessage);
+    } else {
+        // Fallback to notification
+        showNotification(`❌ ${errorTitle}\n\n${userMessage}`, 'error');
+    }
 }
 
 // Wait for Firebase to load before initializing
@@ -2447,6 +2460,9 @@ const checkFirebase = setInterval(() => {
         clearInterval(checkFirebase);
         console.log('✅ Firebase זמין, מאתחל...');
         initFirebaseAuth();
+        
+        // NOTE: redirect result is checked in index.html script
+        // We don't check it again here to avoid duplicate checks
     }
 }, 100);
 
@@ -2455,14 +2471,18 @@ setTimeout(() => {
     if (!window.firebaseAuth) {
         console.warn("⚠️ Firebase לא נטען אחרי 10 שניות");
         showNotification('⚠️ שירות הענן לא זמין - טען מחדש את הדף', 'warning');
-        updateCloudIndicator('disconnected');
+        if (typeof window.showFirebaseError === 'function') {
+            window.showFirebaseError(
+                '⚠️ Firebase לא נטען',
+                'שירות הענן לא הצליח להיטען.\n\nנסה לרענן את הדף (F5).'
+            );
+        }
     }
 }, 10000);
 
 function initFirebaseAuth() {
     console.log('🔄 מאתחל Firebase Auth...');
     
-    // Listen to auth state changes
     window.onAuthStateChanged(window.firebaseAuth, (user) => {
         currentUser = user;
         isConnected = !!user;
