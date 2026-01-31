@@ -616,6 +616,9 @@
                 })
                 .catch((error) => {
                     console.error('❌ שגיאה בבדיקת redirect:', error);
+                    console.error('❌ Error Code:', error.code);
+                    console.error('❌ Error Message:', error.message);
+                    console.error('❌ Full Error:', JSON.stringify(error, null, 2));
                     
                     // הצגת השגיאה מיד למשתמש
                     setTimeout(() => {
@@ -670,6 +673,9 @@
 קוד שגיאה: ${errorCode}
 הודעה: ${error.message || 'לא ידוע'}`;
                         }
+                        
+                        // הצגת שגיאה - גם alert וגם מודל
+                        alert('🚨 ' + errorTitle + '\n\n' + errorMessage);
                         
                         window.showFirebaseError(errorTitle, errorMessage);
                         
