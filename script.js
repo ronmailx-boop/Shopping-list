@@ -2558,7 +2558,7 @@ function loginWithGoogle() {
     
     try {
         // Trigger Google sign-in redirect
-        window.signInWithRedirect(window.firebaseAuth, window.googleProvider);
+        window.signInWithPopup(window.firebaseAuth, window.googleProvider);
         console.log('🔄 מפנה לדף התחברות Google...');
     } catch (error) {
         console.error("❌ שגיאת התחברות:", error);
