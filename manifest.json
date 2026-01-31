@@ -1,5 +1,5 @@
 {
-  "name": "Vplus Pro",
+  "name": "Vplus",
   "short_name": "Vplus",
   "description": "אפליקציה מתקדמת לניהול רשימות קניות ותקציב אישי",
   "start_url": "./index.html",
@@ -58,6 +58,20 @@
       "purpose": "any maskable"
     }
   ],
+  "screenshots": [
+    {
+      "src": "/screenshot1.png",
+      "sizes": "540x720",
+      "type": "image/png",
+      "form_factor": "narrow"
+    },
+    {
+      "src": "/screenshot2.png",
+      "sizes": "540x720",
+      "type": "image/png",
+      "form_factor": "narrow"
+    }
+  ],
   "categories": [
     "finance",
     "productivity",
@@ -68,10 +82,10 @@
       "name": "רשימה חדשה",
       "short_name": "חדש",
       "description": "צור רשימת קניות חדשה",
-      "url": "./index.html?action=new",
+      "url": "/?action=new",
       "icons": [
         {
-          "src": "./icon.png",
+          "src": "/icon.png",
           "sizes": "96x96"
         }
       ]
@@ -80,10 +94,10 @@
       "name": "סטטיסטיקות",
       "short_name": "סטטיסטיקות",
       "description": "צפה בסטטיסטיקות הוצאות",
-      "url": "./index.html?action=stats",
+      "url": "/?action=stats",
       "icons": [
         {
-          "src": "./icon.png",
+          "src": "/icon.png",
           "sizes": "96x96"
         }
       ]
@@ -92,3 +106,6 @@
   "prefer_related_applications": false,
   "related_applications": []
 }
+
+
+
