@@ -1339,6 +1339,30 @@ function hideAutocompleteSuggestions() {
     }
 }
 
+// ========== Item Management Functions ==========
+function addItem() {
+    const name = document.getElementById('itemName').value.trim();
+    const price = parseFloat(document.getElementById('itemPrice').value) || 0;
+    const category = document.getElementById('itemCategory').value || detectCategory(name);
+
+    if (!name) {
+        showNotification('אנא הזן שם מוצר', 'warning');
+        return;
+    }
+
+    db.lists[db.currentId].items.push({
+        name: name,
+        price: price,
+        qty: 1,
+        checked: false,
+        category: category
+    });
+
+    save();
+    closeModal('inputForm');
+    showNotification(`✅ ${name} נוסף לרשימה`);
+}
+
 // ========== Search Functions ==========
 function searchInList() {
     const searchTerm = document.getElementById('listSearchInput').value.toLowerCase().trim();
