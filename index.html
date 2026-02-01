@@ -548,7 +548,7 @@
         console.log('🔵 Starting Firebase initialization...');
         
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+        import { getAuth, signInWithPopup, GoogleAuthProvider, getRedirectResult, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
         import { getFirestore, doc, setDoc, onSnapshot, getDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
         try {
@@ -581,6 +581,7 @@
             window.googleProvider = provider;
 
             window.signInWithPopup = signInWithPopup;
+            window.getRedirectResult = getRedirectResult;
             window.signOut = signOut;
             window.onAuthStateChanged = onAuthStateChanged;
             window.doc = doc;
@@ -589,7 +590,74 @@
             window.getDoc = getDoc;
 
             console.log('✅ Firebase initialized successfully');
-            // Login result is now received via postMessage from login.html popup
+
+            // Check for redirect result
+            console.log('🔵 Checking for redirect result...');
+            getRedirectResult(auth).then((result) => {
+                if (result && result.user) {
+                    console.log('✅ Login successful!', result.user.email);
+                    showFirebaseError('התחברות הצליחה! ✅', 'ברוך הבא ' + result.user.email);
+                    setTimeout(() => {
+                        document.getElementById('firebaseErrorDisplay').classList.remove('show');
+                    }, 3000);
+                } else {
+                    console.log('ℹ️ No redirect result (normal page load)');
+                }
+            }).catch((error) => {
+                console.error('❌ Redirect error caught:', error);
+                
+                let errorTitle = "שגיאה בהתחברות";
+                let errorMsg = "";
+                
+                if (error.code === 'auth/unauthorized-domain') {
+                    errorTitle = "⚠️ הדומיין לא מורשה";
+                    errorMsg = `הדומיין הזה לא מורשה להתחברות ב-Firebase.
+
+צעדים לפתרון:
+1. פתח את Firebase Console
+2. עבור ל: Authentication → Settings
+3. גלול ל: Authorized domains
+4. הוסף את הדומיין: ${window.location.hostname}
+
+לחץ על "Add domain" והדבק: ${window.location.hostname}`;
+                } else if (error.code === 'auth/operation-not-allowed') {
+                    errorTitle = "⚠️ Google Sign-In לא מופעל";
+                    errorMsg = `שיטת ההתחברות של Google לא מופעלת בפרויקט.
+
+צעדים לפתרון:
+1. פתח את Firebase Console
+2. עבור ל: Authentication → Sign-in method
+3. מצא את "Google" ברשימה
+4. לחץ עליו ואפשר אותו (Enable)
+5. שמור את השינויים`;
+                } else if (error.code === 'auth/popup-blocked') {
+                    errorTitle = "⚠️ חלון נחסם";
+                    errorMsg = `הדפדפן חסם את חלון ההתחברות.
+
+אפשר חלונות קופצים (pop-ups) לאתר זה בהגדרות הדפדפן.`;
+                } else if (error.code === 'auth/network-request-failed') {
+                    errorTitle = "⚠️ בעיית רשת";
+                    errorMsg = `לא ניתן להתחבר לשרתי Firebase.
+
+בדוק את החיבור לאינטרנט ונסה שוב.`;
+                } else {
+                    errorMsg = `קוד שגיאה: ${error.code || 'UNKNOWN'}
+
+הודעה טכנית:
+${error.message}
+
+פתח את Console (F12) למידע נוסף.`;
+                }
+                
+                showFirebaseError(errorTitle, errorMsg);
+                
+                // Also update cloud indicator
+                setTimeout(() => {
+                    if (window.updateCloudIndicator) {
+                        window.updateCloudIndicator('disconnected');
+                    }
+                }, 100);
+            });
 
         } catch (e) {
             console.error('❌ Firebase initialization failed:', e);
