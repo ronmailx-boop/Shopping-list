@@ -2090,7 +2090,13 @@ function addItem() {
             checked: false,
             category: finalCategory
         });
-        closeModal('inputForm');
+        
+        // ניקוי השדות לאחר הוספה
+        document.getElementById('itemName').value = '';
+        document.getElementById('itemPrice').value = '';
+        document.getElementById('itemCategory').value = '';
+        document.getElementById('itemName').focus();
+        
         save();
         showNotification('✅ מוצר נוסף!');
     }
