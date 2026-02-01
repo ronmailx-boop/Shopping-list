@@ -2652,7 +2652,23 @@ function setupFirestoreListener(user) {
       // רק אם הענן לא ריק, תסנכרן ממנו
       if (JSON.stringify(cloudData) !== JSON.stringify(db)) {
         console.log('🔄 מסנכרן נתונים מהענן...');
-        db = cloudData;
+        const updatedDb = { ...cloudData };
+
+        // הגנה: וודא שקיים אובייקט רשימות
+        if (!updatedDb.lists || Object.keys(updatedDb.lists).length === 0) {
+            updatedDb.lists = {
+                'L1': {
+                    name: 'הרשימה שלי',
+                    url: '',
+                    budget: 0,
+                    isTemplate: false,
+                    items: []
+                }
+            };
+            updatedDb.currentId = 'L1';
+        }
+
+        db = updatedDb;
         localStorage.setItem('BUDGET_FINAL_V28', JSON.stringify(db));
         render();
         showNotification('☁️ סונכרן מהענן!', 'success');
