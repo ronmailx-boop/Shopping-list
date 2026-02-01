@@ -2630,39 +2630,44 @@ function updateCloudIndicator(status) {
 }
 
 function setupFirestoreListener(user) {
-    console.log('📡 מגדיר Firestore listener עבור UID:', user.uid);
-    
-    const userDocRef = window.doc(window.firebaseDb, "shopping_lists", user.uid);
-
-    unsubscribeSnapshot = window.onSnapshot(userDocRef, (docSnap) => {
-        if (docSnap.exists()) {
-            console.log('☁️ מסמך נמצא בענן');
-            const cloudData = docSnap.data();
-
-            // Sync instantly - avoid loop by checking if data is different
-            if (JSON.stringify(cloudData) !== JSON.stringify(db)) {
-                console.log('🔄 מסנכרן נתונים מהענן...');
-                db = cloudData;
-                // Update localStorage
-                localStorage.setItem('BUDGET_FINAL_V28', JSON.stringify(db));
-                render();
-                showNotification('☁️ סונכרן מהענן!', 'success');
-            } else {
-                console.log('✓ הנתונים זהים, אין צורך בסנכרון');
-            }
-        } else {
-            console.log('📝 מסמך לא קיים בענן, יוצר חדש...');
-            // Document doesn't exist? Create it from local data
-            syncToCloud();
-        }
-    }, (error) => {
-        console.error("❌ שגיאת Firestore sync:", error);
-        showDetailedError('Firestore Sync', error);
-        // Keep showing connected if we have a user, just failed to sync
-        if (currentUser) {
-            updateCloudIndicator('connected');
-        }
-    });
+  console.log('📡 מגדיר Firestore listener עבור UID:', user.uid);
+  
+  const userDocRef = window.doc(window.firebaseDb, "shopping_lists", user.uid);
+  
+  unsubscribeSnapshot = window.onSnapshot(userDocRef, (docSnap) => {
+    if (docSnap.exists()) {
+      console.log('☁️ מסמך נמצא בענן');
+      const cloudData = docSnap.data();
+      
+      // בדיקה: אם הענן ריק אבל יש נתונים מקומיים, העלה אותם לענן
+      const cloudIsEmpty = !cloudData.lists || Object.keys(cloudData.lists).length === 0;
+      const localHasData = db.lists && Object.keys(db.lists).length > 0;
+      
+      if (cloudIsEmpty && localHasData) {
+        console.log('☁️ הענן ריק אבל יש נתונים מקומיים - מעלה לענן');
+        syncToCloud();
+        return;
+      }
+      
+      // רק אם הענן לא ריק, תסנכרן ממנו
+      if (JSON.stringify(cloudData) !== JSON.stringify(db)) {
+        console.log('🔄 מסנכרן נתונים מהענן...');
+        db = cloudData;
+        localStorage.setItem('BUDGET_FINAL_V28', JSON.stringify(db));
+        render();
+        showNotification('☁️ סונכרן מהענן!', 'success');
+      }
+    } else {
+      console.log('📝 מסמך לא קיים בענן, יוצר חדש...');
+      syncToCloud();
+    }
+  }, (error) => {
+    console.error("❌ שגיאת Firestore sync:", error);
+    showDetailedError('Firestore Sync', error);
+    if (currentUser) {
+      updateCloudIndicator('connected');
+    }
+  });
 }
 
 async function syncToCloud() {
