@@ -2091,12 +2091,7 @@ function addItem() {
             category: finalCategory
         });
         
-        // ניקוי השדות לאחר הוספה
-        document.getElementById('itemName').value = '';
-        document.getElementById('itemPrice').value = '';
-        document.getElementById('itemCategory').value = '';
-        document.getElementById('itemName').focus();
-        
+        closeModal('inputForm');
         save();
         showNotification('✅ מוצר נוסף!');
     }
@@ -2727,5 +2722,4 @@ if (currentLang === 'he') {
 
 render();
 updateUILanguage();
-
 
