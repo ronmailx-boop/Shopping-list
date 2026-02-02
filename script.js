@@ -852,7 +852,8 @@ function parseVoiceInput(text) {
                     price: 0,
                     qty: 1,
                     checked: false,
-                    category: category
+                    category: category,
+                    cloudId: 'item_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9)
                 });
                 addedCount++;
             }
@@ -1109,7 +1110,8 @@ function parseReceiptText(text) {
                     price: price,
                     qty: 1,
                     checked: false,
-                    category: detectCategory(name)
+                    category: detectCategory(name),
+                    cloudId: 'item_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9)
                 });
             }
             continue;
@@ -1129,7 +1131,8 @@ function parseReceiptText(text) {
                         price: price,
                         qty: 1,
                         checked: false,
-                        category: detectCategory(line)
+                        category: detectCategory(line),
+                        cloudId: 'item_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9)
                     });
                     i++; // Skip next line since we used it
                 }
@@ -1944,7 +1947,11 @@ function createFromTemplate(templateId) {
         url: template.url,
         budget: template.budget,
         isTemplate: false,
-        items: JSON.parse(JSON.stringify(template.items.map(item => ({ ...item, checked: false }))))
+        items: JSON.parse(JSON.stringify(template.items.map(item => ({ 
+            ...item, 
+            checked: false,
+            cloudId: 'item_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9)
+        }))))
     };
 
     db.currentId = newId;
@@ -1964,7 +1971,11 @@ function restoreFromHistory(idx) {
         url: entry.url || '',
         budget: 0,
         isTemplate: false,
-        items: JSON.parse(JSON.stringify(entry.items.map(item => ({ ...item, checked: false }))))
+        items: JSON.parse(JSON.stringify(entry.items.map(item => ({ 
+            ...item, 
+            checked: false,
+            cloudId: 'item_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9)
+        }))))
     };
 
     db.currentId = newId;
@@ -2088,7 +2099,8 @@ function addItem() {
             price: p,
             qty: 1,
             checked: false,
-            category: finalCategory
+            category: finalCategory,
+            cloudId: 'item_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9)
         });
         
         closeModal('inputForm');
@@ -2198,7 +2210,7 @@ function importFromText() {
             const totalPrice = parseFloat(fullMatch[3]);
             const price = totalPrice / qty;
             const checked = line.includes('✅');
-            items.push({ name, price, qty, checked, category: detectCategory(name) });
+            items.push({ name, price, qty, checked, category: detectCategory(name), cloudId: 'item_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9) });
             itemAdded = true;
         }
         if (!itemAdded) {
@@ -2207,7 +2219,7 @@ function importFromText() {
                 const name = bulletQtyMatch[1].trim().replace(/\*/g, '');
                 const qty = parseInt(bulletQtyMatch[2]);
                 if (name) {
-                    items.push({ name, price: 0, qty, checked: false, category: detectCategory(name) });
+                    items.push({ name, price: 0, qty, checked: false, category: detectCategory(name), cloudId: 'item_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9) });
                     itemAdded = true;
                 }
             }
@@ -2217,7 +2229,7 @@ function importFromText() {
             if (bulletMatch) {
                 const name = bulletMatch[1].trim().replace(/\*/g, '');
                 if (name) {
-                    items.push({ name, price: 0, qty: 1, checked: false, category: detectCategory(name) });
+                    items.push({ name, price: 0, qty: 1, checked: false, category: detectCategory(name), cloudId: 'item_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9) });
                     itemAdded = true;
                 }
             }
@@ -2227,7 +2239,7 @@ function importFromText() {
             if (starMatch) {
                 const name = starMatch[1].trim();
                 if (name) {
-                    items.push({ name, price: 0, qty: 1, checked: false, category: detectCategory(name) });
+                    items.push({ name, price: 0, qty: 1, checked: false, category: detectCategory(name), cloudId: 'item_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9) });
                     itemAdded = true;
                 }
             }
@@ -2235,7 +2247,7 @@ function importFromText() {
         if (!itemAdded && line.length > 0) {
             const name = line.replace(/^[\d\.\)\-\s]+/, '').trim();
             if (name && !/^\d+$/.test(name)) {
-                items.push({ name, price: 0, qty: 1, checked: false, category: detectCategory(name) });
+                items.push({ name, price: 0, qty: 1, checked: false, category: detectCategory(name), cloudId: 'item_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9) });
             }
         }
     }
@@ -2650,14 +2662,14 @@ function setupFirestoreListener(user) {
         return;
       }
       
-      // רק אם הענן לא ריק, תסנכרן ממנו
+      // מיזוג חכם: הענן הוא מקור האמת למחיקות
       if (JSON.stringify(cloudData) !== JSON.stringify(db)) {
-        console.log('🔄 מסנכרן נתונים מהענן...');
-        const updatedDb = { ...cloudData };
+        console.log('🔄 מבצע סנכרון חכם מהענן...');
+        const mergedDb = mergeCloudWithLocal(cloudData, db);
 
         // הגנה: וודא שקיים אובייקט רשימות
-        if (!updatedDb.lists || Object.keys(updatedDb.lists).length === 0) {
-            updatedDb.lists = {
+        if (!mergedDb.lists || Object.keys(mergedDb.lists).length === 0) {
+            mergedDb.lists = {
                 'L1': {
                     name: 'הרשימה שלי',
                     url: '',
@@ -2666,10 +2678,10 @@ function setupFirestoreListener(user) {
                     items: []
                 }
             };
-            updatedDb.currentId = 'L1';
+            mergedDb.currentId = 'L1';
         }
 
-        db = updatedDb;
+        db = mergedDb;
         localStorage.setItem('BUDGET_FINAL_V28', JSON.stringify(db));
         render();
         showNotification('☁️ סונכרן מהענן!', 'success');
@@ -2685,6 +2697,59 @@ function setupFirestoreListener(user) {
       updateCloudIndicator('connected');
     }
   });
+}
+
+function mergeCloudWithLocal(cloudData, localData) {
+  console.log('🔄 מבצע מיזוג חכם בין ענן למקומי...');
+  
+  const merged = JSON.parse(JSON.stringify(cloudData)); // עותק עמוק של נתוני הענן
+  
+  // עבור כל רשימה
+  Object.keys(cloudData.lists || {}).forEach(listId => {
+    const cloudList = cloudData.lists[listId];
+    const localList = localData.lists && localData.lists[listId];
+    
+    if (!localList) {
+      // אין רשימה מקומית - השתמש בענן
+      return;
+    }
+    
+    // יצירת מפת cloudId לפריטי ענן
+    const cloudItemsMap = {};
+    (cloudList.items || []).forEach(item => {
+      if (item.cloudId) {
+        cloudItemsMap[item.cloudId] = item;
+      }
+    });
+    
+    // מעבר על פריטים מקומיים
+    (localList.items || []).forEach(localItem => {
+      if (!localItem.cloudId) {
+        // פריט ללא cloudId - זה פריט ישן או חדש שנוסף לפני השינוי
+        // נוסיף לו cloudId ונוסיף אותו
+        localItem.cloudId = 'item_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+        merged.lists[listId].items.push(localItem);
+        console.log('➕ מוסיף פריט חדש מקומי ללא cloudId:', localItem.name);
+      } else if (!cloudItemsMap[localItem.cloudId]) {
+        // פריט עם cloudId שלא קיים בענן - זה פריט חדש שנוסף באופליין
+        merged.lists[listId].items.push(localItem);
+        console.log('➕ מוסיף פריט חדש מאופליין:', localItem.name);
+      } else {
+        // פריט קיים גם בענן - עדכן אותו מהענן (הענן מנצח)
+        console.log('✓ פריט קיים בשניהם, משתמש בנתוני ענן:', localItem.name);
+      }
+    });
+  });
+  
+  // בדיקת רשימות חדשות שנוספו מקומית
+  Object.keys(localData.lists || {}).forEach(listId => {
+    if (!merged.lists[listId]) {
+      console.log('📝 מוסיף רשימה חדשה מקומית:', listId);
+      merged.lists[listId] = localData.lists[listId];
+    }
+  });
+  
+  return merged;
 }
 
 async function syncToCloud() {
