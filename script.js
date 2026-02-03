@@ -1839,7 +1839,7 @@ function renderCategoryDoughnutChart() {
     const ctx = document.getElementById('categoryDoughnutChart');
     if (!ctx) return;
 
-    // איסוף נתונים מכל הרשימות - רק פריטים שבוצעו (completed: true)
+    // איסוף נתונים מכל הרשימות - רק פריטים שבוצעו (checked: true)
     const categoryTotals = {};
     
     // Initialize all categories with 0
@@ -1847,7 +1847,7 @@ function renderCategoryDoughnutChart() {
         categoryTotals[cat] = 0;
     });
     
-    // Sum up completed items from all lists
+    // Sum up CHECKED items from all ACTIVE lists
     Object.values(db.lists).forEach(list => {
         list.items.forEach(item => {
             if (item.checked) { // checked means completed
@@ -1863,6 +1863,23 @@ function renderCategoryDoughnutChart() {
             }
         });
     });
+    
+    // Sum up ALL items from COMPLETED lists (history)
+    if (db.history && db.history.length > 0) {
+        db.history.forEach(entry => {
+            entry.items.forEach(item => {
+                const price = (item.price || 0) * (item.qty || 1);
+                
+                // Detect category
+                let category = item.category || detectCategory(item.name);
+                if (!category || !CATEGORIES[category]) {
+                    category = 'אחר';
+                }
+                
+                categoryTotals[category] = (categoryTotals[category] || 0) + price;
+            });
+        });
+    }
     
     // Filter out categories with 0 spending
     const labels = [];
@@ -1881,7 +1898,7 @@ function renderCategoryDoughnutChart() {
     if (data.length === 0) {
         const container = document.getElementById('categoryBreakdown');
         if (container) {
-            container.innerHTML = '<p class="text-gray-400 text-center py-4">אין נתונים להצגה - סמן פריטים כבוצעו כדי לראות הוצאות לפי קטגוריה</p>';
+            container.innerHTML = '<p class="text-gray-400 text-center py-4">אין נתונים להצגה - סמן פריטים כבוצעו או השלם רשימות כדי לראות הוצאות לפי קטגוריה</p>';
         }
         return;
     }
