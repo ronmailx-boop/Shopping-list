@@ -181,6 +181,7 @@ const translations = {
         uploading: 'מעלה תמונה...', detectingText: 'מזהה טקסט...', processingResults: 'מעבד תוצאות...',
         completed: 'הושלם!', monthlyStats: '📊 סטטיסטיקות חודשיות', monthlyExpenses: 'הוצאות החודש',
         completedListsCount: 'רשימות הושלמו 👆', avgPerList: 'ממוצע לרשימה', popularItems: '🏆 מוצרים פופולריים',
+        categoryExpenses: '💰 הוצאות לפי קטגוריה',
         history: '📁 היסטוריה', viewCompletedLists: 'צפה ברשימות שהושלמו', pleaseSelectImage: 'אנא בחר תמונה',
         noTextDetected: 'לא זוהה טקסט בתמונה - נסה תמונה ברורה יותר', noItemsFound: 'לא נמצאו מוצרים בקבלה - נסה תמונה אחרת',
         listCreated: 'נוצרה רשימה עם', items2: 'מוצרים!', scanError: 'שגיאה בסריקת הקבלה',
@@ -214,6 +215,7 @@ const translations = {
         uploading: 'Uploading image...', detectingText: 'Detecting text...', processingResults: 'Processing results...',
         completed: 'Completed!', monthlyStats: '📊 Monthly Statistics', monthlyExpenses: 'Monthly Expenses',
         completedListsCount: 'Lists Completed 👆', avgPerList: 'Average per List', popularItems: '🏆 Popular Items',
+        categoryExpenses: '💰 Expenses by Category',
         history: '📁 History', viewCompletedLists: 'View Completed Lists', pleaseSelectImage: 'Please select an image',
         noTextDetected: 'No text detected - try a clearer image', noItemsFound: 'No items found in receipt - try another image',
         listCreated: 'Created list with', items2: 'items!', scanError: 'Error scanning receipt',
@@ -247,6 +249,7 @@ const translations = {
         uploading: 'Загрузка изображения...', detectingText: 'Распознавание текста...', processingResults: 'Обработка результатов...',
         completed: 'Завершено!', monthlyStats: '📊 Месячная Статистика', monthlyExpenses: 'Расходы за Месяц',
         completedListsCount: 'Завершено Списков 👆', avgPerList: 'Средний на Список', popularItems: '🏆 Популярные Товары',
+        categoryExpenses: '💰 Расходы по Категориям',
         history: '📁 История', viewCompletedLists: 'Просмотр Завершенных Списков', pleaseSelectImage: 'Пожалуйста, выберите изображение',
         noTextDetected: 'Текст не обнаружен - попробуйте более четкое изображение', noItemsFound: 'Товары не найдены в чеке - попробуйте другое изображение',
         listCreated: 'Создан список с', items2: 'товарами!', scanError: 'Ошибка сканирования чека',
@@ -280,6 +283,7 @@ const translations = {
         uploading: 'Se încarcă imaginea...', detectingText: 'Se detectează textul...', processingResults: 'Se procesează rezultatele...',
         completed: 'Finalizat!', monthlyStats: '📊 Statistici Lunare', monthlyExpenses: 'Cheltuieli Lunare',
         completedListsCount: 'Liste Finalizate 👆', avgPerList: 'Medie pe Listă', popularItems: '🏆 Produse Populare',
+        categoryExpenses: '💰 Cheltuieli pe Categorii',
         history: '📁 Istoric', viewCompletedLists: 'Vezi Liste Finalizate', pleaseSelectImage: 'Vă rugăm selectați o imagine',
         noTextDetected: 'Nu s-a detectat text - încercați o imagine mai clară', noItemsFound: 'Nu s-au găsit produse în bon - încercați altă imagine',
         listCreated: 'Listă creată cu', items2: 'produse!', scanError: 'Eroare la scanarea bonului',
@@ -331,6 +335,7 @@ let currentEditIdx = null;
 let listToDelete = null;
 let sortableInstance = null;
 let monthlyChart = null;
+let categoryDoughnutChart = null;
 let highlightedItemIndex = null;
 let highlightedListId = null;
 let categorySortEnabled = localStorage.getItem('categorySortEnabled') === 'true' || false;
@@ -496,6 +501,9 @@ function updateUILanguage() {
 
     const popularItemsTitle = document.getElementById('popularItemsTitle');
     if (popularItemsTitle) popularItemsTitle.textContent = t('popularItems');
+
+    const categoryExpensesTitle = document.getElementById('categoryExpensesTitle');
+    if (categoryExpensesTitle) categoryExpensesTitle.textContent = t('categoryExpenses');
 
     const historyStatsTitle = document.getElementById('historyStatsTitle');
     if (historyStatsTitle) historyStatsTitle.textContent = t('history');
@@ -1730,6 +1738,7 @@ function renderStats() {
     document.getElementById('monthlyProgress').style.width = `${monthlyProgress}%`;
 
     renderMonthlyChart();
+    renderCategoryDoughnutChart();
     renderPopularItems();
 }
 
@@ -1823,6 +1832,153 @@ function renderMonthlyChart() {
                 }
             }
         }
+    });
+}
+
+function renderCategoryDoughnutChart() {
+    const ctx = document.getElementById('categoryDoughnutChart');
+    if (!ctx) return;
+
+    // איסוף נתונים מכל הרשימות - רק פריטים שבוצעו (completed: true)
+    const categoryTotals = {};
+    
+    // Initialize all categories with 0
+    Object.keys(CATEGORIES).forEach(cat => {
+        categoryTotals[cat] = 0;
+    });
+    
+    // Sum up completed items from all lists
+    Object.values(db.lists).forEach(list => {
+        list.items.forEach(item => {
+            if (item.checked) { // checked means completed
+                const price = (item.price || 0) * (item.qty || 1);
+                
+                // Detect category
+                let category = item.category || detectCategory(item.name);
+                if (!category || !CATEGORIES[category]) {
+                    category = 'אחר';
+                }
+                
+                categoryTotals[category] = (categoryTotals[category] || 0) + price;
+            }
+        });
+    });
+    
+    // Filter out categories with 0 spending
+    const labels = [];
+    const data = [];
+    const colors = [];
+    
+    Object.entries(categoryTotals).forEach(([category, total]) => {
+        if (total > 0) {
+            labels.push(category);
+            data.push(total);
+            colors.push(CATEGORIES[category] || '#6b7280');
+        }
+    });
+    
+    // If no data, show message
+    if (data.length === 0) {
+        const container = document.getElementById('categoryBreakdown');
+        if (container) {
+            container.innerHTML = '<p class="text-gray-400 text-center py-4">אין נתונים להצגה - סמן פריטים כבוצעו כדי לראות הוצאות לפי קטגוריה</p>';
+        }
+        return;
+    }
+    
+    // Destroy previous chart if exists
+    if (categoryDoughnutChart) {
+        categoryDoughnutChart.destroy();
+    }
+    
+    // Create doughnut chart
+    categoryDoughnutChart = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+            labels: labels,
+            datasets: [{
+                data: data,
+                backgroundColor: colors,
+                borderWidth: 2,
+                borderColor: '#ffffff'
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: true,
+            plugins: {
+                legend: {
+                    display: true,
+                    position: 'bottom',
+                    rtl: true,
+                    labels: {
+                        font: {
+                            size: 12,
+                            family: 'system-ui, sans-serif'
+                        },
+                        padding: 10,
+                        usePointStyle: true
+                    }
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            const label = context.label || '';
+                            const value = context.parsed || 0;
+                            const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                            const percentage = ((value / total) * 100).toFixed(1);
+                            return `${label}: ₪${value.toFixed(2)} (${percentage}%)`;
+                        }
+                    },
+                    rtl: true
+                }
+            }
+        }
+    });
+    
+    // Render text breakdown
+    renderCategoryBreakdown(categoryTotals);
+}
+
+function renderCategoryBreakdown(categoryTotals) {
+    const container = document.getElementById('categoryBreakdown');
+    if (!container) return;
+    
+    container.innerHTML = '';
+    
+    // Filter and sort by total (descending)
+    const sortedCategories = Object.entries(categoryTotals)
+        .filter(([_, total]) => total > 0)
+        .sort((a, b) => b[1] - a[1]);
+    
+    if (sortedCategories.length === 0) {
+        container.innerHTML = '<p class="text-gray-400 text-center py-4">אין נתונים להצגה</p>';
+        return;
+    }
+    
+    const totalSpent = sortedCategories.reduce((sum, [_, total]) => sum + total, 0);
+    
+    sortedCategories.forEach(([category, total]) => {
+        const percentage = ((total / totalSpent) * 100).toFixed(1);
+        const color = CATEGORIES[category] || '#6b7280';
+        
+        const div = document.createElement('div');
+        div.className = 'flex justify-between items-center mb-3 p-3 rounded-xl border-2';
+        div.style.borderColor = color;
+        div.style.backgroundColor = color + '15'; // 15 is alpha for light background
+        
+        div.innerHTML = `
+            <div class="flex items-center gap-2">
+                <div class="w-4 h-4 rounded-full" style="background-color: ${color}"></div>
+                <span class="font-bold text-gray-800">${category}</span>
+            </div>
+            <div class="text-left">
+                <div class="font-black text-gray-800">₪${total.toFixed(2)}</div>
+                <div class="text-xs text-gray-600">${percentage}%</div>
+            </div>
+        `;
+        
+        container.appendChild(div);
     });
 }
 
