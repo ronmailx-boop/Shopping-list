@@ -3157,7 +3157,7 @@ function extractPrice(priceCell) {
     // המרה למחרוזת
     let priceStr = String(priceCell);
     
-    // ניקוי תווים לא רצויים: ₪, פסיקים, רווחים, אותיות
+    // ניקוי אגרסיבי: ₪, פסיקים, רווחים, אותיות
     // שמירה רק על ספרות, נקודה עשרונית ומינוס
     priceStr = priceStr.replace(/[^\d.-]/g, '');
     
@@ -3229,67 +3229,82 @@ async function handleExcelUpload(event) {
 
             if (rows.length === 0) continue;
 
-            // ========== שלב 4: חיפוש שורת כותרת וזיהוי עמודות ==========
+            // ========== שלב 4: זיהוי שורת כותרת ועמודות ==========
             let headerRowIndex = -1;
             let nameColIndex = -1;
             let priceColIndex = -1;
+            
+            // פורמטים אפשריים לתאריך
             const datePattern = /^\d{1,2}[\/\-\.]\d{1,2}[\/\-\.]\d{2,4}$/;
 
-            // חיפוש שורת כותרת (השורה שמעליה מתחילים התאריכים)
+            // סריקת השורות למציאת שורת הכותרת
             for (let i = 0; i < Math.min(30, rows.length); i++) {
                 const currentRow = rows[i];
                 
-                // בדיקה אם השורה הבאה מתחילה בתאריך (סימן שהשורה הנוכחית היא כותרת)
-                if (i + 1 < rows.length) {
-                    const nextRow = rows[i + 1];
-                    const firstCellOfNext = nextRow[0];
-                    
-                    if (firstCellOfNext && typeof firstCellOfNext === 'string' && 
-                        datePattern.test(firstCellOfNext.trim())) {
-                        headerRowIndex = i;
-                        
-                        // זיהוי עמודת שם עסק/תיאור
-                        nameColIndex = findColumnIndex(currentRow, ['עסק', 'תיאור', 'שם', 'business', 'description', 'name']);
-                        
-                        // זיהוי עמודת סכום/חיוב
-                        priceColIndex = findColumnIndex(currentRow, ['סכום', 'חיוב', 'מחיר', 'amount', 'price', 'charge']);
-                        
-                        console.log(`נמצאה שורת כותרת בשורה ${i}: שם=${nameColIndex}, מחיר=${priceColIndex}`);
-                        break;
-                    }
+                // נסה לזהות שורת כותרת על ידי חיפוש מילות מפתח
+                const possibleNameCol = findColumnIndex(currentRow, ['עסק', 'תיאור', 'שם מוטב', 'business', 'description', 'name']);
+                const possiblePriceCol = findColumnIndex(currentRow, ['סכום', 'חיוב', 'סה״כ', 'מחיר', 'amount', 'charge', 'total']);
+                
+                // אם מצאנו עמודות מתאימות, זו כנראה שורת הכותרת
+                if (possibleNameCol !== -1 && possiblePriceCol !== -1) {
+                    headerRowIndex = i;
+                    nameColIndex = possibleNameCol;
+                    priceColIndex = possiblePriceCol;
+                    console.log(`✓ נמצאה שורת כותרת בשורה ${i}:`);
+                    console.log(`  - עמודת שם: ${nameColIndex} (${currentRow[nameColIndex]})`);
+                    console.log(`  - עמודת מחיר: ${priceColIndex} (${currentRow[priceColIndex]})`);
+                    break;
                 }
             }
 
             // אם לא נמצאה שורת כותרת, דלג על הגיליון
             if (headerRowIndex === -1 || nameColIndex === -1 || priceColIndex === -1) {
-                console.log(`לא נמצאו עמודות מתאימות בגיליון ${sheetName}`);
+                console.log(`⚠ לא נמצאה שורת כותרת מתאימה בגיליון ${sheetName}`);
                 continue;
             }
 
-            // ========== שלב 5: קליטת עסקאות מהגיליון ==========
-            const dataStartIndex = headerRowIndex + 1;
+            // ========== שלב 5: מציאת תחילת הנתונים ==========
+            let dataStartIndex = -1;
+            
+            // חיפוש השורה הראשונה שמתחילה בתאריך (אחרי שורת הכותרת)
+            for (let i = headerRowIndex + 1; i < rows.length; i++) {
+                const firstCell = rows[i][0];
+                if (firstCell && typeof firstCell === 'string' && datePattern.test(firstCell.trim())) {
+                    dataStartIndex = i;
+                    console.log(`✓ תחילת נתונים בשורה ${i}`);
+                    break;
+                }
+            }
+
+            if (dataStartIndex === -1) {
+                console.log(`⚠ לא נמצאו שורות נתונים בגיליון ${sheetName}`);
+                continue;
+            }
+
+            // ========== שלב 6: קליטת עסקאות מהגיליון ==========
             let sheetItemCount = 0;
 
             for (let i = dataStartIndex; i < rows.length; i++) {
                 const row = rows[i];
                 
-                // בדיקת תקינות השורה (צריכה להתחיל בתאריך)
+                // וידוא שהשורה מתחילה בתאריך (שורת נתונים תקינה)
                 const firstCell = row[0];
                 if (!firstCell || typeof firstCell !== 'string' || !datePattern.test(firstCell.trim())) {
-                    continue; // לא שורת נתונים תקינה
+                    // הגענו לסוף הנתונים
+                    break;
                 }
 
-                // חילוץ שם עסק
+                // חילוץ שם עסק מהעמודה הנכונה
                 const businessName = row[nameColIndex];
                 if (!businessName || typeof businessName !== 'string' || businessName.trim() === '') {
-                    continue; // דלג על שורות ריקות
+                    continue; // דלג על שורות עם שם ריק
                 }
 
-                // חילוץ ומחיר
+                // חילוץ מחיר מהעמודה הנכונה
                 const priceCell = row[priceColIndex];
                 const price = extractPrice(priceCell);
 
-                // הוספת מוצר לרשימה
+                // הוספת עסקה לרשימה
                 const category = detectCategory(businessName.trim());
                 db.lists[newListId].items.push({
                     name: businessName.trim(),
@@ -3304,12 +3319,12 @@ async function handleExcelUpload(event) {
                 totalItemCount++;
             }
 
-            console.log(`מגיליון ${sheetName} יובאו ${sheetItemCount} עסקאות`);
+            console.log(`✓ מגיליון "${sheetName}" יובאו ${sheetItemCount} עסקאות`);
         }
 
-        // ========== שלב 6: סיום ומעבר לרשימה ==========
+        // ========== שלב 7: סיום ומעבר לרשימה ==========
         if (totalItemCount === 0) {
-            showNotification('❌ לא נמצאו עסקאות בקובץ האקסל', 'error');
+            showNotification('❌ לא נמצאו עסקאות תקינות בקובץ האקסל', 'error');
             delete db.lists[newListId];
             event.target.value = '';
             return;
@@ -3318,7 +3333,9 @@ async function handleExcelUpload(event) {
         db.currentId = newListId;
         save();
 
-        showNotification(`✅ יובאו ${totalItemCount} עסקאות מ-${workbook.SheetNames.length} גליונות!`);
+        const sheetsCount = workbook.SheetNames.length;
+        const sheetsText = sheetsCount === 1 ? 'גיליון אחד' : `${sheetsCount} גליונות`;
+        showNotification(`✅ יובאו ${totalItemCount} עסקאות מ-${sheetsText}!`);
         event.target.value = '';
 
     } catch (error) {
