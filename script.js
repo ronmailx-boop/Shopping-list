@@ -3130,3 +3130,120 @@ if (currentLang === 'he') {
 render();
 updateUILanguage();
 
+// ========== Excel Import Functions ==========
+async function handleExcelUpload(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    try {
+        showNotification('⏳ מעבד קובץ אקסל...', 'info');
+
+        const data = await file.arrayBuffer();
+        const workbook = XLSX.read(data, { type: 'array' });
+        const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+        const rows = XLSX.utils.sheet_to_json(firstSheet, { header: 1, raw: false });
+
+        // 1. חיפוש 4 ספרות ב-15 השורות הראשונות
+        let listName = null;
+        const searchRows = rows.slice(0, Math.min(15, rows.length));
+        const digitPattern = /\d{4}/;
+
+        for (const row of searchRows) {
+            for (const cell of row) {
+                if (cell && typeof cell === 'string') {
+                    const match = cell.match(digitPattern);
+                    if (match) {
+                        listName = `אשראי/בנק ${match[0]}`;
+                        break;
+                    }
+                }
+            }
+            if (listName) break;
+        }
+
+        // אם לא נמצאו 4 ספרות, שם ברירת מחדל
+        if (!listName) {
+            const today = new Date();
+            const dateStr = `${today.getDate()}/${today.getMonth() + 1}/${today.getFullYear()}`;
+            listName = `ייבוא אקסל ${dateStr}`;
+        }
+
+        // 2. חיפוש תחילת הטבלה (שורה שמתחילה בתאריך)
+        const datePattern = /^\d{1,2}[\/\-\.]\d{1,2}[\/\-\.]\d{2,4}$/;
+        let tableStartIndex = -1;
+
+        for (let i = 0; i < rows.length; i++) {
+            const firstCell = rows[i][0];
+            if (firstCell && typeof firstCell === 'string' && datePattern.test(firstCell.trim())) {
+                tableStartIndex = i;
+                break;
+            }
+        }
+
+        if (tableStartIndex === -1) {
+            showNotification('❌ לא נמצאה טבלה עם תאריכים בקובץ', 'error');
+            event.target.value = '';
+            return;
+        }
+
+        // 3. יצירת רשימה חדשה
+        const newListId = 'L' + Date.now();
+        db.lists[newListId] = {
+            name: listName,
+            items: [],
+            url: '',
+            budget: 0,
+            createdAt: Date.now(),
+            isTemplate: false,
+            cloudId: 'list_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9)
+        };
+
+        // 4. פענוח שורות וקליטת מוצרים
+        let itemCount = 0;
+        for (let i = tableStartIndex; i < rows.length; i++) {
+            const row = rows[i];
+            
+            // עמודה B = שם המוצר (אינדקס 1)
+            // עמודה E = מחיר (אינדקס 4)
+            const productName = row[1];
+            const priceCell = row[4];
+
+            if (!productName || typeof productName !== 'string' || productName.trim() === '') {
+                continue; // דלג על שורות ריקות
+            }
+
+            // המרת מחיר למספר חיובי
+            let price = 0;
+            if (priceCell) {
+                const priceStr = String(priceCell).replace(/[^\d.-]/g, '');
+                price = Math.abs(parseFloat(priceStr)) || 0;
+            }
+
+            // הוספת מוצר לרשימה
+            const category = detectCategory(productName.trim());
+            db.lists[newListId].items.push({
+                name: productName.trim(),
+                price: price,
+                qty: 1,
+                checked: false,
+                category: category,
+                cloudId: 'item_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9) + '_' + itemCount
+            });
+
+            itemCount++;
+        }
+
+        // 5. מעבר לרשימה החדשה
+        db.currentId = newListId;
+        save();
+
+        showNotification(`✅ יובאו ${itemCount} מוצרים בהצלחה!`);
+        event.target.value = '';
+
+    } catch (error) {
+        console.error('Excel Import Error:', error);
+        showNotification('❌ שגיאה בקריאת קובץ האקסל', 'error');
+        event.target.value = '';
+    }
+}
+
