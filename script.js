@@ -1167,8 +1167,7 @@ async function processReceipt() {
         console.log('🔑 Using API Key:', config.apiKey.substring(0, 10) + '...');
 
         // Call Gemini 1.5 Flash API
-        const apiURL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=" + config.apiKey;
-        const response = await fetch(apiURL, {
+        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${config.apiKey}`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
