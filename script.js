@@ -10,6 +10,7 @@ let isSyncing = false;
 let isConnected = false;
 let currentUser = null;
 let syncTimeout = null;
+
 // ========== Categories ==========
 const CATEGORIES = {
     'פירות וירקות': '#22c55e',
@@ -1107,8 +1108,6 @@ async function translateText(text, targetLang) {
 }
 
 // ========== Receipt Scanning Functions ==========
-
-// ========== Credit Card / Bank Screenshot Scanning ==========
 async function processReceipt() {
     const fileInput = document.getElementById('receiptImage');
     const file = fileInput.files[0];
@@ -1353,31 +1352,6 @@ function updateFileLabel() {
     if (fileInput.files && fileInput.files[0]) {
         fileLabel.textContent = `✓ ${fileInput.files[0].name}`;
     }
-}
-
-                }
-            }
-        }
-    }
-
-    return items;
-}
-
-function createListFromReceipt(items) {
-    const newId = 'L' + Date.now();
-    const listName = 'קבלה - ' + new Date().toLocaleDateString('he-IL');
-
-    db.lists[newId] = {
-        name: listName,
-        url: '',
-        budget: 0,
-        isTemplate: false,
-        items: items
-    };
-
-    db.currentId = newId;
-    activePage = 'lists';
-    save();
 }
 
 function toggleBottomBar() {
