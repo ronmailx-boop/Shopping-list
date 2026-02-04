@@ -1154,12 +1154,16 @@ async function processReceipt() {
             fileReader.readAsDataURL(file);
         });
 
+        // Determine MIME type from file
+        const mimeType = file.type || 'image/jpeg';
+
         // Update progress
         progressBar.style.width = '60%';
         statusDiv.textContent = 'מנתח עסקאות...';
 
         console.log('🔍 Sending to Gemini API...');
         console.log('📏 Base64 length:', base64Image.length);
+        console.log('📄 MIME Type:', mimeType);
         console.log('🔑 Using API Key:', config.apiKey.substring(0, 10) + '...');
 
         // Call Gemini 1.5 Flash API
@@ -1186,7 +1190,7 @@ Do NOT add any text before or after the JSON. Price must be a number without sym
                         },
                         {
                             inline_data: {
-                                mime_type: "image/jpeg",
+                                mime_type: mimeType,
                                 data: base64Image
                             }
                         }
