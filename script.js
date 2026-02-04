@@ -3209,52 +3209,12 @@ async function handleExcelUpload(event) {
 
         console.log('📂 נפתח קובץ עם', workbook.SheetNames.length, 'גליונות:', workbook.SheetNames);
 
-        // ========== שלב 1: זיהוי מספר כרטיס (4 ספרות) ==========
-        let listName = null;
-        const digitPattern = /\d{4}/;
-
-        // חיפוש ב-20 השורות הראשונות של הגיליון הראשון
-        const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
-        const firstSheetRows = XLSX.utils.sheet_to_json(firstSheet, { header: 1, raw: false, defval: '' });
-        const searchRows = firstSheetRows.slice(0, Math.min(20, firstSheetRows.length));
-
-        for (const row of searchRows) {
-            for (const cell of row) {
-                if (cell && typeof cell === 'string') {
-                    const match = cell.match(digitPattern);
-                    if (match) {
-                        listName = `אשראי/בנק ${match[0]}`;
-                        console.log('💳 נמצא מספר כרטיס:', match[0]);
-                        break;
-                    }
-                }
-            }
-            if (listName) break;
-        }
-
-        // אם לא נמצאו 4 ספרות, שם ברירת מחדל
-        if (!listName) {
-            const today = new Date();
-            const dateStr = `${today.getDate()}/${today.getMonth() + 1}/${today.getFullYear()}`;
-            listName = `ייבוא אקסל ${dateStr}`;
-            console.log('📅 לא נמצא מספר כרטיס, שם ברירת מחדל:', listName);
-        }
-
-        // ========== שלב 2: יצירת רשימה חדשה ==========
-        const newListId = 'L' + Date.now();
-        db.lists[newListId] = {
-            name: listName,
-            items: [],
-            url: '',
-            budget: 0,
-            createdAt: Date.now(),
-            isTemplate: false,
-            cloudId: 'list_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9)
-        };
-
+        // מבנה נתונים לאיסוף עסקאות לפי כרטיס
+        // { '1234': [{name, price}, ...], '5678': [...] }
+        const cardTransactions = {};
         let totalItemCount = 0;
 
-        // ========== שלב 3: מעבר על כל הגליונות ==========
+        // ========== שלב 1: מעבר על כל הגליונות ==========
         for (const sheetName of workbook.SheetNames) {
             console.log(`\n📊 מעבד גיליון: "${sheetName}"`);
             
@@ -3266,12 +3226,13 @@ async function handleExcelUpload(event) {
                 continue;
             }
 
-            // ========== שלב 4: חיפוש שורת כותרת ==========
+            // ========== שלב 2: חיפוש שורת כותרת ==========
             let headerRowIndex = -1;
             let nameColIndex = -1;
             let priceColIndex = -1;
+            let cardColIndex = -1;
 
-            // מילות מפתח לחיפוש - כולל וריאציות
+            // מילות מפתח לחיפוש
             const nameKeywords = [
                 'שם בית העסק',
                 'שם בית עסק', 
@@ -3292,23 +3253,34 @@ async function handleExcelUpload(event) {
                 'amount'
             ];
 
+            const cardKeywords = [
+                '4 ספרות אחרונות של כרטיס האשראי',
+                '4 ספרות אחרונות',
+                'ספרות אחרונות',
+                'כרטיס אשראי',
+                'מספר כרטיס'
+            ];
+
             // סריקת עד 40 שורות ראשונות לחיפוש כותרת
             for (let i = 0; i < Math.min(40, rows.length); i++) {
                 const currentRow = rows[i];
                 
-                // נסה למצוא את עמודת השם והמחיר
+                // נסה למצוא את עמודת השם, המחיר והכרטיס
                 const foundNameCol = findColumnIndex(currentRow, nameKeywords);
                 const foundPriceCol = findColumnIndex(currentRow, priceKeywords);
+                const foundCardCol = findColumnIndex(currentRow, cardKeywords);
                 
-                // אם מצאנו את שתי העמודות - זו שורת הכותרת!
-                if (foundNameCol !== -1 && foundPriceCol !== -1) {
+                // אם מצאנו את שלוש העמודות - זו שורת הכותרת!
+                if (foundNameCol !== -1 && foundPriceCol !== -1 && foundCardCol !== -1) {
                     headerRowIndex = i;
                     nameColIndex = foundNameCol;
                     priceColIndex = foundPriceCol;
+                    cardColIndex = foundCardCol;
                     
                     console.log(`✅ נמצאה שורת כותרת בשורה ${i}:`);
                     console.log(`   📝 עמודת שם (${nameColIndex}): "${currentRow[nameColIndex]}"`);
                     console.log(`   💰 עמודת מחיר (${priceColIndex}): "${currentRow[priceColIndex]}"`);
+                    console.log(`   💳 עמודת כרטיס (${cardColIndex}): "${currentRow[cardColIndex]}"`);
                     break;
                 }
             }
@@ -3318,7 +3290,7 @@ async function handleExcelUpload(event) {
                 continue;
             }
 
-            // ========== שלב 5: מציאת תחילת הנתונים ==========
+            // ========== שלב 3: מציאת תחילת הנתונים ==========
             let dataStartIndex = -1;
             
             // מחפשים שורה שמתחילה בתאריך (אחרי שורת הכותרת)
@@ -3337,7 +3309,7 @@ async function handleExcelUpload(event) {
                 continue;
             }
 
-            // ========== שלב 6: ייבוא עסקאות ==========
+            // ========== שלב 4: ייבוא עסקאות ופיצול לפי כרטיסים ==========
             let sheetItemCount = 0;
 
             for (let i = dataStartIndex; i < rows.length; i++) {
@@ -3363,15 +3335,37 @@ async function handleExcelUpload(event) {
                 const priceCell = row[priceColIndex];
                 const price = extractPrice(priceCell);
 
-                // הוספת העסקה לרשימה
-                const category = detectCategory(businessName.trim());
-                db.lists[newListId].items.push({
+                // חילוץ מספר כרטיס (4 ספרות אחרונות)
+                const cardCell = row[cardColIndex];
+                let cardNumber = '';
+                
+                if (cardCell && typeof cardCell === 'string') {
+                    // חילוץ רק הספרות מהתא
+                    cardNumber = cardCell.replace(/\D/g, '');
+                    // אם יש יותר מ-4 ספרות, קח את ה-4 אחרונות
+                    if (cardNumber.length > 4) {
+                        cardNumber = cardNumber.slice(-4);
+                    }
+                } else if (cardCell && typeof cardCell === 'number') {
+                    cardNumber = String(cardCell).slice(-4);
+                }
+
+                // אם לא מצאנו מספר כרטיס תקין, דלג על השורה
+                if (!cardNumber || cardNumber.length !== 4) {
+                    console.log(`⚠️  שורה ${i}: מספר כרטיס לא תקין (${cardCell}), מדלג`);
+                    continue;
+                }
+
+                // אם זה הכרטיס הראשון שנתקלנו בו, צור לו מערך ריק
+                if (!cardTransactions[cardNumber]) {
+                    cardTransactions[cardNumber] = [];
+                    console.log(`💳 כרטיס חדש זוהה: ${cardNumber}`);
+                }
+
+                // הוסף את העסקה למערך של הכרטיס הספציפי
+                cardTransactions[cardNumber].push({
                     name: businessName.trim(),
-                    price: price,
-                    qty: 1,
-                    checked: false,
-                    category: category,
-                    cloudId: 'item_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9) + '_' + totalItemCount
+                    price: price
                 });
 
                 sheetItemCount++;
@@ -3381,22 +3375,67 @@ async function handleExcelUpload(event) {
             console.log(`✅ מגיליון "${sheetName}" יובאו ${sheetItemCount} עסקאות`);
         }
 
-        // ========== שלב 7: סיום ==========
+        // ========== שלב 5: יצירת רשימות נפרדות לכל כרטיס ==========
         if (totalItemCount === 0) {
             console.log('❌ לא נמצאו עסקאות לייבוא');
             showNotification('❌ לא נמצאו עסקאות תקינות בקובץ האקסל', 'error');
-            delete db.lists[newListId];
             event.target.value = '';
             return;
         }
 
-        // מעבר לרשימה החדשה
-        db.currentId = newListId;
+        const cardNumbers = Object.keys(cardTransactions);
+        console.log(`\n💳 נמצאו ${cardNumbers.length} כרטיסים שונים:`, cardNumbers);
+
+        let firstListId = null;
+
+        for (const cardNumber of cardNumbers) {
+            const transactions = cardTransactions[cardNumber];
+            
+            // יצירת רשימה חדשה לכרטיס
+            const listId = 'L' + Date.now() + '_' + cardNumber;
+            const listName = `אשראי ${cardNumber}`;
+            
+            db.lists[listId] = {
+                name: listName,
+                items: [],
+                url: '',
+                budget: 0,
+                createdAt: Date.now(),
+                isTemplate: false,
+                cloudId: 'list_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9)
+            };
+
+            // הוספת כל העסקאות לרשימה
+            for (let i = 0; i < transactions.length; i++) {
+                const transaction = transactions[i];
+                
+                db.lists[listId].items.push({
+                    name: transaction.name,
+                    price: transaction.price,
+                    qty: 1,
+                    checked: false,
+                    category: 'אחר',  // קטגוריה קבועה לכל העסקאות
+                    cloudId: 'item_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9) + '_' + i
+                });
+            }
+
+            console.log(`✅ נוצרה רשימה "${listName}" עם ${transactions.length} עסקאות`);
+            
+            // שמור את הרשימה הראשונה למעבר אליה
+            if (!firstListId) {
+                firstListId = listId;
+            }
+        }
+
+        // ========== שלב 6: מעבר לרשימה הראשונה ==========
+        if (firstListId) {
+            db.currentId = firstListId;
+        }
+        
         save();
 
-        const sheetsCount = workbook.SheetNames.length;
-        console.log(`\n🎉 סה"כ יובאו ${totalItemCount} עסקאות מ-${sheetsCount} גליונות`);
-        showNotification(`✅ יובאו ${totalItemCount} עסקאות מ-${sheetsCount} ${sheetsCount === 1 ? 'גיליון' : 'גליונות'}!`);
+        console.log(`\n🎉 סה"כ יובאו ${totalItemCount} עסקאות ל-${cardNumbers.length} רשימות`);
+        showNotification(`✅ נוצרו ${cardNumbers.length} רשימות עם סה"כ ${totalItemCount} עסקאות!`);
         event.target.value = '';
 
     } catch (error) {
