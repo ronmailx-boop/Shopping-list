@@ -3131,6 +3131,42 @@ render();
 updateUILanguage();
 
 // ========== Excel Import Functions ==========
+
+// פונקציה לזיהוי אינדקס עמודה לפי מילות מפתח
+function findColumnIndex(headerRow, keywords) {
+    if (!headerRow || !Array.isArray(headerRow)) return -1;
+    
+    for (let i = 0; i < headerRow.length; i++) {
+        const cell = headerRow[i];
+        if (cell && typeof cell === 'string') {
+            const cellLower = cell.toLowerCase().trim();
+            for (const keyword of keywords) {
+                if (cellLower.includes(keyword.toLowerCase())) {
+                    return i;
+                }
+            }
+        }
+    }
+    return -1;
+}
+
+// פונקציה לניקוי וחילוץ מספר מתאי מחיר
+function extractPrice(priceCell) {
+    if (!priceCell) return 0;
+    
+    // המרה למחרוזת
+    let priceStr = String(priceCell);
+    
+    // ניקוי תווים לא רצויים: ₪, פסיקים, רווחים, אותיות
+    // שמירה רק על ספרות, נקודה עשרונית ומינוס
+    priceStr = priceStr.replace(/[^\d.-]/g, '');
+    
+    // המרה למספר והחזרת ערך מוחלט (חיובי)
+    const price = parseFloat(priceStr);
+    return Math.abs(price) || 0;
+}
+
+// פונקציה ראשית לייבוא אקסל
 async function handleExcelUpload(event) {
     const file = event.target.files[0];
     if (!file) return;
@@ -3140,13 +3176,15 @@ async function handleExcelUpload(event) {
 
         const data = await file.arrayBuffer();
         const workbook = XLSX.read(data, { type: 'array' });
-        const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
-        const rows = XLSX.utils.sheet_to_json(firstSheet, { header: 1, raw: false });
 
-        // 1. חיפוש 4 ספרות ב-15 השורות הראשונות
+        // ========== שלב 1: זיהוי מספר כרטיס (4 ספרות) ==========
         let listName = null;
-        const searchRows = rows.slice(0, Math.min(15, rows.length));
         const digitPattern = /\d{4}/;
+
+        // חיפוש ב-15 השורות הראשונות של הגיליון הראשון
+        const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+        const firstSheetRows = XLSX.utils.sheet_to_json(firstSheet, { header: 1, raw: false });
+        const searchRows = firstSheetRows.slice(0, Math.min(15, firstSheetRows.length));
 
         for (const row of searchRows) {
             for (const cell of row) {
@@ -3168,25 +3206,7 @@ async function handleExcelUpload(event) {
             listName = `ייבוא אקסל ${dateStr}`;
         }
 
-        // 2. חיפוש תחילת הטבלה (שורה שמתחילה בתאריך)
-        const datePattern = /^\d{1,2}[\/\-\.]\d{1,2}[\/\-\.]\d{2,4}$/;
-        let tableStartIndex = -1;
-
-        for (let i = 0; i < rows.length; i++) {
-            const firstCell = rows[i][0];
-            if (firstCell && typeof firstCell === 'string' && datePattern.test(firstCell.trim())) {
-                tableStartIndex = i;
-                break;
-            }
-        }
-
-        if (tableStartIndex === -1) {
-            showNotification('❌ לא נמצאה טבלה עם תאריכים בקובץ', 'error');
-            event.target.value = '';
-            return;
-        }
-
-        // 3. יצירת רשימה חדשה
+        // ========== שלב 2: יצירת רשימה חדשה ==========
         const newListId = 'L' + Date.now();
         db.lists[newListId] = {
             name: listName,
@@ -3198,51 +3218,112 @@ async function handleExcelUpload(event) {
             cloudId: 'list_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9)
         };
 
-        // 4. פענוח שורות וקליטת מוצרים
-        let itemCount = 0;
-        for (let i = tableStartIndex; i < rows.length; i++) {
-            const row = rows[i];
+        let totalItemCount = 0;
+
+        // ========== שלב 3: מעבר על כל הגליונות ==========
+        for (const sheetName of workbook.SheetNames) {
+            console.log(`מעבד גיליון: ${sheetName}`);
             
-            // עמודה B = שם המוצר (אינדקס 1)
-            // עמודה E = מחיר (אינדקס 4)
-            const productName = row[1];
-            const priceCell = row[4];
+            const sheet = workbook.Sheets[sheetName];
+            const rows = XLSX.utils.sheet_to_json(sheet, { header: 1, raw: false });
 
-            if (!productName || typeof productName !== 'string' || productName.trim() === '') {
-                continue; // דלג על שורות ריקות
+            if (rows.length === 0) continue;
+
+            // ========== שלב 4: חיפוש שורת כותרת וזיהוי עמודות ==========
+            let headerRowIndex = -1;
+            let nameColIndex = -1;
+            let priceColIndex = -1;
+            const datePattern = /^\d{1,2}[\/\-\.]\d{1,2}[\/\-\.]\d{2,4}$/;
+
+            // חיפוש שורת כותרת (השורה שמעליה מתחילים התאריכים)
+            for (let i = 0; i < Math.min(30, rows.length); i++) {
+                const currentRow = rows[i];
+                
+                // בדיקה אם השורה הבאה מתחילה בתאריך (סימן שהשורה הנוכחית היא כותרת)
+                if (i + 1 < rows.length) {
+                    const nextRow = rows[i + 1];
+                    const firstCellOfNext = nextRow[0];
+                    
+                    if (firstCellOfNext && typeof firstCellOfNext === 'string' && 
+                        datePattern.test(firstCellOfNext.trim())) {
+                        headerRowIndex = i;
+                        
+                        // זיהוי עמודת שם עסק/תיאור
+                        nameColIndex = findColumnIndex(currentRow, ['עסק', 'תיאור', 'שם', 'business', 'description', 'name']);
+                        
+                        // זיהוי עמודת סכום/חיוב
+                        priceColIndex = findColumnIndex(currentRow, ['סכום', 'חיוב', 'מחיר', 'amount', 'price', 'charge']);
+                        
+                        console.log(`נמצאה שורת כותרת בשורה ${i}: שם=${nameColIndex}, מחיר=${priceColIndex}`);
+                        break;
+                    }
+                }
             }
 
-            // המרת מחיר למספר חיובי
-            let price = 0;
-            if (priceCell) {
-                const priceStr = String(priceCell).replace(/[^\d.-]/g, '');
-                price = Math.abs(parseFloat(priceStr)) || 0;
+            // אם לא נמצאה שורת כותרת, דלג על הגיליון
+            if (headerRowIndex === -1 || nameColIndex === -1 || priceColIndex === -1) {
+                console.log(`לא נמצאו עמודות מתאימות בגיליון ${sheetName}`);
+                continue;
             }
 
-            // הוספת מוצר לרשימה
-            const category = detectCategory(productName.trim());
-            db.lists[newListId].items.push({
-                name: productName.trim(),
-                price: price,
-                qty: 1,
-                checked: false,
-                category: category,
-                cloudId: 'item_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9) + '_' + itemCount
-            });
+            // ========== שלב 5: קליטת עסקאות מהגיליון ==========
+            const dataStartIndex = headerRowIndex + 1;
+            let sheetItemCount = 0;
 
-            itemCount++;
+            for (let i = dataStartIndex; i < rows.length; i++) {
+                const row = rows[i];
+                
+                // בדיקת תקינות השורה (צריכה להתחיל בתאריך)
+                const firstCell = row[0];
+                if (!firstCell || typeof firstCell !== 'string' || !datePattern.test(firstCell.trim())) {
+                    continue; // לא שורת נתונים תקינה
+                }
+
+                // חילוץ שם עסק
+                const businessName = row[nameColIndex];
+                if (!businessName || typeof businessName !== 'string' || businessName.trim() === '') {
+                    continue; // דלג על שורות ריקות
+                }
+
+                // חילוץ ומחיר
+                const priceCell = row[priceColIndex];
+                const price = extractPrice(priceCell);
+
+                // הוספת מוצר לרשימה
+                const category = detectCategory(businessName.trim());
+                db.lists[newListId].items.push({
+                    name: businessName.trim(),
+                    price: price,
+                    qty: 1,
+                    checked: false,
+                    category: category,
+                    cloudId: 'item_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9) + '_' + totalItemCount
+                });
+
+                sheetItemCount++;
+                totalItemCount++;
+            }
+
+            console.log(`מגיליון ${sheetName} יובאו ${sheetItemCount} עסקאות`);
         }
 
-        // 5. מעבר לרשימה החדשה
+        // ========== שלב 6: סיום ומעבר לרשימה ==========
+        if (totalItemCount === 0) {
+            showNotification('❌ לא נמצאו עסקאות בקובץ האקסל', 'error');
+            delete db.lists[newListId];
+            event.target.value = '';
+            return;
+        }
+
         db.currentId = newListId;
         save();
 
-        showNotification(`✅ יובאו ${itemCount} מוצרים בהצלחה!`);
+        showNotification(`✅ יובאו ${totalItemCount} עסקאות מ-${workbook.SheetNames.length} גליונות!`);
         event.target.value = '';
 
     } catch (error) {
         console.error('Excel Import Error:', error);
-        showNotification('❌ שגיאה בקריאת קובץ האקסל', 'error');
+        showNotification('❌ שגיאה בקריאת קובץ האקסל: ' + error.message, 'error');
         event.target.value = '';
     }
 }
