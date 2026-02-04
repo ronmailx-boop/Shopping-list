@@ -1204,17 +1204,30 @@ Do NOT add any text before or after the JSON. Price must be a number without sym
             const errorText = await response.text();
             console.error('❌ Gemini API HTTP Error:', response.status);
             console.error('❌ Error Body:', errorText);
-
-            let errorMessage = 'שגיאה בסריקת הצילום';
-            if (response.status === 403) {
-                errorMessage = 'שגיאת הרשאה - ה-API Key לא תקין או אין הרשאות';
-            } else if (response.status === 400) {
-                errorMessage = 'שגיאה בפורמט הבקשה - בדוק את פורמט התמונה';
-            } else if (response.status === 429) {
-                errorMessage = 'חרגת ממכסת ה-API - נסה שוב מאוחר יותר';
+            
+            // Try to parse error details
+            let detailedError = errorText;
+            try {
+                const errorJson = JSON.parse(errorText);
+                if (errorJson.error && errorJson.error.message) {
+                    detailedError = errorJson.error.message;
+                }
+            } catch (e) {
+                // Keep original error text if not JSON
             }
 
-            throw new Error(`${errorMessage} (${response.status})`);
+            let errorMessage = `שגיאה ${response.status}: ${detailedError}`;
+            
+            // Add Hebrew translations for common errors
+            if (response.status === 403) {
+                errorMessage = `שגיאת הרשאה (403)\nAPI Key לא תקין\n\nפרטים: ${detailedError}`;
+            } else if (response.status === 400) {
+                errorMessage = `שגיאת פורמט (400)\n\nפרטים: ${detailedError}\n\nMIME: ${mimeType}\nBase64 Length: ${base64Image.length}`;
+            } else if (response.status === 429) {
+                errorMessage = `חריגה ממכסה (429)\n\nפרטים: ${detailedError}`;
+            }
+
+            throw new Error(errorMessage);
         }
 
         const result = await response.json();
@@ -1290,14 +1303,18 @@ Do NOT add any text before or after the JSON. Price must be a number without sym
 
     } catch (error) {
         console.error('Scan Error Details:', error);
+        console.error('Full Error Object:', JSON.stringify(error, null, 2));
 
-        // Show detailed error message
+        // Show detailed error message with line breaks
         let errorMessage = 'שגיאה בסריקת הצילום';
         if (error.message) {
             errorMessage = error.message;
         }
 
-        showNotification(errorMessage, 'error');
+        // Display error in alert for better visibility
+        alert(`🚨 שגיאה בסריקה:\n\n${errorMessage}\n\nבדוק את ה-Console לפרטים נוספים (F12)`);
+        
+        showNotification('שגיאה - ראה פרטים בחלונית', 'error');
 
         progressDiv.classList.add('hidden');
         scanBtn.disabled = false;
@@ -3156,7 +3173,6 @@ if (currentLang === 'he') {
 
 render();
 updateUILanguage();
-
 
 
 
