@@ -1182,7 +1182,7 @@ async function processReceipt() {
                         },
                         {
                             inline_data: {
-                                mime_type: file.type,
+                                mime_type: "image/jpeg",
                                 data: base64Image
                             }
                         }
