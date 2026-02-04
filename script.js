@@ -1,3 +1,8 @@
+// ========== Configuration ==========
+const config = {
+    apiKey: 'AIzaSyBZvKD26cksDfxfhiemm8D_t6dM6S3kGBk' // Gemini API Key from Firebase config
+};
+
 // ========== Firebase Configuration ==========
 // Firebase methods are attached to window in index.html
 let unsubscribeSnapshot = null;
@@ -5,7 +10,6 @@ let isSyncing = false;
 let isConnected = false;
 let currentUser = null;
 let syncTimeout = null;
-
 // ========== Categories ==========
 const CATEGORIES = {
     'פירות וירקות': '#22c55e',
@@ -1103,6 +1107,8 @@ async function translateText(text, targetLang) {
 }
 
 // ========== Receipt Scanning Functions ==========
+
+// ========== Credit Card / Bank Screenshot Scanning ==========
 async function processReceipt() {
     const fileInput = document.getElementById('receiptImage');
     const file = fileInput.files[0];
@@ -1151,22 +1157,37 @@ async function processReceipt() {
 
         // Update progress
         progressBar.style.width = '60%';
-        statusDiv.textContent = 'מזהה טקסט...';
+        statusDiv.textContent = 'מנתח עסקאות...';
 
-        // Call Google Cloud Vision API
-        const response = await fetch(`https://vision.googleapis.com/v1/images:annotate?key=${GOOGLE_API_KEY}`, {
+        // Call Gemini 1.5 Flash API
+        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${config.apiKey}`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
             },
             body: JSON.stringify({
-                requests: [{
-                    image: {
-                        content: base64Image
-                    },
-                    features: [{
-                        type: 'TEXT_DETECTION'
-                    }]
+                contents: [{
+                    parts: [
+                        {
+                            text: `זהה את שם הכרטיס או 4 ספרות אחרונות (למשל MAX 6329). חלץ עסקאות והוצאות (כולל הלוואות). התעלם מתאריכים, סימני ₪, וכפתורי 'חלקו לי לתשלומים'. החזר JSON בדיוק בפורמט הזה:
+{
+  "cardName": "שם הכרטיס או מספר",
+  "transactions": [
+    {
+      "name": "שם העסק או סוג ההוצאה",
+      "price": מספר בלבד ללא סימנים
+    }
+  ]
+}
+אל תוסיף שום טקסט לפני או אחרי ה-JSON.`
+                        },
+                        {
+                            inline_data: {
+                                mime_type: file.type,
+                                data: base64Image
+                            }
+                        }
+                    ]
                 }]
             })
         });
@@ -1174,9 +1195,9 @@ async function processReceipt() {
         // Check if response is OK
         if (!response.ok) {
             const errorText = await response.text();
-            console.error('Google Vision API HTTP Error:', response.status, errorText);
+            console.error('Gemini API HTTP Error:', response.status, errorText);
 
-            let errorMessage = 'שגיאה בסריקת הקבלה';
+            let errorMessage = 'שגיאה בסריקת הצילום';
             if (response.status === 403) {
                 errorMessage = 'שגיאת הרשאה - ה-API Key לא תקין או אין הרשאות';
             } else if (response.status === 400) {
@@ -1191,35 +1212,51 @@ async function processReceipt() {
         const result = await response.json();
 
         // Check for API errors in response
-        if (result.responses && result.responses[0] && result.responses[0].error) {
-            const apiError = result.responses[0].error;
-            console.error('Google Vision API Error:', apiError);
-            throw new Error(`שגיאת API: ${apiError.message || 'שגיאה לא ידועה'}`);
+        if (result.error) {
+            console.error('Gemini API Error:', result.error);
+            throw new Error(`שגיאת API: ${result.error.message || 'שגיאה לא ידועה'}`);
         }
 
         // Update progress
         progressBar.style.width = '90%';
         statusDiv.textContent = 'מעבד תוצאות...';
 
-        // Extract text from response
-        const text = result.responses[0]?.fullTextAnnotation?.text || '';
+        // Extract text from Gemini response
+        const generatedText = result.candidates[0]?.content?.parts[0]?.text || '';
 
-        console.log('OCR Result:', text);
+        console.log('Gemini Response:', generatedText);
 
-        // Check if any text was detected
-        if (!text || text.trim().length === 0) {
-            showNotification('לא זוהה טקסט בתמונה - נסה תמונה ברורה יותר', 'warning');
+        // Check if any text was generated
+        if (!generatedText || generatedText.trim().length === 0) {
+            showNotification('לא זוהו עסקאות בצילום - נסה תמונה ברורה יותר', 'warning');
             progressDiv.classList.add('hidden');
             scanBtn.disabled = false;
             scanBtn.classList.remove('opacity-50');
             return;
         }
 
-        // Parse receipt
-        const items = parseReceiptText(text);
+        // Parse JSON response
+        let parsedData;
+        try {
+            // Clean the response - remove markdown code blocks if present
+            let cleanedText = generatedText.trim();
+            if (cleanedText.startsWith('```json')) {
+                cleanedText = cleanedText.replace(/```json\n?/g, '').replace(/```\n?/g, '');
+            } else if (cleanedText.startsWith('```')) {
+                cleanedText = cleanedText.replace(/```\n?/g, '');
+            }
+            parsedData = JSON.parse(cleanedText);
+        } catch (e) {
+            console.error('JSON Parse Error:', e, 'Raw text:', generatedText);
+            showNotification('שגיאה בפענוח התוצאות - נסה שנית', 'warning');
+            progressDiv.classList.add('hidden');
+            scanBtn.disabled = false;
+            scanBtn.classList.remove('opacity-50');
+            return;
+        }
 
-        if (items.length === 0) {
-            showNotification('לא נמצאו מוצרים בקבלה - נסה תמונה אחרת', 'warning');
+        if (!parsedData.cardName || !parsedData.transactions || parsedData.transactions.length === 0) {
+            showNotification('לא נמצאו עסקאות - נסה תמונה אחרת', 'warning');
             progressDiv.classList.add('hidden');
             scanBtn.disabled = false;
             scanBtn.classList.remove('opacity-50');
@@ -1230,8 +1267,8 @@ async function processReceipt() {
         progressBar.style.width = '100%';
         statusDiv.textContent = 'הושלם!';
 
-        // Create new list from receipt
-        createListFromReceipt(items);
+        // Create or update list with the card name
+        createOrUpdateListFromCard(parsedData);
 
         closeModal('receiptScanModal');
         progressDiv.classList.add('hidden');
@@ -1240,78 +1277,84 @@ async function processReceipt() {
         scanBtn.disabled = false;
         scanBtn.classList.remove('opacity-50');
 
-        showNotification(`✅ נוצרה רשימה עם ${items.length} מוצרים!`);
+        showNotification(`✅ נוספו ${parsedData.transactions.length} עסקאות ל-${parsedData.cardName}!`);
 
     } catch (error) {
-        console.error('OCR Error Details:', error);
+        console.error('Scan Error Details:', error);
 
         // Show detailed error message
-        let errorMessage = 'שגיאה בסריקת הקבלה';
+        let errorMessage = 'שגיאה בסריקת הצילום';
         if (error.message) {
             errorMessage = error.message;
         }
 
         showNotification(errorMessage, 'error');
+
         progressDiv.classList.add('hidden');
         scanBtn.disabled = false;
         scanBtn.classList.remove('opacity-50');
     }
 }
 
-function parseReceiptText(text) {
-    const lines = text.split('\n');
-    const items = [];
+function createOrUpdateListFromCard(data) {
+    const { cardName, transactions } = data;
 
-    // Common patterns for receipt items
-    // Pattern 1: "Item Name 12.50" or "Item Name ₪12.50"
-    // Pattern 2: "Item Name" followed by price on next line
-
-    for (let i = 0; i < lines.length; i++) {
-        const line = lines[i].trim();
-        if (!line || line.length < 2) continue;
-
-        // Skip common receipt headers/footers (Hebrew and English)
-        if (line.match(/סה"כ|סהכ|total|sum|תאריך|date|קופה|קבלה|receipt|ח\.פ|חפ|vat|מע"מ|מעמ|ברקוד|barcode|תודה|thank|שעה|time|כתובת|address|טלפון|phone|אשראי|credit|מזומן|cash/i)) continue;
-
-        // Pattern: Name followed by price (12.50 or ₪12.50 or ש"ח12.50)
-        // Support both Hebrew (₪, ש"ח) and English formats
-        const match1 = line.match(/^(.+?)\s+(₪|ש"ח|שח)?\s*([\d.,]+)\s*(₪|ש"ח|שח)?$/);
-        if (match1) {
-            const name = match1[1].trim();
-            const priceStr = match1[3].replace(/,/g, '.').trim(); // Handle comma as decimal separator
-            const price = parseFloat(priceStr);
-
-            if (name.length > 2 && !name.match(/^[\d\s]+$/) && price > 0 && price < 1000) {
-                items.push({
-                    name: name,
-                    price: price,
-                    qty: 1,
-                    checked: false,
-                    category: detectCategory(name),
-                    cloudId: 'item_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9)
-                });
-            }
-            continue;
+    // Search for existing list with this card name
+    let targetListId = null;
+    for (const [listId, list] of Object.entries(db.lists)) {
+        if (list.name === cardName) {
+            targetListId = listId;
+            break;
         }
+    }
 
-        // Pattern: Just a name, check next line for price
-        if (i < lines.length - 1) {
-            const nextLine = lines[i + 1].trim();
-            // Support Hebrew (₪, ש"ח) and English price formats
-            const priceMatch = nextLine.match(/^(₪|ש"ח|שח)?\s*([\d.,]+)\s*(₪|ש"ח|שח)?$/);
-            if (priceMatch) {
-                const priceStr = priceMatch[2].replace(/,/g, '.').trim();
-                const price = parseFloat(priceStr);
-                if (line.length > 2 && !line.match(/^[\d\s]+$/) && price > 0 && price < 1000) {
-                    items.push({
-                        name: line,
-                        price: price,
-                        qty: 1,
-                        checked: false,
-                        category: detectCategory(line),
-                        cloudId: 'item_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9)
-                    });
-                    i++; // Skip next line since we used it
+    // If list exists, ask if user wants to clear old items
+    if (targetListId) {
+        const shouldClear = confirm(`רשימה "${cardName}" כבר קיימת. האם לנקות פריטים קודמים?`);
+        if (shouldClear) {
+            db.lists[targetListId].items = [];
+        }
+    } else {
+        // Create new list
+        targetListId = 'L' + Date.now();
+        db.lists[targetListId] = {
+            name: cardName,
+            url: '',
+            budget: 0,
+            isTemplate: false,
+            items: []
+        };
+    }
+
+    // Add transactions as items
+    transactions.forEach(transaction => {
+        const item = {
+            name: transaction.name,
+            price: parseFloat(transaction.price) || 0,
+            qty: 1,
+            checked: false,
+            category: detectCategory(transaction.name),
+            cloudId: 'item_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9)
+        };
+        db.lists[targetListId].items.push(item);
+    });
+
+    // Switch to this list
+    db.currentId = targetListId;
+
+    // Save and sync
+    save();
+    renderLists();
+}
+
+function updateFileLabel() {
+    const fileInput = document.getElementById('receiptImage');
+    const fileLabel = document.getElementById('fileLabel');
+    if (fileInput.files && fileInput.files[0]) {
+        fileLabel.textContent = `✓ ${fileInput.files[0].name}`;
+    }
+}
+
                 }
             }
         }
