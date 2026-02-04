@@ -1,6 +1,6 @@
 // ========== Configuration ==========
 const config = {
-    apiKey: 'AIzaSyBZvKD26cksDfxfhiemm8D_t6dM6S3kGBk' // Gemini API Key from Firebase config
+    apiKey: 'AIzaSyDo9mGhxEiHv0JGFKOWTfMt32hHXNuXwQM' // Gemini API Key from Firebase config
 };
 
 // ========== Firebase Configuration ==========
