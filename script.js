@@ -1158,6 +1158,10 @@ async function processReceipt() {
         progressBar.style.width = '60%';
         statusDiv.textContent = 'מנתח עסקאות...';
 
+        console.log('🔍 Sending to Gemini API...');
+        console.log('📏 Base64 length:', base64Image.length);
+        console.log('🔑 Using API Key:', config.apiKey.substring(0, 10) + '...');
+
         // Call Gemini 1.5 Flash API
         const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${config.apiKey}`, {
             method: 'POST',
@@ -1168,17 +1172,17 @@ async function processReceipt() {
                 contents: [{
                     parts: [
                         {
-                            text: `זהה את שם הכרטיס או 4 ספרות אחרונות (למשל MAX 6329). חלץ עסקאות והוצאות (כולל הלוואות). התעלם מתאריכים, סימני ₪, וכפתורי 'חלקו לי לתשלומים'. החזר JSON בדיוק בפורמט הזה:
+                            text: `Identify the card name or last 4 digits (like 'MAX 6329' or just '6329'). Extract ALL transactions including merchant names and amounts. Look for loans/charges too. Ignore dates, currency symbols (₪), and any 'installment' buttons. Return ONLY valid JSON in this exact format:
 {
-  "cardName": "שם הכרטיס או מספר",
+  "cardName": "Card name or number",
   "transactions": [
     {
-      "name": "שם העסק או סוג ההוצאה",
-      "price": מספר בלבד ללא סימנים
+      "name": "Merchant name or expense type",
+      "price": 123.45
     }
   ]
 }
-אל תוסיף שום טקסט לפני או אחרי ה-JSON.`
+Do NOT add any text before or after the JSON. Price must be a number without symbols.`
                         },
                         {
                             inline_data: {
@@ -1194,13 +1198,14 @@ async function processReceipt() {
         // Check if response is OK
         if (!response.ok) {
             const errorText = await response.text();
-            console.error('Gemini API HTTP Error:', response.status, errorText);
+            console.error('❌ Gemini API HTTP Error:', response.status);
+            console.error('❌ Error Body:', errorText);
 
             let errorMessage = 'שגיאה בסריקת הצילום';
             if (response.status === 403) {
                 errorMessage = 'שגיאת הרשאה - ה-API Key לא תקין או אין הרשאות';
             } else if (response.status === 400) {
-                errorMessage = 'שגיאה בפורמט הבקשה';
+                errorMessage = 'שגיאה בפורמט הבקשה - בדוק את פורמט התמונה';
             } else if (response.status === 429) {
                 errorMessage = 'חרגת ממכסת ה-API - נסה שוב מאוחר יותר';
             }
@@ -1209,10 +1214,11 @@ async function processReceipt() {
         }
 
         const result = await response.json();
+        console.log('✅ Gemini Response:', result);
 
         // Check for API errors in response
         if (result.error) {
-            console.error('Gemini API Error:', result.error);
+            console.error('❌ Gemini API Error:', result.error);
             throw new Error(`שגיאת API: ${result.error.message || 'שגיאה לא ידועה'}`);
         }
 
@@ -1221,9 +1227,9 @@ async function processReceipt() {
         statusDiv.textContent = 'מעבד תוצאות...';
 
         // Extract text from Gemini response
-        const generatedText = result.candidates[0]?.content?.parts[0]?.text || '';
+        const generatedText = result.candidates?.[0]?.content?.parts?.[0]?.text || '';
 
-        console.log('Gemini Response:', generatedText);
+        console.log('📄 Generated Text:', generatedText);
 
         // Check if any text was generated
         if (!generatedText || generatedText.trim().length === 0) {
