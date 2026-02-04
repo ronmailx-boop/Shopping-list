@@ -10,6 +10,7 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 
     <style>
         * {
@@ -722,8 +723,8 @@ ${error.message}
                         class="bg-indigo-600 text-white flex-1 py-3 rounded-xl font-bold">+ רשימה חדשה</button>
                     <button onclick="openModal('importModal')"
                         class="bg-green-500 text-white flex-1 py-3 rounded-xl font-bold">📥 ייבוא</button>
-                    <button onclick="openModal('receiptScanModal')"
-                        class="bg-blue-500 text-white flex-1 py-3 rounded-xl font-bold">📸 סרוק קבלה</button>
+                    <label for="excel-upload" class="bg-blue-500 text-white flex-1 py-3 rounded-xl font-bold cursor-pointer text-center">📊 ייבוא מאקסל</label>
+                    <input type="file" id="excel-upload" accept=".xlsx, .xls" style="display: none;" onchange="handleExcelUpload(event)">
                 </div>
             </div>
             <div class="mb-3">
@@ -1127,45 +1128,6 @@ ${error.message}
             <div id="translationProgress" class="hidden mt-4 text-center">
                 <div class="text-sm text-gray-600">מתרגם...</div>
                 <div class="text-xs text-gray-500 mt-1" id="translationStatus"></div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Receipt Scan Modal -->
-    <div id="receiptScanModal" class="modal-overlay no-print">
-        <div class="edit-modal">
-            <h2 id="scanReceiptModalTitle">סריקת קבלה</h2>
-            <p class="text-sm text-gray-600 mb-4" id="scanReceiptDesc">העלה תמונת קבלה לזיהוי אוטומטי של מוצרים</p>
-
-            <input type="file" id="receiptImage" accept="image/*" capture="camera" style="display: none;"
-                onchange="updateFileLabel()">
-            <button onclick="document.getElementById('receiptImage').click()"
-                class="w-full bg-gray-100 border-2 border-gray-300 rounded-xl py-3 px-4 text-gray-700 font-bold mb-4 hover:bg-gray-200 transition">
-                <span id="fileLabel">📁 בחר קובץ</span>
-            </button>
-
-            <div id="scanPreview" class="mb-4 hidden">
-                <img id="previewImg" class="w-full rounded-lg border-2 border-gray-200"
-                    style="max-height: 300px; object-fit: contain;">
-            </div>
-
-            <div id="scanProgress" class="hidden mb-4">
-                <div class="bg-gray-200 rounded-full h-4 overflow-hidden">
-                    <div id="scanProgressBar" class="bg-indigo-600 h-full transition-all duration-300"
-                        style="width: 0%"></div>
-                </div>
-                <div class="text-sm text-gray-600 text-center mt-2" id="scanStatus">מעבד תמונה...</div>
-            </div>
-
-            <div class="flex gap-3">
-                <button onclick="processReceipt()" id="scanBtn"
-                    class="flex-1 bg-blue-500 text-white py-3 rounded-xl font-bold">
-                    📸 סרוק
-                </button>
-                <button onclick="closeModal('receiptScanModal')"
-                    class="flex-1 bg-gray-300 text-gray-700 py-3 rounded-xl font-bold">
-                    ביטול
-                </button>
             </div>
         </div>
     </div>
