@@ -723,7 +723,7 @@ ${error.message}
                     <button onclick="openModal('importModal')"
                         class="bg-green-500 text-white flex-1 py-3 rounded-xl font-bold">📥 ייבוא</button>
                     <button onclick="openModal('receiptScanModal')"
-                        class="bg-blue-500 text-white flex-1 py-3 rounded-xl font-bold">📸 סרוק קבלה</button>
+                        class="bg-blue-500 text-white flex-1 py-3 rounded-xl font-bold">📸 סרוק אשראי/בנק</button>
                 </div>
             </div>
             <div class="mb-3">
@@ -1134,14 +1134,14 @@ ${error.message}
     <!-- Receipt Scan Modal -->
     <div id="receiptScanModal" class="modal-overlay no-print">
         <div class="edit-modal">
-            <h2 id="scanReceiptModalTitle">סריקת קבלה</h2>
-            <p class="text-sm text-gray-600 mb-4" id="scanReceiptDesc">העלה תמונת קבלה לזיהוי אוטומטי של מוצרים</p>
+            <h2 id="scanReceiptModalTitle">סריקת אשראי / בנק</h2>
+            <p class="text-sm text-gray-600 mb-4" id="scanReceiptDesc">העלה צילום מסך מהגלריה לזיהוי עסקאות</p>
 
-            <input type="file" id="receiptImage" accept="image/*" capture="camera" style="display: none;"
+            <input type="file" id="receiptImage" accept="image/*" style="display: none;"
                 onchange="updateFileLabel()">
             <button onclick="document.getElementById('receiptImage').click()"
                 class="w-full bg-gray-100 border-2 border-gray-300 rounded-xl py-3 px-4 text-gray-700 font-bold mb-4 hover:bg-gray-200 transition">
-                <span id="fileLabel">📁 בחר קובץ</span>
+                <span id="fileLabel">📁 בחר צילום מסך מהגלריה</span>
             </button>
 
             <div id="scanPreview" class="mb-4 hidden">
@@ -1160,7 +1160,7 @@ ${error.message}
             <div class="flex gap-3">
                 <button onclick="processReceipt()" id="scanBtn"
                     class="flex-1 bg-blue-500 text-white py-3 rounded-xl font-bold">
-                    📸 סרוק
+                    🚀 התחל סריקה חכמה
                 </button>
                 <button onclick="closeModal('receiptScanModal')"
                     class="flex-1 bg-gray-300 text-gray-700 py-3 rounded-xl font-bold">
