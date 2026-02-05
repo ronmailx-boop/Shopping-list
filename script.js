@@ -2010,51 +2010,51 @@ function renderCategoryDoughnutChart() {
 
     // איסוף נתונים מכל הרשימות - רק פריטים שבוצעו (checked: true)
     const categoryTotals = {};
-    
+
     // Initialize all categories with 0
     Object.keys(CATEGORIES).forEach(cat => {
         categoryTotals[cat] = 0;
     });
-    
+
     // Sum up CHECKED items from all ACTIVE lists
     Object.values(db.lists).forEach(list => {
         list.items.forEach(item => {
             if (item.checked) { // checked means completed
                 const price = (item.price || 0) * (item.qty || 1);
-                
+
                 // Detect category
                 let category = item.category || detectCategory(item.name);
                 if (!category || !CATEGORIES[category]) {
                     category = 'אחר';
                 }
-                
+
                 categoryTotals[category] = (categoryTotals[category] || 0) + price;
             }
         });
     });
-    
+
     // Sum up ALL items from COMPLETED lists (history)
     if (db.history && db.history.length > 0) {
         db.history.forEach(entry => {
             entry.items.forEach(item => {
                 const price = (item.price || 0) * (item.qty || 1);
-                
+
                 // Detect category
                 let category = item.category || detectCategory(item.name);
                 if (!category || !CATEGORIES[category]) {
                     category = 'אחר';
                 }
-                
+
                 categoryTotals[category] = (categoryTotals[category] || 0) + price;
             });
         });
     }
-    
+
     // Filter out categories with 0 spending
     const labels = [];
     const data = [];
     const colors = [];
-    
+
     Object.entries(categoryTotals).forEach(([category, total]) => {
         if (total > 0) {
             labels.push(category);
@@ -2062,7 +2062,7 @@ function renderCategoryDoughnutChart() {
             colors.push(CATEGORIES[category] || '#6b7280');
         }
     });
-    
+
     // If no data, show message
     if (data.length === 0) {
         const container = document.getElementById('categoryBreakdown');
@@ -2071,12 +2071,12 @@ function renderCategoryDoughnutChart() {
         }
         return;
     }
-    
+
     // Destroy previous chart if exists
     if (categoryDoughnutChart) {
         categoryDoughnutChart.destroy();
     }
-    
+
     // Create doughnut chart
     categoryDoughnutChart = new Chart(ctx, {
         type: 'doughnut',
@@ -2108,7 +2108,7 @@ function renderCategoryDoughnutChart() {
                 },
                 tooltip: {
                     callbacks: {
-                        label: function(context) {
+                        label: function (context) {
                             const label = context.label || '';
                             const value = context.parsed || 0;
                             const total = context.dataset.data.reduce((a, b) => a + b, 0);
@@ -2121,7 +2121,7 @@ function renderCategoryDoughnutChart() {
             }
         }
     });
-    
+
     // Render text breakdown
     renderCategoryBreakdown(categoryTotals);
 }
@@ -2129,30 +2129,30 @@ function renderCategoryDoughnutChart() {
 function renderCategoryBreakdown(categoryTotals) {
     const container = document.getElementById('categoryBreakdown');
     if (!container) return;
-    
+
     container.innerHTML = '';
-    
+
     // Filter and sort by total (descending)
     const sortedCategories = Object.entries(categoryTotals)
         .filter(([_, total]) => total > 0)
         .sort((a, b) => b[1] - a[1]);
-    
+
     if (sortedCategories.length === 0) {
         container.innerHTML = '<p class="text-gray-400 text-center py-4">אין נתונים להצגה</p>';
         return;
     }
-    
+
     const totalSpent = sortedCategories.reduce((sum, [_, total]) => sum + total, 0);
-    
+
     sortedCategories.forEach(([category, total]) => {
         const percentage = ((total / totalSpent) * 100).toFixed(1);
         const color = CATEGORIES[category] || '#6b7280';
-        
+
         const div = document.createElement('div');
         div.className = 'flex justify-between items-center mb-3 p-3 rounded-xl border-2';
         div.style.borderColor = color;
         div.style.backgroundColor = color + '15'; // 15 is alpha for light background
-        
+
         div.innerHTML = `
             <div class="flex items-center gap-2">
                 <div class="w-4 h-4 rounded-full" style="background-color: ${color}"></div>
@@ -2163,7 +2163,7 @@ function renderCategoryBreakdown(categoryTotals) {
                 <div class="text-xs text-gray-600">${percentage}%</div>
             </div>
         `;
-        
+
         container.appendChild(div);
     });
 }
@@ -2289,8 +2289,8 @@ function createFromTemplate(templateId) {
         url: template.url,
         budget: template.budget,
         isTemplate: false,
-        items: JSON.parse(JSON.stringify(template.items.map(item => ({ 
-            ...item, 
+        items: JSON.parse(JSON.stringify(template.items.map(item => ({
+            ...item,
             checked: false,
             cloudId: 'item_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9)
         }))))
@@ -2313,8 +2313,8 @@ function restoreFromHistory(idx) {
         url: entry.url || '',
         budget: 0,
         isTemplate: false,
-        items: JSON.parse(JSON.stringify(entry.items.map(item => ({ 
-            ...item, 
+        items: JSON.parse(JSON.stringify(entry.items.map(item => ({
+            ...item,
             checked: false,
             cloudId: 'item_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9)
         }))))
@@ -2444,7 +2444,7 @@ function addItem() {
             category: finalCategory,
             cloudId: 'item_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9)
         });
-        
+
         closeModal('inputForm');
         save();
         showNotification('✅ מוצר נוסף!');
@@ -2747,16 +2747,16 @@ function importData(event) {
 function showDetailedError(context, error) {
     const errorCode = error.code || 'UNKNOWN_ERROR';
     const errorMessage = error.message || 'Unknown error occurred';
-    
+
     console.error(`❌ [${context}] שגיאה מפורטת:`, {
         code: errorCode,
         message: errorMessage,
         fullError: error
     });
-    
+
     let errorTitle = context;
     let userMessage = '';
-    
+
     // Handle common Firebase Auth errors
     if (errorCode.includes('auth/')) {
         if (errorCode === 'auth/unauthorized-domain') {
@@ -2799,7 +2799,7 @@ function showDetailedError(context, error) {
     else {
         userMessage = `קוד: ${errorCode}\n\n${errorMessage}`;
     }
-    
+
     // Show visual error if function exists
     if (typeof window.showFirebaseError === 'function') {
         window.showFirebaseError(errorTitle, userMessage);
@@ -2815,7 +2815,7 @@ const checkFirebase = setInterval(() => {
         clearInterval(checkFirebase);
         console.log('✅ Firebase זמין, מאתחל...');
         initFirebaseAuth();
-        
+
         // NOTE: redirect result is checked in index.html script
         // We don't check it again here to avoid duplicate checks
     }
@@ -2837,25 +2837,25 @@ setTimeout(() => {
 
 function initFirebaseAuth() {
     console.log('🔄 מאתחל Firebase Auth...');
-    
+
     window.onAuthStateChanged(window.firebaseAuth, (user) => {
         currentUser = user;
         isConnected = !!user;
 
         console.log('👤 מצב משתמש:', user ? `מחובר: ${user.email} (UID: ${user.uid})` : 'מנותק');
-        
+
         // Update UI
         updateCloudIndicator(user ? 'connected' : 'disconnected');
 
         const emailDisplay = document.getElementById('userEmailDisplay');
         const logoutBtn = document.getElementById('logoutBtn');
-        
+
         // Update email display in settings
         if (emailDisplay) {
             emailDisplay.textContent = user ? `מחובר כ: ${user.email}` : 'לא מחובר';
             emailDisplay.style.color = user ? '#059669' : '#6b7280';
         }
-        
+
         // Show/hide logout button
         if (logoutBtn) {
             if (user) {
@@ -2881,7 +2881,7 @@ function initFirebaseAuth() {
     // Override cloud button click handler
     const cloudBtn = document.getElementById('cloudBtn');
     if (cloudBtn) {
-        cloudBtn.onclick = function() {
+        cloudBtn.onclick = function () {
             if (currentUser) {
                 // Already logged in, show settings
                 openModal('settingsModal');
@@ -2910,7 +2910,7 @@ function loginWithGoogle() {
 
     console.log('🔐 מתחיל תהליך התחברות Google...');
     updateCloudIndicator('syncing');
-    
+
     try {
         // Trigger Google sign-in redirect
         window.signInWithPopup(window.firebaseAuth, window.googleProvider);
@@ -2928,10 +2928,10 @@ function logoutFromCloud() {
         console.warn('⚠️ Firebase Auth לא זמין להתנתקות');
         return;
     }
-    
+
     console.log('🚪 מתנתק מהענן...');
     updateCloudIndicator('syncing');
-    
+
     window.signOut(window.firebaseAuth).then(() => {
         currentUser = null;
         isConnected = false;
@@ -2950,7 +2950,7 @@ function updateCloudIndicator(status) {
     const indicator = document.getElementById('cloudIndicator');
     const text = document.getElementById('cloudSyncText');
     const cloudBtn = document.getElementById('cloudBtn');
-    
+
     if (!indicator || !cloudBtn) {
         console.warn('⚠️ לא נמצאו אלמנטים של כפתור הענן');
         return;
@@ -2961,10 +2961,10 @@ function updateCloudIndicator(status) {
     if (status === 'connected') {
         // Green indicator - connected successfully
         indicator.className = 'w-2 h-2 bg-green-500 rounded-full';
-        
+
         // Update button style to green (connected style)
         cloudBtn.className = 'cloud-btn-connected px-3 py-1 rounded-full text-[10px] font-bold border flex items-center gap-1 cursor-pointer transition-all';
-        
+
         // Show email if available
         if (currentUser && currentUser.email) {
             if (text) text.textContent = currentUser.email;
@@ -2985,113 +2985,113 @@ function updateCloudIndicator(status) {
 }
 
 function setupFirestoreListener(user) {
-  console.log('📡 מגדיר Firestore listener עבור UID:', user.uid);
-  
-  const userDocRef = window.doc(window.firebaseDb, "shopping_lists", user.uid);
-  
-  unsubscribeSnapshot = window.onSnapshot(userDocRef, (docSnap) => {
-    if (docSnap.exists()) {
-      console.log('☁️ מסמך נמצא בענן');
-      const cloudData = docSnap.data();
-      
-      // בדיקה: אם הענן ריק אבל יש נתונים מקומיים, העלה אותם לענן
-      const cloudIsEmpty = !cloudData.lists || Object.keys(cloudData.lists).length === 0;
-      const localHasData = db.lists && Object.keys(db.lists).length > 0;
-      
-      if (cloudIsEmpty && localHasData) {
-        console.log('☁️ הענן ריק אבל יש נתונים מקומיים - מעלה לענן');
-        syncToCloud();
-        return;
-      }
-      
-      // מיזוג חכם: הענן הוא מקור האמת למחיקות
-      if (JSON.stringify(cloudData) !== JSON.stringify(db)) {
-        console.log('🔄 מבצע סנכרון חכם מהענן...');
-        const mergedDb = mergeCloudWithLocal(cloudData, db);
+    console.log('📡 מגדיר Firestore listener עבור UID:', user.uid);
 
-        // הגנה: וודא שקיים אובייקט רשימות
-        if (!mergedDb.lists || Object.keys(mergedDb.lists).length === 0) {
-            mergedDb.lists = {
-                'L1': {
-                    name: 'הרשימה שלי',
-                    url: '',
-                    budget: 0,
-                    isTemplate: false,
-                    items: []
+    const userDocRef = window.doc(window.firebaseDb, "shopping_lists", user.uid);
+
+    unsubscribeSnapshot = window.onSnapshot(userDocRef, (docSnap) => {
+        if (docSnap.exists()) {
+            console.log('☁️ מסמך נמצא בענן');
+            const cloudData = docSnap.data();
+
+            // בדיקה: אם הענן ריק אבל יש נתונים מקומיים, העלה אותם לענן
+            const cloudIsEmpty = !cloudData.lists || Object.keys(cloudData.lists).length === 0;
+            const localHasData = db.lists && Object.keys(db.lists).length > 0;
+
+            if (cloudIsEmpty && localHasData) {
+                console.log('☁️ הענן ריק אבל יש נתונים מקומיים - מעלה לענן');
+                syncToCloud();
+                return;
+            }
+
+            // מיזוג חכם: הענן הוא מקור האמת למחיקות
+            if (JSON.stringify(cloudData) !== JSON.stringify(db)) {
+                console.log('🔄 מבצע סנכרון חכם מהענן...');
+                const mergedDb = mergeCloudWithLocal(cloudData, db);
+
+                // הגנה: וודא שקיים אובייקט רשימות
+                if (!mergedDb.lists || Object.keys(mergedDb.lists).length === 0) {
+                    mergedDb.lists = {
+                        'L1': {
+                            name: 'הרשימה שלי',
+                            url: '',
+                            budget: 0,
+                            isTemplate: false,
+                            items: []
+                        }
+                    };
+                    mergedDb.currentId = 'L1';
                 }
-            };
-            mergedDb.currentId = 'L1';
-        }
 
-        db = mergedDb;
-        localStorage.setItem('BUDGET_FINAL_V28', JSON.stringify(db));
-        render();
-        showNotification('☁️ סונכרן מהענן!', 'success');
-      }
-    } else {
-      console.log('📝 מסמך לא קיים בענן, יוצר חדש...');
-      syncToCloud();
-    }
-  }, (error) => {
-    console.error("❌ שגיאת Firestore sync:", error);
-    showDetailedError('Firestore Sync', error);
-    if (currentUser) {
-      updateCloudIndicator('connected');
-    }
-  });
+                db = mergedDb;
+                localStorage.setItem('BUDGET_FINAL_V28', JSON.stringify(db));
+                render();
+                showNotification('☁️ סונכרן מהענן!', 'success');
+            }
+        } else {
+            console.log('📝 מסמך לא קיים בענן, יוצר חדש...');
+            syncToCloud();
+        }
+    }, (error) => {
+        console.error("❌ שגיאת Firestore sync:", error);
+        showDetailedError('Firestore Sync', error);
+        if (currentUser) {
+            updateCloudIndicator('connected');
+        }
+    });
 }
 
 function mergeCloudWithLocal(cloudData, localData) {
-  console.log('🔄 מבצע מיזוג חכם בין ענן למקומי...');
-  
-  const merged = JSON.parse(JSON.stringify(cloudData)); // עותק עמוק של נתוני הענן
-  
-  // עבור כל רשימה
-  Object.keys(cloudData.lists || {}).forEach(listId => {
-    const cloudList = cloudData.lists[listId];
-    const localList = localData.lists && localData.lists[listId];
-    
-    if (!localList) {
-      // אין רשימה מקומית - השתמש בענן
-      return;
-    }
-    
-    // יצירת מפת cloudId לפריטי ענן
-    const cloudItemsMap = {};
-    (cloudList.items || []).forEach(item => {
-      if (item.cloudId) {
-        cloudItemsMap[item.cloudId] = item;
-      }
+    console.log('🔄 מבצע מיזוג חכם בין ענן למקומי...');
+
+    const merged = JSON.parse(JSON.stringify(cloudData)); // עותק עמוק של נתוני הענן
+
+    // עבור כל רשימה
+    Object.keys(cloudData.lists || {}).forEach(listId => {
+        const cloudList = cloudData.lists[listId];
+        const localList = localData.lists && localData.lists[listId];
+
+        if (!localList) {
+            // אין רשימה מקומית - השתמש בענן
+            return;
+        }
+
+        // יצירת מפת cloudId לפריטי ענן
+        const cloudItemsMap = {};
+        (cloudList.items || []).forEach(item => {
+            if (item.cloudId) {
+                cloudItemsMap[item.cloudId] = item;
+            }
+        });
+
+        // מעבר על פריטים מקומיים
+        (localList.items || []).forEach(localItem => {
+            if (!localItem.cloudId) {
+                // פריט ללא cloudId - זה פריט ישן או חדש שנוסף לפני השינוי
+                // נוסיף לו cloudId ונוסיף אותו
+                localItem.cloudId = 'item_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+                merged.lists[listId].items.push(localItem);
+                console.log('➕ מוסיף פריט חדש מקומי ללא cloudId:', localItem.name);
+            } else if (!cloudItemsMap[localItem.cloudId]) {
+                // פריט עם cloudId שלא קיים בענן - זה פריט חדש שנוסף באופליין
+                merged.lists[listId].items.push(localItem);
+                console.log('➕ מוסיף פריט חדש מאופליין:', localItem.name);
+            } else {
+                // פריט קיים גם בענן - עדכן אותו מהענן (הענן מנצח)
+                console.log('✓ פריט קיים בשניהם, משתמש בנתוני ענן:', localItem.name);
+            }
+        });
     });
-    
-    // מעבר על פריטים מקומיים
-    (localList.items || []).forEach(localItem => {
-      if (!localItem.cloudId) {
-        // פריט ללא cloudId - זה פריט ישן או חדש שנוסף לפני השינוי
-        // נוסיף לו cloudId ונוסיף אותו
-        localItem.cloudId = 'item_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
-        merged.lists[listId].items.push(localItem);
-        console.log('➕ מוסיף פריט חדש מקומי ללא cloudId:', localItem.name);
-      } else if (!cloudItemsMap[localItem.cloudId]) {
-        // פריט עם cloudId שלא קיים בענן - זה פריט חדש שנוסף באופליין
-        merged.lists[listId].items.push(localItem);
-        console.log('➕ מוסיף פריט חדש מאופליין:', localItem.name);
-      } else {
-        // פריט קיים גם בענן - עדכן אותו מהענן (הענן מנצח)
-        console.log('✓ פריט קיים בשניהם, משתמש בנתוני ענן:', localItem.name);
-      }
+
+    // בדיקת רשימות חדשות שנוספו מקומית
+    Object.keys(localData.lists || {}).forEach(listId => {
+        if (!merged.lists[listId]) {
+            console.log('📝 מוסיף רשימה חדשה מקומית:', listId);
+            merged.lists[listId] = localData.lists[listId];
+        }
     });
-  });
-  
-  // בדיקת רשימות חדשות שנוספו מקומית
-  Object.keys(localData.lists || {}).forEach(listId => {
-    if (!merged.lists[listId]) {
-      console.log('📝 מוסיף רשימה חדשה מקומית:', listId);
-      merged.lists[listId] = localData.lists[listId];
-    }
-  });
-  
-  return merged;
+
+    return merged;
 }
 
 async function syncToCloud() {
@@ -3135,15 +3135,15 @@ updateUILanguage();
 // פונקציה לזיהוי אינדקס עמודה לפי מילות מפתח - חיפוש גמיש
 function findColumnIndex(headerRow, keywords) {
     if (!headerRow || !Array.isArray(headerRow)) return -1;
-    
+
     for (let i = 0; i < headerRow.length; i++) {
         const cell = headerRow[i];
         if (cell && typeof cell === 'string') {
             const cellNormalized = cell.trim().replace(/\s+/g, ' ').toLowerCase();
-            
+
             for (const keyword of keywords) {
                 const keywordNormalized = keyword.trim().replace(/\s+/g, ' ').toLowerCase();
-                
+
                 // בדיקה אם התא מכיל את מילת המפתח
                 if (cellNormalized.includes(keywordNormalized)) {
                     return i;
@@ -3157,16 +3157,16 @@ function findColumnIndex(headerRow, keywords) {
 // פונקציה לניקוי וחילוץ מספר מתא מחיר
 function extractPrice(priceCell) {
     if (!priceCell) return 0;
-    
+
     // המרה למחרוזת
     let priceStr = String(priceCell).trim();
-    
+
     // ניקוי אגרסיבי: הסרת כל מה שלא ספרות, נקודה עשרונית או מינוס
     priceStr = priceStr.replace(/[^\d.-]/g, '');
-    
+
     // טיפול במקרים של מספרים שליליים או כפולים
     priceStr = priceStr.replace(/--/g, '');
-    
+
     // המרה למספר והחזרת ערך מוחלט (חיובי)
     const price = parseFloat(priceStr);
     return Math.abs(price) || 0;
@@ -3175,9 +3175,9 @@ function extractPrice(priceCell) {
 // בדיקה האם תא מכיל תאריך תקין
 function isDateCell(cell) {
     if (!cell || typeof cell !== 'string') return false;
-    
+
     const cellTrimmed = cell.trim();
-    
+
     // תבניות תאריך נפוצות
     const datePatterns = [
         /^\d{1,2}\/\d{1,2}\/\d{2,4}$/,      // DD/MM/YYYY או DD/MM/YY
@@ -3185,13 +3185,13 @@ function isDateCell(cell) {
         /^\d{1,2}\.\d{1,2}\.\d{2,4}$/,      // DD.MM.YYYY או DD.MM.YY
         /^\d{4}-\d{1,2}-\d{1,2}$/,          // YYYY-MM-DD
     ];
-    
+
     for (const pattern of datePatterns) {
         if (pattern.test(cellTrimmed)) {
             return true;
         }
     }
-    
+
     return false;
 }
 
@@ -3217,7 +3217,7 @@ async function handleExcelUpload(event) {
         // ========== שלב 1: מעבר על כל הגליונות ==========
         for (const sheetName of workbook.SheetNames) {
             console.log(`\n📊 מעבד גיליון: "${sheetName}"`);
-            
+
             const sheet = workbook.Sheets[sheetName];
             const rows = XLSX.utils.sheet_to_json(sheet, { header: 1, raw: false, defval: '' });
 
@@ -3235,14 +3235,14 @@ async function handleExcelUpload(event) {
             // מילות מפתח לחיפוש
             const nameKeywords = [
                 'שם בית העסק',
-                'שם בית עסק', 
+                'שם בית עסק',
                 'שם העסק',
                 'בית עסק',
                 'שם עסק',
                 'תיאור',
                 'שם מוטב'
             ];
-            
+
             const priceKeywords = [
                 'סכום חיוב',
                 'סכום',
@@ -3264,19 +3264,19 @@ async function handleExcelUpload(event) {
             // סריקת עד 40 שורות ראשונות לחיפוש כותרת
             for (let i = 0; i < Math.min(40, rows.length); i++) {
                 const currentRow = rows[i];
-                
+
                 // נסה למצוא את עמודת השם, המחיר והכרטיס
                 const foundNameCol = findColumnIndex(currentRow, nameKeywords);
                 const foundPriceCol = findColumnIndex(currentRow, priceKeywords);
                 const foundCardCol = findColumnIndex(currentRow, cardKeywords);
-                
+
                 // אם מצאנו את שלוש העמודות - זו שורת הכותרת!
                 if (foundNameCol !== -1 && foundPriceCol !== -1 && foundCardCol !== -1) {
                     headerRowIndex = i;
                     nameColIndex = foundNameCol;
                     priceColIndex = foundPriceCol;
                     cardColIndex = foundCardCol;
-                    
+
                     console.log(`✅ נמצאה שורת כותרת בשורה ${i}:`);
                     console.log(`   📝 עמודת שם (${nameColIndex}): "${currentRow[nameColIndex]}"`);
                     console.log(`   💰 עמודת מחיר (${priceColIndex}): "${currentRow[priceColIndex]}"`);
@@ -3292,11 +3292,11 @@ async function handleExcelUpload(event) {
 
             // ========== שלב 3: מציאת תחילת הנתונים ==========
             let dataStartIndex = -1;
-            
+
             // מחפשים שורה שמתחילה בתאריך (אחרי שורת הכותרת)
             for (let i = headerRowIndex + 1; i < rows.length; i++) {
                 const firstCell = rows[i][0];
-                
+
                 if (isDateCell(firstCell)) {
                     dataStartIndex = i;
                     console.log(`✅ תחילת נתונים בשורה ${i}, תאריך ראשון: "${firstCell}"`);
@@ -3314,7 +3314,7 @@ async function handleExcelUpload(event) {
 
             for (let i = dataStartIndex; i < rows.length; i++) {
                 const row = rows[i];
-                
+
                 // בדיקה שהשורה מתחילה בתאריך (=שורת נתונים תקינה)
                 const firstCell = row[0];
                 if (!isDateCell(firstCell)) {
@@ -3325,7 +3325,7 @@ async function handleExcelUpload(event) {
 
                 // חילוץ שם עסק מהעמודה שזיהינו
                 const businessName = row[nameColIndex];
-                
+
                 if (!businessName || typeof businessName !== 'string' || businessName.trim() === '') {
                     console.log(`⚠️  שורה ${i}: שם עסק ריק, מדלג`);
                     continue;
@@ -3338,7 +3338,7 @@ async function handleExcelUpload(event) {
                 // חילוץ מספר כרטיס (4 ספרות אחרונות)
                 const cardCell = row[cardColIndex];
                 let cardNumber = '';
-                
+
                 if (cardCell && typeof cardCell === 'string') {
                     // חילוץ רק הספרות מהתא
                     cardNumber = cardCell.replace(/\D/g, '');
@@ -3390,11 +3390,11 @@ async function handleExcelUpload(event) {
 
         for (const cardNumber of cardNumbers) {
             const transactions = cardTransactions[cardNumber];
-            
+
             // יצירת רשימה חדשה לכרטיס
             const listId = 'L' + Date.now() + '_' + cardNumber;
             const listName = `אשראי ${cardNumber}`;
-            
+
             db.lists[listId] = {
                 name: listName,
                 items: [],
@@ -3408,7 +3408,7 @@ async function handleExcelUpload(event) {
             // הוספת כל העסקאות לרשימה
             for (let i = 0; i < transactions.length; i++) {
                 const transaction = transactions[i];
-                
+
                 db.lists[listId].items.push({
                     name: transaction.name,
                     price: transaction.price,
@@ -3420,7 +3420,7 @@ async function handleExcelUpload(event) {
             }
 
             console.log(`✅ נוצרה רשימה "${listName}" עם ${transactions.length} עסקאות`);
-            
+
             // שמור את הרשימה הראשונה למעבר אליה
             if (!firstListId) {
                 firstListId = listId;
@@ -3431,7 +3431,7 @@ async function handleExcelUpload(event) {
         if (firstListId) {
             db.currentId = firstListId;
         }
-        
+
         save();
 
         console.log(`\n🎉 סה"כ יובאו ${totalItemCount} עסקאות ל-${cardNumbers.length} רשימות`);
@@ -3484,10 +3484,10 @@ async function importBankXLS(file) {
     return new Promise((resolve, reject) => {
         const reader = new FileReader();
 
-        reader.onload = async function(e) {
+        reader.onload = async function (e) {
             try {
                 console.log('📊 מתחיל עיבוד קובץ XLS בנקאי...');
-                
+
                 // Use readAsBinaryString for Android compatibility
                 const data = e.target.result;
                 const workbook = XLSX.read(data, { type: 'binary' });
@@ -3531,7 +3531,7 @@ async function importBankXLS(file) {
             }
         };
 
-        reader.onerror = function() {
+        reader.onerror = function () {
             reject(new Error('שגיאה בקריאת הקובץ'));
         };
 
@@ -3546,7 +3546,7 @@ async function importBankXLS(file) {
  */
 function extractTransactionsFromSheet(rows, sheetName) {
     const transactions = [];
-    
+
     // Find header row (contains "תאריך", "תיאור", "סכום" or similar)
     let headerRowIndex = -1;
     let dateColIndex = -1;
@@ -3556,24 +3556,24 @@ function extractTransactionsFromSheet(rows, sheetName) {
     // Search for header row
     for (let i = 0; i < Math.min(rows.length, 20); i++) {
         const row = rows[i];
-        
+
         for (let j = 0; j < row.length; j++) {
             const cell = String(row[j]).trim();
-            
+
             // Check for date column
             if (cell.includes('תאריך') || cell.toLowerCase().includes('date')) {
                 dateColIndex = j;
             }
-            
+
             // Check for description column
             if (cell.includes('תיאור') || cell.includes('פרטים') || cell.includes('אסמכתא') ||
                 cell.toLowerCase().includes('description') || cell.toLowerCase().includes('details')) {
                 descriptionColIndex = j;
             }
-            
+
             // Check for amount column
             if (cell.includes('סכום') || cell.includes('חיוב') || cell.includes('זכות') ||
-                cell.toLowerCase().includes('amount') || cell.toLowerCase().includes('debit') || 
+                cell.toLowerCase().includes('amount') || cell.toLowerCase().includes('debit') ||
                 cell.toLowerCase().includes('credit')) {
                 amountColIndex = j;
             }
@@ -3595,7 +3595,7 @@ function extractTransactionsFromSheet(rows, sheetName) {
     // Process data rows (starting after header)
     for (let i = headerRowIndex + 1; i < rows.length; i++) {
         const row = rows[i];
-        
+
         // Skip empty rows
         if (!row || row.length === 0 || row.every(cell => !cell || String(cell).trim() === '')) {
             continue;
@@ -3652,13 +3652,13 @@ async function importBankPDF(file) {
     return new Promise((resolve, reject) => {
         const reader = new FileReader();
 
-        reader.onload = async function(e) {
+        reader.onload = async function (e) {
             try {
                 console.log('📄 מתחיל עיבוד קובץ PDF בנקאי...');
-                
+
                 // Use readAsArrayBuffer for Android compatibility with PDF.js
                 const arrayBuffer = e.target.result;
-                
+
                 // Load PDF document
                 const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer });
                 const pdf = await loadingTask.promise;
@@ -3671,11 +3671,11 @@ async function importBankPDF(file) {
                 for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
                     const page = await pdf.getPage(pageNum);
                     const textContent = await page.getTextContent();
-                    
+
                     // Extract text from page
                     const pageText = textContent.items.map(item => item.str).join(' ');
                     console.log(`📄 עמוד ${pageNum}: ${pageText.length} תווים`);
-                    
+
                     // DEBUG: הצג את הטקסט שנחלץ
                     console.log('🔍 טקסט שנחלץ מהעמוד:', pageText.substring(0, 500));
 
@@ -3706,7 +3706,7 @@ async function importBankPDF(file) {
             }
         };
 
-        reader.onerror = function() {
+        reader.onerror = function () {
             reject(new Error('שגיאה בקריאת הקובץ'));
         };
 
@@ -3722,60 +3722,60 @@ async function importBankPDF(file) {
 function extractTransactionsFromPDFText(text) {
     const transactions = [];
     const lines = text.split(/\r?\n/);
-    
+
     console.log(`🔍 מעבד ${lines.length} שורות מה-PDF`);
 
     // פורמט בנק הפועלים: טבלה עם עמודות
     // תאריך | תאריך ערך | תיאור | אסמכתא | חובה | זכות | יתרה
     // דוגמה: "06/01/2026 06/01/2026 כרטיס דביט 41657 50.03 -28,599.22"
-    
+
     for (let i = 0; i < lines.length; i++) {
         const line = lines[i].trim();
-        
+
         if (!line || line.length < 20) {
             continue; // שורה ריקה או קצרה מדי
         }
-        
+
         // חיפוש תאריך בתחילת השורה (DD/MM/YYYY)
         const dateMatch = line.match(/^(\d{2}\/\d{2}\/\d{4})/);
-        
+
         if (!dateMatch) {
             continue; // אין תאריך - דלג
         }
-        
+
         const dateStr = dateMatch[1];
         let restOfLine = line.substring(dateStr.length).trim();
-        
+
         // הסר תאריך ערך נוסף אם קיים
         restOfLine = restOfLine.replace(/^\d{2}\/\d{2}\/\d{4}\s+/, '');
-        
+
         // חילוץ כל המספרים בשורה (כולל אלה עם פסיקים)
         // דוגמה: ["41657", "50.03", "28,599.22"] או ["99012", "350.00", "28,249.22"]
         const numberMatches = restOfLine.match(/[\d,]+\.?\d*/g);
-        
+
         if (!numberMatches || numberMatches.length < 2) {
             continue; // לא מספיק מספרים
         }
-        
+
         // המספר האחרון = היתרה (בפורמט: -28,599.22)
         // המספר לפני אחרון = הסכום (חובה או זכות)
         const balanceStr = numberMatches[numberMatches.length - 1];
         const amountStr = numberMatches[numberMatches.length - 2];
-        
+
         // חילוץ התיאור - הכל עד המספר האחרון לפני הסכום
         let description = restOfLine;
-        
+
         // הסר את שני המספרים האחרונים (סכום + יתרה)
         const lastBalanceIndex = description.lastIndexOf(balanceStr);
         if (lastBalanceIndex > 0) {
             description = description.substring(0, lastBalanceIndex).trim();
         }
-        
+
         const lastAmountIndex = description.lastIndexOf(amountStr);
         if (lastAmountIndex > 0) {
             description = description.substring(0, lastAmountIndex).trim();
         }
-        
+
         // הסר מספר אסמכתא אם קיים (בדרך כלל המספר האחרון שנשאר)
         // למשל: "כרטיס דביט 41657" -> "כרטיס דביט"
         const remainingNumbers = description.match(/\d+/g);
@@ -3784,18 +3784,18 @@ function extractTransactionsFromPDFText(text) {
             const lastNumIndex = description.lastIndexOf(lastNum);
             description = description.substring(0, lastNumIndex).trim();
         }
-        
+
         // נקה רווחים מיותרים
         description = description.replace(/\s+/g, ' ').trim();
-        
+
         // בדיקות תקינות
         if (!description || description.length < 3) {
             continue; // תיאור קצר מדי
         }
-        
+
         // דלג על שורות כותרת וסיכום
-        if (isTotalRow(description) || 
-            description.includes('תאריך') || 
+        if (isTotalRow(description) ||
+            description.includes('תאריך') ||
             description.includes('יתרה') ||
             description.includes('אסמכתא') ||
             description.includes('חובה') ||
@@ -3837,7 +3837,7 @@ function isTotalRow(description) {
         'סה"כ', 'סהכ', 'סך הכל', 'total', 'sum', 'subtotal',
         'יתרה', 'balance', 'סיכום', 'summary', 'מחזור'
     ];
-    
+
     const lowerDesc = description.toLowerCase();
     return totalKeywords.some(keyword => lowerDesc.includes(keyword.toLowerCase()));
 }
@@ -3850,7 +3850,7 @@ function parseDate(dateCell) {
     if (!dateCell) return null;
 
     let dateStr = String(dateCell).trim();
-    
+
     // If it's already a date object from Excel
     if (dateCell instanceof Date) {
         return formatDate(dateCell);
@@ -3926,7 +3926,7 @@ function parseAmount(amountCell) {
  */
 async function saveTransactionsToFirebase(transactions) {
     console.log(`📋 מעבד ${transactions.length} עסקאות...`);
-    
+
     if (transactions.length === 0) {
         showNotification('⚠️ לא נמצאו עסקאות לייבוא');
         return;
@@ -3942,24 +3942,24 @@ async function saveTransactionsToFirebase(transactions) {
     const items = [];
     for (const transaction of transactions) {
         const category = detectCategory(transaction.description);
-        
+
         // יצירת cloudId ייחודי למניעת בעיות סנכרון
         const cloudId = 'item_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
-        
+
         // וידוא שה-price הוא מספר תקין ולא NaN
         let itemPrice = parseFloat(transaction.amount);
-        
+
         // ניקוי הסכום מסימני מטבע ופסיקים
         if (typeof transaction.amount === 'string') {
             const cleanAmount = transaction.amount.replace(/[₪$€£\s,]/g, '').replace(',', '.');
             itemPrice = parseFloat(cleanAmount);
         }
-        
+
         // בדיקת תקינות
         if (isNaN(itemPrice) || itemPrice === null || itemPrice === undefined) {
             itemPrice = 0;
         }
-        
+
         items.push({
             name: transaction.description,
             qty: 1,  // חשוב: qty ולא quantity - זה השדה שהאפליקציה משתמשת בו
@@ -4002,15 +4002,15 @@ async function saveTransactionsToFirebase(transactions) {
                         .substring(0, 100);
 
                     const docRef = window.doc(
-                        window.firebaseDb, 
-                        "shopping_lists", 
-                        user.uid, 
-                        "transactions", 
+                        window.firebaseDb,
+                        "shopping_lists",
+                        user.uid,
+                        "transactions",
                         uniqueId
                     );
 
                     const docSnap = await window.getDoc(docRef);
-                    
+
                     if (!docSnap.exists()) {
                         await window.setDoc(docRef, {
                             date: transaction.date,
@@ -4036,3 +4036,471 @@ async function saveTransactionsToFirebase(transactions) {
     closeModal('importModal');
 }
 
+
+// ========== BANK IMPORT FUNCTIONS ==========
+
+/**
+ * Main entry point for bank file import
+ * Handles both Excel (.xlsx, .xls) and PDF files
+ */
+async function importBankFile(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    const fileName = file.name.toLowerCase();
+    const fileExtension = fileName.split('.').pop();
+
+    try {
+        showNotification('📂 קורא קובץ...');
+
+        let items = [];
+
+        if (fileExtension === 'xlsx' || fileExtension === 'xls') {
+            items = await parseBankExcel(file);
+        } else if (fileExtension === 'pdf') {
+            items = await parseBankPDF(file);
+        } else {
+            showNotification('❌ פורמט קובץ לא נתמך. אנא בחר קובץ Excel או PDF');
+            return;
+        }
+
+        if (items.length === 0) {
+            showNotification('⚠️ לא נמצאו תנועות בנקאיות בקובץ');
+            return;
+        }
+
+        addBankItemsToList(items);
+
+    } catch (error) {
+        console.error('Error importing bank file:', error);
+        showNotification('❌ שגיאה בקריאת הקובץ: ' + error.message);
+    } finally {
+        // Reset file input
+        event.target.value = '';
+    }
+}
+
+/**
+ * Parse Excel bank statement
+ * Looks for columns: תאריך, תיאור, בחובה
+ */
+async function parseBankExcel(file) {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+
+        reader.onload = function (e) {
+            try {
+                const data = new Uint8Array(e.target.result);
+                const workbook = XLSX.read(data, { type: 'array' });
+
+                // Get first sheet
+                const firstSheetName = workbook.SheetNames[0];
+                const worksheet = workbook.Sheets[firstSheetName];
+
+                // Convert to JSON
+                const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+
+                if (jsonData.length < 2) {
+                    resolve([]);
+                    return;
+                }
+
+                // Find column indices
+                const headers = jsonData[0];
+                let dateCol = -1, descCol = -1, debitCol = -1;
+
+                // Debug: log headers to console
+                console.log('📊 Excel Headers:', headers);
+
+                headers.forEach((header, index) => {
+                    const h = String(header).toLowerCase().trim();
+
+                    // Date column - more flexible matching
+                    if (h.includes('תאריך') || h.includes('date') || h.includes('תאר')) {
+                        dateCol = index;
+                        console.log(`✅ Found date column at index ${index}: "${header}"`);
+                    }
+                    // Description column - more flexible matching
+                    if (h.includes('תיאור') || h.includes('description') || h.includes('פירוט') || h.includes('תאור')) {
+                        descCol = index;
+                        console.log(`✅ Found description column at index ${index}: "${header}"`);
+                    }
+                    // Debit column (amount charged) - more flexible matching
+                    if (h.includes('בחובה') || h.includes('חובה') || h.includes('debit') || h.includes('חיוב') || h.includes('זכות')) {
+                        debitCol = index;
+                        console.log(`✅ Found debit column at index ${index}: "${header}"`);
+                    }
+                });
+
+                console.log('🔍 Column indices:', { dateCol, descCol, debitCol });
+
+                // If we didn't find the debit column, try to find any column with numbers
+                if (debitCol === -1 && dateCol !== -1 && descCol !== -1) {
+                    console.log('⚠️ Debit column not found by name, searching for numeric column...');
+                    for (let colIndex = 0; colIndex < headers.length; colIndex++) {
+                        if (colIndex === dateCol || colIndex === descCol) continue;
+                        // Check if this column has numeric values in first few rows
+                        let hasNumbers = false;
+                        for (let rowIndex = 1; rowIndex < Math.min(5, jsonData.length); rowIndex++) {
+                            const val = jsonData[rowIndex][colIndex];
+                            if (typeof val === 'number' || (typeof val === 'string' && !isNaN(parseFloat(val)))) {
+                                hasNumbers = true;
+                                break;
+                            }
+                        }
+                        if (hasNumbers) {
+                            debitCol = colIndex;
+                            console.log(`✅ Found numeric column at index ${colIndex}: "${headers[colIndex]}"`);
+                            break;
+                        }
+                    }
+                }
+
+                // FALLBACK: If columns not found by name, use LAST 3 columns (Hebrew RTL)
+                if (dateCol === -1 || descCol === -1) {
+                    console.log('⚠️ Using fallback: last 3 columns (RTL) as date, description, amount');
+                    if (headers.length >= 3) {
+                        // Hebrew files are RTL, so rightmost columns are first
+                        const lastCol = headers.length - 1;
+                        dateCol = lastCol;      // Rightmost column = date
+                        descCol = lastCol - 1;  // Second from right = description
+                        if (debitCol === -1) {
+                            debitCol = lastCol - 2;  // Third from right = amount
+                        }
+                        console.log('📍 Fallback columns (RTL):', { dateCol, descCol, debitCol });
+                        console.log(`📍 Using: Date="${headers[dateCol]}", Desc="${headers[descCol]}", Amount="${headers[debitCol]}"`);
+                    } else if (headers.length >= 2) {
+                        // Only 2 columns - use last 2
+                        const lastCol = headers.length - 1;
+                        dateCol = lastCol;
+                        descCol = lastCol - 1;
+                        console.log('📍 Fallback columns (2 cols):', { dateCol, descCol, debitCol });
+                    } else {
+                        console.error('❌ Not enough columns in file');
+                        reject(new Error('הקובץ לא מכיל מספיק עמודות'));
+                        return;
+                    }
+                }
+
+                console.log('🎯 Final columns:', { dateCol, descCol, debitCol });
+
+                // Parse rows
+                const items = [];
+                console.log(`📋 Processing ${jsonData.length - 1} rows...`);
+
+                for (let i = 1; i < jsonData.length; i++) {
+                    const row = jsonData[i];
+
+                    if (!row || row.length === 0) continue;
+
+                    const date = row[dateCol];
+                    const description = row[descCol];
+                    const debit = debitCol !== -1 ? row[debitCol] : null;
+
+                    // Skip if no description AND no date (completely empty row)
+                    if (!description && !date) {
+                        console.log(`⏭️ Row ${i}: Skipping empty row`);
+                        continue;
+                    }
+
+                    // Parse amount
+                    let amount = 0;
+                    if (debit !== null && debit !== undefined && debit !== '') {
+                        if (typeof debit === 'number') {
+                            amount = Math.abs(debit);
+                        } else if (typeof debit === 'string') {
+                            // Remove currency symbols, spaces, and parse
+                            const cleanAmount = debit.replace(/[^\d.-]/g, '');
+                            if (cleanAmount) {
+                                amount = Math.abs(parseFloat(cleanAmount));
+                            }
+                        }
+                    }
+
+                    // Only include rows with a valid debit amount
+                    if (isNaN(amount) || amount === 0) {
+                        console.log(`⏭️ Row ${i}: No valid debit amount (${debit})`);
+                        continue;
+                    }
+
+                    // Format date
+                    const formattedDate = formatBankDate(date);
+
+                    // Use description or fallback to "תנועה" if empty
+                    const finalDescription = description ? String(description).trim() : 'תנועה';
+
+                    console.log(`✅ Row ${i}: ${finalDescription} - ${formattedDate} - ₪${amount}`);
+
+                    items.push({
+                        date: formattedDate,
+                        description: finalDescription,
+                        amount: amount
+                    });
+                }
+
+                console.log(`✅ Total items parsed: ${items.length}`);
+                resolve(items);
+
+            } catch (error) {
+                reject(error);
+            }
+        };
+
+        reader.onerror = function () {
+            reject(new Error('שגיאה בקריאת הקובץ'));
+        };
+
+        reader.readAsArrayBuffer(file);
+    });
+}
+
+/**
+ * Parse PDF bank statement
+ * Extracts text and looks for transaction patterns
+ */
+async function parseBankPDF(file) {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+
+        reader.onload = async function (e) {
+            try {
+                const typedArray = new Uint8Array(e.target.result);
+
+                // Load PDF
+                const pdf = await pdfjsLib.getDocument({ data: typedArray }).promise;
+
+                let fullText = '';
+
+                // Extract text from all pages
+                console.log(`📄 PDF has ${pdf.numPages} pages`);
+                for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
+                    const page = await pdf.getPage(pageNum);
+                    const textContent = await page.getTextContent();
+
+                    // Better text extraction - preserve line structure
+                    let lastY = -1;
+                    let pageText = '';
+                    textContent.items.forEach(item => {
+                        // Add newline if Y position changed significantly (new line)
+                        if (lastY !== -1 && Math.abs(item.transform[5] - lastY) > 5) {
+                            pageText += '\n';
+                        }
+                        pageText += item.str + ' ';
+                        lastY = item.transform[5];
+                    });
+
+                    fullText += pageText + '\n';
+                }
+
+                console.log('📝 Extracted text length:', fullText.length);
+                console.log('📝 First 500 chars:', fullText.substring(0, 500));
+
+                // Parse transactions from text
+                const items = parseTransactionsFromText(fullText);
+
+                resolve(items);
+
+            } catch (error) {
+                reject(error);
+            }
+        };
+
+        reader.onerror = function () {
+            reject(new Error('שגיאה בקריאת קובץ PDF'));
+        };
+
+        reader.readAsArrayBuffer(file);
+    });
+}
+
+/**
+ * Parse transactions from PDF text
+ * Israeli bank format: Amount Number Description Date
+ * Example: 655.80 8547 כרטיסי אשראי-י 11/01/2026
+ */
+function parseTransactionsFromText(text) {
+    const items = [];
+    const lines = text.split('\n');
+
+    console.log(`🔍 Parsing ${lines.length} lines from PDF...`);
+
+    // Regex patterns for Israeli bank statements
+    const datePattern = /(\d{1,2}\/\d{1,2}\/\d{4})/g;
+    const amountPattern = /^[\s]*(-?\d{1,3}(?:,\d{3})*(?:\.\d{2})?)/;
+
+    for (let i = 0; i < lines.length; i++) {
+        const line = lines[i].trim();
+        if (!line || line.length < 10) continue;
+
+        // Skip balance lines (יתרה בש"ח)
+        if (line.includes('יתרה') || line.includes('balance')) {
+            console.log(`⏭️ Skipping balance line: "${line}"`);
+            continue;
+        }
+
+        // Look for dates first
+        const dates = [];
+        let dateMatch;
+        const dateRegex = new RegExp(datePattern);
+        while ((dateMatch = dateRegex.exec(line)) !== null) {
+            dates.push(dateMatch[1]);
+        }
+
+        if (dates.length === 0) continue;
+
+        // Find ALL decimal numbers in the line (numbers with a dot)
+        const decimalPattern = /\d{1,3}(?:,\d{3})*\.\d{2}/g;
+        const decimalNumbers = [];
+        let numMatch;
+        while ((numMatch = decimalPattern.exec(line)) !== null) {
+            const num = parseFloat(numMatch[0].replace(/,/g, ''));
+            if (!isNaN(num) && num > 0) {
+                decimalNumbers.push({ value: num, text: numMatch[0] });
+            }
+        }
+
+        console.log(`🔍 Line ${i}: "${line}"`);
+        console.log(`📅 Dates: ${dates.join(', ')}`);
+        console.log(`💰 Decimal numbers found: ${decimalNumbers.map(n => `${n.text}=${n.value}`).join(', ')}`);
+
+        if (decimalNumbers.length === 0) {
+            console.log(`⏭️ No decimal numbers, skipping`);
+            continue;
+        }
+
+        // Use the SMALLEST decimal number between 10-10000 as the amount
+        // This filters out balance numbers (>10000) while keeping transaction amounts
+        const validAmounts = decimalNumbers.filter(n => n.value >= 10 && n.value < 10000).sort((a, b) => a.value - b.value);
+
+        if (validAmounts.length === 0) {
+            console.log(`⏭️ No valid amounts (>= 10), skipping`);
+            continue;
+        }
+
+        const amount = validAmounts[0].value;
+        const amountText = validAmounts[0].text;
+
+        console.log(`✅ Using amount: ${amount} from "${amountText}" (smallest >= 10)`);
+
+        const date = dates[dates.length - 1];
+
+        // Extract description: remove all numbers and dates
+        let description = line;
+
+        // Remove all decimal numbers
+        decimalNumbers.forEach(num => {
+            description = description.replace(num.text, '').trim();
+        });
+
+        // Remove all dates
+        dates.forEach(d => {
+            description = description.replace(d, '').trim();
+        });
+
+        // Remove any remaining numbers (IDs, etc.)
+        description = description.replace(/\d+/g, '').trim();
+
+        // Clean up extra spaces and special characters
+        description = description.replace(/\s+/g, ' ').trim();
+        description = description.replace(/^[\s\-\.]+|[\s\-\.]+$/g, '').trim();
+
+        if (description.length < 2) {
+            description = 'תנועה בנקאית';
+        }
+
+        console.log(`✅ Final: "${description}" - ${date} - ₪${amount}`);
+
+        items.push({
+            date: formatBankDate(date),
+            description: description,
+            amount: amount
+        });
+    }
+
+    console.log(`✅ Total PDF transactions: ${items.length}`);
+    return items;
+}
+
+/**
+ * Add parsed bank items to a NEW list
+ */
+function addBankItemsToList(items) {
+    if (!items || items.length === 0) return;
+
+    // Create a new list for the bank import
+    const newListId = 'L' + Date.now();
+    const today = new Date();
+    const dateStr = `${today.getDate()}/${today.getMonth() + 1}/${today.getFullYear()}`;
+
+    db.lists[newListId] = {
+        name: `ייבוא בנקאי ${dateStr}`,
+        url: '',
+        budget: 0,
+        isTemplate: false,
+        items: []
+    };
+
+    let addedCount = 0;
+
+    items.forEach(item => {
+        // Create item name: Description (Date)
+        const itemName = `${item.description} (${item.date})`;
+
+        // Add to NEW list with "אחר" category
+        db.lists[newListId].items.push({
+            name: itemName,
+            price: item.amount,
+            qty: 1,
+            checked: false,
+            category: 'אחר',
+            cloudId: 'item_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9)
+        });
+
+        addedCount++;
+    });
+
+    // Switch to the new list
+    db.currentId = newListId;
+
+    save();
+    showNotification(`✅ נוצרה רשימה חדשה עם ${addedCount} תנועות בנקאיות!`);
+}
+
+/**
+ * Format date to consistent DD/MM/YYYY format
+ */
+function formatBankDate(dateInput) {
+    if (!dateInput) return '';
+
+    let dateStr = String(dateInput).trim();
+
+    // Handle Excel date numbers
+    if (!isNaN(dateInput) && typeof dateInput === 'number') {
+        // Excel dates are days since 1900-01-01
+        const excelEpoch = new Date(1900, 0, 1);
+        const date = new Date(excelEpoch.getTime() + (dateInput - 2) * 24 * 60 * 60 * 1000);
+        const day = String(date.getDate()).padStart(2, '0');
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const year = date.getFullYear();
+        return `${day}/${month}/${year}`;
+    }
+
+    // Handle string dates
+    // Replace dots and dashes with slashes
+    dateStr = dateStr.replace(/[.-]/g, '/');
+
+    // Parse date parts
+    const parts = dateStr.split('/');
+    if (parts.length !== 3) return dateStr;
+
+    let day = parts[0].padStart(2, '0');
+    let month = parts[1].padStart(2, '0');
+    let year = parts[2];
+
+    // Handle 2-digit years
+    if (year.length === 2) {
+        year = '20' + year;
+    }
+
+    return `${day}/${month}/${year}`;
+}
