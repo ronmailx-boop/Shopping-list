@@ -3721,41 +3721,63 @@ function extractTransactionsFromPDFText(text) {
     const lines = text.split(/\r?\n/);
 
     // Pattern to match transaction lines (date + description + amount)
-    // Example: "15/01/2025 קניה בסופרמרקט -150.50"
-    const transactionPattern = /(\d{2}[\/\-\.]\d{2}[\/\-\.]\d{2,4})\s+(.+?)\s+([\-\+]?\d+[\.,]\d+)/g;
-
+    // התבנית החדשה: תאריך בתחילת השורה, אחריו טקסט (שם העסק), ובסוף סכום
+    // דוגמאות: 
+    // "15/01/2025 סופר פארם רמת גן -150.50"
+    // "20-12-24 מסעדת טאבון תל אביב 230.00"
+    // "05.01.2025 רמי לוי שיווק 450.80"
+    
     for (const line of lines) {
-        const matches = [...line.matchAll(transactionPattern)];
+        // חיפוש תאריך בתחילת השורה
+        const dateMatch = line.match(/^(\d{2}[\/\-\.]\d{2}[\/\-\.]\d{2,4})/);
         
-        for (const match of matches) {
-            const dateStr = match[1];
-            const description = match[2].trim();
-            const amountStr = match[3];
-
-            // Skip total rows
-            if (isTotalRow(description)) {
-                continue;
-            }
-
-            // Parse date
-            const date = parseDate(dateStr);
-            if (!date) {
-                continue;
-            }
-
-            // Parse amount
-            const amount = parseAmount(amountStr);
-            if (amount === 0) {
-                continue;
-            }
-
-            transactions.push({
-                date: date,
-                description: description,
-                amount: amount,
-                source: 'PDF'
-            });
+        if (!dateMatch) {
+            continue; // אם אין תאריך, דלג על השורה
         }
+        
+        const dateStr = dateMatch[1];
+        const afterDate = line.substring(dateMatch[0].length).trim();
+        
+        // חיפוש הסכום בסוף השורה (עם או בלי מינוס/פלוס)
+        const amountMatch = afterDate.match(/([\-\+]?\d+[\.,]\d+)\s*$/);
+        
+        if (!amountMatch) {
+            continue; // אם אין סכום, דלג על השורה
+        }
+        
+        const amountStr = amountMatch[1];
+        
+        // כל מה שנמצא בין התאריך לסכום = שם העסק/תיאור
+        const description = afterDate.substring(0, afterDate.lastIndexOf(amountMatch[0])).trim();
+        
+        // בדיקות תקינות
+        if (!description || description.length < 2) {
+            continue; // תיאור קצר מדי
+        }
+        
+        // Skip total rows
+        if (isTotalRow(description)) {
+            continue;
+        }
+
+        // Parse date
+        const date = parseDate(dateStr);
+        if (!date) {
+            continue;
+        }
+
+        // Parse amount
+        const amount = parseAmount(amountStr);
+        if (amount === 0) {
+            continue;
+        }
+
+        transactions.push({
+            date: date,
+            description: description,
+            amount: amount,
+            source: 'PDF'
+        });
     }
 
     return transactions;
@@ -3870,26 +3892,35 @@ async function saveTransactionsToFirebase(transactions) {
     const newListName = `ייבוא בנקאי ${dateStr}`;
     const newListId = 'list_' + Date.now();
 
-    // ב. המרת עסקאות למוצרים
+    // ב. המרת עסקאות למוצרים עם תיקון שדות
     const items = [];
     for (const transaction of transactions) {
         const category = detectCategory(transaction.description);
+        
         // יצירת cloudId ייחודי למניעת בעיות סנכרון
         const cloudId = 'item_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
         
         // וידוא שה-price הוא מספר תקין ולא NaN
         let itemPrice = parseFloat(transaction.amount);
+        
+        // ניקוי הסכום מסימני מטבע ופסיקים
+        if (typeof transaction.amount === 'string') {
+            const cleanAmount = transaction.amount.replace(/[₪$€£\s,]/g, '').replace(',', '.');
+            itemPrice = parseFloat(cleanAmount);
+        }
+        
+        // בדיקת תקינות
         if (isNaN(itemPrice) || itemPrice === null || itemPrice === undefined) {
             itemPrice = 0;
         }
         
         items.push({
             name: transaction.description,
-            qty: 1,  // חשוב: qty ולא quantity
-            price: itemPrice,  // מספר תקין בלבד
+            qty: 1,  // חשוב: qty ולא quantity - זה השדה שהאפליקציה משתמשת בו
+            price: itemPrice,  // מספר תקין בלבד, ללא NaN
             category: category,
             checked: false,
-            cloudId: cloudId
+            cloudId: cloudId  // cloudId ייחודי לסנכרון ענן
         });
     }
 
@@ -3906,9 +3937,9 @@ async function saveTransactionsToFirebase(transactions) {
     db.currentId = newListId;
     activePage = 'lists';
 
-    // ד. סנכרון - שמירה ורינדור בלבד (ללא switchTab שלא קיים)
+    // ד. סנכרון - שמירה ורינדור (ללא switchTab שלא קיים)
     save();
-    render();
+    render();  // רענון המסך להצגת הרשימה החדשה
 
     // ה. מניעת כפילויות - שמירת העסקאות ב-Firebase תחת transactions
     if (window.firebaseDb && window.firebaseAuth) {
