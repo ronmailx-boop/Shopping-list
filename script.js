@@ -3874,12 +3874,16 @@ async function saveTransactionsToFirebase(transactions) {
     const items = [];
     for (const transaction of transactions) {
         const category = detectCategory(transaction.description);
+        // יצירת cloudId ייחודי למניעת בעיות סנכרון
+        const cloudId = 'item_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+        
         items.push({
             name: transaction.description,
-            quantity: 1,
-            price: transaction.amount,
+            qty: 1,
+            price: parseFloat(transaction.amount),
             category: category,
-            checked: false
+            checked: false,
+            cloudId: cloudId
         });
     }
 
