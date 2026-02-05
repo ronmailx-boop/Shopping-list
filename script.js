@@ -3877,10 +3877,16 @@ async function saveTransactionsToFirebase(transactions) {
         // יצירת cloudId ייחודי למניעת בעיות סנכרון
         const cloudId = 'item_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
         
+        // וידוא שה-price הוא מספר תקין ולא NaN
+        let itemPrice = parseFloat(transaction.amount);
+        if (isNaN(itemPrice) || itemPrice === null || itemPrice === undefined) {
+            itemPrice = 0;
+        }
+        
         items.push({
             name: transaction.description,
-            qty: 1,
-            price: parseFloat(transaction.amount),
+            qty: 1,  // חשוב: qty ולא quantity
+            price: itemPrice,  // מספר תקין בלבד
             category: category,
             checked: false,
             cloudId: cloudId
@@ -3900,10 +3906,9 @@ async function saveTransactionsToFirebase(transactions) {
     db.currentId = newListId;
     activePage = 'lists';
 
-    // ד. סנכרון
+    // ד. סנכרון - שמירה ורינדור בלבד (ללא switchTab שלא קיים)
     save();
     render();
-    switchTab('current');
 
     // ה. מניעת כפילויות - שמירת העסקאות ב-Firebase תחת transactions
     if (window.firebaseDb && window.firebaseAuth) {
