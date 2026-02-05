@@ -11,6 +11,14 @@
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <!-- PDF.js Library for PDF parsing -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    <script>
+        // Configure PDF.js worker
+        if (typeof pdfjsLib !== 'undefined') {
+            pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+        }
+    </script>
 
     <style>
         * {
@@ -432,6 +440,32 @@
             color: #6b7280;
             border-color: #e5e7eb;
         }
+
+        /* Bank Import Button Styles */
+        .bank-import-btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 12px 20px;
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            color: white;
+            border-radius: 15px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s;
+            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+            border: none;
+            font-size: 14px;
+        }
+
+        .bank-import-btn:active {
+            transform: scale(0.95);
+        }
+
+        .bank-import-btn:hover {
+            box-shadow: 0 6px 16px rgba(16, 185, 129, 0.4);
+        }
     </style>
 
     <script>
@@ -723,6 +757,8 @@ ${error.message}
                         class="bg-indigo-600 text-white flex-1 py-3 rounded-xl font-bold">+ רשימה חדשה</button>
                     <button onclick="openModal('importModal')"
                         class="bg-green-500 text-white flex-1 py-3 rounded-xl font-bold">📥 ייבוא</button>
+                    <label for="bankFileInput" class="bank-import-btn flex-1 cursor-pointer text-center flex items-center justify-center">🏦 ייבוא בנקאי</label>
+                    <input type="file" id="bankFileInput" accept=".xls,.xlsx,.pdf" style="display: none;" onchange="importBankFile(event)">
                     <label for="excel-upload" class="bg-blue-500 text-white flex-1 py-3 rounded-xl font-bold cursor-pointer text-center">📊 ייבוא מאקסל</label>
                     <input type="file" id="excel-upload" accept=".xlsx, .xls" style="display: none;" onchange="handleExcelUpload(event)">
                 </div>
