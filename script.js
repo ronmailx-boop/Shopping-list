@@ -3445,3 +3445,478 @@ async function handleExcelUpload(event) {
     }
 }
 
+// ========== BANK IMPORT FUNCTIONALITY ==========
+
+/**
+ * Main function to handle bank file imports (XLS/PDF)
+ * This function is called when user selects a file via the bank import button
+ */
+async function importBankFile(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    console.log(`📄 ייבוא קובץ בנקאי: ${file.name} (${file.type})`);
+    showNotification('⏳ מעבד קובץ בנקאי...');
+
+    const fileExtension = file.name.toLowerCase().split('.').pop();
+
+    try {
+        if (fileExtension === 'pdf') {
+            await importBankPDF(file);
+        } else if (fileExtension === 'xls' || fileExtension === 'xlsx') {
+            await importBankXLS(file);
+        } else {
+            showNotification('❌ פורמט קובץ לא נתמך. השתמש ב-XLS או PDF', 'error');
+        }
+    } catch (error) {
+        console.error('❌ שגיאה בייבוא בנקאי:', error);
+        showNotification('❌ שגיאה בעיבוד הקובץ: ' + error.message, 'error');
+    }
+
+    event.target.value = '';
+}
+
+/**
+ * Import bank transactions from XLS file (actually HTML table disguised as XLS)
+ * The file contains multiple tables (transfers, checks, credit cards) that need to be unified
+ */
+async function importBankXLS(file) {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+
+        reader.onload = async function(e) {
+            try {
+                console.log('📊 מתחיל עיבוד קובץ XLS בנקאי...');
+                
+                // Use readAsBinaryString for Android compatibility
+                const data = e.target.result;
+                const workbook = XLSX.read(data, { type: 'binary' });
+
+                console.log(`📋 נמצאו ${workbook.SheetNames.length} גיליונות:`, workbook.SheetNames);
+
+                const allTransactions = [];
+
+                // Process each sheet in the workbook
+                for (const sheetName of workbook.SheetNames) {
+                    console.log(`\n🔍 מעבד גיליון: "${sheetName}"`);
+                    const worksheet = workbook.Sheets[sheetName];
+                    const rows = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: '' });
+
+                    console.log(`📝 סה"כ ${rows.length} שורות בגיליון`);
+
+                    // Extract transactions from this sheet
+                    const sheetTransactions = extractTransactionsFromSheet(rows, sheetName);
+                    allTransactions.push(...sheetTransactions);
+
+                    console.log(`✅ חולצו ${sheetTransactions.length} עסקאות מגיליון "${sheetName}"`);
+                }
+
+                if (allTransactions.length === 0) {
+                    showNotification('❌ לא נמצאו עסקאות בקובץ', 'error');
+                    resolve();
+                    return;
+                }
+
+                console.log(`\n💾 סה"כ ${allTransactions.length} עסקאות לשמירה`);
+
+                // Save transactions to Firebase (with duplicate prevention)
+                await saveTransactionsToFirebase(allTransactions);
+
+                showNotification(`✅ יובאו ${allTransactions.length} עסקאות בהצלחה!`);
+                resolve();
+
+            } catch (error) {
+                console.error('❌ שגיאה בעיבוד XLS:', error);
+                reject(error);
+            }
+        };
+
+        reader.onerror = function() {
+            reject(new Error('שגיאה בקריאת הקובץ'));
+        };
+
+        // Use readAsBinaryString for Android compatibility
+        reader.readAsBinaryString(file);
+    });
+}
+
+/**
+ * Extract transactions from a single sheet
+ * Handles multiple tables in one sheet and filters out totals rows
+ */
+function extractTransactionsFromSheet(rows, sheetName) {
+    const transactions = [];
+    
+    // Find header row (contains "תאריך", "תיאור", "סכום" or similar)
+    let headerRowIndex = -1;
+    let dateColIndex = -1;
+    let descriptionColIndex = -1;
+    let amountColIndex = -1;
+
+    // Search for header row
+    for (let i = 0; i < Math.min(rows.length, 20); i++) {
+        const row = rows[i];
+        
+        for (let j = 0; j < row.length; j++) {
+            const cell = String(row[j]).trim();
+            
+            // Check for date column
+            if (cell.includes('תאריך') || cell.toLowerCase().includes('date')) {
+                dateColIndex = j;
+            }
+            
+            // Check for description column
+            if (cell.includes('תיאור') || cell.includes('פרטים') || cell.includes('אסמכתא') ||
+                cell.toLowerCase().includes('description') || cell.toLowerCase().includes('details')) {
+                descriptionColIndex = j;
+            }
+            
+            // Check for amount column
+            if (cell.includes('סכום') || cell.includes('חיוב') || cell.includes('זכות') ||
+                cell.toLowerCase().includes('amount') || cell.toLowerCase().includes('debit') || 
+                cell.toLowerCase().includes('credit')) {
+                amountColIndex = j;
+            }
+        }
+
+        // If we found all three columns, this is our header row
+        if (dateColIndex !== -1 && descriptionColIndex !== -1 && amountColIndex !== -1) {
+            headerRowIndex = i;
+            console.log(`✓ שורת כותרת נמצאה בשורה ${i}: תאריך=${dateColIndex}, תיאור=${descriptionColIndex}, סכום=${amountColIndex}`);
+            break;
+        }
+    }
+
+    if (headerRowIndex === -1) {
+        console.log(`⚠️  לא נמצאה שורת כותרת בגיליון "${sheetName}"`);
+        return transactions;
+    }
+
+    // Process data rows (starting after header)
+    for (let i = headerRowIndex + 1; i < rows.length; i++) {
+        const row = rows[i];
+        
+        // Skip empty rows
+        if (!row || row.length === 0 || row.every(cell => !cell || String(cell).trim() === '')) {
+            continue;
+        }
+
+        const dateCell = row[dateColIndex];
+        const descriptionCell = row[descriptionColIndex];
+        const amountCell = row[amountColIndex];
+
+        // Skip if missing critical data
+        if (!descriptionCell || String(descriptionCell).trim() === '') {
+            continue;
+        }
+
+        const description = String(descriptionCell).trim();
+
+        // Filter out summary/total rows
+        if (isTotalRow(description)) {
+            console.log(`⏭️  מדלג על שורת סיכום: "${description}"`);
+            continue;
+        }
+
+        // Parse date
+        const date = parseDate(dateCell);
+        if (!date) {
+            console.log(`⚠️  שורה ${i}: תאריך לא תקין (${dateCell}), מדלג`);
+            continue;
+        }
+
+        // Parse amount
+        const amount = parseAmount(amountCell);
+        if (amount === 0) {
+            console.log(`⚠️  שורה ${i}: סכום אפס או לא תקין (${amountCell}), מדלג`);
+            continue;
+        }
+
+        // Add transaction
+        transactions.push({
+            date: date,
+            description: description,
+            amount: amount,
+            source: sheetName
+        });
+    }
+
+    return transactions;
+}
+
+/**
+ * Import bank transactions from PDF file
+ * Extracts date, description, and amount from PDF text
+ */
+async function importBankPDF(file) {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+
+        reader.onload = async function(e) {
+            try {
+                console.log('📄 מתחיל עיבוד קובץ PDF בנקאי...');
+                
+                // Use readAsArrayBuffer for Android compatibility with PDF.js
+                const arrayBuffer = e.target.result;
+                
+                // Load PDF document
+                const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer });
+                const pdf = await loadingTask.promise;
+
+                console.log(`📖 PDF נטען: ${pdf.numPages} עמודים`);
+
+                const allTransactions = [];
+
+                // Process each page
+                for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
+                    const page = await pdf.getPage(pageNum);
+                    const textContent = await page.getTextContent();
+                    
+                    // Extract text from page
+                    const pageText = textContent.items.map(item => item.str).join(' ');
+                    console.log(`📄 עמוד ${pageNum}: ${pageText.length} תווים`);
+
+                    // Extract transactions from page text
+                    const pageTransactions = extractTransactionsFromPDFText(pageText);
+                    allTransactions.push(...pageTransactions);
+
+                    console.log(`✅ חולצו ${pageTransactions.length} עסקאות מעמוד ${pageNum}`);
+                }
+
+                if (allTransactions.length === 0) {
+                    showNotification('❌ לא נמצאו עסקאות ב-PDF', 'error');
+                    resolve();
+                    return;
+                }
+
+                console.log(`\n💾 סה"כ ${allTransactions.length} עסקאות לשמירה`);
+
+                // Save transactions to Firebase (with duplicate prevention)
+                await saveTransactionsToFirebase(allTransactions);
+
+                showNotification(`✅ יובאו ${allTransactions.length} עסקאות בהצלחה!`);
+                resolve();
+
+            } catch (error) {
+                console.error('❌ שגיאה בעיבוד PDF:', error);
+                reject(error);
+            }
+        };
+
+        reader.onerror = function() {
+            reject(new Error('שגיאה בקריאת הקובץ'));
+        };
+
+        // Use readAsArrayBuffer for Android compatibility with PDF.js
+        reader.readAsArrayBuffer(file);
+    });
+}
+
+/**
+ * Extract transactions from PDF text content
+ * Looks for patterns of date, description, and amount
+ */
+function extractTransactionsFromPDFText(text) {
+    const transactions = [];
+    const lines = text.split(/\r?\n/);
+
+    // Pattern to match transaction lines (date + description + amount)
+    // Example: "15/01/2025 קניה בסופרמרקט -150.50"
+    const transactionPattern = /(\d{2}[\/\-\.]\d{2}[\/\-\.]\d{2,4})\s+(.+?)\s+([\-\+]?\d+[\.,]\d+)/g;
+
+    for (const line of lines) {
+        const matches = [...line.matchAll(transactionPattern)];
+        
+        for (const match of matches) {
+            const dateStr = match[1];
+            const description = match[2].trim();
+            const amountStr = match[3];
+
+            // Skip total rows
+            if (isTotalRow(description)) {
+                continue;
+            }
+
+            // Parse date
+            const date = parseDate(dateStr);
+            if (!date) {
+                continue;
+            }
+
+            // Parse amount
+            const amount = parseAmount(amountStr);
+            if (amount === 0) {
+                continue;
+            }
+
+            transactions.push({
+                date: date,
+                description: description,
+                amount: amount,
+                source: 'PDF'
+            });
+        }
+    }
+
+    return transactions;
+}
+
+/**
+ * Check if a description indicates a total/summary row
+ */
+function isTotalRow(description) {
+    const totalKeywords = [
+        'סה"כ', 'סהכ', 'סך הכל', 'total', 'sum', 'subtotal',
+        'יתרה', 'balance', 'סיכום', 'summary', 'מחזור'
+    ];
+    
+    const lowerDesc = description.toLowerCase();
+    return totalKeywords.some(keyword => lowerDesc.includes(keyword.toLowerCase()));
+}
+
+/**
+ * Parse date from various formats
+ * Supports: DD/MM/YYYY, DD-MM-YYYY, DD.MM.YYYY, DD/MM/YY
+ */
+function parseDate(dateCell) {
+    if (!dateCell) return null;
+
+    let dateStr = String(dateCell).trim();
+    
+    // If it's already a date object from Excel
+    if (dateCell instanceof Date) {
+        return formatDate(dateCell);
+    }
+
+    // Remove any non-date characters
+    dateStr = dateStr.replace(/[^\d\/\-\.]/g, '');
+
+    // Try to parse different date formats
+    const datePatterns = [
+        /(\d{2})[\/\-\.](\d{2})[\/\-\.](\d{4})/,  // DD/MM/YYYY
+        /(\d{2})[\/\-\.](\d{2})[\/\-\.](\d{2})/    // DD/MM/YY
+    ];
+
+    for (const pattern of datePatterns) {
+        const match = dateStr.match(pattern);
+        if (match) {
+            let day = match[1];
+            let month = match[2];
+            let year = match[3];
+
+            // Convert 2-digit year to 4-digit
+            if (year.length === 2) {
+                year = '20' + year;
+            }
+
+            return `${day}/${month}/${year}`;
+        }
+    }
+
+    return null;
+}
+
+/**
+ * Format Date object to DD/MM/YYYY string
+ */
+function formatDate(date) {
+    const day = String(date.getDate()).padStart(2, '0');
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const year = date.getFullYear();
+    return `${day}/${month}/${year}`;
+}
+
+/**
+ * Parse amount from various formats
+ * Handles: -150.50, 150.50, -150,50, 150,50, (150.50)
+ */
+function parseAmount(amountCell) {
+    if (!amountCell && amountCell !== 0) return 0;
+
+    let amountStr = String(amountCell).trim();
+
+    // Remove currency symbols and spaces
+    amountStr = amountStr.replace(/[₪$€£\s]/g, '');
+
+    // Handle parentheses as negative (accounting format)
+    if (amountStr.startsWith('(') && amountStr.endsWith(')')) {
+        amountStr = '-' + amountStr.slice(1, -1);
+    }
+
+    // Replace comma with dot for decimal point
+    amountStr = amountStr.replace(',', '.');
+
+    // Parse to float
+    const amount = parseFloat(amountStr);
+
+    return isNaN(amount) ? 0 : Math.abs(amount); // Return absolute value
+}
+
+/**
+ * Save transactions to Firebase with duplicate prevention
+ * Uses unique ID based on date + description + amount
+ */
+async function saveTransactionsToFirebase(transactions) {
+    if (!window.firebaseDb || !window.firebaseAuth) {
+        console.log('⚠️  Firebase לא מחובר, מדלג על שמירה');
+        return;
+    }
+
+    const user = window.firebaseAuth.currentUser;
+    if (!user) {
+        console.log('⚠️  משתמש לא מחובר, מדלג על שמירה');
+        return;
+    }
+
+    console.log(`💾 שומר ${transactions.length} עסקאות ל-Firebase...`);
+
+    let savedCount = 0;
+    let duplicateCount = 0;
+
+    for (const transaction of transactions) {
+        try {
+            // Create unique ID from transaction data
+            const uniqueId = btoa(`${transaction.date}_${transaction.description}_${transaction.amount}`)
+                .replace(/[^a-zA-Z0-9]/g, '')  // Remove non-alphanumeric characters
+                .substring(0, 100);  // Limit length for Firebase
+
+            const docRef = window.doc(
+                window.firebaseDb, 
+                "shopping_lists", 
+                user.uid, 
+                "transactions", 
+                uniqueId
+            );
+
+            // Check if transaction already exists
+            const docSnap = await window.getDoc(docRef);
+            
+            if (!docSnap.exists()) {
+                // Save new transaction
+                await window.setDoc(docRef, {
+                    date: transaction.date,
+                    description: transaction.description,
+                    amount: transaction.amount,
+                    source: transaction.source,
+                    createdAt: Date.now()
+                });
+                
+                savedCount++;
+                console.log(`✅ נשמר: ${transaction.description} (${transaction.amount}₪)`);
+            } else {
+                duplicateCount++;
+                console.log(`⏭️  כפילות: ${transaction.description} (כבר קיים)`);
+            }
+
+        } catch (error) {
+            console.error(`❌ שגיאה בשמירת עסקה "${transaction.description}":`, error);
+        }
+    }
+
+    console.log(`\n✅ הושלם: ${savedCount} נשמרו, ${duplicateCount} כפילויות דולגו`);
+    
+    if (duplicateCount > 0) {
+        showNotification(`💾 נשמרו ${savedCount} עסקאות חדשות (${duplicateCount} כפילויות דולגו)`);
+    }
+}
+
