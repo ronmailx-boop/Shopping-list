@@ -3853,70 +3853,100 @@ function parseAmount(amountCell) {
 }
 
 /**
- * Save transactions to Firebase with duplicate prevention
- * Uses unique ID based on date + description + amount
+ * Save transactions to Firebase with duplicate prevention and create list
+ * Creates a new list from bank transactions and switches to it
  */
 async function saveTransactionsToFirebase(transactions) {
-    if (!window.firebaseDb || !window.firebaseAuth) {
-        console.log('⚠️  Firebase לא מחובר, מדלג על שמירה');
+    console.log(`📋 מעבד ${transactions.length} עסקאות...`);
+    
+    if (transactions.length === 0) {
+        showNotification('⚠️ לא נמצאו עסקאות לייבוא');
         return;
     }
 
-    const user = window.firebaseAuth.currentUser;
-    if (!user) {
-        console.log('⚠️  משתמש לא מחובר, מדלג על שמירה');
-        return;
-    }
+    // א. יצירת רשימה חדשה
+    const today = new Date();
+    const dateStr = `${today.getDate().toString().padStart(2, '0')}/${(today.getMonth() + 1).toString().padStart(2, '0')}/${today.getFullYear()}`;
+    const newListName = `ייבוא בנקאי ${dateStr}`;
+    const newListId = 'list_' + Date.now();
 
-    console.log(`💾 שומר ${transactions.length} עסקאות ל-Firebase...`);
-
-    let savedCount = 0;
-    let duplicateCount = 0;
-
+    // ב. המרת עסקאות למוצרים
+    const items = [];
     for (const transaction of transactions) {
-        try {
-            // Create unique ID from transaction data
-            const uniqueId = btoa(`${transaction.date}_${transaction.description}_${transaction.amount}`)
-                .replace(/[^a-zA-Z0-9]/g, '')  // Remove non-alphanumeric characters
-                .substring(0, 100);  // Limit length for Firebase
+        const category = detectCategory(transaction.description);
+        items.push({
+            name: transaction.description,
+            quantity: 1,
+            price: transaction.amount,
+            category: category,
+            checked: false
+        });
+    }
 
-            const docRef = window.doc(
-                window.firebaseDb, 
-                "shopping_lists", 
-                user.uid, 
-                "transactions", 
-                uniqueId
-            );
+    // יצירת הרשימה החדשה
+    db.lists[newListId] = {
+        name: newListName,
+        items: items,
+        createdAt: Date.now(),
+        completed: false,
+        isTemplate: false
+    };
 
-            // Check if transaction already exists
-            const docSnap = await window.getDoc(docRef);
-            
-            if (!docSnap.exists()) {
-                // Save new transaction
-                await window.setDoc(docRef, {
-                    date: transaction.date,
-                    description: transaction.description,
-                    amount: transaction.amount,
-                    source: transaction.source,
-                    createdAt: Date.now()
-                });
-                
-                savedCount++;
-                console.log(`✅ נשמר: ${transaction.description} (${transaction.amount}₪)`);
-            } else {
-                duplicateCount++;
-                console.log(`⏭️  כפילות: ${transaction.description} (כבר קיים)`);
+    // ג. מעבר אוטומטי לרשימה החדשה
+    db.currentId = newListId;
+    activePage = 'lists';
+
+    // ד. סנכרון
+    save();
+    render();
+    switchTab('current');
+
+    // ה. מניעת כפילויות - שמירת העסקאות ב-Firebase תחת transactions
+    if (window.firebaseDb && window.firebaseAuth) {
+        const user = window.firebaseAuth.currentUser;
+        if (user) {
+            let savedCount = 0;
+            let duplicateCount = 0;
+
+            for (const transaction of transactions) {
+                try {
+                    // Create unique ID from transaction data
+                    const uniqueId = btoa(`${transaction.date}_${transaction.description}_${transaction.amount}`)
+                        .replace(/[^a-zA-Z0-9]/g, '')
+                        .substring(0, 100);
+
+                    const docRef = window.doc(
+                        window.firebaseDb, 
+                        "shopping_lists", 
+                        user.uid, 
+                        "transactions", 
+                        uniqueId
+                    );
+
+                    const docSnap = await window.getDoc(docRef);
+                    
+                    if (!docSnap.exists()) {
+                        await window.setDoc(docRef, {
+                            date: transaction.date,
+                            description: transaction.description,
+                            amount: transaction.amount,
+                            source: transaction.source,
+                            createdAt: Date.now()
+                        });
+                        savedCount++;
+                    } else {
+                        duplicateCount++;
+                    }
+                } catch (error) {
+                    console.error(`❌ שגיאה בשמירת עסקה "${transaction.description}":`, error);
+                }
             }
 
-        } catch (error) {
-            console.error(`❌ שגיאה בשמירת עסקה "${transaction.description}":`, error);
+            console.log(`✅ Firebase: ${savedCount} נשמרו, ${duplicateCount} כפילויות דולגו`);
         }
     }
 
-    console.log(`\n✅ הושלם: ${savedCount} נשמרו, ${duplicateCount} כפילויות דולגו`);
-    
-    if (duplicateCount > 0) {
-        showNotification(`💾 נשמרו ${savedCount} עסקאות חדשות (${duplicateCount} כפילויות דולגו)`);
-    }
+    showNotification(`✅ נוצרה רשימה חדשה עם ${items.length} מוצרים!`);
+    closeModal('importModal');
 }
 
