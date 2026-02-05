@@ -3675,6 +3675,9 @@ async function importBankPDF(file) {
                     // Extract text from page
                     const pageText = textContent.items.map(item => item.str).join(' ');
                     console.log(`📄 עמוד ${pageNum}: ${pageText.length} תווים`);
+                    
+                    // DEBUG: הצג את הטקסט שנחלץ
+                    console.log('🔍 טקסט שנחלץ מהעמוד:', pageText.substring(0, 500));
 
                     // Extract transactions from page text
                     const pageTransactions = extractTransactionsFromPDFText(pageText);
@@ -3719,44 +3722,84 @@ async function importBankPDF(file) {
 function extractTransactionsFromPDFText(text) {
     const transactions = [];
     const lines = text.split(/\r?\n/);
-
-    // Pattern to match transaction lines (date + description + amount)
-    // התבנית החדשה: תאריך בתחילת השורה, אחריו טקסט (שם העסק), ובסוף סכום
-    // דוגמאות: 
-    // "15/01/2025 סופר פארם רמת גן -150.50"
-    // "20-12-24 מסעדת טאבון תל אביב 230.00"
-    // "05.01.2025 רמי לוי שיווק 450.80"
     
-    for (const line of lines) {
-        // חיפוש תאריך בתחילת השורה
-        const dateMatch = line.match(/^(\d{2}[\/\-\.]\d{2}[\/\-\.]\d{2,4})/);
+    console.log(`🔍 מעבד ${lines.length} שורות מה-PDF`);
+
+    // פורמט בנק הפועלים: טבלה עם עמודות
+    // תאריך | תאריך ערך | תיאור | אסמכתא | חובה | זכות | יתרה
+    // דוגמה: "06/01/2026 06/01/2026 כרטיס דביט 41657 50.03 -28,599.22"
+    
+    for (let i = 0; i < lines.length; i++) {
+        const line = lines[i].trim();
+        
+        if (!line || line.length < 20) {
+            continue; // שורה ריקה או קצרה מדי
+        }
+        
+        // חיפוש תאריך בתחילת השורה (DD/MM/YYYY)
+        const dateMatch = line.match(/^(\d{2}\/\d{2}\/\d{4})/);
         
         if (!dateMatch) {
-            continue; // אם אין תאריך, דלג על השורה
+            continue; // אין תאריך - דלג
         }
         
         const dateStr = dateMatch[1];
-        const afterDate = line.substring(dateMatch[0].length).trim();
+        let restOfLine = line.substring(dateStr.length).trim();
         
-        // חיפוש הסכום בסוף השורה (עם או בלי מינוס/פלוס)
-        const amountMatch = afterDate.match(/([\-\+]?\d+[\.,]\d+)\s*$/);
+        // הסר תאריך ערך נוסף אם קיים
+        restOfLine = restOfLine.replace(/^\d{2}\/\d{2}\/\d{4}\s+/, '');
         
-        if (!amountMatch) {
-            continue; // אם אין סכום, דלג על השורה
+        // חילוץ כל המספרים בשורה (כולל אלה עם פסיקים)
+        // דוגמה: ["41657", "50.03", "28,599.22"] או ["99012", "350.00", "28,249.22"]
+        const numberMatches = restOfLine.match(/[\d,]+\.?\d*/g);
+        
+        if (!numberMatches || numberMatches.length < 2) {
+            continue; // לא מספיק מספרים
         }
         
-        const amountStr = amountMatch[1];
+        // המספר האחרון = היתרה (בפורמט: -28,599.22)
+        // המספר לפני אחרון = הסכום (חובה או זכות)
+        const balanceStr = numberMatches[numberMatches.length - 1];
+        const amountStr = numberMatches[numberMatches.length - 2];
         
-        // כל מה שנמצא בין התאריך לסכום = שם העסק/תיאור
-        const description = afterDate.substring(0, afterDate.lastIndexOf(amountMatch[0])).trim();
+        // חילוץ התיאור - הכל עד המספר האחרון לפני הסכום
+        let description = restOfLine;
+        
+        // הסר את שני המספרים האחרונים (סכום + יתרה)
+        const lastBalanceIndex = description.lastIndexOf(balanceStr);
+        if (lastBalanceIndex > 0) {
+            description = description.substring(0, lastBalanceIndex).trim();
+        }
+        
+        const lastAmountIndex = description.lastIndexOf(amountStr);
+        if (lastAmountIndex > 0) {
+            description = description.substring(0, lastAmountIndex).trim();
+        }
+        
+        // הסר מספר אסמכתא אם קיים (בדרך כלל המספר האחרון שנשאר)
+        // למשל: "כרטיס דביט 41657" -> "כרטיס דביט"
+        const remainingNumbers = description.match(/\d+/g);
+        if (remainingNumbers && remainingNumbers.length > 0) {
+            const lastNum = remainingNumbers[remainingNumbers.length - 1];
+            const lastNumIndex = description.lastIndexOf(lastNum);
+            description = description.substring(0, lastNumIndex).trim();
+        }
+        
+        // נקה רווחים מיותרים
+        description = description.replace(/\s+/g, ' ').trim();
         
         // בדיקות תקינות
-        if (!description || description.length < 2) {
+        if (!description || description.length < 3) {
             continue; // תיאור קצר מדי
         }
         
-        // Skip total rows
-        if (isTotalRow(description)) {
+        // דלג על שורות כותרת וסיכום
+        if (isTotalRow(description) || 
+            description.includes('תאריך') || 
+            description.includes('יתרה') ||
+            description.includes('אסמכתא') ||
+            description.includes('חובה') ||
+            description.includes('זכות')) {
             continue;
         }
 
@@ -3772,6 +3815,8 @@ function extractTransactionsFromPDFText(text) {
             continue;
         }
 
+        console.log(`✅ נמצא: ${dateStr} | ${description} | ${amount}`);
+
         transactions.push({
             date: date,
             description: description,
@@ -3780,6 +3825,7 @@ function extractTransactionsFromPDFText(text) {
         });
     }
 
+    console.log(`📊 סה"כ ${transactions.length} עסקאות חולצו`);
     return transactions;
 }
 
