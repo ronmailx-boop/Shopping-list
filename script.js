@@ -6,6 +6,9 @@ let isConnected = false;
 let currentUser = null;
 let syncTimeout = null;
 
+// ========== Global Variables for Notes Feature ==========
+let currentNoteItemIndex = null;
+
 // ========== Categories ==========
 const CATEGORIES = {
     'פירות וירקות': '#22c55e',
@@ -254,9 +257,9 @@ const CATEGORY_KEYWORDS = {
     ]
 };
 
-// Function to detect category from product name
+// Function to detect category from product name with default "אחר"
 function detectCategory(productName) {
-    if (!productName) return '';
+    if (!productName) return 'אחר';
 
     const nameLower = productName.toLowerCase().trim();
 
@@ -269,7 +272,8 @@ function detectCategory(productName) {
         }
     }
 
-    return ''; // Return empty string if no match (will become 'כללי' in render)
+    // ברירת מחדל - החזר "אחר" אם לא נמצאה התאמה
+    return 'אחר';
 }
 
 
@@ -526,7 +530,12 @@ function save() {
 }
 
 function toggleItem(idx) {
-    db.lists[db.currentId].items[idx].checked = !db.lists[db.currentId].items[idx].checked;
+    const item = db.lists[db.currentId].items[idx];
+    item.checked = !item.checked;
+    
+    // מיון דו-שכבתי אוטומטי
+    db.lists[db.currentId].items = sortItemsByStatusAndCategory(db.lists[db.currentId].items);
+    
     save();
 }
 
@@ -1698,11 +1707,18 @@ function render() {
                                             ${categoryBadge}
                                         </div>
                                     </div>
-                                    <button onclick="removeItem(${idx})" class="trash-btn">
-                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path>
-                                        </svg>
-                                    </button>
+                                    <div class="flex items-center gap-2">
+                                        <div class="note-icon ${item.note ? 'has-note' : ''}" onclick="openItemNoteModal(${idx})" title="${item.note ? 'יש הערה' : 'הוסף הערה'}">
+                                            <svg class="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+                                            </svg>
+                                        </div>
+                                        <button onclick="removeItem(${idx})" class="trash-btn">
+                                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path>
+                                            </svg>
+                                        </button>
+                                    </div>
                                 </div>
                                 <div class="flex justify-between items-center">
                                     <div class="flex items-center gap-3 bg-gray-50 rounded-xl px-2 py-1 border">
@@ -1747,11 +1763,18 @@ function render() {
                                     ${categoryBadge}
                                 </div>
                             </div>
-                            <button onclick="removeItem(${idx})" class="trash-btn">
-                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path>
-                                </svg>
-                            </button>
+                            <div class="flex items-center gap-2">
+                                <div class="note-icon ${item.note ? 'has-note' : ''}" onclick="openItemNoteModal(${idx})" title="${item.note ? 'יש הערה' : 'הוסף הערה'}">
+                                    <svg class="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+                                    </svg>
+                                </div>
+                                <button onclick="removeItem(${idx})" class="trash-btn">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path>
+                                    </svg>
+                                </button>
+                            </div>
                         </div>
                         <div class="flex justify-between items-center">
                             <div class="flex items-center gap-3 bg-gray-50 rounded-xl px-2 py-1 border">
@@ -2431,19 +2454,33 @@ function addItem() {
     const n = document.getElementById('itemName').value.trim();
     const p = parseFloat(document.getElementById('itemPrice').value) || 0;
     const c = document.getElementById('itemCategory').value;
+    const q = parseInt(document.getElementById('itemQty').value) || 1;
 
     if (n) {
-        // Auto-detect category if not manually selected
-        const finalCategory = c || detectCategory(n);
+        // קטגוריזציה אוטומטית עם ברירת מחדל "אחר"
+        const finalCategory = c || detectCategory(n) || 'אחר';
+
+        // עדכון מחיר בהיסטוריה אם השתנה
+        if (p > 0) {
+            updatePriceInHistory(n, p);
+        }
 
         db.lists[db.currentId].items.push({
             name: n,
             price: p,
-            qty: 1,
+            qty: q,
             checked: false,
             category: finalCategory,
+            note: '',  // שדה הערה ריק כברירת מחדל
+            lastUpdated: Date.now(),  // timestamp לעדכון מחיר
             cloudId: 'item_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9)
         });
+
+        // איפוס טופס
+        document.getElementById('itemName').value = '';
+        document.getElementById('itemPrice').value = '';
+        document.getElementById('itemQty').value = '1';
+        document.getElementById('itemCategory').value = '';
 
         closeModal('inputForm');
         save();
@@ -2697,7 +2734,13 @@ function saveTotal() {
     const val = parseFloat(document.getElementById('editTotalInput').value);
     if (!isNaN(val)) {
         const item = db.lists[db.currentId].items[currentEditIdx];
-        item.price = val / item.qty;
+        const newPrice = val / item.qty;
+        item.price = newPrice;
+        item.lastUpdated = Date.now();
+        
+        // עדכון מחיר בהיסטוריה
+        updatePriceInHistory(item.name, newPrice);
+        
         save();
     }
     closeModal('editTotalModal');
@@ -4584,3 +4627,163 @@ function formatBankDate(dateInput) {
 
     return `${day}/${month}/${year}`;
 }
+
+// ========== NOTES FEATURE ==========
+// פתיחת modal להוספה/עריכת הערה למוצר
+function openItemNoteModal(itemIndex) {
+    currentNoteItemIndex = itemIndex;
+    const item = db.lists[db.currentId].items[itemIndex];
+    const noteInput = document.getElementById('itemNoteInput');
+    
+    // טען הערה קיימת אם יש
+    if (noteInput) {
+        noteInput.value = item.note || '';
+    }
+    
+    openModal('itemNoteModal');
+}
+
+// שמירת הערה למוצר
+function saveItemNote() {
+    if (currentNoteItemIndex === null) return;
+    
+    const noteInput = document.getElementById('itemNoteInput');
+    const note = noteInput ? noteInput.value.trim() : '';
+    
+    // עדכון ההערה ב-DB
+    db.lists[db.currentId].items[currentNoteItemIndex].note = note;
+    
+    save();
+    closeModal('itemNoteModal');
+    
+    if (note) {
+        showNotification('✅ ההערה נשמרה');
+    } else {
+        showNotification('🗑️ ההערה נמחקה');
+    }
+}
+
+// ========== SMART PRICE HISTORY ==========
+// מילוי אוטומטי של מחיר מהיסטוריה
+function autofillFromHistory(itemName) {
+    if (!itemName || itemName.length < 2) return;
+    
+    const nameLower = itemName.toLowerCase().trim();
+    
+    // חיפוש בכל הרשימות
+    let lastPrice = null;
+    let lastDate = 0;
+    
+    Object.values(db.lists).forEach(list => {
+        list.items.forEach(item => {
+            if (item.name.toLowerCase().trim() === nameLower && item.price > 0) {
+                // השתמש בתאריך עדכון אם קיים, אחרת השתמש ב-0
+                const itemDate = item.lastUpdated || 0;
+                if (itemDate > lastDate) {
+                    lastDate = itemDate;
+                    lastPrice = item.price;
+                }
+            }
+        });
+    });
+    
+    // מילוי שדה המחיר אם נמצא
+    const priceInput = document.getElementById('itemPrice');
+    if (lastPrice && priceInput && !priceInput.value) {
+        priceInput.value = lastPrice;
+        priceInput.style.backgroundColor = '#fef3c7';  // צהוב בהיר לסימון
+        setTimeout(() => {
+            priceInput.style.backgroundColor = '';
+        }, 1500);
+    }
+}
+
+// עדכון מחיר בהיסטוריה - מעדכן את כל המופעים של המוצר
+function updatePriceInHistory(itemName, newPrice) {
+    if (!itemName || !newPrice) return;
+    
+    const nameLower = itemName.toLowerCase().trim();
+    const timestamp = Date.now();
+    
+    // עדכון בכל הרשימות
+    Object.values(db.lists).forEach(list => {
+        list.items.forEach(item => {
+            if (item.name.toLowerCase().trim() === nameLower) {
+                item.price = newPrice;
+                item.lastUpdated = timestamp;
+            }
+        });
+    });
+}
+
+// מחיקת פריט מהיסטוריית החיפוש
+function deleteFromSearchHistory(itemName) {
+    if (!itemName) return;
+    
+    const nameLower = itemName.toLowerCase().trim();
+    let removedCount = 0;
+    
+    // הסרה מכל הרשימות
+    Object.values(db.lists).forEach(list => {
+        const initialLength = list.items.length;
+        list.items = list.items.filter(item => 
+            item.name.toLowerCase().trim() !== nameLower
+        );
+        removedCount += initialLength - list.items.length;
+    });
+    
+    if (removedCount > 0) {
+        save();
+        render();
+        showNotification(`🗑️ הוסרו ${removedCount} מופעים`);
+    }
+}
+
+// עדכון פונקציית updateSuggestions להוספת כפתור X
+const originalUpdateSuggestions = window.updateSuggestions || function() {};
+window.updateSuggestions = function(searchText) {
+    // קריאה לפונקציה המקורית אם קיימת
+    if (typeof originalUpdateSuggestions === 'function') {
+        originalUpdateSuggestions(searchText);
+    }
+};
+
+
+// ========== DUAL-LAYER SORTING ==========
+// מיון דו-שכבתי: לפי סטטוס (לא מסומן/מסומן) ואז לפי קטגוריה
+function sortItemsByStatusAndCategory(items) {
+    return items.slice().sort((a, b) => {
+        // שכבה 1: פריטים לא מסומנים לפני מסומנים
+        if (a.checked !== b.checked) {
+            return a.checked ? 1 : -1;
+        }
+        
+        // שכבה 2: מיון לפי קטגוריה בתוך כל קבוצה
+        const catA = a.category || 'אחר';
+        const catB = b.category || 'אחר';
+        
+        // סדר קטגוריות מותאם
+        const categoryOrder = [
+            'פירות וירקות',
+            'בשר ודגים', 
+            'חלב וביצים',
+            'לחם ומאפים',
+            'שימורים',
+            'חטיפים',
+            'משקאות',
+            'ניקיון',
+            'היגיינה',
+            'אחר'
+        ];
+        
+        const indexA = categoryOrder.indexOf(catA);
+        const indexB = categoryOrder.indexOf(catB);
+        
+        // אם קטגוריה לא נמצאה ברשימה, שים אותה בסוף
+        const orderA = indexA === -1 ? categoryOrder.length : indexA;
+        const orderB = indexB === -1 ? categoryOrder.length : indexB;
+        
+        return orderA - orderB;
+    });
+}
+
