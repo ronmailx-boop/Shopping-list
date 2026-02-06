@@ -467,6 +467,64 @@
         .bank-import-btn:hover {
             box-shadow: 0 6px 16px rgba(16, 185, 129, 0.4);
         }
+
+        /* Note icon styles */
+        .note-icon {
+            width: 24px;
+            height: 24px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            background: linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%);
+            border: 1px solid #d1d5db;
+        }
+
+        .note-icon:hover {
+            transform: scale(1.1);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .note-icon.has-note {
+            background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+            border-color: #fbbf24;
+            position: relative;
+        }
+
+        .note-icon.has-note::after {
+            content: '';
+            position: absolute;
+            top: -2px;
+            right: -2px;
+            width: 8px;
+            height: 8px;
+            background: #f59e0b;
+            border-radius: 50%;
+            border: 2px solid white;
+        }
+
+        .note-modal-textarea {
+            width: 100%;
+            min-height: 120px;
+            padding: 12px;
+            border: 2px solid #f3f4f6;
+            border-radius: 16px;
+            font-size: 15px;
+            text-align: right;
+            outline: none;
+            margin-bottom: 15px;
+            font-family: system-ui, sans-serif;
+            background: #f9fafb !important;
+            color: #333;
+            resize: vertical;
+        }
+
+        .note-modal-textarea:focus {
+            border-color: #fbbf24;
+            background: #fff !important;
+        }
     </style>
 
     <script>
@@ -1195,6 +1253,19 @@ ${error.message}
             <div id="translationProgress" class="hidden mt-4 text-center">
                 <div class="text-sm text-gray-600">מתרגם...</div>
                 <div class="text-xs text-gray-500 mt-1" id="translationStatus"></div>
+            </div>
+        </div>
+    </div>
+
+    <div id="itemNoteModal" class="modal-overlay no-print">
+        <div class="edit-modal">
+            <h2>📝 הערה למוצר</h2>
+            <textarea id="itemNoteInput" class="note-modal-textarea" placeholder="הוסף הערה למוצר..."></textarea>
+            <div class="flex gap-3">
+                <button class="bg-yellow-500 text-white flex-1 py-4 rounded-xl font-bold"
+                    onclick="saveItemNote()">שמור</button>
+                <button class="bg-gray-100 flex-1 py-4 rounded-xl font-bold"
+                    onclick="closeModal('itemNoteModal')">ביטול</button>
             </div>
         </div>
     </div>
