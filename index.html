@@ -1061,6 +1061,19 @@ ${error.message}
         </div>
     </div>
 
+    <div id="editItemNameModal" class="modal-overlay no-print">
+        <div class="edit-modal">
+            <h2>עריכת שם מוצר</h2>
+            <input type="text" id="editItemNameInput" class="modal-input" placeholder="שם המוצר" onkeypress="if(event.key==='Enter') saveItemName()">
+            <div class="flex gap-3">
+                <button class="bg-indigo-600 text-white flex-1 py-4 rounded-xl font-bold"
+                    onclick="saveItemName()">שמור</button>
+                <button class="bg-gray-100 flex-1 py-4 rounded-xl font-bold"
+                    onclick="closeModal('editItemNameModal')">ביטול</button>
+            </div>
+        </div>
+    </div>
+
     <div id="historyModal" class="modal-overlay no-print">
         <div class="edit-modal">
             <h2>📁 היסטוריית רכישות</h2>
