@@ -1264,9 +1264,9 @@ ${error.message}
             <textarea id="itemNoteInput" class="note-modal-textarea" placeholder="הוסף הערה למוצר..."></textarea>
             <div class="flex gap-3">
                 <button class="bg-yellow-500 text-white flex-1 py-4 rounded-xl font-bold"
-                    onclick="saveItemNote()">שמור</button>
+                    onclick="event.stopPropagation(); saveItemNote();">שמור</button>
                 <button class="bg-gray-100 flex-1 py-4 rounded-xl font-bold"
-                    onclick="closeModal('itemNoteModal')">ביטול</button>
+                    onclick="event.stopPropagation(); closeModal('itemNoteModal');">ביטול</button>
             </div>
         </div>
     </div>
