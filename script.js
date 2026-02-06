@@ -1367,6 +1367,7 @@ function openModal(id) {
     if (id === 'inputForm') {
         document.getElementById('itemName').value = '';
         document.getElementById('itemPrice').value = '';
+        document.getElementById('itemQty').value = '1';
         document.getElementById('itemCategory').value = '';
 
         // Setup autocomplete
