@@ -1074,6 +1074,23 @@ ${error.message}
         </div>
     </div>
 
+    <div id="editCategoryModal" class="modal-overlay no-print">
+        <div class="edit-modal" style="max-height: 80vh; overflow-y: auto;">
+            <h2>בחירת קטגוריה</h2>
+            <div id="categoryOptions" class="mb-4" style="max-height: 400px; overflow-y: auto;">
+                <!-- Category buttons will be inserted here -->
+            </div>
+            <div class="border-t-2 border-gray-200 pt-4 mt-4">
+                <div class="text-sm font-bold text-gray-600 mb-2">✏️ קטגוריה מותאמת אישית</div>
+                <input type="text" id="customCategoryInput" class="modal-input" placeholder="הזן שם קטגוריה חדשה..." onkeypress="if(event.key==='Enter') saveCustomCategory()">
+                <button class="bg-purple-500 text-white w-full py-3 rounded-xl font-bold mt-2"
+                    onclick="saveCustomCategory()">שמור קטגוריה מותאמת</button>
+            </div>
+            <button class="bg-gray-100 w-full py-4 rounded-xl font-bold mt-3"
+                onclick="closeModal('editCategoryModal')">ביטול</button>
+        </div>
+    </div>
+
     <div id="historyModal" class="modal-overlay no-print">
         <div class="edit-modal">
             <h2>📁 היסטוריית רכישות</h2>
@@ -1186,7 +1203,6 @@ ${error.message}
 </body>
 
 </html>
-
 
 
 
