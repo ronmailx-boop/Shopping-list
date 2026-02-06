@@ -4646,21 +4646,34 @@ function openItemNoteModal(itemIndex) {
 
 // שמירת הערה למוצר
 function saveItemNote() {
-    if (currentNoteItemIndex === null) return;
+    if (currentNoteItemIndex === null || currentNoteItemIndex === undefined) {
+        console.error('currentNoteItemIndex is null or undefined');
+        return;
+    }
     
     const noteInput = document.getElementById('itemNoteInput');
-    const note = noteInput ? noteInput.value.trim() : '';
+    if (!noteInput) {
+        console.error('itemNoteInput element not found');
+        return;
+    }
+    
+    const note = noteInput.value.trim();
     
     // עדכון ההערה ב-DB
-    db.lists[db.currentId].items[currentNoteItemIndex].note = note;
-    
-    save();
-    closeModal('itemNoteModal');
-    
-    if (note) {
-        showNotification('✅ ההערה נשמרה');
+    if (db.lists[db.currentId] && db.lists[db.currentId].items[currentNoteItemIndex]) {
+        db.lists[db.currentId].items[currentNoteItemIndex].note = note;
+        
+        save();
+        closeModal('itemNoteModal');
+        currentNoteItemIndex = null; // איפוס המשתנה
+        
+        if (note) {
+            showNotification('✅ ההערה נשמרה');
+        } else {
+            showNotification('🗑️ ההערה נמחקה');
+        }
     } else {
-        showNotification('🗑️ ההערה נמחקה');
+        console.error('Invalid item index or list');
     }
 }
 
