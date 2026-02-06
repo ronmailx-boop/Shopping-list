@@ -1676,7 +1676,7 @@ function render() {
                             total += sub;
                             if (item.checked) paid += sub;
 
-                            const categoryBadge = item.category ? `<span class="category-badge" style="background: ${CATEGORIES[item.category] || '#6b7280'}20; color: ${CATEGORIES[item.category] || '#6b7280'}">${item.category}</span>` : '';
+                            const categoryBadge = item.category ? `<span class="category-badge" onclick="event.stopPropagation(); openEditCategoryModal(${idx})" style="background: ${CATEGORIES[item.category] || '#6b7280'}20; color: ${CATEGORIES[item.category] || '#6b7280'}; cursor: pointer;">${item.category}</span>` : '';
 
                             const isHighlighted = highlightedItemIndex === idx;
                             const div = document.createElement('div');
@@ -1725,7 +1725,7 @@ function render() {
                     total += sub;
                     if (item.checked) paid += sub;
 
-                    const categoryBadge = item.category ? `<span class="category-badge" style="background: ${CATEGORIES[item.category] || '#6b7280'}20; color: ${CATEGORIES[item.category] || '#6b7280'}">${item.category}</span>` : '';
+                    const categoryBadge = item.category ? `<span class="category-badge" onclick="event.stopPropagation(); openEditCategoryModal(${idx})" style="background: ${CATEGORIES[item.category] || '#6b7280'}20; color: ${CATEGORIES[item.category] || '#6b7280'}; cursor: pointer;">${item.category}</span>` : '';
 
                     const isHighlighted = highlightedItemIndex === idx;
                     const div = document.createElement('div');
@@ -2725,6 +2725,62 @@ function saveItemName() {
         showNotification('✓ השם עודכן בהצלחה');
     }
     closeModal('editItemNameModal');
+}
+
+function openEditCategoryModal(idx) {
+    currentEditIdx = idx;
+    const item = db.lists[db.currentId].items[idx];
+    
+    // Build category options
+    const categoryOptionsContainer = document.getElementById('categoryOptions');
+    categoryOptionsContainer.innerHTML = '';
+    
+    // Create buttons for each category
+    for (const categoryName in CATEGORIES) {
+        const color = CATEGORIES[categoryName];
+        const isSelected = item.category === categoryName;
+        
+        const button = document.createElement('button');
+        button.className = `w-full py-3 px-4 rounded-xl font-bold mb-2 transition-all ${
+            isSelected 
+                ? 'ring-4 ring-offset-2' 
+                : 'hover:scale-105'
+        }`;
+        button.style.backgroundColor = color + '20';
+        button.style.color = color;
+        button.style.border = `2px solid ${color}`;
+        if (isSelected) {
+            button.style.ringColor = color;
+        }
+        button.textContent = isSelected ? `✓ ${categoryName}` : categoryName;
+        button.onclick = () => selectCategory(categoryName);
+        
+        categoryOptionsContainer.appendChild(button);
+    }
+    
+    // Clear custom input
+    document.getElementById('customCategoryInput').value = '';
+    
+    openModal('editCategoryModal');
+}
+
+function selectCategory(categoryName) {
+    if (currentEditIdx !== null) {
+        db.lists[db.currentId].items[currentEditIdx].category = categoryName;
+        save();
+        showNotification('✓ הקטגוריה עודכנה');
+    }
+    closeModal('editCategoryModal');
+}
+
+function saveCustomCategory() {
+    const customCategory = document.getElementById('customCategoryInput').value.trim();
+    if (customCategory && currentEditIdx !== null) {
+        db.lists[db.currentId].items[currentEditIdx].category = customCategory;
+        save();
+        showNotification('✓ קטגוריה מותאמת נשמרה');
+    }
+    closeModal('editCategoryModal');
 }
 
 // ========== Data Export/Import ==========
