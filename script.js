@@ -532,10 +532,10 @@ function save() {
 function toggleItem(idx) {
     const item = db.lists[db.currentId].items[idx];
     item.checked = !item.checked;
-    
+
     // מיון דו-שכבתי אוטומטי
     db.lists[db.currentId].items = sortItemsByStatusAndCategory(db.lists[db.currentId].items);
-    
+
     save();
 }
 
@@ -2738,10 +2738,10 @@ function saveTotal() {
         const newPrice = val / item.qty;
         item.price = newPrice;
         item.lastUpdated = Date.now();
-        
+
         // עדכון מחיר בהיסטוריה
         updatePriceInHistory(item.name, newPrice);
-        
+
         save();
     }
     closeModal('editTotalModal');
@@ -2752,7 +2752,7 @@ function openEditItemNameModal(idx) {
     const item = db.lists[db.currentId].items[idx];
     document.getElementById('editItemNameInput').value = item.name;
     openModal('editItemNameModal');
-    
+
     // Focus on input after modal opens
     setTimeout(() => {
         const input = document.getElementById('editItemNameInput');
@@ -2774,22 +2774,21 @@ function saveItemName() {
 function openEditCategoryModal(idx) {
     currentEditIdx = idx;
     const item = db.lists[db.currentId].items[idx];
-    
+
     // Build category options
     const categoryOptionsContainer = document.getElementById('categoryOptions');
     categoryOptionsContainer.innerHTML = '';
-    
+
     // Create buttons for each category
     for (const categoryName in CATEGORIES) {
         const color = CATEGORIES[categoryName];
         const isSelected = item.category === categoryName;
-        
+
         const button = document.createElement('button');
-        button.className = `w-full py-3 px-4 rounded-xl font-bold mb-2 transition-all ${
-            isSelected 
-                ? 'ring-4 ring-offset-2' 
-                : 'hover:scale-105'
-        }`;
+        button.className = `w-full py-3 px-4 rounded-xl font-bold mb-2 transition-all ${isSelected
+            ? 'ring-4 ring-offset-2'
+            : 'hover:scale-105'
+            }`;
         button.style.backgroundColor = color + '20';
         button.style.color = color;
         button.style.border = `2px solid ${color}`;
@@ -2798,13 +2797,13 @@ function openEditCategoryModal(idx) {
         }
         button.textContent = isSelected ? `✓ ${categoryName}` : categoryName;
         button.onclick = () => selectCategory(categoryName);
-        
+
         categoryOptionsContainer.appendChild(button);
     }
-    
+
     // Clear custom input
     document.getElementById('customCategoryInput').value = '';
-    
+
     openModal('editCategoryModal');
 }
 
@@ -4635,12 +4634,12 @@ function openItemNoteModal(itemIndex) {
     currentNoteItemIndex = itemIndex;
     const item = db.lists[db.currentId].items[itemIndex];
     const noteInput = document.getElementById('itemNoteInput');
-    
+
     // טען הערה קיימת אם יש
     if (noteInput) {
         noteInput.value = item.note || '';
     }
-    
+
     openModal('itemNoteModal');
 }
 
@@ -4650,23 +4649,23 @@ function saveItemNote() {
         console.error('currentNoteItemIndex is null or undefined');
         return;
     }
-    
+
     const noteInput = document.getElementById('itemNoteInput');
     if (!noteInput) {
         console.error('itemNoteInput element not found');
         return;
     }
-    
+
     const note = noteInput.value.trim();
-    
+
     // עדכון ההערה ב-DB
     if (db.lists[db.currentId] && db.lists[db.currentId].items[currentNoteItemIndex]) {
         db.lists[db.currentId].items[currentNoteItemIndex].note = note;
-        
+
         save();
         closeModal('itemNoteModal');
         currentNoteItemIndex = null; // איפוס המשתנה
-        
+
         if (note) {
             showNotification('✅ ההערה נשמרה');
         } else {
@@ -4681,13 +4680,13 @@ function saveItemNote() {
 // מילוי אוטומטי של מחיר מהיסטוריה
 function autofillFromHistory(itemName) {
     if (!itemName || itemName.length < 2) return;
-    
+
     const nameLower = itemName.toLowerCase().trim();
-    
+
     // חיפוש בכל הרשימות
     let lastPrice = null;
     let lastDate = 0;
-    
+
     Object.values(db.lists).forEach(list => {
         list.items.forEach(item => {
             if (item.name.toLowerCase().trim() === nameLower && item.price > 0) {
@@ -4700,7 +4699,7 @@ function autofillFromHistory(itemName) {
             }
         });
     });
-    
+
     // מילוי שדה המחיר אם נמצא
     const priceInput = document.getElementById('itemPrice');
     if (lastPrice && priceInput && !priceInput.value) {
@@ -4715,10 +4714,10 @@ function autofillFromHistory(itemName) {
 // עדכון מחיר בהיסטוריה - מעדכן את כל המופעים של המוצר
 function updatePriceInHistory(itemName, newPrice) {
     if (!itemName || !newPrice) return;
-    
+
     const nameLower = itemName.toLowerCase().trim();
     const timestamp = Date.now();
-    
+
     // עדכון בכל הרשימות
     Object.values(db.lists).forEach(list => {
         list.items.forEach(item => {
@@ -4733,19 +4732,19 @@ function updatePriceInHistory(itemName, newPrice) {
 // מחיקת פריט מהיסטוריית החיפוש
 function deleteFromSearchHistory(itemName) {
     if (!itemName) return;
-    
+
     const nameLower = itemName.toLowerCase().trim();
     let removedCount = 0;
-    
+
     // הסרה מכל הרשימות
     Object.values(db.lists).forEach(list => {
         const initialLength = list.items.length;
-        list.items = list.items.filter(item => 
+        list.items = list.items.filter(item =>
             item.name.toLowerCase().trim() !== nameLower
         );
         removedCount += initialLength - list.items.length;
     });
-    
+
     if (removedCount > 0) {
         save();
         render();
@@ -4754,8 +4753,8 @@ function deleteFromSearchHistory(itemName) {
 }
 
 // עדכון פונקציית updateSuggestions להוספת כפתור X
-const originalUpdateSuggestions = window.updateSuggestions || function() {};
-window.updateSuggestions = function(searchText) {
+const originalUpdateSuggestions = window.updateSuggestions || function () { };
+window.updateSuggestions = function (searchText) {
     // קריאה לפונקציה המקורית אם קיימת
     if (typeof originalUpdateSuggestions === 'function') {
         originalUpdateSuggestions(searchText);
@@ -4771,15 +4770,15 @@ function sortItemsByStatusAndCategory(items) {
         if (a.checked !== b.checked) {
             return a.checked ? 1 : -1;
         }
-        
+
         // שכבה 2: מיון לפי קטגוריה בתוך כל קבוצה
         const catA = a.category || 'אחר';
         const catB = b.category || 'אחר';
-        
+
         // סדר קטגוריות מותאם
         const categoryOrder = [
             'פירות וירקות',
-            'בשר ודגים', 
+            'בשר ודגים',
             'חלב וביצים',
             'לחם ומאפים',
             'שימורים',
@@ -4789,16 +4788,330 @@ function sortItemsByStatusAndCategory(items) {
             'היגיינה',
             'אחר'
         ];
-        
+
         const indexA = categoryOrder.indexOf(catA);
         const indexB = categoryOrder.indexOf(catB);
-        
+
         // אם קטגוריה לא נמצאה ברשימה, שים אותה בסוף
         const orderA = indexA === -1 ? categoryOrder.length : indexA;
         const orderB = indexB === -1 ? categoryOrder.length : indexB;
-        
+
         return orderA - orderB;
     });
 }
 
 
+// ========== EXCEL IMPORT FUNCTIONALITY ==========
+/**
+ * Handle Excel file upload and create a new shopping list
+ * Parses XLSX file and extracts data from columns B, C, D, E
+ * Creates products with format: [Business Name] ([Date]) כרטיס [Card Number]
+ */
+function handleExcelUpload(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    // Validate file type
+    const validTypes = ['application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 'application/vnd.ms-excel'];
+    if (!validTypes.includes(file.type) && !file.name.match(/\.(xlsx|xls)$/i)) {
+        showNotification('❌ אנא בחר קובץ Excel תקין (.xlsx או .xls)');
+        event.target.value = ''; // Reset input
+        return;
+    }
+
+    const reader = new FileReader();
+
+    reader.onload = function (e) {
+        try {
+            // Parse Excel file
+            const data = new Uint8Array(e.target.result);
+            const workbook = XLSX.read(data, { type: 'array' });
+
+            // Get first sheet
+            const firstSheetName = workbook.SheetNames[0];
+            const worksheet = workbook.Sheets[firstSheetName];
+
+            // Convert sheet to JSON with header option to get raw data
+            const jsonData = XLSX.utils.sheet_to_json(worksheet, {
+                header: 1,  // Use array of arrays format
+                defval: ''  // Default value for empty cells
+            });
+
+            console.log('🔥 EXCEL IMPORT v2.0 - CODE UPDATED! 🔥');
+            console.log('Expected: Column 1=name, Column 3=PRICE, Column 6=card, Column 7=date');
+
+            // Skip header row (index 0) and process data rows
+            const products = [];
+
+            console.log('📊 Excel Import Debug - First 3 rows:');
+            for (let i = 0; i < Math.min(3, jsonData.length); i++) {
+                console.log(`Row ${i}:`, jsonData[i]);
+                if (i === 0) {
+                    // Show header row
+                    console.log('Header row breakdown:');
+                    for (let j = 0; j < jsonData[i].length; j++) {
+                        console.log(`  Column ${j}: "${jsonData[i][j]}"`);
+                    }
+                }
+                if (i === 1 || i === 2) {
+                    // Show first 2 data rows in detail
+                    console.log(`Data row ${i} breakdown:`);
+                    for (let j = 0; j < jsonData[i].length; j++) {
+                        console.log(`  Column ${j}: "${jsonData[i][j]}"`);
+                    }
+                    console.log(`Data row ${i} FULL JSON:`, JSON.stringify(jsonData[i]));
+                }
+            }
+
+            // Check if data is all in one column (needs splitting)
+            // If header row has all column names in column 0, we need to split
+            const headerRow = jsonData[0];
+            const firstDataRow = jsonData[1];
+            const needsSplitting = (headerRow && headerRow[0] && String(headerRow[0]).includes('\t')) ||
+                (firstDataRow && firstDataRow[0] && String(firstDataRow[0]).includes('\t'));
+
+            if (needsSplitting) {
+                console.log('⚠️ Detected single-column format with tabs - will split data by tabs');
+            } else {
+                console.log('📊 Using multi-column format');
+            }
+
+            for (let i = 1; i < jsonData.length; i++) {
+                const row = jsonData[i];
+
+                if (i <= 3) {
+                    console.log(`\n=== Processing row index ${i} ===`);
+                    console.log(`Row ${i} full data:`, JSON.stringify(row));
+                }
+
+                let businessName = '';
+                let amount = 0;
+                let cardNumber = '';
+                let billingDate = '';
+
+                if (needsSplitting && row[0]) {
+                    // Split the single column by tabs
+                    const rowData = String(row[0]);
+                    const parts = rowData.split('\t').map(p => p.trim()).filter(p => p);
+
+                    console.log(`Row ${i} split into ${parts.length} parts:`, parts);
+
+                    // Based on Excel structure (right to left in Hebrew):
+                    // parts[0] = row number
+                    // parts[1] = business name (שם בית עסק)
+                    // parts[2] = transaction date (תאריך עסקה)
+                    // parts[3] = charge amount (סכום חיוב) - THE PRICE!
+                    // parts[4] = credit amount (סכום זיכוי)
+                    // parts[5] = balance (יתרה)
+                    // parts[6] = card (כרטיס)
+                    // parts[7] = billing date (מועד חיוב)
+
+                    if (parts.length >= 2) businessName = parts[1];
+                    if (parts.length >= 4) {
+                        const amountStr = parts[3].replace(/[₪$€£,\s]/g, '').replace(/[^\d.-]/g, '');
+                        amount = parseFloat(amountStr);
+                        if (isNaN(amount)) amount = 0;
+                    }
+                    if (parts.length >= 7) cardNumber = parts[6];
+                    if (parts.length >= 8) {
+                        const rawDate = parts[7];
+                        if (typeof rawDate === 'number' || !isNaN(parseFloat(rawDate))) {
+                            // Excel serial date
+                            const dateNum = parseFloat(rawDate);
+                            const excelEpoch = new Date(1899, 11, 30);
+                            const date = new Date(excelEpoch.getTime() + dateNum * 86400000);
+                            billingDate = `${date.getDate()}/${date.getMonth() + 1}/${date.getFullYear() % 100}`;
+                        } else {
+                            billingDate = rawDate;
+                        }
+                    }
+                } else {
+                    // Original multi-column logic
+                    // SMART COLUMN DETECTION - Find columns by header names
+                    const headerRow = jsonData[0];
+                    let businessNameCol = -1;
+                    let amountCol = -1;
+                    let cardCol = -1;
+                    let dateCol = -1;
+
+                    // Search for column headers (case-insensitive, partial match)
+                    for (let j = 0; j < headerRow.length; j++) {
+                        const header = String(headerRow[j]).toLowerCase().trim();
+
+                        if (header.includes('שם') && header.includes('עסק')) {
+                            businessNameCol = j;
+                            console.log(`✓ Found business name column at index ${j}`);
+                        } else if (header.includes('סכום') && header.includes('חיוב')) {
+                            amountCol = j;
+                            console.log(`✓ Found amount column at index ${j}`);
+                        } else if (header.includes('כרטיס')) {
+                            cardCol = j;
+                            console.log(`✓ Found card column at index ${j}`);
+                        } else if (header.includes('מועד') && header.includes('חיוב')) {
+                            dateCol = j;
+                            console.log(`✓ Found date column at index ${j}`);
+                        }
+                    }
+
+                    // Fallback to correct column indices based on actual Excel structure
+                    if (businessNameCol === -1) {
+                        businessNameCol = 1;
+                        console.log(`⚠️ Business name column not found in headers, using index ${businessNameCol}`);
+                    }
+                    if (amountCol === -1) {
+                        amountCol = 2;  // FIXED: Price is in column C (index 2)
+                        console.log(`⚠️ Amount column not found in headers, using index ${amountCol}`);
+                    }
+                    if (cardCol === -1) {
+                        cardCol = 3;  // FIXED: Card is in column D (index 3) - format: "יתרה 6353"
+                        console.log(`⚠️ Card column not found in headers, using index ${cardCol}`);
+                    }
+                    if (dateCol === -1) {
+                        dateCol = 4;  // FIXED: Billing date is in column E (index 4)
+                        console.log(`⚠️ Date column not found in headers, using index ${dateCol}`);
+                    }
+
+                    // Use detected column indices
+                    businessName = row[businessNameCol] ? String(row[businessNameCol]).trim() : '';
+
+                    // Try to parse amount
+                    const rawAmount = row[amountCol];
+
+                    if (rawAmount !== undefined && rawAmount !== null && rawAmount !== '') {
+                        if (typeof rawAmount === 'number') {
+                            amount = rawAmount;
+                        } else {
+                            // Handle string format
+                            let amountStr = String(rawAmount);
+                            // Remove currency symbols (₪, $, etc), commas, spaces
+                            amountStr = amountStr.replace(/[₪$€£,\s]/g, '');
+                            // Keep only digits, dots, and minus signs
+                            amountStr = amountStr.replace(/[^\d.-]/g, '');
+                            amount = parseFloat(amountStr);
+                        }
+
+                        if (isNaN(amount) || !isFinite(amount)) {
+                            amount = 0;
+                        }
+                    }
+
+                    // Column 3 contains card with balance (e.g., "יתרה 6353")
+                    // Extract only the card number (digits after "יתרה")
+                    const cardData = row[cardCol] ? String(row[cardCol]).trim() : '';
+                    const cardMatch = cardData.match(/(\d{4})/);
+                    cardNumber = cardMatch ? cardMatch[1] : '';
+
+                    // Handle date - convert Excel serial number to readable format
+                    const rawDate = row[dateCol];
+                    if (rawDate !== undefined && rawDate !== null && rawDate !== '') {
+                        if (typeof rawDate === 'number') {
+                            // Excel serial date - convert to readable format
+                            const excelEpoch = new Date(1899, 11, 30);
+                            const date = new Date(excelEpoch.getTime() + rawDate * 86400000);
+                            billingDate = `${date.getDate()}/${date.getMonth() + 1}/${date.getFullYear() % 100}`;
+                        } else {
+                            billingDate = String(rawDate).trim();
+                        }
+                    }
+
+                    // Debug log for first few rows
+                    if (i <= 3) {
+                        console.log(`Row ${i} parsed: business="${businessName}", amount=${amount}, card="${cardNumber}", date="${billingDate}"`);
+                        console.log(`  → Read from columns: businessNameCol=${businessNameCol}, amountCol=${amountCol}, cardCol=${cardCol}, dateCol=${dateCol}`);
+                        console.log(`  → Raw values: row[${businessNameCol}]="${row[businessNameCol]}", row[${amountCol}]="${row[amountCol]}", row[${cardCol}]="${row[cardCol]}", row[${dateCol}]="${row[dateCol]}"`);
+                    }
+                }
+
+
+
+                // Skip rows with no business name
+                if (!businessName) {
+                    console.log(`Skipping row ${i}: no business name`);
+                    continue;
+                }
+
+                // Format product name: [Business Name] ([Date]) כרטיס [Card]
+                let productName = businessName;
+
+                if (billingDate) {
+                    productName += ` (${billingDate})`;
+                }
+
+                if (cardNumber) {
+                    // Extract last 4 digits if card number is longer
+                    const cardDigits = cardNumber.replace(/\D/g, '').slice(-4);
+                    if (cardDigits) {
+                        productName += ` כרטיס ${cardDigits}`;
+                    }
+                }
+
+                // Create product object
+                const product = {
+                    name: productName,
+                    price: amount,
+                    qty: 1,  // Changed from 'quantity' to 'qty' to match app structure
+                    checked: false,
+                    category: detectCategory(businessName),
+                    note: '',
+                    cloudId: 'item_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9)
+                };
+
+                products.push(product);
+                console.log(`✅ Created product: ${productName}, price: ${amount}`);
+            }
+
+            // Check if any products were found
+            if (products.length === 0) {
+                showNotification('❌ לא נמצאו מוצרים בקובץ האקסל');
+                event.target.value = '';
+                return;
+            }
+
+            console.log(`📦 Total products created: ${products.length}`);
+
+            // Create new list name from Excel filename (remove extension)
+            const listName = file.name.replace(/\.(xlsx|xls)$/i, '');
+
+            // Generate unique list ID
+            const existingIds = Object.keys(db.lists).map(id => {
+                const match = id.match(/^L(\d+)$/);
+                return match ? parseInt(match[1]) : 0;
+            });
+            const nextId = Math.max(...existingIds, 0) + 1;
+            const newListId = `L${nextId}`;
+
+            // Create new list
+            db.lists[newListId] = {
+                name: listName,
+                url: '',
+                budget: 0,
+                isTemplate: false,
+                items: products
+            };
+
+            // Switch to the new list
+            db.currentId = newListId;
+
+            // Save to database and Firebase
+            save();
+
+            // Show success notification
+            showNotification(`✅ נוצרה רשימה "${listName}" עם ${products.length} מוצרים!`);
+
+            // Reset file input
+            event.target.value = '';
+
+        } catch (error) {
+            console.error('Error parsing Excel file:', error);
+            showNotification('❌ שגיאה בקריאת קובץ האקסל. אנא ודא שהקובץ תקין.');
+            event.target.value = '';
+        }
+    };
+
+    reader.onerror = function () {
+        showNotification('❌ שגיאה בקריאת הקובץ');
+        event.target.value = '';
+    };
+
+    reader.readAsArrayBuffer(file);
+}
