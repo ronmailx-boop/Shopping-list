@@ -1024,9 +1024,9 @@ ${error.message}
             </select>
             <div class="flex gap-3">
                 <button class="bg-green-500 text-white flex-1 py-4 rounded-xl font-bold shadow-md"
-                    onclick="addItem()">הוסף</button>
+                    onclick="event.stopPropagation(); addItem();">הוסף</button>
                 <button class="bg-gray-100 text-gray-500 flex-1 py-4 rounded-xl font-bold"
-                    onclick="closeModal('inputForm')">ביטול</button>
+                    onclick="event.stopPropagation(); closeModal('inputForm');">ביטול</button>
             </div>
         </div>
     </div>
@@ -1039,9 +1039,9 @@ ${error.message}
                 style="resize: vertical; min-height: 150px;"></textarea>
             <div class="flex gap-3">
                 <button class="bg-green-500 text-white flex-1 py-4 rounded-xl font-bold shadow-md"
-                    onclick="importFromText()">ייבא</button>
+                    onclick="event.stopPropagation(); importFromText();">ייבא</button>
                 <button class="bg-gray-100 flex-1 py-4 rounded-xl font-bold"
-                    onclick="closeModal('importModal')">ביטול</button>
+                    onclick="event.stopPropagation(); closeModal('importModal');">ביטול</button>
             </div>
         </div>
     </div>
@@ -1060,9 +1060,9 @@ ${error.message}
             </div>
             <div class="flex gap-3">
                 <button class="bg-indigo-600 text-white flex-1 py-4 rounded-xl font-bold shadow-md"
-                    onclick="saveNewList()">צור</button>
+                    onclick="event.stopPropagation(); saveNewList();">צור</button>
                 <button class="bg-gray-100 flex-1 py-4 rounded-xl font-bold"
-                    onclick="closeModal('newListModal')">ביטול</button>
+                    onclick="event.stopPropagation(); closeModal('newListModal');">ביטול</button>
             </div>
         </div>
     </div>
@@ -1100,9 +1100,9 @@ ${error.message}
             <input type="number" id="editListBudget" placeholder="תקציב (אופציונלי)" class="modal-input">
             <div class="flex gap-3">
                 <button class="bg-indigo-600 text-white flex-1 py-4 rounded-xl font-bold"
-                    onclick="saveListName()">שמור</button>
+                    onclick="event.stopPropagation(); saveListName();">שמור</button>
                 <button class="bg-gray-100 flex-1 py-4 rounded-xl font-bold"
-                    onclick="closeModal('editListNameModal')">ביטול</button>
+                    onclick="event.stopPropagation(); closeModal('editListNameModal');">ביטול</button>
             </div>
         </div>
     </div>
@@ -1113,9 +1113,9 @@ ${error.message}
             <input type="number" id="editTotalInput" class="modal-input">
             <div class="flex gap-3">
                 <button class="bg-indigo-600 text-white flex-1 py-4 rounded-xl font-bold"
-                    onclick="saveTotal()">עדכן</button>
+                    onclick="event.stopPropagation(); saveTotal();">עדכן</button>
                 <button class="bg-gray-100 flex-1 py-4 rounded-xl font-bold"
-                    onclick="closeModal('editTotalModal')">ביטול</button>
+                    onclick="event.stopPropagation(); closeModal('editTotalModal');">ביטול</button>
             </div>
         </div>
     </div>
@@ -1126,9 +1126,9 @@ ${error.message}
             <input type="text" id="editItemNameInput" class="modal-input" placeholder="שם המוצר" onkeypress="if(event.key==='Enter') saveItemName()">
             <div class="flex gap-3">
                 <button class="bg-indigo-600 text-white flex-1 py-4 rounded-xl font-bold"
-                    onclick="saveItemName()">שמור</button>
+                    onclick="event.stopPropagation(); saveItemName();">שמור</button>
                 <button class="bg-gray-100 flex-1 py-4 rounded-xl font-bold"
-                    onclick="closeModal('editItemNameModal')">ביטול</button>
+                    onclick="event.stopPropagation(); closeModal('editItemNameModal');">ביטול</button>
             </div>
         </div>
     </div>
