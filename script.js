@@ -1638,7 +1638,7 @@ function searchInSummary() {
 function generateItemMetadataHTML(item, idx) {
     let html = '';
     
-    // Build dueDate display
+    // Build dueDate display - clickable to edit
     if (item.dueDate) {
         const today = new Date();
         today.setHours(0, 0, 0, 0);
@@ -1658,12 +1658,17 @@ function generateItemMetadataHTML(item, idx) {
             dateClass += ' soon';
         }
         
-        html += `<div class="${dateClass}" onclick="event.stopPropagation();">📅 ${dateText}</div>`;
+        html += `<div class="${dateClass}" onclick="event.stopPropagation(); openEditItemNameModal(${idx});" style="cursor: pointer;">📅 ${dateText}</div>`;
     }
     
-    // Build payment URL link
+    // Build payment URL link - as icon, clickable to edit
     if (item.paymentUrl) {
-        html += `<a href="${item.paymentUrl}" target="_blank" class="item-payment-link" onclick="event.stopPropagation();">🔗 קישור לתשלום</a>`;
+        html += `<a href="${item.paymentUrl}" target="_blank" class="item-payment-link" onclick="event.stopPropagation();" style="display: inline-flex; align-items: center; gap: 4px;">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"></path>
+            </svg>
+        </a>
+        <span onclick="event.stopPropagation(); openEditItemNameModal(${idx});" style="cursor: pointer; color: #6366f1; font-size: 0.875rem; text-decoration: underline;">✏️</span>`;
     }
     
     // Build notes display with auto-linked URLs
@@ -2976,7 +2981,7 @@ function openEditItemNameModal(idx) {
     document.getElementById('editItemName').value = item.name;
     document.getElementById('editItemDueDate').value = item.dueDate || '';
     document.getElementById('editItemPaymentUrl').value = item.paymentUrl || '';
-    openModal('editItemModal');
+    openModal('editItemNameModal');
 
     setTimeout(() => {
         const input = document.getElementById('editItemName');
