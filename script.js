@@ -2642,9 +2642,9 @@ async function shareNative(type) {
 function addItem(event) {
     if (event) event.preventDefault();
     
-    const n = document.getElementById('itemName').value.trim();
-    const p = parseFloat(document.getElementById('itemPrice').value) || 0;
-    const q = parseInt(document.getElementById('itemQty').value) || 1;
+    const n = document.getElementById('itemName') ? document.getElementById('itemName').value.trim() : '';
+    const p = parseFloat(document.getElementById('itemPrice') ? document.getElementById('itemPrice').value : 0) || 0;
+    const q = parseInt(document.getElementById('itemQty') ? document.getElementById('itemQty').value : 1) || 1;
     const dueDate = document.getElementById('itemDueDate') ? document.getElementById('itemDueDate').value : '';
     const notes = document.getElementById('itemNotes') ? document.getElementById('itemNotes').value.trim() : '';
 
@@ -2687,15 +2687,16 @@ function addItem(event) {
             category: finalCategory,
             note: notes || '',
             dueDate: dueDate || '',
+            paymentUrl: '',
             isPaid: false,
             lastUpdated: Date.now(),
             cloudId: 'item_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9)
         });
 
         // איפוס טופס
-        document.getElementById('itemName').value = '';
-        document.getElementById('itemPrice').value = '';
-        document.getElementById('itemQty').value = '1';
+        if (document.getElementById('itemName')) document.getElementById('itemName').value = '';
+        if (document.getElementById('itemPrice')) document.getElementById('itemPrice').value = '';
+        if (document.getElementById('itemQty')) document.getElementById('itemQty').value = '1';
         if (document.getElementById('itemCategory')) document.getElementById('itemCategory').value = '';
         if (document.getElementById('itemDueDate')) document.getElementById('itemDueDate').value = '';
         if (document.getElementById('itemNotes')) document.getElementById('itemNotes').value = '';
@@ -2703,7 +2704,11 @@ function addItem(event) {
         closeModal('inputForm');
         save();
         showNotification('✅ מוצר נוסף!');
-        checkUrgentPayments();
+        if (typeof checkUrgentPayments === 'function') {
+            checkUrgentPayments();
+        }
+    } else {
+        showNotification('⚠️ נא להזין שם מוצר', 'warning');
     }
 }
 
