@@ -537,6 +537,11 @@ function save() {
     db.lastSync = Date.now();
     localStorage.setItem('BUDGET_FINAL_V28', JSON.stringify(db));
     render();
+    
+    // Update notification badge
+    if (typeof updateNotificationBadge === 'function') {
+        updateNotificationBadge();
+    }
 
     if (isConnected && currentUser) {
         if (syncTimeout) clearTimeout(syncTimeout);
@@ -1639,10 +1644,26 @@ function generateItemMetadataHTML(item, idx) {
         today.setHours(0, 0, 0, 0);
         const dueDate = new Date(item.dueDate);
         dueDate.setHours(0, 0, 0, 0);
-        const isOverdue = dueDate < today && !item.isPaid && !item.checked;
-        const dueDateClass = isOverdue ? 'item-duedate-display overdue' : 'item-duedate-display';
-        const formattedDate = new Date(item.dueDate).toLocaleDateString('he-IL');
-        html += `<div class="${dueDateClass}" data-duedate-idx="${idx}" onclick="editDueDate(${idx})">📅 ${formattedDate}${isOverdue ? ' (פג תוקף!)' : ''}</div>`;
+        
+        const diffTime = dueDate - today;
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+        
+        let dateClass = 'item-duedate-display';
+        let dateText = new Date(item.dueDate).toLocaleDateString('he-IL');
+        
+        if (diffDays < 0 && !item.checked && !item.isPaid) {
+            dateClass += ' overdue';
+            dateText += ' (עבר!)';
+        } else if (diffDays >= 0 && diffDays <= 3 && !item.checked && !item.isPaid) {
+            dateClass += ' soon';
+        }
+        
+        html += `<div class="${dateClass}" onclick="event.stopPropagation();">📅 ${dateText}</div>`;
+    }
+    
+    // Build payment URL link
+    if (item.paymentUrl) {
+        html += `<a href="${item.paymentUrl}" target="_blank" class="item-payment-link" onclick="event.stopPropagation();">🔗 קישור לתשלום</a>`;
     }
     
     // Build notes display with auto-linked URLs
@@ -1651,7 +1672,12 @@ function generateItemMetadataHTML(item, idx) {
         const linkedNotes = item.note.replace(urlPattern, (url) => {
             return `<a href="${url}" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation()">${url}</a>`;
         });
-        html += `<div class="item-notes-display" data-notes-idx="${idx}" onclick="editNotes(${idx})">📝 ${linkedNotes}</div>`;
+        html += `<div class="item-notes-display" onclick="event.stopPropagation(); openItemNote(${idx})">📝 ${linkedNotes}</div>`;
+    }
+    
+    // Build paid badge
+    if (item.isPaid) {
+        html += `<div class="item-paid-badge">✓ שולם</div>`;
     }
     
     return html;
@@ -2942,19 +2968,39 @@ function saveTotal() {
 function openEditItemNameModal(idx) {
     currentEditIdx = idx;
     const item = db.lists[db.currentId].items[idx];
-    document.getElementById('editItemNameInput').value = item.name;
-    openModal('editItemNameModal');
+    document.getElementById('editItemName').value = item.name;
+    document.getElementById('editItemDueDate').value = item.dueDate || '';
+    document.getElementById('editItemPaymentUrl').value = item.paymentUrl || '';
+    openModal('editItemModal');
 
-    // Focus on input after modal opens
     setTimeout(() => {
-        const input = document.getElementById('editItemNameInput');
+        const input = document.getElementById('editItemName');
         input.focus();
         input.select();
     }, 100);
 }
 
+function saveItemEdit() {
+    const newName = document.getElementById('editItemName').value.trim();
+    const newDueDate = document.getElementById('editItemDueDate').value;
+    const newPaymentUrl = document.getElementById('editItemPaymentUrl').value.trim();
+    
+    if (newName && currentEditIdx !== null) {
+        const item = db.lists[db.currentId].items[currentEditIdx];
+        item.name = newName;
+        item.dueDate = newDueDate;
+        item.paymentUrl = newPaymentUrl;
+        item.lastUpdated = Date.now();
+        save();
+        closeModal('editItemModal');
+        showNotification('✅ הפריט עודכן!');
+        updateNotificationBadge();
+        checkUrgentPayments();
+    }
+}
+
 function saveItemName() {
-    const newName = document.getElementById('editItemNameInput').value.trim();
+    const newName = document.getElementById('editItemNameInput') ? document.getElementById('editItemNameInput').value.trim() : '';
     if (newName && currentEditIdx !== null) {
         db.lists[db.currentId].items[currentEditIdx].name = newName;
         save();
@@ -5038,6 +5084,11 @@ function openItemNoteModal(itemIndex) {
     openModal('itemNoteModal');
 }
 
+// Helper function called from metadata HTML
+function openItemNote(idx) {
+    openItemNoteModal(idx);
+}
+
 // שמירת הערה למוצר
 function saveItemNote() {
     if (currentNoteItemIndex === null || currentNoteItemIndex === undefined) {
@@ -5817,4 +5868,300 @@ function enhanceItemHTML(item, idx, originalHTML) {
     
     return enhanced;
 }
+
+// ========== Notification Center Functions ==========
+function getNotificationItems() {
+    const notificationItems = [];
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    const threeDaysFromNow = new Date(today);
+    threeDaysFromNow.setDate(threeDaysFromNow.getDate() + 3);
+    
+    Object.keys(db.lists).forEach(listId => {
+        const list = db.lists[listId];
+        list.items.forEach((item, idx) => {
+            if (item.dueDate && !item.checked && !item.isPaid) {
+                const dueDate = new Date(item.dueDate);
+                dueDate.setHours(0, 0, 0, 0);
+                
+                if (dueDate <= threeDaysFromNow) {
+                    const isOverdue = dueDate < today;
+                    const isToday = dueDate.getTime() === today.getTime();
+                    const isTomorrow = dueDate.getTime() === new Date(today.getTime() + 86400000).getTime();
+                    
+                    let urgency = 0;
+                    if (isOverdue) urgency = 3;
+                    else if (isToday) urgency = 2;
+                    else if (isTomorrow) urgency = 1;
+                    else urgency = 0;
+                    
+                    notificationItems.push({
+                        item,
+                        itemIdx: idx,
+                        listId,
+                        listName: list.name,
+                        dueDate,
+                        urgency,
+                        isOverdue,
+                        isToday,
+                        isTomorrow
+                    });
+                }
+            }
+        });
+    });
+    
+    notificationItems.sort((a, b) => {
+        if (b.urgency !== a.urgency) return b.urgency - a.urgency;
+        return a.dueDate - b.dueDate;
+    });
+    
+    return notificationItems;
+}
+
+function updateNotificationBadge() {
+    const notificationItems = getNotificationItems();
+    const badge = document.getElementById('notificationBadge');
+    
+    if (notificationItems.length > 0) {
+        badge.textContent = notificationItems.length;
+        badge.style.display = 'flex';
+    } else {
+        badge.style.display = 'none';
+    }
+}
+
+function openNotificationCenter() {
+    const notificationItems = getNotificationItems();
+    const container = document.getElementById('notificationsList');
+    
+    if (notificationItems.length === 0) {
+        container.innerHTML = '<p class="text-gray-400 text-center py-8">אין התראות כרגע 🎉</p>';
+    } else {
+        container.innerHTML = '';
+        notificationItems.forEach(notif => {
+            const div = document.createElement('div');
+            div.className = `notification-item ${notif.isOverdue ? 'overdue' : 'soon'}`;
+            div.onclick = () => jumpToItem(notif.listId, notif.itemIdx);
+            
+            let dateText = '';
+            if (notif.isOverdue) {
+                const daysOverdue = Math.floor((new Date().setHours(0,0,0,0) - notif.dueDate) / 86400000);
+                dateText = `⚠️ איחור ${daysOverdue} ${daysOverdue === 1 ? 'יום' : 'ימים'}`;
+            } else if (notif.isToday) {
+                dateText = '📅 היום!';
+            } else if (notif.isTomorrow) {
+                dateText = '📅 מחר';
+            } else {
+                const daysUntil = Math.floor((notif.dueDate - new Date().setHours(0,0,0,0)) / 86400000);
+                dateText = `📅 בעוד ${daysUntil} ${daysUntil === 1 ? 'יום' : 'ימים'}`;
+            }
+            
+            div.innerHTML = `
+                <div class="notification-item-title">${notif.item.name}</div>
+                <div class="notification-item-date">${dateText}</div>
+                <div class="notification-item-list">רשימה: ${notif.listName}</div>
+            `;
+            container.appendChild(div);
+        });
+    }
+    
+    openModal('notificationCenterModal');
+}
+
+function jumpToItem(listId, itemIdx) {
+    closeModal('notificationCenterModal');
+    db.currentId = listId;
+    activePage = 'lists';
+    
+    setTimeout(() => {
+        render();
+        
+        const itemCard = document.querySelector(`[data-id="${itemIdx}"]`);
+        if (itemCard) {
+            itemCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            itemCard.classList.add('highlight-item');
+            
+            setTimeout(() => {
+                itemCard.classList.remove('highlight-item');
+            }, 2000);
+        }
+    }, 100);
+}
+
+// ========== Auto-link notes utility ==========
+function autoLinkNotes(noteText) {
+    const urlRegex = /(https?:\/\/[^\s]+)/g;
+    return noteText.replace(urlRegex, '<a href="$1" target="_blank" style="color: #7367f0; text-decoration: underline;">קישור</a>');
+}
+
+function toggleVoiceInput() {
+    const input = document.getElementById('newItemInput');
+    if (!input) return;
+    
+    if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+        showNotification('הדפדפן לא תומך בזיהוי קולי', 'error');
+        return;
+    }
+    
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    const recognition = new SpeechRecognition();
+    recognition.lang = 'he-IL';
+    recognition.continuous = false;
+    
+    const voiceIcon = document.getElementById('voiceIcon');
+    voiceIcon.textContent = '⏺️';
+    
+    recognition.onresult = (event) => {
+        const transcript = event.results[0][0].transcript;
+        input.value = transcript;
+        voiceIcon.textContent = '🎤';
+        showNotification('✅ זוהה: ' + transcript);
+    };
+    
+    recognition.onerror = () => {
+        voiceIcon.textContent = '🎤';
+        showNotification('שגיאה בזיהוי קולי', 'error');
+    };
+    
+    recognition.onend = () => {
+        voiceIcon.textContent = '🎤';
+    };
+    
+    try {
+        recognition.start();
+        showNotification('🎤 מאזין...');
+    } catch (error) {
+        voiceIcon.textContent = '🎤';
+        showNotification('שגיאה בהפעלת המיקרופון', 'error');
+    }
+}
+
+function addItem() {
+    const input = document.getElementById('newItemInput');
+    const name = input.value.trim();
+    
+    if (name) {
+        const category = detectCategory(name);
+        db.lists[db.currentId].items.push({
+            name: name,
+            price: 0,
+            qty: 1,
+            checked: false,
+            category: category,
+            note: '',
+            dueDate: '',
+            paymentUrl: '',
+            isPaid: false,
+            lastUpdated: Date.now(),
+            cloudId: 'item_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9)
+        });
+        
+        input.value = '';
+        save();
+        showNotification('✅ ' + name + ' נוסף!');
+    }
+}
+
+function createNewList() {
+    const name = prompt('שם הרשימה החדשה:');
+    if (name && name.trim()) {
+        const id = 'L' + Date.now();
+        db.lists[id] = {
+            name: name.trim(),
+            url: '',
+            budget: 0,
+            isTemplate: false,
+            items: []
+        };
+        db.currentId = id;
+        save();
+        render();
+        showNotification('✅ רשימה חדשה נוצרה!');
+    }
+}
+
+function clearChecked() {
+    if (confirm('למחוק את כל הפריטים המסומנים?')) {
+        db.lists[db.currentId].items = db.lists[db.currentId].items.filter(item => !item.checked);
+        save();
+        showNotification('🗑️ פריטים מסומנים נמחקו');
+    }
+}
+
+function switchTab(tab) {
+    const shoppingTab = document.getElementById('shoppingTab');
+    const analysisTab = document.getElementById('analysisTab');
+    const tabs = document.querySelectorAll('.tab-btn');
+    
+    if (tab === 'shopping') {
+        shoppingTab.style.display = 'block';
+        analysisTab.style.display = 'none';
+        tabs[0].classList.add('tab-active');
+        tabs[1].classList.remove('tab-active');
+    } else {
+        shoppingTab.style.display = 'none';
+        analysisTab.style.display = 'block';
+        tabs[0].classList.remove('tab-active');
+        tabs[1].classList.add('tab-active');
+        updateCategoryChart();
+    }
+}
+
+function updateCategoryChart() {
+    const list = db.lists[db.currentId];
+    if (!list || list.items.length === 0) return;
+    
+    const categoryTotals = {};
+    list.items.forEach(item => {
+        const cat = item.category || 'אחר';
+        categoryTotals[cat] = (categoryTotals[cat] || 0) + (item.price * item.qty);
+    });
+    
+    const canvas = document.getElementById('categoryChart');
+    const ctx = canvas.getContext('2d');
+    
+    if (window.categoryChartInstance) {
+        window.categoryChartInstance.destroy();
+    }
+    
+    window.categoryChartInstance = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+            labels: Object.keys(categoryTotals),
+            datasets: [{
+                data: Object.values(categoryTotals),
+                backgroundColor: Object.keys(categoryTotals).map(cat => CATEGORIES[cat] || '#6b7280')
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    labels: {
+                        color: 'white'
+                    }
+                }
+            }
+        }
+    });
+}
+
+function exportToExcel() {
+    showNotification('יצוא לאקסל - בפיתוח');
+}
+
+// Initialize notification badge on page load
+document.addEventListener('DOMContentLoaded', function() {
+    setTimeout(() => {
+        if (typeof updateNotificationBadge === 'function') {
+            updateNotificationBadge();
+        }
+        if (typeof checkUrgentPayments === 'function') {
+            checkUrgentPayments();
+        }
+    }, 500);
+});
 
