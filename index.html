@@ -598,6 +598,112 @@
             box-shadow: 0 6px 16px rgba(16, 185, 129, 0.4);
         }
 
+        /* Command Hub Styles - New Quick Actions Design */
+        .hero-btn {
+            position: relative;
+            width: 100%;
+            background: linear-gradient(135deg, #7367f0 0%, #9055ff 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 20px;
+            border: none;
+            font-size: 18px;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            box-shadow: 0 8px 24px rgba(115, 103, 240, 0.35);
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            overflow: hidden;
+        }
+
+        .hero-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 12px 32px rgba(115, 103, 240, 0.45);
+        }
+
+        .hero-btn:active {
+            transform: translateY(0);
+            box-shadow: 0 6px 20px rgba(115, 103, 240, 0.3);
+        }
+
+        .small-action-btn {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+            padding: 16px 12px;
+            background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+            border: 2px solid #e2e8f0;
+            border-radius: 16px;
+            cursor: pointer;
+            transition: all 0.2s;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+        }
+
+        .small-action-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 16px rgba(0, 0, 0, 0.1);
+            border-color: #cbd5e1;
+        }
+
+        .small-action-btn:active {
+            transform: translateY(-1px);
+            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.08);
+        }
+
+        .icon-circle {
+            width: 48px;
+            height: 48px;
+            border-radius: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            transition: all 0.2s;
+        }
+
+        .small-action-btn:hover .icon-circle {
+            transform: scale(1.1);
+        }
+
+        .bg-paste {
+            background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
+        }
+
+        .bg-excel {
+            background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);
+        }
+
+        .bg-bank {
+            background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+        }
+
+        /* Dark mode support for Command Hub */
+        .dark-mode .hero-btn {
+            box-shadow: 0 8px 24px rgba(115, 103, 240, 0.5);
+        }
+
+        .dark-mode .small-action-btn {
+            background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+            border-color: #475569;
+        }
+
+        .dark-mode .small-action-btn span {
+            color: #e2e8f0 !important;
+        }
+
+        .dark-mode .small-action-btn .text-slate-400 {
+            color: #94a3b8 !important;
+        }
+
+        .dark-mode .small-action-btn:hover {
+            border-color: #64748b;
+        }
+
+
         /* Note icon styles */
         .note-icon {
             width: 24px;
@@ -1113,16 +1219,51 @@ ${error.message}
         </div>
 
         <div id="pageLists">
-            <div class="lists-header-card bg-white p-2 rounded-2xl border border-gray-100 shadow-sm mb-4">
-                <div class="flex gap-2">
-                    <button onclick="openModal('newListModal')"
-                        class="bg-indigo-600 text-white flex-1 py-3 rounded-xl font-bold">+ רשימה חדשה</button>
-                    <button onclick="openModal('importModal')"
-                        class="bg-green-500 text-white flex-1 py-3 rounded-xl font-bold">📥 ייבוא</button>
-                    <label for="bankFileInput" class="bank-import-btn flex-1 cursor-pointer text-center flex items-center justify-center">🏦 ייבוא בנקאי</label>
-                    <input type="file" id="bankFileInput" accept=".xls,.xlsx,.pdf" style="display: none;" onchange="importBankFile(event)">
-                    <label for="excel-upload" class="bg-blue-500 text-white flex-1 py-3 rounded-xl font-bold cursor-pointer text-center">📊 ייבוא מאקסל</label>
-                    <input type="file" id="excel-upload" accept=".xlsx, .xls" style="display: none;" onchange="handleExcelUpload(event)">
+            <!-- Hidden file inputs (must remain in DOM) -->
+            <input type="file" id="bankFileInput" accept=".xls,.xlsx,.pdf" style="display: none;" onchange="importBankFile(event)">
+            <input type="file" id="excel-upload" accept=".xlsx, .xls" style="display: none;" onchange="handleExcelUpload(event)">
+            
+            <div class="lists-header-card bg-white p-4 rounded-2xl border border-gray-100 shadow-sm mb-4">
+                <div class="mb-6">
+                    <div class="flex justify-between items-end mb-2 px-1">
+                        <h2 class="text-sm font-bold text-slate-400 uppercase tracking-wider">פעולות מהירות</h2>
+                    </div>
+
+                    <button onclick="openModal('newListModal')" class="hero-btn mb-3">
+                        <svg class="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"></path></svg>
+                        <span>רשימה חדשה</span>
+                        <span class="absolute right-3 top-3 opacity-20">
+                            <svg class="w-12 h-12" fill="currentColor" viewBox="0 0 20 20"><path d="M10 2a8 8 0 100 16 8 8 0 000-16zm1 11a1 1 0 11-2 0 1 1 0 012 0zm0-7a1 1 0 11-2 0v4a1 1 0 112 0V6z"></path></svg>
+                        </span>
+                    </button>
+
+                    <div class="grid grid-cols-3 gap-3">
+                        
+                        <button onclick="openModal('importModal')" class="small-action-btn">
+                            <div class="icon-circle bg-paste">📋</div>
+                            <div class="flex flex-col items-center">
+                                <span class="text-xs font-bold text-slate-700">הדבק</span>
+                                <span class="text-[10px] text-slate-400">טקסט חופשי</span>
+                            </div>
+                        </button>
+
+                        <label for="excel-upload" class="small-action-btn cursor-pointer">
+                            <div class="icon-circle bg-excel">📊</div>
+                            <div class="flex flex-col items-center">
+                                <span class="text-xs font-bold text-slate-700">Excel</span>
+                                <span class="text-[10px] text-slate-400">ייבוא קובץ</span>
+                            </div>
+                        </label>
+
+                        <label for="bankFileInput" class="small-action-btn cursor-pointer">
+                            <div class="icon-circle bg-bank">🏦</div>
+                            <div class="flex flex-col items-center">
+                                <span class="text-xs font-bold text-slate-700">בנק</span>
+                                <span class="text-[10px] text-slate-400">ייבוא עו"ש</span>
+                            </div>
+                        </label>
+
+                    </div>
                 </div>
             </div>
             <div class="mb-3">
@@ -1646,6 +1787,7 @@ ${error.message}
 </body>
 
 </html>
+
 
 
 
