@@ -824,77 +824,70 @@
             color: #fca5a5;
         }
 
-        /* Floating Pills Styles */
+        /* --- Floating Pills Styles (FIXED) --- */
+
+        /* 1. Main Wide Button */
         .hero-wide-btn {
-            width: 100%;
             background: linear-gradient(135deg, #7367f0 0%, #9055ff 100%);
-            border: none;
+            width: 100%;
+            padding: 18px 24px;
             border-radius: 20px;
-            padding: 18px 20px;
             display: flex;
             align-items: center;
             justify-content: space-between;
-            cursor: pointer;
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            box-shadow: 0 8px 24px rgba(115, 103, 240, 0.35);
+            box-shadow: 0 10px 30px -5px rgba(115, 103, 240, 0.4);
+            border: 1px solid rgba(255,255,255,0.1);
+            transition: transform 0.2s, box-shadow 0.2s;
+            position: relative;
+            overflow: hidden;
             margin-bottom: 16px;
-        }
-
-        .hero-wide-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 12px 32px rgba(115, 103, 240, 0.45);
+            color: white !important; /* Force white text */
+            cursor: pointer;
         }
 
         .hero-wide-btn:active {
-            transform: translateY(0);
-            box-shadow: 0 4px 16px rgba(115, 103, 240, 0.3);
+            transform: scale(0.98);
+            box-shadow: 0 5px 15px -5px rgba(115, 103, 240, 0.3);
         }
 
+        /* 2. Pills Container */
         .pills-container {
             display: flex;
-            gap: 12px;
-            overflow-x: auto;
-            padding: 4px 0;
-            scrollbar-width: none;
-            -ms-overflow-style: none;
+            gap: 8px; /* Reduced gap */
+            width: 100%;
         }
 
-        .pills-container::-webkit-scrollbar {
-            display: none;
-        }
-
+        /* 3. Individual Pill - Compact Mode */
         .action-pill {
-            flex-shrink: 0;
+            flex: 1;
             background: white;
-            border: none;
+            border: 1px solid #edf2f7;
+            padding: 10px 4px; /* Reduced side padding */
             border-radius: 50px;
-            padding: 12px 24px;
             display: flex;
             align-items: center;
-            gap: 8px;
+            justify-content: center;
+            gap: 6px;
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.03);
+            transition: all 0.2s;
             cursor: pointer;
-            transition: all 0.2s ease;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-            font-weight: 600;
-            color: #475569;
-        }
-
-        .action-pill:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+            white-space: nowrap;
+            min-width: 0; /* CRITICAL: Allows shrinking to fit screen */
         }
 
         .action-pill:active {
-            transform: scale(0.98);
+            transform: scale(0.95);
+            background: #f8fafc;
         }
 
-        .pill-icon {
-            font-size: 18px;
+        .pill-icon { 
+            font-size: 16px; 
         }
-
-        .pill-text {
-            font-size: 14px;
-            white-space: nowrap;
+        
+        .pill-text { 
+            font-size: 12px; 
+            font-weight: 700; 
+            color: #4b5563; 
         }
     </style>
 
@@ -1198,18 +1191,18 @@ ${error.message}
                         <div class="bg-white/20 w-10 h-10 rounded-xl flex items-center justify-center backdrop-blur-sm group-active:scale-90 transition-transform">
                             <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"></path></svg>
                         </div>
-                        <div class="text-right text-white">
-                            <span class="block text-xl font-black leading-none tracking-tight">רשימה חדשה</span>
+                        <div class="text-right">
+                            <span class="block text-xl font-black leading-none tracking-tight text-white">רשימה חדשה</span>
                         </div>
                     </div>
-                    <div class="text-white/70 text-sm font-medium">צור ידנית ➔</div>
+                    <div class="text-white/80 text-sm font-medium">צור ידנית ➔</div>
                 </button>
 
                 <div class="pills-container">
                     
                     <button onclick="openModal('importModal')" class="action-pill">
                         <span class="pill-icon">📋</span>
-                        <span class="pill-text">הדבק טקסט</span>
+                        <span class="pill-text">הדבק</span>
                     </button>
 
                     <label for="excel-upload" class="action-pill">
@@ -1219,7 +1212,7 @@ ${error.message}
 
                     <label for="bankFileInput" class="action-pill">
                         <span class="pill-icon">🏦</span>
-                        <span class="pill-text">ייבוא בנקאי</span>
+                        <span class="pill-text">בנק</span>
                     </label>
 
                 </div>
