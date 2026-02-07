@@ -200,207 +200,626 @@
             flex-shrink: 0;
             width: 40px;
             height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .notification-bell {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, #f59e0b 0%, #fb923c 100%);
             border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
-            background-color: #f9fafb;
-            border: 1px solid #e5e7eb;
+            color: white;
+            font-size: 20px;
             cursor: pointer;
-            transition: all 0.2s;
-        }
-
-        .gear-btn:hover {
-            background-color: #f3f4f6;
-            border-color: #d1d5db;
-            transform: scale(1.05);
-        }
-
-        .notification-bell {
-            position: relative;
-            cursor: pointer;
-            font-size: 1.3rem;
+            box-shadow: 0 4px 8px rgba(245, 158, 11, 0.3);
             transition: transform 0.2s;
-            padding: 5px;
+            position: relative;
+            flex-shrink: 0;
         }
 
-        .notification-bell:hover {
-            transform: scale(1.1);
+        .notification-bell:active {
+            transform: scale(0.95);
         }
 
         .notification-badge {
             position: absolute;
-            top: 0;
-            right: 0;
+            top: -4px;
+            right: -4px;
             background: #ef4444;
             color: white;
-            font-size: 9px;
-            font-weight: bold;
-            padding: 2px 5px;
-            border-radius: 10px;
-            min-width: 16px;
-            text-align: center;
-        }
-
-        .cloud-btn-disconnected {
-            background: linear-gradient(135deg, #e5e7eb 0%, #d1d5db 100%);
-            color: #6b7280;
-            border-color: #d1d5db;
-            transition: all 0.3s ease;
-        }
-
-        .cloud-btn-disconnected:hover {
-            background: linear-gradient(135deg, #d1d5db 0%, #9ca3af 100%);
-            transform: scale(1.05);
-        }
-
-        .cloud-btn-connected {
-            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-            color: white;
-            border-color: #10b981;
-            transition: all 0.3s ease;
-        }
-
-        .cloud-btn-syncing {
-            background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
-            color: white;
-            border-color: #f59e0b;
-            animation: pulse 1.5s ease-in-out infinite;
-        }
-
-        @keyframes pulse {
-            0%,
-            100% {
-                opacity: 1;
-            }
-
-            50% {
-                opacity: 0.7;
-            }
-        }
-
-        .category-separator {
-            background: linear-gradient(135deg, #7367f0 0%, #9055ff 100%);
-            border-radius: 25px;
-            padding: 18px;
-            margin-bottom: 15px;
-            box-shadow: 0 4px 15px rgba(115, 103, 240, 0.3);
-            color: white;
-        }
-
-        .bank-import-btn {
-            background: linear-gradient(135deg, #f97316 0%, #ea580c 100%) !important;
-            color: white;
-            font-weight: bold;
-            padding: 12px;
-            border-radius: 12px;
-        }
-
-        #pageStats {
-            max-width: 100%;
-            overflow-x: hidden;
-        }
-
-        .stats-card {
-            background: white;
-            border-radius: 20px;
-            padding: 20px;
-            margin-bottom: 20px;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
-        }
-
-        .stats-card h3 {
-            font-size: 1.2rem;
-            margin-bottom: 15px;
-            color: #7367f0;
-            font-weight: bold;
-        }
-
-        .stats-row {
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
             display: flex;
-            justify-content: space-between;
-            padding: 10px 0;
-            border-bottom: 1px solid #f3f4f6;
+            align-items: center;
+            justify-content: center;
+            font-size: 11px;
+            font-weight: bold;
+            border: 2px solid white;
         }
 
-        .stats-row:last-child {
-            border-bottom: none;
-        }
-
-        .note-modal-textarea {
-            width: 100%;
-            min-height: 150px;
-            padding: 15px;
-            border: 2px solid #f3f4f6;
-            border-radius: 16px;
-            font-size: 15px;
-            outline: none;
-            margin-bottom: 15px;
-            font-weight: 500;
-            background: #f9fafb !important;
-            color: #333;
-            resize: vertical;
-            text-align: right;
-        }
-
-        .note-modal-textarea:focus {
-            border-color: #7367f0;
-            background: white !important;
-        }
-
-        .item-notes-display,
-        .item-duedate-display {
-            font-size: 12px;
-            padding: 6px 10px;
-            border-radius: 8px;
-            margin-top: 6px;
-            display: inline-block;
-            max-width: 100%;
-            word-wrap: break-word;
-        }
-
-        .item-notes-display {
-            background: #fff7ed;
-            color: #c2410c;
-            border: 1px solid #fed7aa;
-            line-height: 1.5;
-        }
-
-        .item-notes-display a {
-            color: #2563eb;
-            text-decoration: underline;
-            word-break: break-all;
-        }
-
-        .item-duedate-display {
-            background: #fef3c7;
-            color: #b45309;
-            border: 1px solid #fde68a;
+        .notification-item {
+            background: white;
+            border-radius: 15px;
+            padding: 12px;
+            margin-bottom: 10px;
             cursor: pointer;
-            transition: background 0.2s;
+            transition: all 0.2s;
+            border: 2px solid transparent;
         }
 
-        .item-duedate-display:hover {
-            background: rgba(245, 158, 11, 0.1);
+        .notification-item:hover {
+            border-color: #7367f0;
+            box-shadow: 0 4px 12px rgba(115, 103, 240, 0.2);
+        }
+
+        .notification-item.overdue {
+            border-left: 4px solid #ef4444;
+        }
+
+        .notification-item.soon {
+            border-left: 4px solid #f97316;
+        }
+
+        .notification-item-title {
+            font-weight: bold;
+            margin-bottom: 4px;
+        }
+
+        .notification-item-date {
+            font-size: 0.85em;
+            color: #6b7280;
+        }
+
+        .notification-item-list {
+            font-size: 0.8em;
+            color: #9ca3af;
+            margin-top: 4px;
+        }
+
+        .item-card.highlight-item {
+            animation: highlightPulse 2s ease-in-out;
+            box-shadow: 0 0 20px rgba(115, 103, 240, 0.5);
+        }
+
+        @keyframes highlightPulse {
+            0%, 100% { box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03); }
+            50% { box-shadow: 0 0 30px rgba(115, 103, 240, 0.8); }
+        }
+
+        .item-duedate-display {
+            font-size: 0.85em;
+            color: #6b7280;
+            margin-top: 4px;
+            cursor: pointer;
+            padding: 2px 6px;
+            border-radius: 8px;
+            display: inline-block;
         }
 
         .item-duedate-display.overdue {
             color: #ef4444;
             font-weight: bold;
+            background: #fee2e2;
         }
 
+        .item-duedate-display.soon {
+            color: #f97316;
+            font-weight: bold;
+            background: #ffedd5;
+        }
+
+        .item-payment-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            font-size: 0.85em;
+            color: #7367f0;
+            cursor: pointer;
+            padding: 4px 8px;
+            border-radius: 8px;
+            background: #f3f4f6;
+            margin-left: 8px;
+            margin-top: 4px;
+            transition: all 0.2s;
+            text-decoration: none;
+        }
+
+        .item-payment-link:hover {
+            background: #e5e7eb;
+            transform: scale(1.05);
+        }
+
+        .trash-btn {
+            width: 44px;
+            height: 44px;
+            background: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #ef4444;
+            border: none;
+            cursor: pointer;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        }
+
+        .category-separator {
+            background: linear-gradient(135deg, #7367f0 0%, #9055ff 100%);
+            color: white;
+            border-radius: 20px;
+            padding: 15px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .category-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: bold;
+            margin: 2px;
+        }
+
+        .stat-card {
+            background: white;
+            border-radius: 20px;
+            padding: 20px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+            margin-bottom: 15px;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: #e5e7eb;
+            border-radius: 10px;
+            overflow: hidden;
+            margin-top: 8px;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #22c55e 0%, #16a34a 100%);
+            border-radius: 10px;
+            transition: width 0.3s ease;
+        }
+
+        body.dark-mode {
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            color: #e0e0e0;
+        }
+
+        .dark-mode .app-header {
+            background: #16213e;
+            border-bottom: 1px solid #0f3460;
+        }
+
+        .dark-mode .item-card,
+        .dark-mode .bg-white,
+        .dark-mode .stat-card {
+            background-color: #0f3460 !important;
+            border-color: #1a1a2e;
+            color: white;
+        }
+
+        .dark-mode #selectAllLabel {
+            color: white !important;
+        }
+
+        .dark-mode .select-all-container {
+            background-color: #0f3460 !important;
+        }
+
+        .dark-mode #searchInput {
+            background-color: #0f3460 !important;
+            color: white;
+        }
+
+        .dark-mode .item-number {
+            color: #a5a2f7;
+        }
+
+        .dark-mode .item-card span.font-bold {
+            color: white !important;
+        }
+
+        .dark-mode .item-card .bg-gray-50 {
+            background-color: rgba(255, 255, 255, 0.1) !important;
+            border-color: rgba(255, 255, 255, 0.2);
+        }
+
+        .dark-mode .modal-input {
+            background-color: #0f3460 !important;
+            color: white !important;
+            border-color: #1a1a2e;
+        }
+
+        .dark-mode .edit-modal {
+            background-color: #16213e !important;
+            color: white;
+            border-color: #0f3460;
+        }
+
+        @media print {
+
+            .no-print,
+            .bottom-bar,
+            .app-header,
+            .tab-btn,
+            .modal-overlay,
+            .trash-btn,
+            input,
+            button {
+                display: none !important;
+            }
+
+            #printArea {
+                display: block !important;
+                width: 100%;
+                direction: rtl;
+            }
+        }
+
+        .notification {
+            position: fixed;
+            top: 70px;
+            right: 20px;
+            background: white;
+            padding: 15px 20px;
+            border-radius: 15px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+            z-index: 9000;
+            transform: translateX(400px);
+            transition: transform 0.3s ease;
+        }
+
+        .notification.show {
+            transform: translateX(0);
+        }
+
+        .floating-toggle-btn {
+            position: fixed;
+            bottom: 220px;
+            right: 10px;
+            width: 35px;
+            height: 35px;
+            background: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.2);
+            cursor: pointer;
+            z-index: 1001;
+            transition: all 0.3s ease;
+            border: 2px solid rgba(115, 103, 240, 0.3);
+        }
+
+        .floating-toggle-btn:active {
+            transform: scale(0.9);
+        }
+
+        .floating-toggle-btn svg {
+            transition: transform 0.3s ease;
+            color: #7367f0;
+        }
+
+        .floating-toggle-btn.bar-hidden {
+            bottom: 10px;
+        }
+
+        .floating-toggle-btn.bar-hidden svg {
+            transform: rotate(180deg);
+        }
+
+        .template-badge {
+            background: #fbbf24;
+            color: white;
+            padding: 2px 8px;
+            border-radius: 8px;
+            font-size: 10px;
+            font-weight: bold;
+            margin-right: 8px;
+        }
+
+        .autocomplete-container {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: white;
+            border: 2px solid #e5e7eb;
+            border-top: none;
+            border-radius: 0 0 16px 16px;
+            max-height: 200px;
+            overflow-y: auto;
+            z-index: 1000;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .autocomplete-item {
+            padding: 10px;
+            cursor: pointer;
+            border-bottom: 1px solid #f3f4f6;
+            transition: background 0.2s;
+        }
+
+        .autocomplete-item:hover {
+            background: #f9fafb;
+        }
+
+        .autocomplete-item:last-child {
+            border-bottom: none;
+        }
+
+        /* Cloud Button Connected State */
+        .cloud-btn-connected {
+            background: #dcfce7 !important;
+            color: #15803d !important;
+            border-color: #86efac !important;
+        }
+
+        .cloud-btn-disconnected {
+            background: #f3f4f6;
+            color: #6b7280;
+            border-color: #e5e7eb;
+        }
+
+        /* Bank Import Button Styles */
+        .bank-import-btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 12px 20px;
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            color: white;
+            border-radius: 15px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s;
+            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+            border: none;
+            font-size: 14px;
+        }
+
+        .bank-import-btn:active {
+            transform: scale(0.95);
+        }
+
+        .bank-import-btn:hover {
+            box-shadow: 0 6px 16px rgba(16, 185, 129, 0.4);
+        }
+
+        /* Note icon styles */
+        .note-icon {
+            width: 24px;
+            height: 24px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            background: linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%);
+            border: 1px solid #d1d5db;
+        }
+
+        .note-icon:hover {
+            transform: scale(1.1);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .note-icon.has-note {
+            background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+            border-color: #fbbf24;
+            position: relative;
+        }
+
+        .note-icon.has-note::after {
+            content: '';
+            position: absolute;
+            top: -2px;
+            right: -2px;
+            width: 8px;
+            height: 8px;
+            background: #f59e0b;
+            border-radius: 50%;
+            border: 2px solid white;
+        }
+
+        .note-modal-textarea {
+            width: 100%;
+            min-height: 120px;
+            padding: 12px;
+            border: 2px solid #f3f4f6;
+            border-radius: 16px;
+            font-size: 15px;
+            text-align: right;
+            outline: none;
+            margin-bottom: 15px;
+            font-family: system-ui, sans-serif;
+            background: #f9fafb !important;
+            color: #333;
+            resize: vertical;
+        }
+
+        .note-modal-textarea:focus {
+            border-color: #fbbf24;
+            background: #fff !important;
+        }
+        
+        .urgent-alert-modal {
+            background-color: #ffffff !important;
+            border-radius: 30px;
+            padding: 25px;
+            text-align: center;
+            color: #333;
+            border: 3px solid #ef4444;
+            box-shadow: 0 20px 50px rgba(239, 68, 68, 0.4);
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+        
+        .urgent-alert-header {
+            font-size: 3em;
+            margin-bottom: 10px;
+        }
+        
+        .urgent-alert-title {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #ef4444;
+            margin-bottom: 15px;
+        }
+        
+        .urgent-items-list {
+            text-align: right;
+            margin: 20px 0;
+            padding: 15px;
+            background: #fef2f2;
+            border-radius: 15px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        
+        .urgent-item {
+            padding: 10px;
+            margin-bottom: 8px;
+            background: white;
+            border-radius: 10px;
+            border-right: 4px solid #ef4444;
+            font-size: 0.95rem;
+        }
+        
+        .urgent-item-name {
+            font-weight: bold;
+            color: #1f2937;
+        }
+        
+        .urgent-item-date {
+            color: #ef4444;
+            font-size: 0.85rem;
+            margin-top: 3px;
+        }
+        
+        .urgent-buttons {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-top: 20px;
+        }
+        
+        .urgent-btn {
+            padding: 15px;
+            border-radius: 15px;
+            font-weight: bold;
+            font-size: 1rem;
+            cursor: pointer;
+            border: none;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        
+        .urgent-btn:active {
+            transform: scale(0.97);
+        }
+        
+        .urgent-btn-snooze {
+            background: #fbbf24;
+            color: white;
+        }
+        
+        .urgent-btn-tomorrow {
+            background: #3b82f6;
+            color: white;
+        }
+        
+        .urgent-btn-close {
+            background: #6b7280;
+            color: white;
+        }
+        
+        .dark-mode .urgent-alert-modal {
+            background-color: #2a2a3e !important;
+            border-color: #ef4444;
+        }
+        
+        .dark-mode .urgent-alert-title {
+            color: #fca5a5;
+        }
+        
+        .dark-mode .urgent-items-list {
+            background: #1a1a2e;
+        }
+        
+        .dark-mode .urgent-item {
+            background: #2a2a3e;
+            border-right-color: #ef4444;
+        }
+        
+        .dark-mode .urgent-item-name {
+            color: #e0e0e0;
+        }
+        
+        .item-notes-display {
+            font-size: 0.85em;
+            color: #6b7280;
+            margin-top: 5px;
+            cursor: pointer;
+            padding: 5px;
+            border-radius: 8px;
+            transition: background 0.2s;
+            word-wrap: break-word;
+        }
+        
+        .item-notes-display:hover {
+            background: rgba(115, 103, 240, 0.05);
+        }
+        
+        .item-notes-display a {
+            color: #7367f0;
+            text-decoration: underline;
+        }
+        
+        .item-duedate-display {
+            font-size: 0.85em;
+            color: #f59e0b;
+            margin-top: 5px;
+            cursor: pointer;
+            padding: 5px;
+            border-radius: 8px;
+            transition: background 0.2s;
+            font-weight: 600;
+        }
+        
+        .item-duedate-display:hover {
+            background: rgba(245, 158, 11, 0.1);
+        }
+        
+        .item-duedate-display.overdue {
+            color: #ef4444;
+            font-weight: bold;
+        }
+        
         .dark-mode .item-notes-display {
             color: #9ca3af;
         }
-
+        
         .dark-mode .item-notes-display a {
             color: #a78bfa;
         }
-
+        
         .dark-mode .item-duedate-display {
             color: #fbbf24;
         }
-
+        
         .dark-mode .item-duedate-display.overdue {
             color: #fca5a5;
         }
@@ -554,331 +973,103 @@
             font-weight: bold;
             cursor: pointer;
             width: 100%;
-            transition: background 0.2s;
         }
 
-        .error-close-btn:hover {
-            background: #dc2626;
-        }
-
-        .urgent-alert-modal {
-            background: white;
-            border-radius: 30px;
-            padding: 30px 25px;
-            width: 90%;
-            max-width: 380px;
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-            animation: slideUp 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-
-        @keyframes slideUp {
-            from {
-                transform: translateY(100px);
-                opacity: 0;
-            }
-            to {
-                transform: translateY(0);
-                opacity: 1;
-            }
-        }
-
-        .urgent-alert-header {
-            font-size: 60px;
-            text-align: center;
-            margin-bottom: 10px;
-        }
-
-        .urgent-alert-title {
-            font-size: 24px;
-            font-weight: bold;
-            color: #ef4444;
-            text-align: center;
-            margin-bottom: 5px;
-        }
-
-        .urgent-items-list {
-            max-height: 250px;
-            overflow-y: auto;
-            margin-bottom: 20px;
-            padding: 10px 0;
-        }
-
-        .urgent-item {
-            background: #fef2f2;
-            border: 2px solid #fee2e2;
-            border-radius: 15px;
-            padding: 12px 15px;
-            margin-bottom: 10px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .urgent-item-name {
-            font-weight: bold;
-            color: #991b1b;
-            flex: 1;
-        }
-
-        .urgent-item-days {
-            background: #ef4444;
-            color: white;
-            padding: 4px 12px;
-            border-radius: 20px;
-            font-size: 11px;
-            font-weight: bold;
-        }
-
-        .urgent-buttons {
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-        }
-
-        .urgent-btn {
-            padding: 14px;
-            border: none;
-            border-radius: 15px;
-            font-weight: bold;
-            font-size: 14px;
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-
-        .urgent-btn:active {
-            transform: scale(0.98);
-        }
-
-        .urgent-btn-snooze {
-            background: #fbbf24;
-            color: #78350f;
-        }
-
-        .urgent-btn-tomorrow {
-            background: #3b82f6;
-            color: white;
-        }
-
-        .urgent-btn-close {
-            background: #e5e7eb;
-            color: #6b7280;
-        }
-
-        .dark-mode {
-            background: linear-gradient(135deg, #1f2937 0%, #111827 100%);
-        }
-
-        .dark-mode .item-card {
-            background: #374151;
-            color: #f3f4f6;
-        }
-
-        .dark-mode .category-separator {
-            background: linear-gradient(135deg, #6366f1 0%, #7c3aed 100%);
-        }
-
-        .dark-mode .tab-btn {
-            background: #374151;
-            color: #d1d5db;
-            border-color: #4b5563;
-        }
-
-        .dark-mode .stats-card {
-            background: #374151;
-            color: #f3f4f6;
-        }
-
-        .dark-mode .modal-input {
-            background: #374151 !important;
-            color: #f3f4f6;
-            border-color: #4b5563;
-        }
-
-        .dark-mode .edit-modal {
-            background-color: #1f2937 !important;
-            color: #f3f4f6;
-            border-color: #374151;
-        }
-
-        .dark-mode .app-header {
-            background: #1f2937;
-            color: #f3f4f6;
-        }
-
-        .select-all-container {
-            cursor: pointer;
-            transition: background 0.2s;
-        }
-
-        .select-all-container:hover {
-            background: #f9fafb;
-        }
-
-        .dark-mode .select-all-container {
-            background: #374151;
-            border-color: #4b5563;
-        }
-
-        .dark-mode .select-all-container:hover {
-            background: #4b5563;
-        }
-
-        .no-print {
-            display: block;
-        }
-
-        @media print {
-            .no-print {
-                display: none !important;
-            }
-
-            body {
-                background: white;
-                padding: 0;
-            }
-
-            .item-card {
-                page-break-inside: avoid;
-                box-shadow: none;
-                border: 1px solid #ddd;
-            }
-
-            .category-separator {
-                page-break-inside: avoid;
-            }
+        .error-close-btn:active {
+            transform: scale(0.95);
         }
     </style>
 
-    <div id="firebaseErrorDisplay">
-        <div class="error-title">
-            <span>⚠️</span>
-            <span id="errorTitle">שגיאה</span>
-        </div>
-        <div class="error-message" id="errorMessage"></div>
-        <button class="error-close-btn" onclick="this.parentElement.classList.remove('show')">הבנתי</button>
-    </div>
-
-    <script type="module">
-        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
-        import {
-            getAuth,
-            GoogleAuthProvider,
-            signInWithPopup,
-            onAuthStateChanged,
-            signOut
-        } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
-        import {
-            getDatabase,
-            ref,
-            set,
-            get,
-            onValue,
-            remove
-        } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js';
-
+    <script>
+        // Helper function to show errors visually
         function showFirebaseError(title, message) {
-            const errorDisplay = document.getElementById('firebaseErrorDisplay');
-            const errorTitle = document.getElementById('errorTitle');
-            const errorMessage = document.getElementById('errorMessage');
-
-            if (errorDisplay && errorTitle && errorMessage) {
-                errorTitle.textContent = title;
-                errorMessage.textContent = message;
-                errorDisplay.classList.add('show');
+            console.error('🔴 Firebase Error:', title, message);
+            
+            // Create error display if it doesn't exist
+            let errorDiv = document.getElementById('firebaseErrorDisplay');
+            if (!errorDiv) {
+                errorDiv = document.createElement('div');
+                errorDiv.id = 'firebaseErrorDisplay';
+                document.body.appendChild(errorDiv);
             }
-        }
-
-        try {
-            const firebaseConfig = {
-                apiKey: "AIzaSyBCBf2ZGmQz_RU5cpqPp8Pf30l-YBpKHg0",
-                authDomain: "vplus-d6f86.firebaseapp.com",
-                projectId: "vplus-d6f86",
-                storageBucket: "vplus-d6f86.firebasestorage.app",
-                messagingSenderId: "569257787829",
-                appId: "1:569257787829:web:0e0d2c9a80ce8cefd94e5f",
-                databaseURL: "https://vplus-d6f86-default-rtdb.europe-west1.firebasedatabase.app"
-            };
-
-            const app = initializeApp(firebaseConfig);
-            const auth = getAuth(app);
-            const database = getDatabase(app);
-
-            window.firebaseAuth = auth;
-            window.firebaseDatabase = database;
-            window.firebaseRef = ref;
-            window.firebaseSet = set;
-            window.firebaseGet = get;
-            window.firebaseOnValue = onValue;
-            window.firebaseRemove = remove;
-
-            window.loginWithGoogle = async function () {
-                const provider = new GoogleAuthProvider();
-                try {
-                    const result = await signInWithPopup(auth, provider);
-                    console.log('✅ Login successful:', result.user.email);
-
-                    if (window.updateCloudIndicator) {
-                        window.updateCloudIndicator('connected', result.user.email);
-                    }
-
-                    if (window.syncToCloud) {
-                        await window.syncToCloud();
-                    }
-                } catch (error) {
-                    console.error('❌ Login failed:', error);
-                    showFirebaseError('שגיאה בהתחברות', error.message);
-                }
-            };
-
-            window.logoutFromCloud = async function () {
-                try {
-                    await signOut(auth);
-                    console.log('✅ Logged out successfully');
-                    if (window.updateCloudIndicator) {
-                        window.updateCloudIndicator('disconnected');
-                    }
-                } catch (error) {
-                    console.error('❌ Logout failed:', error);
-                    showFirebaseError('שגיאה בהתנתקות', error.message);
-                }
-            };
-
-            onAuthStateChanged(auth, (user) => {
-                if (user) {
-                    console.log('👤 User logged in:', user.email);
-                    if (window.updateCloudIndicator) {
-                        window.updateCloudIndicator('connected', user.email);
-                    }
-                    if (window.loadFromCloud) {
-                        window.loadFromCloud();
-                    }
-                } else {
-                    console.log('👤 User logged out');
-                    if (window.updateCloudIndicator) {
-                        window.updateCloudIndicator('disconnected');
-                    }
-                }
-            });
-
-            console.log('✅ Firebase initialized successfully');
-
-        } catch (error) {
-            console.error('❌ Firebase initialization error:', error);
-            showFirebaseError('שגיאה בטעינת Firebase', error.message);
+            
+            errorDiv.innerHTML = `
+                <div class="error-title">⚠️ ${title}</div>
+                <div class="error-message">${message}</div>
+                <button class="error-close-btn" onclick="document.getElementById('firebaseErrorDisplay').classList.remove('show')">סגור</button>
+            `;
+            
+            errorDiv.classList.add('show');
+            
+            // Also log to console
+            console.log('%c══════════════════════════════════', 'color: red; font-weight: bold');
+            console.log('%c🔴 ' + title, 'color: red; font-size: 16px; font-weight: bold');
+            console.log('%c' + message, 'color: red; font-size: 14px');
+            console.log('%c══════════════════════════════════', 'color: red; font-weight: bold');
         }
     </script>
 
-    <script>
-        window.addEventListener('error', (event) => {
-            if (event.message && event.message.includes('Firebase')) {
-                console.error('🔥 Firebase Error Caught:', event.message, event.error);
-            }
-        });
+    <script type="module">
+        console.log('🔵 Starting Firebase initialization...');
+        
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getAuth, signInWithPopup, GoogleAuthProvider, getRedirectResult, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+        import { getFirestore, doc, setDoc, onSnapshot, getDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-        window.addEventListener('unhandledrejection', (event) => {
-            if (event.reason && event.reason.code && event.reason.code.startsWith('auth/')) {
-                console.error('🔥 Firebase Auth Error:', event.reason);
-                event.preventDefault();
+        try {
+            const firebaseConfig = { 
+                apiKey: "AIzaSyBqIqxoiwwqeKkjlYJpEiqgCG09PgabwhI", 
+                authDomain: "vplus-pro.firebaseapp.com", 
+                projectId: "vplus-pro", 
+                storageBucket: "vplus-pro.firebasestorage.app", 
+                messagingSenderId: "386740827706", 
+                appId: "1:386740827706:web:a3c95c895826df4bb26703" 
+            };
+
+            console.log('🔵 Initializing Firebase app...');
+            const app = initializeApp(firebaseConfig);
+            
+            console.log('🔵 Getting Auth instance...');
+            const auth = getAuth(app);
+            
+            console.log('🔵 Getting Firestore instance...');
+            const db = getFirestore(app);
+            
+            console.log('🔵 Creating Google provider...');
+            const provider = new GoogleAuthProvider();
+            provider.addScope('email');
+            provider.addScope('profile');
+
+            window.firebaseApp = app;
+            window.firebaseAuth = auth;
+            window.firebaseDb = db;
+            window.googleProvider = provider;
+
+            window.signInWithPopup = signInWithPopup;
+            window.getRedirectResult = getRedirectResult;
+            window.signOut = signOut;
+            window.onAuthStateChanged = onAuthStateChanged;
+            window.doc = doc;
+            window.setDoc = setDoc;
+            window.onSnapshot = onSnapshot;
+            window.getDoc = getDoc;
+
+            console.log('✅ Firebase initialized successfully');
+
+            // Check for redirect result
+            console.log('🔵 Checking for redirect result...');
+            getRedirectResult(auth).then((result) => {
+                if (result && result.user) {
+                    console.log('✅ Login successful!', result.user.email);
+                    showFirebaseError('התחברות הצליחה! ✅', 'ברוך הבא ' + result.user.email);
+                    setTimeout(() => {
+                        document.getElementById('firebaseErrorDisplay').classList.remove('show');
+                    }, 3000);
+                } else {
+                    console.log('ℹ️ No redirect result (normal page load)');
+                }
+            }).catch((error) => {
+                console.error('❌ Redirect error caught:', error);
                 
                 let errorTitle = "שגיאה בהתחברות";
                 let errorMsg = "";
@@ -1038,7 +1229,6 @@ ${error.message}
 
             </div>
             <!-- END NEW FLOATING PILLS SECTION -->
-
             <div class="mb-3">
                 <div class="relative">
                     <input type="text" id="listSearchInput" oninput="searchInList()" placeholder="חפש מוצר ברשימה..."
@@ -1112,55 +1302,156 @@ ${error.message}
         </div>
 
         <div id="pageStats" class="hidden">
-            <div class="stats-card">
-                <h3>📊 סטטיסטיקות כלליות</h3>
-                <div class="stats-row">
-                    <span>סה"כ רשימות:</span>
-                    <strong id="totalLists">0</strong>
+            <div class="stat-card">
+                <h3 class="text-xl font-bold mb-4" id="monthlyStatsTitle">📊 סטטיסטיקות חודשיות</h3>
+                <div class="mb-4">
+                    <div class="flex justify-between mb-2">
+                        <span class="font-bold" id="monthlyExpensesLabel">הוצאות החודש</span>
+                        <span class="text-indigo-600 font-black" id="monthlyTotal">₪0.00</span>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="monthlyProgress" style="width: 0%"></div>
+                    </div>
                 </div>
-                <div class="stats-row">
-                    <span>סה"כ פריטים:</span>
-                    <strong id="totalItems">0</strong>
+                <div class="grid grid-cols-2 gap-3 mb-4">
+                    <div class="bg-green-50 p-3 rounded-xl cursor-pointer hover:bg-green-100 transition"
+                        onclick="showCompletedListsModal()">
+                        <div class="text-xs text-green-600 mb-1" id="completedListsCountLabel">רשימות הושלמו 👆</div>
+                        <div class="text-2xl font-black text-green-600" id="completedLists">0</div>
+                    </div>
+                    <div class="bg-blue-50 p-3 rounded-xl">
+                        <div class="text-xs text-blue-600 mb-1" id="avgPerListLabel">ממוצע לרשימה</div>
+                        <div class="text-2xl font-black text-blue-600" id="avgPerList">₪0</div>
+                    </div>
                 </div>
-                <div class="stats-row">
-                    <span>סה"כ הוצאות:</span>
-                    <strong id="totalSpent">₪0</strong>
-                </div>
+                <canvas id="monthlyChart" height="200"></canvas>
             </div>
 
-            <div class="stats-card">
-                <h3>🏆 קטגוריות פופולריות</h3>
-                <canvas id="categoryChart" style="max-height: 300px;"></canvas>
+            <div class="stat-card">
+                <h3 class="text-xl font-bold mb-4" id="categoryExpensesTitle">💰 הוצאות לפי קטגוריה</h3>
+                <div style="max-width: 350px; margin: 0 auto;">
+                    <canvas id="categoryDoughnutChart" height="250"></canvas>
+                </div>
+                <div id="categoryBreakdown" class="mt-4"></div>
             </div>
 
-            <div class="stats-card">
-                <h3>📈 הוצאות לאורך זמן</h3>
-                <canvas id="timeChart" style="max-height: 300px;"></canvas>
+            <div class="stat-card">
+                <h3 class="text-xl font-bold mb-4" id="popularItemsTitle">🏆 מוצרים פופולריים</h3>
+                <div id="popularItems"></div>
+            </div>
+
+            <div class="stat-card">
+                <h3 class="text-xl font-bold mb-4" id="historyStatsTitle">📁 היסטוריה</h3>
+                <button onclick="openModal('historyModal')"
+                    class="w-full bg-indigo-600 text-white py-3 rounded-xl font-bold">
+                    <span id="viewCompletedListsBtn">צפה ברשימות שהושלמו</span>
+                </button>
             </div>
         </div>
     </div>
 
-    <div class="bottom-bar no-print" id="bottomBar" onclick="toggleBottomBar()">
-        <div class="flex justify-between items-center mb-3">
-            <button id="clearListBtn" class="bottom-circle-btn bg-red-500 text-white" onclick="event.stopPropagation(); clearList();">🗑️</button>
-            <button id="addItemBtn" class="bottom-circle-btn bg-green-500 text-white" onclick="event.stopPropagation(); addItem();">+</button>
-            <button id="lockBtn" class="bottom-circle-btn bg-yellow-500 text-white" onclick="event.stopPropagation(); toggleLock();">🔓</button>
-            <button id="deleteListBtn" class="bottom-circle-btn bg-gray-500 text-white" onclick="event.stopPropagation(); deleteList();">❌</button>
-            <button id="completeListBtn" class="bottom-circle-btn bg-blue-500 text-white" onclick="event.stopPropagation(); completeCurrentList();">✅</button>
-        </div>
+    <!-- Floating Toggle Button -->
+    <div id="floatingToggle" class="floating-toggle-btn no-print" onclick="toggleBottomBar()">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M19 9l-7 7-7-7"></path>
+        </svg>
+    </div>
 
-        <div id="totalPriceDisplay" class="text-center text-white">
-            <div class="text-sm opacity-80">סה"כ</div>
-            <div class="text-4xl font-black">₪0</div>
-        </div>
-
-        <div class="mt-3">
-            <div class="flex justify-between text-white text-xs mb-1 opacity-80">
-                <span id="budgetLabel">תקציב: ₪0</span>
-                <span id="remainingLabel">נותר: ₪0</span>
+    <div class="bottom-bar text-white no-print" onclick="toggleBottomBar()">
+        <div class="flex items-center justify-between mb-4">
+            <div class="flex-1 text-center">
+                <div class="text-[10px] opacity-70" id="totalListLabel">סה"כ רשימה</div>
+                <div class="text-xl font-bold">₪<span id="displayTotal">0.00</span></div>
             </div>
-            <div class="w-full bg-white/20 rounded-full h-2 overflow-hidden">
-                <div id="budgetBar" class="h-full bg-white rounded-full transition-all"></div>
+            <div class="flex-shrink-0 flex gap-3">
+                <button onclick="event.stopPropagation(); openModal('inputForm')"
+                    class="w-16 h-16 bg-green-500 rounded-full flex items-center justify-center shadow-2xl border-4 border-white/20 text-white text-4xl font-bold">+</button>
+            </div>
+            <div class="flex-1 text-center">
+                <div class="text-[10px] opacity-70" id="paidInListLabel">שולם ברשימה</div>
+                <div class="text-xl font-bold">₪<span id="displayPaid">0.00</span></div>
+            </div>
+        </div>
+        <div class="flex items-center justify-between gap-4">
+            <button id="mainLockBtn" onclick="event.stopPropagation(); toggleLock()" class="bottom-circle-btn bg-blue-600">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path id="lockIconPath" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z">
+                    </path>
+                </svg>
+            </button>
+            <div class="text-center flex-1">
+                <div class="text-[10px] opacity-70" id="remainingToPayLabel">נשאר לשלם</div>
+                <div class="text-2xl font-black text-orange-300">₪<span id="displayLeft">0.00</span></div>
+            </div>
+            <button onclick="event.stopPropagation(); openModal('confirmModal')" class="bottom-circle-btn bg-red-500">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"></path>
+                </svg>
+            </button>
+        </div>
+    </div>
+
+    <div id="printArea" class="hidden"></div>
+
+    <!-- Modals -->
+    <div id="inputForm" class="modal-overlay no-print">
+        <div class="edit-modal" style="position: relative;">
+            <h2 id="addItemModalTitle">הוספת מוצר</h2>
+
+            <!-- Voice Input Button - Top Right Corner -->
+            <button onclick="startVoiceInput()" id="voiceBtn"
+                class="absolute top-4 left-4 w-12 h-12 bg-purple-500 rounded-full flex items-center justify-center shadow-lg border-2 border-white/30 text-white hover:bg-purple-600 transition-all hover:scale-110"
+                style="z-index: 10;" title="הקלט קולי">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z">
+                    </path>
+                </svg>
+            </button>
+
+            <div style="position: relative;">
+                <input type="text" id="itemName" placeholder="שם המוצר" class="modal-input" autocomplete="off">
+                <div id="autocompleteContainer" class="autocomplete-container"></div>
+            </div>
+            <input type="number" id="itemPrice" inputmode="decimal" placeholder="מחיר" class="modal-input">
+            <input type="number" id="itemQty" placeholder="כמות" class="modal-input" value="1" min="1">
+            <input type="date" id="itemDueDate" placeholder="תאריך יעד (אופציונלי)" class="modal-input">
+            <input type="url" id="itemPaymentUrl" placeholder="🔗 קישור לתשלום (אופציונלי)" class="modal-input">
+            <input type="text" id="itemNotes" placeholder="📝 הערות (אופציונלי)" class="modal-input">
+            <select id="itemCategory" class="modal-input">
+                <option value="">בחר קטגוריה (אופציונלי)</option>
+                <option value="פירות וירקות">🥬 פירות וירקות</option>
+                <option value="בשר ודגים">🥩 בשר ודגים</option>
+                <option value="חלב וביצים">🥛 חלב וביצים</option>
+                <option value="לחם ומאפים">🍞 לחם ומאפים</option>
+                <option value="שימורים">🥫 שימורים</option>
+                <option value="חטיפים">🍪 חטיפים</option>
+                <option value="משקאות">🥤 משקאות</option>
+                <option value="ניקיון">🧹 ניקיון</option>
+                <option value="היגיינה">🧴 היגיינה</option>
+                <option value="אחר">📦 אחר</option>
+            </select>
+            <div class="flex gap-3">
+                <button class="bg-green-500 text-white flex-1 py-4 rounded-xl font-bold shadow-md"
+                    onclick="event.stopPropagation(); addItemToList(event);">הוסף</button>
+                <button class="bg-gray-100 text-gray-500 flex-1 py-4 rounded-xl font-bold"
+                    onclick="event.stopPropagation(); closeModal('inputForm');">ביטול</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="importModal" class="modal-overlay no-print">
+        <div class="edit-modal">
+            <h2 class="mb-2">ייבוא רשימה מטקסט</h2>
+            <p class="text-sm text-gray-500 mb-4">הדבק טקסט מוואטסאפ או כל רשימה</p>
+            <textarea id="importText" placeholder="הדבק כאן טקסט לייבוא..." class="modal-input" rows="8"
+                style="resize: vertical; min-height: 150px;"></textarea>
+            <div class="flex gap-3">
+                <button class="bg-green-500 text-white flex-1 py-4 rounded-xl font-bold shadow-md"
+                    onclick="event.stopPropagation(); importFromText();">ייבא</button>
+                <button class="bg-gray-100 flex-1 py-4 rounded-xl font-bold"
+                    onclick="event.stopPropagation(); closeModal('importModal');">ביטול</button>
             </div>
         </div>
     </div>
@@ -1168,49 +1459,105 @@ ${error.message}
     <div id="newListModal" class="modal-overlay no-print">
         <div class="edit-modal">
             <h2>רשימה חדשה</h2>
-            <input type="text" id="newListName" class="modal-input" placeholder="שם הרשימה" onkeypress="if(event.key==='Enter') createNewList()">
-            <input type="number" id="newListBudget" class="modal-input" placeholder="תקציב (אופציונלי)" onkeypress="if(event.key==='Enter') createNewList()">
-            <button class="bg-indigo-600 text-white w-full py-4 rounded-xl font-bold" onclick="createNewList()">צור רשימה</button>
-            <button class="bg-gray-100 w-full py-4 rounded-xl font-bold mt-3" onclick="closeModal('newListModal')">ביטול</button>
+            <input type="text" id="newListNameInput" placeholder="שם הרשימה" class="modal-input">
+            <input type="url" id="newListUrlInput" placeholder="כתובת אתר (אופציונלי)" class="modal-input">
+            <input type="number" id="newListBudget" placeholder="תקציב (אופציונלי)" class="modal-input">
+            <div class="flex items-center justify-center gap-2 mb-3">
+                <label class="flex items-center gap-2 cursor-pointer">
+                    <input type="checkbox" id="newListTemplate" class="w-5 h-5 accent-indigo-600">
+                    <span class="text-sm font-bold">⭐ שמור כתבנית</span>
+                </label>
+            </div>
+            <div class="flex gap-3">
+                <button class="bg-indigo-600 text-white flex-1 py-4 rounded-xl font-bold shadow-md"
+                    onclick="event.stopPropagation(); saveNewList();">צור</button>
+                <button class="bg-gray-100 flex-1 py-4 rounded-xl font-bold"
+                    onclick="event.stopPropagation(); closeModal('newListModal');">ביטול</button>
+            </div>
         </div>
     </div>
 
-    <div id="editItemModal" class="modal-overlay no-print">
+    <div id="confirmModal" class="modal-overlay no-print">
         <div class="edit-modal">
-            <h2>ערוך פריט</h2>
-            <input type="text" id="editItemName" class="modal-input" placeholder="שם המוצר">
-            <input type="number" id="editItemPrice" class="modal-input" placeholder="מחיר" step="0.01">
-            <input type="number" id="editItemQty" class="modal-input" placeholder="כמות">
-            <button class="bg-yellow-500 text-white w-full py-4 rounded-xl font-bold" onclick="saveItemEdit()">שמור</button>
-            <button class="bg-gray-100 w-full py-4 rounded-xl font-bold mt-3" onclick="closeModal('editItemModal')">ביטול</button>
+            <h2 class="text-green-600">סיום רשימה</h2>
+            <p class="mb-6">לסמן רשימה זו כהושלמה ולשמור בהיסטוריה?</p>
+            <div class="flex gap-3">
+                <button class="bg-green-500 text-white flex-1 py-4 rounded-xl font-bold shadow-lg"
+                    onclick="completeList()">השלם</button>
+                <button class="bg-gray-100 flex-1 py-4 rounded-xl font-bold"
+                    onclick="closeModal('confirmModal')">ביטול</button>
+            </div>
         </div>
     </div>
 
-    <div id="importModal" class="modal-overlay no-print">
+    <div id="deleteListModal" class="modal-overlay no-print">
         <div class="edit-modal">
-            <h2>ייבוא רשימה</h2>
-            <p class="text-sm text-gray-600 mb-3">הדבק רשימת קניות (כל שורה = פריט)</p>
-            <textarea id="importText" class="modal-input" rows="8" placeholder="עגבניות
-מלפפונים
-לחם
-..."></textarea>
-            <button class="bg-green-500 text-white w-full py-4 rounded-xl font-bold" onclick="importFromText()">ייבא</button>
-            <button class="bg-gray-100 w-full py-4 rounded-xl font-bold mt-3" onclick="closeModal('importModal')">ביטול</button>
+            <h2 class="text-red-600">מחיקת רשימה</h2>
+            <div class="flex gap-3">
+                <button id="confirmDeleteListBtn" class="bg-red-500 text-white flex-1 py-4 rounded-xl font-bold"
+                    onclick="deleteFullList()">מחק</button>
+                <button class="bg-gray-100 flex-1 py-4 rounded-xl font-bold"
+                    onclick="closeModal('deleteListModal')">ביטול</button>
+            </div>
         </div>
     </div>
 
     <div id="editListNameModal" class="modal-overlay no-print">
         <div class="edit-modal">
-            <h2>ערוך שם רשימה</h2>
-            <input type="text" id="editListNameInput" class="modal-input" placeholder="שם חדש לרשימה" onkeypress="if(event.key==='Enter') saveListName()">
-            <input type="number" id="editListBudgetInput" class="modal-input" placeholder="תקציב (אופציונלי)" onkeypress="if(event.key==='Enter') saveListName()">
-            <button class="bg-yellow-500 text-white w-full py-4 rounded-xl font-bold" onclick="saveListName()">שמור</button>
-            <button class="bg-gray-100 w-full py-4 rounded-xl font-bold mt-3" onclick="closeModal('editListNameModal')">ביטול</button>
+            <h2>עריכת רשימה</h2>
+            <input type="text" id="editListNameInput" placeholder="שם הרשימה" class="modal-input">
+            <input type="url" id="editListUrlInput" placeholder="כתובת אתר (אופציונלי)" class="modal-input">
+            <input type="number" id="editListBudget" placeholder="תקציב (אופציונלי)" class="modal-input">
+            <div class="flex gap-3">
+                <button class="bg-indigo-600 text-white flex-1 py-4 rounded-xl font-bold"
+                    onclick="event.stopPropagation(); saveListName();">שמור</button>
+                <button class="bg-gray-100 flex-1 py-4 rounded-xl font-bold"
+                    onclick="event.stopPropagation(); closeModal('editListNameModal');">ביטול</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="editTotalModal" class="modal-overlay no-print">
+        <div class="edit-modal">
+            <h2>עדכון מחיר</h2>
+            <input type="number" id="editTotalInput" class="modal-input">
+            <div class="flex gap-3">
+                <button class="bg-indigo-600 text-white flex-1 py-4 rounded-xl font-bold"
+                    onclick="event.stopPropagation(); saveTotal();">עדכן</button>
+                <button class="bg-gray-100 flex-1 py-4 rounded-xl font-bold"
+                    onclick="event.stopPropagation(); closeModal('editTotalModal');">ביטול</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="editItemNameModal" class="modal-overlay no-print">
+        <div class="edit-modal">
+            <h2>📝 עריכת פריט</h2>
+            <input type="text" id="editItemName" class="modal-input" placeholder="שם הפריט">
+            <input type="date" id="editItemDueDate" class="modal-input" placeholder="תאריך יעד">
+            <input type="url" id="editItemPaymentUrl" class="modal-input" placeholder="🔗 קישור לתשלום (אופציונלי)">
+            <div class="flex gap-3">
+                <button class="bg-indigo-600 text-white flex-1 py-4 rounded-xl font-bold"
+                    onclick="event.stopPropagation(); saveItemEdit();">שמור</button>
+                <button class="bg-gray-100 flex-1 py-4 rounded-xl font-bold"
+                    onclick="event.stopPropagation(); closeModal('editItemNameModal');">ביטול</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Notification Center Modal -->
+    <div id="notificationCenterModal" class="modal-overlay no-print">
+        <div class="edit-modal" style="max-height: 80vh;">
+            <h2>🔔 מרכז התראות</h2>
+            <div id="notificationsList" style="max-height: 500px; overflow-y: auto; margin-top: 15px;">
+            </div>
+            <button class="bg-gray-100 w-full py-4 rounded-xl font-bold mt-3"
+                onclick="closeModal('notificationCenterModal')">סגור</button>
         </div>
     </div>
 
     <div id="editCategoryModal" class="modal-overlay no-print">
-        <div class="edit-modal">
+        <div class="edit-modal" style="max-height: 80vh; overflow-y: auto;">
             <h2>בחירת קטגוריה</h2>
             <div id="categoryOptions" class="mb-4" style="max-height: 400px; overflow-y: auto;">
                 <!-- Category buttons will be inserted here -->
@@ -1403,3 +1750,12 @@ ${error.message}
 </body>
 
 </html>
+
+
+
+
+
+
+
+
+
