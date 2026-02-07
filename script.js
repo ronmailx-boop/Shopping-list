@@ -1383,6 +1383,9 @@ function openModal(id) {
         document.getElementById('itemQty').value = '1';
         document.getElementById('itemCategory').value = '';
 
+        // Update category dropdown with latest custom categories
+        updateCategoryDropdown();
+
         // Setup autocomplete
         const itemNameInput = document.getElementById('itemName');
         itemNameInput.oninput = function () {
@@ -1426,6 +1429,10 @@ function openModal(id) {
 
     if (id === 'templatesModal') {
         renderTemplates();
+    }
+
+    if (id === 'categoryManagerModal') {
+        renderCustomCategoriesList();
     }
 }
 
@@ -2917,7 +2924,7 @@ function openEditCategoryModal(idx) {
     const categoryOptionsContainer = document.getElementById('categoryOptions');
     categoryOptionsContainer.innerHTML = '';
 
-    // Create buttons for each category
+    // Create buttons for default categories
     for (const categoryName in CATEGORIES) {
         const color = CATEGORIES[categoryName];
         const isSelected = item.category === categoryName;
@@ -2937,6 +2944,36 @@ function openEditCategoryModal(idx) {
         button.onclick = () => selectCategory(categoryName);
 
         categoryOptionsContainer.appendChild(button);
+    }
+
+    // Add custom categories if they exist
+    if (db.customCategories && db.customCategories.length > 0) {
+        // Add separator
+        const separator = document.createElement('div');
+        separator.className = 'text-sm font-bold text-gray-500 mt-3 mb-2';
+        separator.textContent = '✨ קטגוריות מותאמות אישית';
+        categoryOptionsContainer.appendChild(separator);
+
+        db.customCategories.forEach(categoryName => {
+            const color = CATEGORIES[categoryName] || '#6b7280';
+            const isSelected = item.category === categoryName;
+
+            const button = document.createElement('button');
+            button.className = `w-full py-3 px-4 rounded-xl font-bold mb-2 transition-all ${isSelected
+                ? 'ring-4 ring-offset-2'
+                : 'hover:scale-105'
+                }`;
+            button.style.backgroundColor = color + '20';
+            button.style.color = color;
+            button.style.border = `2px solid ${color}`;
+            if (isSelected) {
+                button.style.ringColor = color;
+            }
+            button.textContent = isSelected ? `✓ ${categoryName}` : categoryName;
+            button.onclick = () => selectCategory(categoryName);
+
+            categoryOptionsContainer.appendChild(button);
+        });
     }
 
     // Clear custom input
@@ -2989,6 +3026,133 @@ function saveCustomCategory() {
         showNotification('✓ קטגוריה מותאמת נשמרה');
     }
     closeModal('editCategoryModal');
+}
+
+// ========== Category Manager Functions ==========
+function openCategoryManager() {
+    renderCustomCategoriesList();
+    openModal('categoryManagerModal');
+}
+
+function renderCustomCategoriesList() {
+    const container = document.getElementById('customCategoriesList');
+    if (!container) return;
+
+    container.innerHTML = '';
+
+    if (!db.customCategories || db.customCategories.length === 0) {
+        container.innerHTML = '<p class="text-gray-400 text-center py-8">אין קטגוריות מותאמות אישית</p>';
+        return;
+    }
+
+    db.customCategories.forEach((category, index) => {
+        const div = document.createElement('div');
+        div.className = 'flex justify-between items-center mb-3 p-4 bg-purple-50 rounded-xl border-2 border-purple-200';
+        
+        const color = CATEGORIES[category] || '#6b7280';
+        
+        div.innerHTML = `
+            <div class="flex items-center gap-3">
+                <div class="w-4 h-4 rounded-full" style="background-color: ${color}"></div>
+                <span class="font-bold text-gray-800">${category}</span>
+            </div>
+            <button onclick="confirmDeleteCategory('${category.replace(/'/g, "\\'")}', ${index})" 
+                class="bg-red-500 text-white px-4 py-2 rounded-lg font-bold hover:bg-red-600 transition">
+                🗑️ מחק
+            </button>
+        `;
+        container.appendChild(div);
+    });
+}
+
+function confirmDeleteCategory(categoryName, categoryIndex) {
+    const confirmMsg = `האם אתה בטוח שברצונך למחוק את הקטגוריה '${categoryName}'?\n\nכל הפריטים בקטגוריה זו יועברו לקטגוריה 'אחר'.`;
+    
+    if (confirm(confirmMsg)) {
+        deleteCustomCategory(categoryName, categoryIndex);
+    }
+}
+
+function deleteCustomCategory(categoryName, categoryIndex) {
+    // Remove from customCategories array
+    if (db.customCategories && categoryIndex >= 0 && categoryIndex < db.customCategories.length) {
+        db.customCategories.splice(categoryIndex, 1);
+    }
+
+    // Remove from category memory - find all products assigned to this category
+    if (db.categoryMemory) {
+        Object.keys(db.categoryMemory).forEach(productName => {
+            if (db.categoryMemory[productName] === categoryName) {
+                db.categoryMemory[productName] = 'אחר';
+            }
+        });
+    }
+
+    // Update all items in all lists that have this category
+    Object.keys(db.lists).forEach(listId => {
+        db.lists[listId].items.forEach(item => {
+            if (item.category === categoryName) {
+                item.category = 'אחר';
+            }
+        });
+    });
+
+    // Update items in history
+    if (db.history && db.history.length > 0) {
+        db.history.forEach(entry => {
+            entry.items.forEach(item => {
+                if (item.category === categoryName) {
+                    item.category = 'אחר';
+                }
+            });
+        });
+    }
+
+    // Remove from CATEGORIES color mapping
+    if (CATEGORIES[categoryName]) {
+        delete CATEGORIES[categoryName];
+    }
+
+    // Save and update UI
+    save();
+    renderCustomCategoriesList();
+    updateCategoryDropdown();
+    showNotification(`✅ הקטגוריה '${categoryName}' נמחקה`);
+}
+
+function updateCategoryDropdown() {
+    const categorySelect = document.getElementById('itemCategory');
+    if (!categorySelect) return;
+
+    // Save current value
+    const currentValue = categorySelect.value;
+
+    // Rebuild options
+    categorySelect.innerHTML = `<option value="">${t('selectCategory')}</option>`;
+
+    // Add default categories
+    const categories = categoryTranslations[currentLang] || categoryTranslations['he'];
+    for (const hebrewKey in categories) {
+        const option = document.createElement('option');
+        option.value = hebrewKey;
+        option.textContent = categories[hebrewKey];
+        categorySelect.appendChild(option);
+    }
+
+    // Add custom categories
+    if (db.customCategories && db.customCategories.length > 0) {
+        db.customCategories.forEach(customCat => {
+            const option = document.createElement('option');
+            option.value = customCat;
+            option.textContent = `✨ ${customCat}`;
+            categorySelect.appendChild(option);
+        });
+    }
+
+    // Restore value if still valid
+    if (currentValue && Array.from(categorySelect.options).some(opt => opt.value === currentValue)) {
+        categorySelect.value = currentValue;
+    }
 }
 
 // ========== Data Export/Import ==========
@@ -5279,4 +5443,10 @@ function handleExcelUpload(event) {
     };
 
     reader.readAsArrayBuffer(file);
+}
+
+// ========== Initialize Category Dropdown on Load ==========
+// Make sure custom categories are loaded into dropdown when page loads
+if (typeof updateCategoryDropdown === 'function') {
+    updateCategoryDropdown();
 }
