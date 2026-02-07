@@ -15,6 +15,19 @@
     <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;600;700;800;900&display=block" rel="stylesheet">
     
     <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        // Configure Tailwind to use Heebo font
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Heebo', 'sans-serif'],
+                        body: ['Heebo', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
@@ -36,6 +49,20 @@
             src: local('Heebo');
         }
         
+        /* Ultra-strong font override - higher specificity than Tailwind */
+        html, body, * {
+            font-family: 'Heebo', sans-serif !important;
+        }
+        
+        /* Override all possible Tailwind utility classes */
+        [class*="font-"], 
+        [class*="text-"],
+        .font-sans,
+        .font-serif,
+        .font-mono {
+            font-family: 'Heebo', sans-serif !important;
+        }
+        
         * {
             box-sizing: border-box;
             touch-action: manipulation;
@@ -51,7 +78,7 @@
             margin: 0;
         }
 
-        input, button, select, textarea {
+        input, button, select, textarea, div, span, p, h1, h2, h3, h4, h5, h6 {
             font-family: 'Heebo', sans-serif !important;
         }
 
