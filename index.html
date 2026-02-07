@@ -824,104 +824,97 @@
             color: #fca5a5;
         }
 
-        /* Purple Power Card Styles */
-        .power-card {
+        /* Floating Tiles Design Styles */
+        .tile-hero-btn {
+            width: 100%;
             background: linear-gradient(135deg, #7367f0 0%, #9055ff 100%);
-            border-radius: 24px;
-            padding: 20px;
-            box-shadow: 0 10px 40px rgba(115, 103, 240, 0.3);
-            position: relative;
-            overflow: hidden;
-        }
-
-        .power-card::before {
-            content: '';
-            position: absolute;
-            top: -50%;
-            right: -10%;
-            width: 200px;
-            height: 200px;
-            background: radial-gradient(circle, rgba(255, 255, 255, 0.1) 0%, transparent 70%);
-            border-radius: 50%;
-            pointer-events: none;
-        }
-
-        .white-hero-btn {
-            background: white;
-            border-radius: 18px;
-            padding: 16px;
-            margin-bottom: 16px;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+            border-radius: 20px;
+            padding: 18px 20px;
             display: flex;
             align-items: center;
             justify-content: space-between;
-            cursor: pointer;
+            box-shadow: 0 8px 20px rgba(115, 103, 240, 0.35);
             border: none;
-            width: 100%;
-            transition: transform 0.2s, box-shadow 0.2s;
-            position: relative;
-            z-index: 10;
+            cursor: pointer;
+            transition: all 0.3s ease;
         }
 
-        .white-hero-btn:active {
+        .tile-hero-btn:active {
             transform: scale(0.98);
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            box-shadow: 0 4px 12px rgba(115, 103, 240, 0.3);
         }
 
-        .plus-icon-bg {
-            background: linear-gradient(135deg, #7367f0 0%, #9055ff 100%);
-            border-radius: 12px;
-            width: 44px;
-            height: 44px;
+        .hero-icon-box {
+            width: 48px;
+            height: 48px;
+            background: rgba(255, 255, 255, 0.25);
+            border-radius: 14px;
             display: flex;
             align-items: center;
             justify-content: center;
-            color: white;
-            flex-shrink: 0;
-        }
-
-        .glass-actions {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 12px;
-            position: relative;
-            z-index: 10;
-        }
-
-        .glass-btn {
-            background: rgba(255, 255, 255, 0.15);
             backdrop-filter: blur(10px);
-            -webkit-backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            border-radius: 16px;
+        }
+
+        .tile-card {
+            background: white;
+            border-radius: 18px;
             padding: 16px 12px;
             display: flex;
             flex-direction: column;
             align-items: center;
-            gap: 8px;
+            gap: 10px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+            border: 1px solid rgba(0, 0, 0, 0.04);
             cursor: pointer;
-            transition: all 0.2s;
-            text-decoration: none;
+            transition: all 0.25s ease;
         }
 
-        .glass-btn:hover {
-            background: rgba(255, 255, 255, 0.25);
-            transform: translateY(-2px);
-        }
-
-        .glass-btn:active {
+        .tile-card:active {
             transform: scale(0.95);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
         }
 
-        .glass-icon {
-            font-size: 24px;
+        .tile-icon-bg {
+            width: 52px;
+            height: 52px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: transform 0.2s ease;
         }
 
-        .glass-label {
-            color: white;
-            font-size: 12px;
-            font-weight: 600;
+        .tile-card:active .tile-icon-bg {
+            transform: scale(0.9);
+        }
+
+        .tile-label {
+            font-size: 13px;
+            font-weight: 700;
+            color: #374151;
             text-align: center;
+        }
+
+        /* Dark mode support for tiles */
+        .dark-mode .tile-card {
+            background: #2a2a3e;
+            border-color: rgba(255, 255, 255, 0.08);
+        }
+
+        .dark-mode .tile-label {
+            color: #e0e0e0;
+        }
+
+        .dark-mode .tile-icon-bg.bg-orange-50 {
+            background: rgba(251, 146, 60, 0.15);
+        }
+
+        .dark-mode .tile-icon-bg.bg-green-50 {
+            background: rgba(34, 197, 94, 0.15);
+        }
+
+        .dark-mode .tile-icon-bg.bg-blue-50 {
+            background: rgba(59, 130, 246, 0.15);
         }
     </style>
 
@@ -1004,6 +997,99 @@
 
         .error-close-btn:active {
             transform: scale(0.95);
+        }
+
+        /* Floating Tiles Design Styles */
+        .tile-hero-btn {
+            width: 100%;
+            background: linear-gradient(135deg, #7367f0 0%, #9055ff 100%);
+            border-radius: 20px;
+            padding: 18px 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            box-shadow: 0 8px 20px rgba(115, 103, 240, 0.35);
+            border: none;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .tile-hero-btn:active {
+            transform: scale(0.98);
+            box-shadow: 0 4px 12px rgba(115, 103, 240, 0.3);
+        }
+
+        .hero-icon-box {
+            width: 48px;
+            height: 48px;
+            background: rgba(255, 255, 255, 0.25);
+            border-radius: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            backdrop-filter: blur(10px);
+        }
+
+        .tile-card {
+            background: white;
+            border-radius: 18px;
+            padding: 16px 12px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+            border: 1px solid rgba(0, 0, 0, 0.04);
+            cursor: pointer;
+            transition: all 0.25s ease;
+        }
+
+        .tile-card:active {
+            transform: scale(0.95);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+        }
+
+        .tile-icon-bg {
+            width: 52px;
+            height: 52px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: transform 0.2s ease;
+        }
+
+        .tile-card:active .tile-icon-bg {
+            transform: scale(0.9);
+        }
+
+        .tile-label {
+            font-size: 13px;
+            font-weight: 700;
+            color: #374151;
+            text-align: center;
+        }
+
+        /* Dark mode support for tiles */
+        .dark-mode .tile-card {
+            background: #2a2a3e;
+            border-color: rgba(255, 255, 255, 0.08);
+        }
+
+        .dark-mode .tile-label {
+            color: #e0e0e0;
+        }
+
+        .dark-mode .tile-icon-bg.bg-orange-50 {
+            background: rgba(251, 146, 60, 0.15);
+        }
+
+        .dark-mode .tile-icon-bg.bg-green-50 {
+            background: rgba(34, 197, 94, 0.15);
+        }
+
+        .dark-mode .tile-icon-bg.bg-blue-50 {
+            background: rgba(59, 130, 246, 0.15);
         }
     </style>
 
@@ -1213,41 +1299,48 @@ ${error.message}
         </div>
 
         <div id="pageLists">
-            <div class="power-card mb-6">
-    
-                <div class="flex justify-between items-center mb-4 relative z-10 px-1">
-                    <h2 class="text-white text-sm font-bold opacity-90 tracking-wide">פעולות מהירות</h2>
-                    <div class="bg-white/20 px-2 py-0.5 rounded-lg text-[10px] text-white font-bold backdrop-blur-sm">PRO</div>
+            <div class="mb-6 px-1">
+                
+                <div class="flex justify-between items-end mb-3">
+                    <h2 class="text-sm font-bold text-slate-400 uppercase tracking-wider">פעולות מהירות</h2>
                 </div>
 
-                <button onclick="openModal('newListModal')" class="white-hero-btn group">
+                <button onclick="openModal('newListModal')" class="tile-hero-btn mb-4 group">
                     <div class="flex items-center gap-4">
-                        <div class="plus-icon-bg group-active:scale-95 transition-transform">
-                            <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"></path></svg>
+                        <div class="hero-icon-box group-active:scale-90 transition-transform">
+                            <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"></path></svg>
                         </div>
-                        <div class="text-right">
-                            <span class="block text-lg font-black leading-none text-[#7367f0]">רשימה חדשה</span>
-                            <span class="text-xs text-gray-400 font-medium">צור ידנית</span>
+                        <div class="text-right text-white">
+                            <span class="block text-lg font-black leading-none">רשימה חדשה</span>
+                            <span class="text-[11px] opacity-80 font-medium">צור רשימה ידנית</span>
                         </div>
                     </div>
-                    <svg class="w-5 h-5 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
+                    <div class="bg-white/20 p-2 rounded-xl">
+                        <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
+                    </div>
                 </button>
 
-                <div class="glass-actions">
+                <div class="grid grid-cols-3 gap-3">
                     
-                    <button onclick="openModal('importModal')" class="glass-btn">
-                        <span class="glass-icon">📋</span>
-                        <span class="glass-label">הדבק</span>
+                    <button onclick="openModal('importModal')" class="tile-card">
+                        <div class="tile-icon-bg bg-orange-50 text-orange-500">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path></svg>
+                        </div>
+                        <span class="tile-label">הדבק</span>
                     </button>
 
-                    <label for="excel-upload" class="glass-btn">
-                        <span class="glass-icon">📊</span>
-                        <span class="glass-label">Excel</span>
+                    <label for="excel-upload" class="tile-card">
+                        <div class="tile-icon-bg bg-green-50 text-green-600">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                        </div>
+                        <span class="tile-label">Excel</span>
                     </label>
 
-                    <label for="bankFileInput" class="glass-btn">
-                        <span class="glass-icon">🏦</span>
-                        <span class="glass-label">בנק</span>
+                    <label for="bankFileInput" class="tile-card">
+                        <div class="tile-icon-bg bg-blue-50 text-blue-600">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 14v3m4-3v3m4-3v3M3 21h18M3 10h18M3 7l9-4 9 4M4 10h16v11H4V10z"></path></svg>
+                        </div>
+                        <span class="tile-label">בנק</span>
                     </label>
 
                 </div>
