@@ -1206,6 +1206,10 @@ ${error.message}
                 class="w-full bg-yellow-50 text-yellow-600 py-4 rounded-xl font-bold mb-3" id="savedTemplatesBtn">
                 ⭐ תבניות שמורות
             </button>
+            <button onclick="openCategoryManager(); closeModal('settingsModal')"
+                class="w-full bg-purple-50 text-purple-600 py-4 rounded-xl font-bold mb-3" id="manageCategoriesBtn">
+                🗂️ ניהול קטגוריות
+            </button>
             <button onclick="preparePrint()" class="w-full bg-orange-500 text-white py-4 rounded-xl font-bold mb-3"
                 id="printPDFBtn">
                 הדפס PDF 🖨️
@@ -1268,6 +1272,17 @@ ${error.message}
                 <button class="bg-gray-100 flex-1 py-4 rounded-xl font-bold"
                     onclick="event.stopPropagation(); closeModal('itemNoteModal');">ביטול</button>
             </div>
+        </div>
+    </div>
+
+    <div id="categoryManagerModal" class="modal-overlay no-print">
+        <div class="edit-modal">
+            <h2>🗂️ ניהול קטגוריות מותאמות</h2>
+            <p class="text-sm text-gray-600 mb-4">קטגוריות שיצרת - ניתן למחוק קטגוריות שאינן בשימוש</p>
+            <div id="customCategoriesList" style="max-height: 400px; overflow-y: auto;">
+                <!-- Custom categories will be listed here -->
+            </div>
+            <button onclick="closeModal('categoryManagerModal')" class="mt-4 bg-gray-100 w-full py-4 rounded-xl font-bold">סגור</button>
         </div>
     </div>
 
