@@ -3000,11 +3000,35 @@ function saveItemEdit() {
         item.dueDate = newDueDate;
         item.paymentUrl = newPaymentUrl;
         item.lastUpdated = Date.now();
-        save();
+        
+        // שמירה מקומית תחילה
+        db.lastActivePage = activePage;
+        db.lastSync = Date.now();
+        localStorage.setItem('BUDGET_FINAL_V28', JSON.stringify(db));
+        
+        // רינדור מיידי
+        render();
+        
+        // עדכון תגי התראה
+        if (typeof updateNotificationBadge === 'function') {
+            updateNotificationBadge();
+        }
+        
+        // סגירת המודל מיד לאחר רינדור
         closeModal('editItemNameModal');
         showNotification('✅ הפריט עודכן!');
-        updateNotificationBadge();
-        checkUrgentPayments();
+        
+        if (typeof checkUrgentPayments === 'function') {
+            checkUrgentPayments();
+        }
+        
+        // סנכרון לענן ברקע (אסינכרוני)
+        if (isConnected && currentUser) {
+            if (syncTimeout) clearTimeout(syncTimeout);
+            syncTimeout = setTimeout(() => {
+                syncToCloud();
+            }, 1500);
+        }
     }
 }
 
