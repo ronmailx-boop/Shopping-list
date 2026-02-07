@@ -1286,6 +1286,21 @@ ${error.message}
         </div>
     </div>
 
+    <div id="deleteCategoryModal" class="modal-overlay no-print">
+        <div class="edit-modal">
+            <h2 class="text-red-600">מחיקת קטגוריה</h2>
+            <p class="text-center text-gray-700 mb-2">האם אתה בטוח שברצונך למחוק את הקטגוריה</p>
+            <p class="text-center font-bold text-xl mb-2" id="categoryToDeleteName" style="color: #7367f0;">...</p>
+            <p class="text-center text-sm text-gray-600 mb-4">כל הפריטים בקטגוריה זו יועברו לקטגוריה 'אחר'</p>
+            <div class="flex gap-3">
+                <button id="confirmDeleteCategoryBtn" class="bg-red-500 text-white flex-1 py-4 rounded-xl font-bold"
+                    onclick="executeDeleteCategory()">מחק</button>
+                <button class="bg-gray-100 flex-1 py-4 rounded-xl font-bold"
+                    onclick="closeModal('deleteCategoryModal')">ביטול</button>
+            </div>
+        </div>
+    </div>
+
     <script src="script.js"></script>
 </body>
 
