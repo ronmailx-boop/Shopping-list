@@ -3538,12 +3538,8 @@ function updateCloudIndicator(status) {
         // Update button style to green (connected style)
         cloudBtn.className = 'cloud-btn-connected px-3 py-1 rounded-full text-[10px] font-bold border flex items-center gap-1 cursor-pointer transition-all';
 
-        // Show email if available
-        if (currentUser && currentUser.email) {
-            if (text) text.textContent = currentUser.email;
-        } else {
-            if (text) text.textContent = "מחובר ✅";
-        }
+        // Show short status instead of full email to save space
+        if (text) text.textContent = "מחובר ✅";
     } else if (status === 'syncing') {
         // Yellow indicator - syncing in progress
         indicator.className = 'w-2 h-2 bg-yellow-500 rounded-full animate-pulse';
@@ -3619,6 +3615,27 @@ function mergeCloudWithLocal(cloudData, localData) {
 
     const merged = JSON.parse(JSON.stringify(cloudData)); // עותק עמוק של נתוני הענן
 
+    // Normalize all items in cloud data - ensure all fields exist
+    Object.keys(merged.lists || {}).forEach(listId => {
+        if (merged.lists[listId].items) {
+            merged.lists[listId].items = merged.lists[listId].items.map(item => {
+                return {
+                    name: item.name || '',
+                    price: item.price || 0,
+                    qty: item.qty || 1,
+                    checked: item.checked || false,
+                    category: item.category || 'אחר',
+                    note: item.note || '',
+                    dueDate: item.dueDate || '',
+                    paymentUrl: item.paymentUrl || '', // Ensure paymentUrl always exists
+                    isPaid: item.isPaid || false,
+                    lastUpdated: item.lastUpdated || Date.now(),
+                    cloudId: item.cloudId || 'item_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9)
+                };
+            });
+        }
+    });
+
     // עבור כל רשימה
     Object.keys(cloudData.lists || {}).forEach(listId => {
         const cloudList = cloudData.lists[listId];
@@ -3643,11 +3660,38 @@ function mergeCloudWithLocal(cloudData, localData) {
                 // פריט ללא cloudId - זה פריט ישן או חדש שנוסף לפני השינוי
                 // נוסיף לו cloudId ונוסיף אותו
                 localItem.cloudId = 'item_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
-                merged.lists[listId].items.push(localItem);
+                // Normalize local item as well
+                const normalizedItem = {
+                    name: localItem.name || '',
+                    price: localItem.price || 0,
+                    qty: localItem.qty || 1,
+                    checked: localItem.checked || false,
+                    category: localItem.category || 'אחר',
+                    note: localItem.note || '',
+                    dueDate: localItem.dueDate || '',
+                    paymentUrl: localItem.paymentUrl || '',
+                    isPaid: localItem.isPaid || false,
+                    lastUpdated: localItem.lastUpdated || Date.now(),
+                    cloudId: localItem.cloudId
+                };
+                merged.lists[listId].items.push(normalizedItem);
                 console.log('➕ מוסיף פריט חדש מקומי ללא cloudId:', localItem.name);
             } else if (!cloudItemsMap[localItem.cloudId]) {
                 // פריט עם cloudId שלא קיים בענן - זה פריט חדש שנוסף באופליין
-                merged.lists[listId].items.push(localItem);
+                const normalizedItem = {
+                    name: localItem.name || '',
+                    price: localItem.price || 0,
+                    qty: localItem.qty || 1,
+                    checked: localItem.checked || false,
+                    category: localItem.category || 'אחר',
+                    note: localItem.note || '',
+                    dueDate: localItem.dueDate || '',
+                    paymentUrl: localItem.paymentUrl || '',
+                    isPaid: localItem.isPaid || false,
+                    lastUpdated: localItem.lastUpdated || Date.now(),
+                    cloudId: localItem.cloudId
+                };
+                merged.lists[listId].items.push(normalizedItem);
                 console.log('➕ מוסיף פריט חדש מאופליין:', localItem.name);
             } else {
                 // פריט קיים גם בענן - עדכן אותו מהענן (הענן מנצח)
@@ -3661,6 +3705,22 @@ function mergeCloudWithLocal(cloudData, localData) {
         if (!merged.lists[listId]) {
             console.log('📝 מוסיף רשימה חדשה מקומית:', listId);
             merged.lists[listId] = localData.lists[listId];
+            // Normalize items in new local list
+            if (merged.lists[listId].items) {
+                merged.lists[listId].items = merged.lists[listId].items.map(item => ({
+                    name: item.name || '',
+                    price: item.price || 0,
+                    qty: item.qty || 1,
+                    checked: item.checked || false,
+                    category: item.category || 'אחר',
+                    note: item.note || '',
+                    dueDate: item.dueDate || '',
+                    paymentUrl: item.paymentUrl || '',
+                    isPaid: item.isPaid || false,
+                    lastUpdated: item.lastUpdated || Date.now(),
+                    cloudId: item.cloudId || 'item_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9)
+                }));
+            }
         }
     });
 
