@@ -3056,7 +3056,7 @@ function renderCustomCategoriesList() {
                 <div class="w-4 h-4 rounded-full" style="background-color: ${color}"></div>
                 <span class="font-bold text-gray-800">${category}</span>
             </div>
-            <button onclick="confirmDeleteCategory('${category.replace(/'/g, "\\'")}', ${index})" 
+            <button onclick="openDeleteCategoryModal('${category.replace(/'/g, "\\'")}', ${index})" 
                 class="bg-red-500 text-white px-4 py-2 rounded-lg font-bold hover:bg-red-600 transition">
                 🗑️ מחק
             </button>
@@ -3065,11 +3065,30 @@ function renderCustomCategoriesList() {
     });
 }
 
-function confirmDeleteCategory(categoryName, categoryIndex) {
-    const confirmMsg = `האם אתה בטוח שברצונך למחוק את הקטגוריה '${categoryName}'?\n\nכל הפריטים בקטגוריה זו יועברו לקטגוריה 'אחר'.`;
+// Global variables for delete confirmation
+let categoryToDelete = null;
+let categoryIndexToDelete = null;
+
+function openDeleteCategoryModal(categoryName, categoryIndex) {
+    categoryToDelete = categoryName;
+    categoryIndexToDelete = categoryIndex;
     
-    if (confirm(confirmMsg)) {
-        deleteCustomCategory(categoryName, categoryIndex);
+    const nameDisplay = document.getElementById('categoryToDeleteName');
+    if (nameDisplay) {
+        nameDisplay.textContent = categoryName;
+        const color = CATEGORIES[categoryName] || '#7367f0';
+        nameDisplay.style.color = color;
+    }
+    
+    openModal('deleteCategoryModal');
+}
+
+function executeDeleteCategory() {
+    if (categoryToDelete !== null && categoryIndexToDelete !== null) {
+        deleteCustomCategory(categoryToDelete, categoryIndexToDelete);
+        closeModal('deleteCategoryModal');
+        categoryToDelete = null;
+        categoryIndexToDelete = null;
     }
 }
 
