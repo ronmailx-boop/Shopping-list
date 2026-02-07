@@ -9,6 +9,10 @@ let syncTimeout = null;
 // ========== Global Variables for Notes Feature ==========
 let currentNoteItemIndex = null;
 
+// ========== Global Variables for Peace of Mind Features ==========
+let currentEditItemIndex = null;
+let currentEditField = null;
+
 // ========== Categories ==========
 const CATEGORIES = {
     'פירות וירקות': '#22c55e',
@@ -2575,11 +2579,14 @@ async function shareNative(type) {
     }
 }
 
-function addItem() {
+function addItem(event) {
+    if (event) event.preventDefault();
+    
     const n = document.getElementById('itemName').value.trim();
     const p = parseFloat(document.getElementById('itemPrice').value) || 0;
-    const c = document.getElementById('itemCategory').value;
     const q = parseInt(document.getElementById('itemQty').value) || 1;
+    const dueDate = document.getElementById('itemDueDate') ? document.getElementById('itemDueDate').value : '';
+    const notes = document.getElementById('itemNotes') ? document.getElementById('itemNotes').value.trim() : '';
 
     if (n) {
         // Intelligent category assignment: Priority order:
@@ -2588,6 +2595,7 @@ function addItem() {
         // 3. Auto-detected category from keywords
         // 4. Default to "אחר"
         let finalCategory;
+        const c = document.getElementById('itemCategory') ? document.getElementById('itemCategory').value : '';
         if (c) {
             // User manually selected
             finalCategory = c;
@@ -2617,8 +2625,10 @@ function addItem() {
             qty: q,
             checked: false,
             category: finalCategory,
-            note: '',  // שדה הערה ריק כברירת מחדל
-            lastUpdated: Date.now(),  // timestamp לעדכון מחיר
+            note: notes || '',
+            dueDate: dueDate || '',
+            isPaid: false,
+            lastUpdated: Date.now(),
             cloudId: 'item_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9)
         });
 
@@ -2626,11 +2636,13 @@ function addItem() {
         document.getElementById('itemName').value = '';
         document.getElementById('itemPrice').value = '';
         document.getElementById('itemQty').value = '1';
-        document.getElementById('itemCategory').value = '';
+        if (document.getElementById('itemCategory')) document.getElementById('itemCategory').value = '';
+        if (document.getElementById('itemDueDate')) document.getElementById('itemDueDate').value = '';
+        if (document.getElementById('itemNotes')) document.getElementById('itemNotes').value = '';
 
-        closeModal('inputForm');
         save();
         showNotification('✅ מוצר נוסף!');
+        checkUrgentPayments();
     }
 }
 
@@ -5469,3 +5481,305 @@ function handleExcelUpload(event) {
 if (typeof updateCategoryDropdown === 'function') {
     updateCategoryDropdown();
 }
+
+// ========== Peace of Mind Features ==========
+
+// Check for urgent payments on page load and display alerts
+function checkUrgentPayments() {
+    const list = db.lists[db.currentId];
+    if (!list || !list.items) return;
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const overdueItems = list.items.filter(item => {
+        if (!item.dueDate || item.isPaid || item.checked) return false;
+        
+        const dueDate = new Date(item.dueDate);
+        dueDate.setHours(0, 0, 0, 0);
+        
+        return dueDate <= today;
+    });
+
+    // Update app badge
+    updateAppBadge(overdueItems.length);
+
+    // Check if modal should be shown
+    if (overdueItems.length > 0) {
+        const shouldShowModal = checkSnoozeStatus();
+        if (shouldShowModal) {
+            showUrgentAlertModal(overdueItems);
+        }
+    }
+}
+
+// Update app badge with overdue count
+function updateAppBadge(count) {
+    if ('setAppBadge' in navigator) {
+        if (count > 0) {
+            navigator.setAppBadge(count).catch(err => {
+                console.log('App badge not supported:', err);
+            });
+        } else {
+            navigator.clearAppBadge().catch(err => {
+                console.log('App badge not supported:', err);
+            });
+        }
+    }
+}
+
+// Check snooze status to determine if modal should show
+function checkSnoozeStatus() {
+    // Check session storage first (user clicked Close this session)
+    if (sessionStorage.getItem('urgentAlertClosed')) {
+        return false;
+    }
+
+    // Check localStorage for snooze timestamps
+    const snooze4h = localStorage.getItem('urgentSnooze4h');
+    const snoozeTomorrow = localStorage.getItem('urgentSnoozeTomorrow');
+
+    const now = Date.now();
+
+    if (snooze4h && now < parseInt(snooze4h)) {
+        return false;
+    }
+
+    if (snoozeTomorrow && now < parseInt(snoozeTomorrow)) {
+        return false;
+    }
+
+    return true;
+}
+
+// Show the urgent alert modal with overdue items
+function showUrgentAlertModal(overdueItems) {
+    const modal = document.getElementById('urgentAlertModal');
+    const itemsList = document.getElementById('urgentItemsList');
+
+    if (!modal || !itemsList) return;
+
+    // Build items HTML
+    let itemsHTML = '';
+    overdueItems.forEach(item => {
+        const formattedDate = formatDate(item.dueDate);
+        itemsHTML += `
+            <div class="urgent-item">
+                <div class="urgent-item-name">${item.name}</div>
+                <div class="urgent-item-date">📅 תאריך יעד: ${formattedDate}</div>
+            </div>
+        `;
+    });
+
+    itemsList.innerHTML = itemsHTML;
+    modal.classList.add('active');
+}
+
+// Snooze urgent alert for specified hours
+function snoozeUrgentAlert(hours) {
+    const snoozeUntil = Date.now() + (hours * 60 * 60 * 1000);
+    
+    if (hours === 4) {
+        localStorage.setItem('urgentSnooze4h', snoozeUntil.toString());
+    } else if (hours === 24) {
+        localStorage.setItem('urgentSnoozeTomorrow', snoozeUntil.toString());
+    }
+
+    closeModal('urgentAlertModal');
+}
+
+// Close urgent alert (session-based)
+function closeUrgentAlert() {
+    sessionStorage.setItem('urgentAlertClosed', 'true');
+    closeModal('urgentAlertModal');
+}
+
+// Format date for display
+function formatDate(dateString) {
+    if (!dateString) return '';
+    const date = new Date(dateString);
+    const day = date.getDate().toString().padStart(2, '0');
+    const month = (date.getMonth() + 1).toString().padStart(2, '0');
+    const year = date.getFullYear();
+    return `${day}/${month}/${year}`;
+}
+
+// Auto-link URLs in notes
+function autoLinkNotes(text) {
+    if (!text) return '';
+    
+    // URL regex pattern
+    const urlPattern = /(https?:\/\/[^\s]+)/g;
+    
+    return text.replace(urlPattern, (url) => {
+        return `<a href="${url}" target="_blank" rel="noopener noreferrer">${url}</a>`;
+    });
+}
+
+// Toggle item paid status and update badge
+function toggleItemPaid(idx) {
+    const list = db.lists[db.currentId];
+    if (!list || !list.items[idx]) return;
+
+    list.items[idx].isPaid = !list.items[idx].isPaid;
+    
+    // Also mark as checked when paid
+    if (list.items[idx].isPaid) {
+        list.items[idx].checked = true;
+    }
+
+    save();
+    checkUrgentPayments();
+}
+
+// Open inline editor for due date
+function editDueDate(idx) {
+    currentEditItemIndex = idx;
+    currentEditField = 'dueDate';
+    
+    const list = db.lists[db.currentId];
+    const item = list.items[idx];
+    
+    // Create inline date input
+    const dateDisplay = document.querySelector(`[data-duedate-idx="${idx}"]`);
+    if (!dateDisplay) return;
+    
+    const currentValue = item.dueDate || '';
+    const input = document.createElement('input');
+    input.type = 'date';
+    input.value = currentValue;
+    input.className = 'modal-input';
+    input.style.display = 'inline-block';
+    input.style.width = 'auto';
+    input.style.padding = '4px 8px';
+    input.style.fontSize = '0.85em';
+    
+    input.onchange = function() {
+        list.items[idx].dueDate = input.value;
+        save();
+        checkUrgentPayments();
+    };
+    
+    input.onblur = function() {
+        setTimeout(() => {
+            if (input.parentNode) {
+                input.remove();
+            }
+        }, 200);
+    };
+    
+    dateDisplay.parentNode.insertBefore(input, dateDisplay);
+    dateDisplay.style.display = 'none';
+    input.focus();
+    
+    input.addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+            input.blur();
+        }
+    });
+}
+
+// Open inline editor for notes
+function editNotes(idx) {
+    currentEditItemIndex = idx;
+    currentEditField = 'notes';
+    
+    const list = db.lists[db.currentId];
+    const item = list.items[idx];
+    
+    // Create inline text input
+    const notesDisplay = document.querySelector(`[data-notes-idx="${idx}"]`);
+    if (!notesDisplay) return;
+    
+    const currentValue = item.note || '';
+    const input = document.createElement('input');
+    input.type = 'text';
+    input.value = currentValue;
+    input.className = 'modal-input';
+    input.style.display = 'inline-block';
+    input.style.width = '100%';
+    input.style.padding = '4px 8px';
+    input.style.fontSize = '0.85em';
+    
+    input.onchange = function() {
+        list.items[idx].note = input.value;
+        save();
+    };
+    
+    input.onblur = function() {
+        setTimeout(() => {
+            if (input.parentNode) {
+                input.remove();
+            }
+        }, 200);
+    };
+    
+    notesDisplay.parentNode.insertBefore(input, notesDisplay);
+    notesDisplay.style.display = 'none';
+    input.focus();
+    
+    input.addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+            input.blur();
+        }
+    });
+}
+
+// Initialize Peace of Mind features on page load
+document.addEventListener('DOMContentLoaded', function() {
+    // Check urgent payments after a short delay to ensure data is loaded
+    setTimeout(() => {
+        checkUrgentPayments();
+    }, 1000);
+});
+
+// Override the original render function to include Peace of Mind display elements
+const originalRender = window.render || function() {};
+
+// We'll need to modify the render function, but since it's complex,
+// let's add a helper to enhance item rendering
+function enhanceItemHTML(item, idx, originalHTML) {
+    let enhanced = originalHTML;
+    
+    // Add due date display if exists
+    if (item.dueDate) {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const dueDate = new Date(item.dueDate);
+        dueDate.setHours(0, 0, 0, 0);
+        
+        const isOverdue = dueDate < today && !item.isPaid && !item.checked;
+        const dueDateClass = isOverdue ? 'item-duedate-display overdue' : 'item-duedate-display';
+        
+        const dueDateHTML = `
+            <div class="${dueDateClass}" data-duedate-idx="${idx}" onclick="editDueDate(${idx})">
+                📅 ${formatDate(item.dueDate)}${isOverdue ? ' (פג תוקף!)' : ''}
+            </div>
+        `;
+        
+        // Insert after category badge
+        const categoryPos = enhanced.lastIndexOf('</div>', enhanced.indexOf('item-number'));
+        if (categoryPos > -1) {
+            enhanced = enhanced.slice(0, categoryPos) + dueDateHTML + enhanced.slice(categoryPos);
+        }
+    }
+    
+    // Add notes display if exists
+    if (item.note) {
+        const linkedNotes = autoLinkNotes(item.note);
+        const notesHTML = `
+            <div class="item-notes-display" data-notes-idx="${idx}" onclick="editNotes(${idx})">
+                📝 ${linkedNotes}
+            </div>
+        `;
+        
+        // Insert after category badge or due date
+        const insertPos = enhanced.lastIndexOf('</div>', enhanced.indexOf('flex justify-between items-center mb-4'));
+        if (insertPos > -1) {
+            enhanced = enhanced.slice(0, insertPos) + notesHTML + enhanced.slice(insertPos);
+        }
+    }
+    
+    return enhanced;
+}
+
