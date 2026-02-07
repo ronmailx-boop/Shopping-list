@@ -276,6 +276,13 @@ function detectCategory(productName) {
     return 'אחר';
 }
 
+// Function to get learned category for a product (category memory)
+function getLearnedCategory(productName) {
+    if (!productName || !db.categoryMemory) return null;
+    const nameLower = productName.toLowerCase().trim();
+    return db.categoryMemory[nameLower] || null;
+}
+
 
 // ========== Category Translations ==========
 const categoryTranslations = {
@@ -499,7 +506,9 @@ let db = JSON.parse(localStorage.getItem('BUDGET_FINAL_V28')) || {
         totalSpent: 0,
         listsCompleted: 0,
         monthlyData: {}
-    }
+    },
+    customCategories: [],
+    categoryMemory: {}
 };
 
 let isLocked = true;
@@ -512,6 +521,10 @@ let categoryDoughnutChart = null;
 let highlightedItemIndex = null;
 let highlightedListId = null;
 let categorySortEnabled = localStorage.getItem('categorySortEnabled') === 'true' || false;
+
+// Backwards compatibility: Initialize new properties if they don't exist
+if (!db.customCategories) db.customCategories = [];
+if (!db.categoryMemory) db.categoryMemory = {};
 
 
 // ========== Core Functions ==========
@@ -1642,8 +1655,8 @@ function render() {
             }
 
             if (categorySortEnabled) {
-                // Category sorting mode
-                const categoryOrder = [
+                // Category sorting mode with dynamic category discovery
+                const defaultOrder = [
                     'פירות וירקות',
                     'בשר ודגים',
                     'חלב וביצים',
@@ -1652,39 +1665,73 @@ function render() {
                     'חטיפים',
                     'משקאות',
                     'ניקיון',
-                    'היגיינה',
+                    'היגיינה'
+                ];
+
+                // Discover all unique categories in current list
+                const allCategories = new Set();
+                list.items.forEach(item => {
+                    const category = item.category || 'כללי';
+                    allCategories.add(category);
+                });
+
+                // Build dynamic category order: defaults + custom categories + אחר/כללי at end
+                const customCategoriesInList = Array.from(allCategories).filter(cat => 
+                    !defaultOrder.includes(cat) && cat !== 'אחר' && cat !== 'כללי'
+                );
+                
+                const categoryOrder = [
+                    ...defaultOrder,
+                    ...customCategoriesInList,
                     'אחר',
                     'כללי'
                 ];
 
-                // Group items by category
-                const categorizedItems = {};
-                list.items.forEach((item, idx) => {
+                // Separate items into unchecked and checked groups
+                const uncheckedItems = list.items.filter(item => !item.checked);
+                const checkedItems = list.items.filter(item => item.checked);
+
+                // Group unchecked items by category
+                const categorizedUnchecked = {};
+                uncheckedItems.forEach((item, originalIdx) => {
                     const category = item.category || 'כללי';
-                    if (!categorizedItems[category]) {
-                        categorizedItems[category] = [];
+                    if (!categorizedUnchecked[category]) {
+                        categorizedUnchecked[category] = [];
                     }
-                    categorizedItems[category].push({ item, idx });
+                    // Find original index in full list
+                    const idx = list.items.findIndex(i => i === item);
+                    categorizedUnchecked[category].push({ item, idx });
                 });
 
-                // Render by category
+                // Group checked items by category
+                const categorizedChecked = {};
+                checkedItems.forEach((item, originalIdx) => {
+                    const category = item.category || 'כללי';
+                    if (!categorizedChecked[category]) {
+                        categorizedChecked[category] = [];
+                    }
+                    // Find original index in full list
+                    const idx = list.items.findIndex(i => i === item);
+                    categorizedChecked[category].push({ item, idx });
+                });
+
+                // Render unchecked items by category
                 let itemNumber = 1;
                 categoryOrder.forEach(category => {
-                    if (categorizedItems[category] && categorizedItems[category].length > 0) {
+                    if (categorizedUnchecked[category] && categorizedUnchecked[category].length > 0) {
                         // Render category header
                         const categoryHeader = document.createElement('div');
                         categoryHeader.className = 'category-separator';
                         categoryHeader.style.background = `linear-gradient(135deg, ${CATEGORIES[category] || '#6b7280'} 0%, ${CATEGORIES[category] || '#6b7280'}dd 100%)`;
                         categoryHeader.innerHTML = `
-                            <div class="text-lg font-black">${category} (${categorizedItems[category].length})</div>
+                            <div class="text-lg font-black">${category} (${categorizedUnchecked[category].length})</div>
                         `;
                         container.appendChild(categoryHeader);
 
-                        // Render items in this category
-                        categorizedItems[category].forEach(({ item, idx }) => {
+                        // Render unchecked items in this category
+                        categorizedUnchecked[category].forEach(({ item, idx }) => {
                             const sub = item.price * item.qty;
                             total += sub;
-                            if (item.checked) paid += sub;
 
                             const categoryBadge = item.category ? `<span class="category-badge" onclick="event.stopPropagation(); openEditCategoryModal(${idx})" style="background: ${CATEGORIES[item.category] || '#6b7280'}20; color: ${CATEGORIES[item.category] || '#6b7280'}; cursor: pointer;">${item.category}</span>` : '';
 
@@ -1735,6 +1782,76 @@ function render() {
                         });
                     }
                 });
+
+                // Render checked items section if any exist
+                if (checkedItems.length > 0) {
+                    // Add "Completed" separator
+                    const completedHeader = document.createElement('div');
+                    completedHeader.className = 'category-separator';
+                    completedHeader.style.background = 'linear-gradient(135deg, #10b981 0%, #059669 100%)';
+                    completedHeader.innerHTML = `
+                        <div class="text-lg font-black">✅ הושלמו (${checkedItems.length})</div>
+                    `;
+                    container.appendChild(completedHeader);
+
+                    // Render checked items by category
+                    categoryOrder.forEach(category => {
+                        if (categorizedChecked[category] && categorizedChecked[category].length > 0) {
+                            categorizedChecked[category].forEach(({ item, idx }) => {
+                                const sub = item.price * item.qty;
+                                total += sub;
+                                paid += sub;
+
+                                const categoryBadge = item.category ? `<span class="category-badge" onclick="event.stopPropagation(); openEditCategoryModal(${idx})" style="background: ${CATEGORIES[item.category] || '#6b7280'}20; color: ${CATEGORIES[item.category] || '#6b7280'}; cursor: pointer;">${item.category}</span>` : '';
+
+                                const isHighlighted = highlightedItemIndex === idx;
+                                const div = document.createElement('div');
+                                div.className = "item-card";
+                                div.setAttribute('data-id', idx);
+                                if (isHighlighted) {
+                                    div.style.background = 'linear-gradient(135deg, #fef3c7 0%, #fde68a 100%)';
+                                    div.style.border = '3px solid #f59e0b';
+                                    div.style.boxShadow = '0 8px 20px rgba(245, 158, 11, 0.3)';
+                                }
+                                div.innerHTML = `
+                                    <div class="flex justify-between items-center mb-4">
+                                        <div class="flex items-center gap-3 flex-1">
+                                            <input type="checkbox" ${item.checked ? 'checked' : ''} onchange="toggleItem(${idx})" class="w-7 h-7 accent-indigo-600">
+                                            <div class="flex-1">
+                                                <div class="text-2xl font-bold ${item.checked ? 'line-through text-gray-300' : ''}" onclick="openEditItemNameModal(${idx})" style="cursor: pointer;">
+                                                    <span class="item-number">${itemNumber}.</span> ${item.name}
+                                                </div>
+                                                ${categoryBadge}
+                                            </div>
+                                        </div>
+                                        <div class="flex items-center gap-2">
+                                            <div class="note-icon ${item.note ? 'has-note' : ''}" onclick="openItemNoteModal(${idx})" title="${item.note ? 'יש הערה' : 'הוסף הערה'}">
+                                                <svg class="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+                                                </svg>
+                                            </div>
+                                            <button onclick="removeItem(${idx})" class="trash-btn">
+                                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path>
+                                                </svg>
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <div class="flex justify-between items-center">
+                                        <div class="flex items-center gap-3 bg-gray-50 rounded-xl px-2 py-1 border">
+                                            <button onclick="changeQty(${idx}, 1)" class="text-green-500 text-2xl font-bold">+</button>
+                                            <span class="font-bold w-6 text-center">${item.qty}</span>
+                                            <button onclick="changeQty(${idx}, -1)" class="text-red-500 text-2xl font-bold">-</button>
+                                        </div>
+                                        <span onclick="openEditTotalModal(${idx})" class="text-2xl font-black text-indigo-600">₪${sub.toFixed(2)}</span>
+                                    </div>
+                                `;
+                                container.appendChild(div);
+                                itemNumber++;
+                            });
+                        }
+                    });
+                }
             } else {
                 // Manual sorting mode (original behavior)
                 list.items.forEach((item, idx) => {
@@ -2458,8 +2575,29 @@ function addItem() {
     const q = parseInt(document.getElementById('itemQty').value) || 1;
 
     if (n) {
-        // קטגוריזציה אוטומטית עם ברירת מחדל "אחר"
-        const finalCategory = c || detectCategory(n) || 'אחר';
+        // Intelligent category assignment: Priority order:
+        // 1. User manually selected category
+        // 2. Previously learned category for this product
+        // 3. Auto-detected category from keywords
+        // 4. Default to "אחר"
+        let finalCategory;
+        if (c) {
+            // User manually selected
+            finalCategory = c;
+        } else {
+            // Check if we have a learned category for this product
+            const learnedCategory = getLearnedCategory(n);
+            if (learnedCategory) {
+                finalCategory = learnedCategory;
+            } else {
+                // Use keyword detection
+                finalCategory = detectCategory(n) || 'אחר';
+            }
+        }
+
+        // Save to category memory for future auto-assignment
+        if (!db.categoryMemory) db.categoryMemory = {};
+        db.categoryMemory[n.toLowerCase().trim()] = finalCategory;
 
         // עדכון מחיר בהיסטוריה אם השתנה
         if (p > 0) {
@@ -2809,7 +2947,13 @@ function openEditCategoryModal(idx) {
 
 function selectCategory(categoryName) {
     if (currentEditIdx !== null) {
-        db.lists[db.currentId].items[currentEditIdx].category = categoryName;
+        const item = db.lists[db.currentId].items[currentEditIdx];
+        item.category = categoryName;
+        
+        // Update category memory for this product
+        if (!db.categoryMemory) db.categoryMemory = {};
+        db.categoryMemory[item.name.toLowerCase().trim()] = categoryName;
+        
         save();
         showNotification('✓ הקטגוריה עודכנה');
     }
@@ -2819,7 +2963,28 @@ function selectCategory(categoryName) {
 function saveCustomCategory() {
     const customCategory = document.getElementById('customCategoryInput').value.trim();
     if (customCategory && currentEditIdx !== null) {
-        db.lists[db.currentId].items[currentEditIdx].category = customCategory;
+        const item = db.lists[db.currentId].items[currentEditIdx];
+        
+        // Update item category
+        item.category = customCategory;
+        
+        // Add to global custom categories if not already there
+        if (!db.customCategories) db.customCategories = [];
+        if (!db.customCategories.includes(customCategory)) {
+            db.customCategories.push(customCategory);
+        }
+        
+        // Update category memory for this product
+        if (!db.categoryMemory) db.categoryMemory = {};
+        db.categoryMemory[item.name.toLowerCase().trim()] = customCategory;
+        
+        // Add custom category to CATEGORIES object for color assignment if not exists
+        if (!CATEGORIES[customCategory]) {
+            // Assign a random color from existing palette or generate new
+            const colors = ['#22c55e', '#ef4444', '#3b82f6', '#f59e0b', '#8b5cf6', '#ec4899', '#06b6d4', '#10b981', '#6366f1'];
+            CATEGORIES[customCategory] = colors[db.customCategories.length % colors.length];
+        }
+        
         save();
         showNotification('✓ קטגוריה מותאמת נשמרה');
     }
