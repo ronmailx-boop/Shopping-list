@@ -8,10 +8,11 @@
     <meta name="theme-color" content="#7367f0">
     <link rel="manifest" href="manifest.json">
     
-    <!-- Heebo Font -->
+    <!-- Heebo Font - Preload for faster loading -->
+    <link rel="preload" href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;600;700;800;900&display=block" as="style">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;600;700;800;900&display=block" rel="stylesheet">
     
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
@@ -28,9 +29,17 @@
     </script>
 
     <style>
+        /* Force font loading before rendering text */
+        @font-face {
+            font-family: 'Heebo';
+            font-display: block;
+            src: local('Heebo');
+        }
+        
         * {
             box-sizing: border-box;
             touch-action: manipulation;
+            font-family: 'Heebo', sans-serif !important;
         }
 
         body {
