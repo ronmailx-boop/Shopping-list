@@ -525,6 +525,174 @@
             border-color: #fbbf24;
             background: #fff !important;
         }
+        
+        .urgent-alert-modal {
+            background-color: #ffffff !important;
+            border-radius: 30px;
+            padding: 25px;
+            text-align: center;
+            color: #333;
+            border: 3px solid #ef4444;
+            box-shadow: 0 20px 50px rgba(239, 68, 68, 0.4);
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+        
+        .urgent-alert-header {
+            font-size: 3em;
+            margin-bottom: 10px;
+        }
+        
+        .urgent-alert-title {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #ef4444;
+            margin-bottom: 15px;
+        }
+        
+        .urgent-items-list {
+            text-align: right;
+            margin: 20px 0;
+            padding: 15px;
+            background: #fef2f2;
+            border-radius: 15px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        
+        .urgent-item {
+            padding: 10px;
+            margin-bottom: 8px;
+            background: white;
+            border-radius: 10px;
+            border-right: 4px solid #ef4444;
+            font-size: 0.95rem;
+        }
+        
+        .urgent-item-name {
+            font-weight: bold;
+            color: #1f2937;
+        }
+        
+        .urgent-item-date {
+            color: #ef4444;
+            font-size: 0.85rem;
+            margin-top: 3px;
+        }
+        
+        .urgent-buttons {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-top: 20px;
+        }
+        
+        .urgent-btn {
+            padding: 15px;
+            border-radius: 15px;
+            font-weight: bold;
+            font-size: 1rem;
+            cursor: pointer;
+            border: none;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        
+        .urgent-btn:active {
+            transform: scale(0.97);
+        }
+        
+        .urgent-btn-snooze {
+            background: #fbbf24;
+            color: white;
+        }
+        
+        .urgent-btn-tomorrow {
+            background: #3b82f6;
+            color: white;
+        }
+        
+        .urgent-btn-close {
+            background: #6b7280;
+            color: white;
+        }
+        
+        .dark-mode .urgent-alert-modal {
+            background-color: #2a2a3e !important;
+            border-color: #ef4444;
+        }
+        
+        .dark-mode .urgent-alert-title {
+            color: #fca5a5;
+        }
+        
+        .dark-mode .urgent-items-list {
+            background: #1a1a2e;
+        }
+        
+        .dark-mode .urgent-item {
+            background: #2a2a3e;
+            border-right-color: #ef4444;
+        }
+        
+        .dark-mode .urgent-item-name {
+            color: #e0e0e0;
+        }
+        
+        .item-notes-display {
+            font-size: 0.85em;
+            color: #6b7280;
+            margin-top: 5px;
+            cursor: pointer;
+            padding: 5px;
+            border-radius: 8px;
+            transition: background 0.2s;
+            word-wrap: break-word;
+        }
+        
+        .item-notes-display:hover {
+            background: rgba(115, 103, 240, 0.05);
+        }
+        
+        .item-notes-display a {
+            color: #7367f0;
+            text-decoration: underline;
+        }
+        
+        .item-duedate-display {
+            font-size: 0.85em;
+            color: #f59e0b;
+            margin-top: 5px;
+            cursor: pointer;
+            padding: 5px;
+            border-radius: 8px;
+            transition: background 0.2s;
+            font-weight: 600;
+        }
+        
+        .item-duedate-display:hover {
+            background: rgba(245, 158, 11, 0.1);
+        }
+        
+        .item-duedate-display.overdue {
+            color: #ef4444;
+            font-weight: bold;
+        }
+        
+        .dark-mode .item-notes-display {
+            color: #9ca3af;
+        }
+        
+        .dark-mode .item-notes-display a {
+            color: #a78bfa;
+        }
+        
+        .dark-mode .item-duedate-display {
+            color: #fbbf24;
+        }
+        
+        .dark-mode .item-duedate-display.overdue {
+            color: #fca5a5;
+        }
     </style>
 
     <script>
@@ -1009,6 +1177,8 @@ ${error.message}
             </div>
             <input type="number" id="itemPrice" inputmode="decimal" placeholder="מחיר" class="modal-input">
             <input type="number" id="itemQty" placeholder="כמות" class="modal-input" value="1" min="1">
+            <input type="date" id="itemDueDate" placeholder="תאריך יעד (אופציונלי)" class="modal-input">
+            <input type="text" id="itemNotes" placeholder="הערות / קישורים (אופציונלי)" class="modal-input">
             <select id="itemCategory" class="modal-input">
                 <option value="">בחר קטגוריה (אופציונלי)</option>
                 <option value="פירות וירקות">🥬 פירות וירקות</option>
@@ -1297,6 +1467,28 @@ ${error.message}
                     onclick="executeDeleteCategory()">מחק</button>
                 <button class="bg-gray-100 flex-1 py-4 rounded-xl font-bold"
                     onclick="closeModal('deleteCategoryModal')">ביטול</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="urgentAlertModal" class="modal-overlay no-print">
+        <div class="urgent-alert-modal">
+            <div class="urgent-alert-header">⚠️</div>
+            <h2 class="urgent-alert-title">תשלומים דחופים!</h2>
+            <p style="color: #6b7280; margin-bottom: 15px;">יש לך תשלומים שעברו את תאריך היעד</p>
+            <div class="urgent-items-list" id="urgentItemsList">
+                <!-- Urgent items will be inserted here -->
+            </div>
+            <div class="urgent-buttons">
+                <button class="urgent-btn urgent-btn-snooze" onclick="snoozeUrgentAlert(4)">
+                    ⏰ הזכר לי בעוד 4 שעות
+                </button>
+                <button class="urgent-btn urgent-btn-tomorrow" onclick="snoozeUrgentAlert(24)">
+                    📅 הזכר לי מחר
+                </button>
+                <button class="urgent-btn urgent-btn-close" onclick="closeUrgentAlert()">
+                    ✕ סגור
+                </button>
             </div>
         </div>
     </div>
