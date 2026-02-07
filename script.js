@@ -3001,7 +3001,7 @@ function saveItemEdit() {
         item.paymentUrl = newPaymentUrl;
         item.lastUpdated = Date.now();
         save();
-        closeModal('editItemModal');
+        closeModal('editItemNameModal');
         showNotification('✅ הפריט עודכן!');
         updateNotificationBadge();
         checkUrgentPayments();
