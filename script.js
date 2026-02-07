@@ -1629,6 +1629,34 @@ function searchInSummary() {
     }
 }
 
+// Helper function to generate dueDate and notes HTML
+function generateItemMetadataHTML(item, idx) {
+    let html = '';
+    
+    // Build dueDate display
+    if (item.dueDate) {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const dueDate = new Date(item.dueDate);
+        dueDate.setHours(0, 0, 0, 0);
+        const isOverdue = dueDate < today && !item.isPaid && !item.checked;
+        const dueDateClass = isOverdue ? 'item-duedate-display overdue' : 'item-duedate-display';
+        const formattedDate = new Date(item.dueDate).toLocaleDateString('he-IL');
+        html += `<div class="${dueDateClass}" data-duedate-idx="${idx}" onclick="editDueDate(${idx})">📅 ${formattedDate}${isOverdue ? ' (פג תוקף!)' : ''}</div>`;
+    }
+    
+    // Build notes display with auto-linked URLs
+    if (item.note) {
+        const urlPattern = /(https?:\/\/[^\s]+)/g;
+        const linkedNotes = item.note.replace(urlPattern, (url) => {
+            return `<a href="${url}" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation()">${url}</a>`;
+        });
+        html += `<div class="item-notes-display" data-notes-idx="${idx}" onclick="editNotes(${idx})">📝 ${linkedNotes}</div>`;
+    }
+    
+    return html;
+}
+
 function render() {
     const container = document.getElementById(activePage === 'lists' ? 'itemsContainer' : activePage === 'summary' ? 'summaryContainer' : null);
     let total = 0, paid = 0;
@@ -1745,6 +1773,7 @@ function render() {
                             total += sub;
 
                             const categoryBadge = item.category ? `<span class="category-badge" onclick="event.stopPropagation(); openEditCategoryModal(${idx})" style="background: ${CATEGORIES[item.category] || '#6b7280'}20; color: ${CATEGORIES[item.category] || '#6b7280'}; cursor: pointer;">${item.category}</span>` : '';
+                            const metadataHTML = generateItemMetadataHTML(item, idx);
 
                             const isHighlighted = highlightedItemIndex === idx;
                             const div = document.createElement('div');
@@ -1764,6 +1793,7 @@ function render() {
                                                 <span class="item-number">${itemNumber}.</span> ${item.name}
                                             </div>
                                             ${categoryBadge}
+                                            ${metadataHTML}
                                         </div>
                                     </div>
                                     <div class="flex items-center gap-2">
@@ -1814,6 +1844,7 @@ function render() {
                                 paid += sub;
 
                                 const categoryBadge = item.category ? `<span class="category-badge" onclick="event.stopPropagation(); openEditCategoryModal(${idx})" style="background: ${CATEGORIES[item.category] || '#6b7280'}20; color: ${CATEGORIES[item.category] || '#6b7280'}; cursor: pointer;">${item.category}</span>` : '';
+                                const metadataHTML = generateItemMetadataHTML(item, idx);
 
                                 const isHighlighted = highlightedItemIndex === idx;
                                 const div = document.createElement('div');
@@ -1833,6 +1864,7 @@ function render() {
                                                     <span class="item-number">${itemNumber}.</span> ${item.name}
                                                 </div>
                                                 ${categoryBadge}
+                                                ${metadataHTML}
                                             </div>
                                         </div>
                                         <div class="flex items-center gap-2">
@@ -1871,6 +1903,7 @@ function render() {
                     if (item.checked) paid += sub;
 
                     const categoryBadge = item.category ? `<span class="category-badge" onclick="event.stopPropagation(); openEditCategoryModal(${idx})" style="background: ${CATEGORIES[item.category] || '#6b7280'}20; color: ${CATEGORIES[item.category] || '#6b7280'}; cursor: pointer;">${item.category}</span>` : '';
+                    const metadataHTML = generateItemMetadataHTML(item, idx);
 
                     const isHighlighted = highlightedItemIndex === idx;
                     const div = document.createElement('div');
@@ -1890,6 +1923,7 @@ function render() {
                                         <span class="item-number">${idx + 1}.</span> ${item.name}
                                     </div>
                                     ${categoryBadge}
+                                    ${metadataHTML}
                                 </div>
                             </div>
                             <div class="flex items-center gap-2">
@@ -2640,6 +2674,7 @@ function addItem(event) {
         if (document.getElementById('itemDueDate')) document.getElementById('itemDueDate').value = '';
         if (document.getElementById('itemNotes')) document.getElementById('itemNotes').value = '';
 
+        closeModal('inputForm');
         save();
         showNotification('✅ מוצר נוסף!');
         checkUrgentPayments();
