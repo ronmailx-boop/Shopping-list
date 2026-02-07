@@ -7,7 +7,26 @@
     <title>vplus - ניהול תקציב חכם</title>
     <meta name="theme-color" content="#7367f0">
     <link rel="manifest" href="manifest.json">
+    
+    <!-- Heebo Font - Preload for faster loading -->
+    <link rel="preload" href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;600;700;800;900&display=block" as="style">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;600;700;800;900&display=block" rel="stylesheet">
+    
     <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        // Configure Tailwind to use Heebo font
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Heebo', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
@@ -22,13 +41,17 @@
     </script>
 
     <style>
+        /* FORCE HEEBO ON EVERYTHING - Chrome Android Fix */
+        *, *::before, *::after, body, button, input, select, textarea {
+            font-family: 'Heebo', sans-serif !important;
+        }
+        
         * {
             box-sizing: border-box;
             touch-action: manipulation;
         }
 
         body {
-            font-family: system-ui, sans-serif;
             background: linear-gradient(135deg, #f4f7fa 0%, #e8ecf3 100%);
             padding-bottom: 240px;
             min-height: 100vh;
@@ -645,7 +668,7 @@
             text-align: right;
             outline: none;
             margin-bottom: 15px;
-            font-family: system-ui, sans-serif;
+            font-family: 'Heebo', sans-serif;
             background: #f9fafb !important;
             color: #333;
             resize: vertical;
@@ -1122,6 +1145,7 @@ ${error.message}
             showFirebaseError('שגיאה קריטית', 'Firebase לא הצליח לטעון:\n\n' + e.message);
         }
     </script>
+    
 </head>
 
 <body>
@@ -1388,7 +1412,7 @@ ${error.message}
     <div id="printArea" class="hidden"></div>
 
     <!-- Modals -->
-    <div id="inputForm" class="modal-overlay no-print">
+    <div id="inputForm" class="modal-overlay no-print" style="display: none;">
         <div class="edit-modal" style="position: relative;">
             <h2 id="addItemModalTitle">הוספת מוצר</h2>
 
@@ -1434,7 +1458,7 @@ ${error.message}
         </div>
     </div>
 
-    <div id="importModal" class="modal-overlay no-print">
+    <div id="importModal" class="modal-overlay no-print" style="display: none;">
         <div class="edit-modal">
             <h2 class="mb-2">ייבוא רשימה מטקסט</h2>
             <p class="text-sm text-gray-500 mb-4">הדבק טקסט מוואטסאפ או כל רשימה</p>
@@ -1449,7 +1473,7 @@ ${error.message}
         </div>
     </div>
 
-    <div id="newListModal" class="modal-overlay no-print">
+    <div id="newListModal" class="modal-overlay no-print" style="display: none;">
         <div class="edit-modal">
             <h2>רשימה חדשה</h2>
             <input type="text" id="newListNameInput" placeholder="שם הרשימה" class="modal-input">
@@ -1470,7 +1494,7 @@ ${error.message}
         </div>
     </div>
 
-    <div id="confirmModal" class="modal-overlay no-print">
+    <div id="confirmModal" class="modal-overlay no-print" style="display: none;">
         <div class="edit-modal">
             <h2 class="text-green-600">סיום רשימה</h2>
             <p class="mb-6">לסמן רשימה זו כהושלמה ולשמור בהיסטוריה?</p>
@@ -1483,7 +1507,7 @@ ${error.message}
         </div>
     </div>
 
-    <div id="deleteListModal" class="modal-overlay no-print">
+    <div id="deleteListModal" class="modal-overlay no-print" style="display: none;">
         <div class="edit-modal">
             <h2 class="text-red-600">מחיקת רשימה</h2>
             <div class="flex gap-3">
@@ -1495,7 +1519,7 @@ ${error.message}
         </div>
     </div>
 
-    <div id="editListNameModal" class="modal-overlay no-print">
+    <div id="editListNameModal" class="modal-overlay no-print" style="display: none;">
         <div class="edit-modal">
             <h2>עריכת רשימה</h2>
             <input type="text" id="editListNameInput" placeholder="שם הרשימה" class="modal-input">
@@ -1510,7 +1534,7 @@ ${error.message}
         </div>
     </div>
 
-    <div id="editTotalModal" class="modal-overlay no-print">
+    <div id="editTotalModal" class="modal-overlay no-print" style="display: none;">
         <div class="edit-modal">
             <h2>עדכון מחיר</h2>
             <input type="number" id="editTotalInput" class="modal-input">
@@ -1523,7 +1547,7 @@ ${error.message}
         </div>
     </div>
 
-    <div id="editItemNameModal" class="modal-overlay no-print">
+    <div id="editItemNameModal" class="modal-overlay no-print" style="display: none;">
         <div class="edit-modal">
             <h2>📝 עריכת פריט</h2>
             <input type="text" id="editItemName" class="modal-input" placeholder="שם הפריט">
@@ -1539,7 +1563,7 @@ ${error.message}
     </div>
 
     <!-- Notification Center Modal -->
-    <div id="notificationCenterModal" class="modal-overlay no-print">
+    <div id="notificationCenterModal" class="modal-overlay no-print" style="display: none;">
         <div class="edit-modal" style="max-height: 80vh;">
             <h2>🔔 מרכז התראות</h2>
             <div id="notificationsList" style="max-height: 500px; overflow-y: auto; margin-top: 15px;">
@@ -1549,7 +1573,7 @@ ${error.message}
         </div>
     </div>
 
-    <div id="editCategoryModal" class="modal-overlay no-print">
+    <div id="editCategoryModal" class="modal-overlay no-print" style="display: none;">
         <div class="edit-modal" style="max-height: 80vh; overflow-y: auto;">
             <h2>בחירת קטגוריה</h2>
             <div id="categoryOptions" class="mb-4" style="max-height: 400px; overflow-y: auto;">
@@ -1566,7 +1590,7 @@ ${error.message}
         </div>
     </div>
 
-    <div id="historyModal" class="modal-overlay no-print">
+    <div id="historyModal" class="modal-overlay no-print" style="display: none;">
         <div class="edit-modal">
             <h2>📁 היסטוריית רכישות</h2>
             <div id="historyContent" style="max-height: 400px; overflow-y: auto;"></div>
@@ -1574,7 +1598,7 @@ ${error.message}
         </div>
     </div>
 
-    <div id="templatesModal" class="modal-overlay no-print">
+    <div id="templatesModal" class="modal-overlay no-print" style="display: none;">
         <div class="edit-modal">
             <h2>⭐ תבניות רשימות</h2>
             <div id="templatesContent" style="max-height: 400px; overflow-y: auto;"></div>
@@ -1582,7 +1606,7 @@ ${error.message}
         </div>
     </div>
 
-    <div id="completedListsModal" class="modal-overlay no-print">
+    <div id="completedListsModal" class="modal-overlay no-print" style="display: none;">
         <div class="edit-modal">
             <h2>✅ רשימות שהושלמו</h2>
             <div id="completedListsContent" style="max-height: 400px; overflow-y: auto;"></div>
@@ -1590,7 +1614,7 @@ ${error.message}
         </div>
     </div>
 
-    <div id="settingsModal" class="modal-overlay no-print">
+    <div id="settingsModal" class="modal-overlay no-print" style="display: none;">
         <div class="edit-modal">
             <h2 id="settingsModalTitle">הגדרות</h2>
             <div id="userEmailDisplay" class="text-indigo-600 font-bold mb-2 text-center text-sm"></div>
@@ -1644,7 +1668,7 @@ ${error.message}
     </div>
 
     <!-- Translation Modal -->
-    <div id="translateModal" class="modal-overlay no-print">
+    <div id="translateModal" class="modal-overlay no-print" style="display: none;">
         <div class="edit-modal">
             <h2>תרגם רשימה</h2>
             <p class="text-sm text-gray-600 mb-4">בחר שפת יעד לתרגום כל המוצרים ברשימה</p>
@@ -1678,7 +1702,7 @@ ${error.message}
         </div>
     </div>
 
-    <div id="itemNoteModal" class="modal-overlay no-print">
+    <div id="itemNoteModal" class="modal-overlay no-print" style="display: none;">
         <div class="edit-modal">
             <h2>📝 הערה למוצר</h2>
             <textarea id="itemNoteInput" class="note-modal-textarea" placeholder="הוסף הערה למוצר..."></textarea>
@@ -1691,7 +1715,7 @@ ${error.message}
         </div>
     </div>
 
-    <div id="categoryManagerModal" class="modal-overlay no-print">
+    <div id="categoryManagerModal" class="modal-overlay no-print" style="display: none;">
         <div class="edit-modal">
             <h2>🗂️ ניהול קטגוריות מותאמות</h2>
             <p class="text-sm text-gray-600 mb-4">קטגוריות שיצרת - ניתן למחוק קטגוריות שאינן בשימוש</p>
@@ -1702,7 +1726,7 @@ ${error.message}
         </div>
     </div>
 
-    <div id="deleteCategoryModal" class="modal-overlay no-print">
+    <div id="deleteCategoryModal" class="modal-overlay no-print" style="display: none;">
         <div class="edit-modal">
             <h2 class="text-red-600">מחיקת קטגוריה</h2>
             <p class="text-center text-gray-700 mb-2">האם אתה בטוח שברצונך למחוק את הקטגוריה</p>
@@ -1717,7 +1741,7 @@ ${error.message}
         </div>
     </div>
 
-    <div id="urgentAlertModal" class="modal-overlay no-print">
+    <div id="urgentAlertModal" class="modal-overlay no-print" style="display: none;">
         <div class="urgent-alert-modal">
             <div class="urgent-alert-header">⚠️</div>
             <h2 class="urgent-alert-title">תשלומים דחופים!</h2>
@@ -1740,6 +1764,7 @@ ${error.message}
     </div>
 
     <script src="script.js"></script>
+    
 </body>
 
 </html>
