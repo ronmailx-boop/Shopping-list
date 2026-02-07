@@ -1841,7 +1841,7 @@ function render() {
                                         <span class="font-bold w-6 text-center">${item.qty}</span>
                                         <button onclick="changeQty(${idx}, -1)" class="text-red-500 text-2xl font-bold">-</button>
                                     </div>
-                                    <span onclick="openEditTotalModal(${idx})" class="text-2xl font-black text-indigo-600">₪${sub.toFixed(2)}</span>
+                                    <span onclick="openEditTotalModal(${idx})" class="text-2xl font-black text-indigo-600" style="cursor: pointer;">₪${sub.toFixed(2)}</span>
                                 </div>
                             `;
                             container.appendChild(div);
@@ -1912,7 +1912,7 @@ function render() {
                                             <span class="font-bold w-6 text-center">${item.qty}</span>
                                             <button onclick="changeQty(${idx}, -1)" class="text-red-500 text-2xl font-bold">-</button>
                                         </div>
-                                        <span onclick="openEditTotalModal(${idx})" class="text-2xl font-black text-indigo-600">₪${sub.toFixed(2)}</span>
+                                        <span onclick="openEditTotalModal(${idx})" class="text-2xl font-black text-indigo-600" style="cursor: pointer;">₪${sub.toFixed(2)}</span>
                                     </div>
                                 `;
                                 container.appendChild(div);
@@ -1971,7 +1971,7 @@ function render() {
                                 <span class="font-bold w-6 text-center">${item.qty}</span>
                                 <button onclick="changeQty(${idx}, -1)" class="text-red-500 text-2xl font-bold">-</button>
                             </div>
-                            <span onclick="openEditTotalModal(${idx})" class="text-2xl font-black text-indigo-600">₪${sub.toFixed(2)}</span>
+                            <span onclick="openEditTotalModal(${idx})" class="text-2xl font-black text-indigo-600" style="cursor: pointer;">₪${sub.toFixed(2)}</span>
                         </div>
                     `;
                     container.appendChild(div);
@@ -2639,7 +2639,7 @@ async function shareNative(type) {
     }
 }
 
-function addItem(event) {
+function addItemToList(event) {
     if (event) event.preventDefault();
     
     const n = document.getElementById('itemName') ? document.getElementById('itemName').value.trim() : '';
