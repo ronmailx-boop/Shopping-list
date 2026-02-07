@@ -1638,7 +1638,7 @@ function searchInSummary() {
 function generateItemMetadataHTML(item, idx) {
     let html = '';
     
-    // Build dueDate display - clickable to edit
+    // Build dueDate display - NOT clickable itself, parent div handles click
     if (item.dueDate) {
         const today = new Date();
         today.setHours(0, 0, 0, 0);
@@ -1658,26 +1658,23 @@ function generateItemMetadataHTML(item, idx) {
             dateClass += ' soon';
         }
         
-        html += `<div class="${dateClass}" onclick="event.stopPropagation(); openEditItemNameModal(${idx});" style="cursor: pointer;">📅 ${dateText}</div>`;
+        html += `<div class="${dateClass}">📅 ${dateText}</div>`;
     }
     
-    // Build payment URL link - as icon, clickable to edit
-    if (item.paymentUrl) {
-        html += `<a href="${item.paymentUrl}" target="_blank" class="item-payment-link" onclick="event.stopPropagation();" style="display: inline-flex; align-items: center; gap: 4px;">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"></path>
-            </svg>
-        </a>
-        <span onclick="event.stopPropagation(); openEditItemNameModal(${idx});" style="cursor: pointer; color: #6366f1; font-size: 0.875rem; text-decoration: underline;">✏️</span>`;
+    // Build payment URL link - ONLY as clickable icon with stopPropagation
+    if (item.paymentUrl && item.paymentUrl.trim()) {
+        html += `<div style="display: inline-flex; align-items: center; gap: 6px; margin-top: 4px;">
+            <a href="${item.paymentUrl}" target="_blank" onclick="event.stopPropagation();" style="color: #6366f1; text-decoration: none; display: flex; align-items: center;" title="פתח קישור">
+                <svg style="width: 18px; height: 18px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"></path>
+                </svg>
+            </a>
+        </div>`;
     }
     
-    // Build notes display with auto-linked URLs
-    if (item.note) {
-        const urlPattern = /(https?:\/\/[^\s]+)/g;
-        const linkedNotes = item.note.replace(urlPattern, (url) => {
-            return `<a href="${url}" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation()">${url}</a>`;
-        });
-        html += `<div class="item-notes-display" onclick="event.stopPropagation(); openItemNote(${idx})">📝 ${linkedNotes}</div>`;
+    // Build notes display - ONLY if there are actual notes (not URLs from paymentUrl field)
+    if (item.note && item.note.trim()) {
+        html += `<div class="item-notes-display">📝 ${item.note}</div>`;
     }
     
     // Build paid badge
@@ -2651,6 +2648,7 @@ function addItemToList(event) {
     const p = parseFloat(document.getElementById('itemPrice') ? document.getElementById('itemPrice').value : 0) || 0;
     const q = parseInt(document.getElementById('itemQty') ? document.getElementById('itemQty').value : 1) || 1;
     const dueDate = document.getElementById('itemDueDate') ? document.getElementById('itemDueDate').value : '';
+    const paymentUrl = document.getElementById('itemPaymentUrl') ? document.getElementById('itemPaymentUrl').value.trim() : '';
     const notes = document.getElementById('itemNotes') ? document.getElementById('itemNotes').value.trim() : '';
 
     if (n) {
@@ -2692,7 +2690,7 @@ function addItemToList(event) {
             category: finalCategory,
             note: notes || '',
             dueDate: dueDate || '',
-            paymentUrl: '',
+            paymentUrl: paymentUrl || '',
             isPaid: false,
             lastUpdated: Date.now(),
             cloudId: 'item_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9)
@@ -2704,6 +2702,7 @@ function addItemToList(event) {
         if (document.getElementById('itemQty')) document.getElementById('itemQty').value = '1';
         if (document.getElementById('itemCategory')) document.getElementById('itemCategory').value = '';
         if (document.getElementById('itemDueDate')) document.getElementById('itemDueDate').value = '';
+        if (document.getElementById('itemPaymentUrl')) document.getElementById('itemPaymentUrl').value = '';
         if (document.getElementById('itemNotes')) document.getElementById('itemNotes').value = '';
 
         closeModal('inputForm');
