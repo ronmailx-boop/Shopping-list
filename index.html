@@ -585,6 +585,24 @@
             border-color: #e5e7eb;
         }
 
+        .cloud-btn-syncing {
+            background: #fef3c7 !important;
+            color: #92400e !important;
+            border-color: #fde68a !important;
+            animation: cloudPulse 2s ease-in-out infinite;
+        }
+
+        @keyframes cloudPulse {
+            0%, 100% {
+                opacity: 1;
+                transform: scale(1);
+            }
+            50% {
+                opacity: 0.85;
+                transform: scale(0.98);
+            }
+        }
+
         /* Bank Import Button Styles */
         .bank-import-btn {
             display: inline-flex;
