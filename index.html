@@ -266,10 +266,6 @@
             border-left: 4px solid #f97316;
         }
 
-        .notification-item.upcoming {
-            border-left: 4px solid #3b82f6;
-        }
-
         .notification-item-title {
             font-weight: bold;
             margin-bottom: 4px;
@@ -827,72 +823,6 @@
         .dark-mode .item-duedate-display.overdue {
             color: #fca5a5;
         }
-
-        /* --- Floating Pills Styles (FIXED) --- */
-
-        /* 1. Main Wide Button */
-        .hero-wide-btn {
-            background: linear-gradient(135deg, #7367f0 0%, #9055ff 100%);
-            width: 100%;
-            padding: 18px 24px;
-            border-radius: 20px;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            box-shadow: 0 10px 30px -5px rgba(115, 103, 240, 0.4);
-            border: 1px solid rgba(255,255,255,0.1);
-            transition: transform 0.2s, box-shadow 0.2s;
-            position: relative;
-            overflow: hidden;
-            margin-bottom: 16px;
-            color: white !important; /* Force white text */
-            cursor: pointer;
-        }
-
-        .hero-wide-btn:active {
-            transform: scale(0.98);
-            box-shadow: 0 5px 15px -5px rgba(115, 103, 240, 0.3);
-        }
-
-        /* 2. Pills Container */
-        .pills-container {
-            display: flex;
-            gap: 8px; /* Reduced gap */
-            width: 100%;
-        }
-
-        /* 3. Individual Pill - Compact Mode */
-        .action-pill {
-            flex: 1;
-            background: white;
-            border: 1px solid #edf2f7;
-            padding: 10px 4px; /* Reduced side padding */
-            border-radius: 50px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 6px;
-            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.03);
-            transition: all 0.2s;
-            cursor: pointer;
-            white-space: nowrap;
-            min-width: 0; /* CRITICAL: Allows shrinking to fit screen */
-        }
-
-        .action-pill:active {
-            transform: scale(0.95);
-            background: #f8fafc;
-        }
-
-        .pill-icon { 
-            font-size: 16px; 
-        }
-        
-        .pill-text { 
-            font-size: 12px; 
-            font-weight: 700; 
-            color: #4b5563; 
-        }
     </style>
 
     <script>
@@ -1183,49 +1113,18 @@ ${error.message}
         </div>
 
         <div id="pageLists">
-            <!-- NEW FLOATING PILLS SECTION -->
-            <div class="mb-6 px-1">
-                
-                <div class="flex justify-between items-end mb-3">
-                    <h2 class="text-sm font-bold text-slate-400 uppercase tracking-wider">פעולות מהירות</h2>
+            <div class="lists-header-card bg-white p-2 rounded-2xl border border-gray-100 shadow-sm mb-4">
+                <div class="flex gap-2">
+                    <button onclick="openModal('newListModal')"
+                        class="bg-indigo-600 text-white flex-1 py-3 rounded-xl font-bold">+ רשימה חדשה</button>
+                    <button onclick="openModal('importModal')"
+                        class="bg-green-500 text-white flex-1 py-3 rounded-xl font-bold">📥 ייבוא</button>
+                    <label for="bankFileInput" class="bank-import-btn flex-1 cursor-pointer text-center flex items-center justify-center">🏦 ייבוא בנקאי</label>
+                    <input type="file" id="bankFileInput" accept=".xls,.xlsx,.pdf" style="display: none;" onchange="importBankFile(event)">
+                    <label for="excel-upload" class="bg-blue-500 text-white flex-1 py-3 rounded-xl font-bold cursor-pointer text-center">📊 ייבוא מאקסל</label>
+                    <input type="file" id="excel-upload" accept=".xlsx, .xls" style="display: none;" onchange="handleExcelUpload(event)">
                 </div>
-
-                <button onclick="openModal('newListModal')" class="hero-wide-btn group">
-                    <div class="flex items-center gap-3">
-                        <div class="bg-white/20 w-10 h-10 rounded-xl flex items-center justify-center backdrop-blur-sm group-active:scale-90 transition-transform">
-                            <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"></path></svg>
-                        </div>
-                        <div class="text-right">
-                            <span class="block text-xl font-black leading-none tracking-tight text-white">רשימה חדשה</span>
-                        </div>
-                    </div>
-                    <div class="text-white/80 text-sm font-medium">צור ידנית ➔</div>
-                </button>
-
-                <div class="pills-container">
-                    
-                    <button onclick="openModal('importModal')" class="action-pill">
-                        <span class="pill-icon">📋</span>
-                        <span class="pill-text">הדבק</span>
-                    </button>
-
-                    <label for="excel-upload" class="action-pill">
-                        <span class="pill-icon">📊</span>
-                        <span class="pill-text">Excel</span>
-                    </label>
-
-                    <label for="bankFileInput" class="action-pill">
-                        <span class="pill-icon">🏦</span>
-                        <span class="pill-text">בנק</span>
-                    </label>
-
-                </div>
-                
-                <input type="file" id="bankFileInput" accept=".xls,.xlsx,.pdf" style="display: none;" onchange="importBankFile(event)">
-                <input type="file" id="excel-upload" accept=".xlsx, .xls" style="display: none;" onchange="handleExcelUpload(event)">
-
             </div>
-            <!-- END NEW FLOATING PILLS SECTION -->
             <div class="mb-3">
                 <div class="relative">
                     <input type="text" id="listSearchInput" oninput="searchInList()" placeholder="חפש מוצר ברשימה..."
@@ -1429,19 +1328,6 @@ ${error.message}
                 <option value="היגיינה">🧴 היגיינה</option>
                 <option value="אחר">📦 אחר</option>
             </select>
-            <div style="margin-bottom: 5px;">
-                <label class="text-sm font-bold text-gray-600 block text-center mb-1">🔔 התראה מראש</label>
-                <div class="flex gap-2">
-                    <input type="number" id="itemReminderValue" placeholder="מספר" class="modal-input" min="0" style="flex: 1;">
-                    <select id="itemReminderUnit" class="modal-input" style="flex: 1;">
-                        <option value="">בחר יחידה</option>
-                        <option value="minutes">דקות</option>
-                        <option value="hours">שעות</option>
-                        <option value="days">ימים</option>
-                        <option value="weeks">שבועות</option>
-                    </select>
-                </div>
-            </div>
             <div class="flex gap-3">
                 <button class="bg-green-500 text-white flex-1 py-4 rounded-xl font-bold shadow-md"
                     onclick="event.stopPropagation(); addItemToList(event);">הוסף</button>
@@ -1546,19 +1432,6 @@ ${error.message}
             <input type="text" id="editItemName" class="modal-input" placeholder="שם הפריט">
             <input type="date" id="editItemDueDate" class="modal-input" placeholder="תאריך יעד">
             <input type="url" id="editItemPaymentUrl" class="modal-input" placeholder="🔗 קישור לתשלום (אופציונלי)">
-            <div style="margin-bottom: 5px;">
-                <label class="text-sm font-bold text-gray-600 block text-center mb-1">🔔 התראה מראש</label>
-                <div class="flex gap-2">
-                    <input type="number" id="editItemReminderValue" placeholder="מספר" class="modal-input" min="0" style="flex: 1;">
-                    <select id="editItemReminderUnit" class="modal-input" style="flex: 1;">
-                        <option value="">בחר יחידה</option>
-                        <option value="minutes">דקות</option>
-                        <option value="hours">שעות</option>
-                        <option value="days">ימים</option>
-                        <option value="weeks">שבועות</option>
-                    </select>
-                </div>
-            </div>
             <div class="flex gap-3">
                 <button class="bg-indigo-600 text-white flex-1 py-4 rounded-xl font-bold"
                     onclick="event.stopPropagation(); saveItemEdit();">שמור</button>
@@ -1750,8 +1623,8 @@ ${error.message}
     <div id="urgentAlertModal" class="modal-overlay no-print">
         <div class="urgent-alert-modal">
             <div class="urgent-alert-header">⚠️</div>
-            <h2 class="urgent-alert-title">התראות חשובות!</h2>
-            <p style="color: #6b7280; margin-bottom: 15px;">יש לך פריטים הדורשים תשומת לב</p>
+            <h2 class="urgent-alert-title">תשלומים דחופים!</h2>
+            <p style="color: #6b7280; margin-bottom: 15px;">יש לך תשלומים שעברו את תאריך היעד</p>
             <div class="urgent-items-list" id="urgentItemsList">
                 <!-- Urgent items will be inserted here -->
             </div>
@@ -1773,7 +1646,6 @@ ${error.message}
 </body>
 
 </html>
-
 
 
 

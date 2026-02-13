@@ -13,36 +13,6 @@ let currentNoteItemIndex = null;
 let currentEditItemIndex = null;
 let currentEditField = null;
 
-// ========== Reminder Time Conversion ==========
-function getReminderMilliseconds(value, unit) {
-    if (!value || !unit) return 0;
-    
-    const numValue = parseInt(value);
-    if (isNaN(numValue) || numValue <= 0) return 0;
-    
-    const conversions = {
-        'minutes': numValue * 60 * 1000,
-        'hours': numValue * 60 * 60 * 1000,
-        'days': numValue * 24 * 60 * 60 * 1000,
-        'weeks': numValue * 7 * 24 * 60 * 60 * 1000
-    };
-    
-    return conversions[unit] || 0;
-}
-
-function formatReminderText(value, unit) {
-    if (!value || !unit) return '';
-    
-    const units = {
-        'minutes': value === '1' ? 'דקה' : 'דקות',
-        'hours': value === '1' ? 'שעה' : 'שעות',
-        'days': value === '1' ? 'יום' : 'ימים',
-        'weeks': value === '1' ? 'שבוע' : 'שבועות'
-    };
-    
-    return `${value} ${units[unit]}`;
-}
-
 // ========== Categories ==========
 const CATEGORIES = {
     'פירות וירקות': '#22c55e',
@@ -2680,8 +2650,6 @@ function addItemToList(event) {
     const dueDate = document.getElementById('itemDueDate') ? document.getElementById('itemDueDate').value : '';
     const paymentUrl = document.getElementById('itemPaymentUrl') ? document.getElementById('itemPaymentUrl').value.trim() : '';
     const notes = document.getElementById('itemNotes') ? document.getElementById('itemNotes').value.trim() : '';
-    const reminderValue = document.getElementById('itemReminderValue') ? document.getElementById('itemReminderValue').value : '';
-    const reminderUnit = document.getElementById('itemReminderUnit') ? document.getElementById('itemReminderUnit').value : '';
 
     if (n) {
         // Intelligent category assignment: Priority order:
@@ -2724,8 +2692,6 @@ function addItemToList(event) {
             dueDate: dueDate || '',
             paymentUrl: paymentUrl || '',
             isPaid: false,
-            reminderValue: reminderValue || '',
-            reminderUnit: reminderUnit || '',
             lastUpdated: Date.now(),
             cloudId: 'item_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9)
         });
@@ -2738,8 +2704,6 @@ function addItemToList(event) {
         if (document.getElementById('itemDueDate')) document.getElementById('itemDueDate').value = '';
         if (document.getElementById('itemPaymentUrl')) document.getElementById('itemPaymentUrl').value = '';
         if (document.getElementById('itemNotes')) document.getElementById('itemNotes').value = '';
-        if (document.getElementById('itemReminderValue')) document.getElementById('itemReminderValue').value = '';
-        if (document.getElementById('itemReminderUnit')) document.getElementById('itemReminderUnit').value = '';
 
         closeModal('inputForm');
         save();
@@ -3016,12 +2980,6 @@ function openEditItemNameModal(idx) {
     document.getElementById('editItemName').value = item.name;
     document.getElementById('editItemDueDate').value = item.dueDate || '';
     document.getElementById('editItemPaymentUrl').value = item.paymentUrl || '';
-    if (document.getElementById('editItemReminderValue')) {
-        document.getElementById('editItemReminderValue').value = item.reminderValue || '';
-    }
-    if (document.getElementById('editItemReminderUnit')) {
-        document.getElementById('editItemReminderUnit').value = item.reminderUnit || '';
-    }
     openModal('editItemNameModal');
 
     setTimeout(() => {
@@ -3035,16 +2993,12 @@ function saveItemEdit() {
     const newName = document.getElementById('editItemName').value.trim();
     const newDueDate = document.getElementById('editItemDueDate').value;
     const newPaymentUrl = document.getElementById('editItemPaymentUrl').value.trim();
-    const newReminderValue = document.getElementById('editItemReminderValue') ? document.getElementById('editItemReminderValue').value : '';
-    const newReminderUnit = document.getElementById('editItemReminderUnit') ? document.getElementById('editItemReminderUnit').value : '';
     
     if (newName && currentEditIdx !== null) {
         const item = db.lists[db.currentId].items[currentEditIdx];
         item.name = newName;
         item.dueDate = newDueDate;
         item.paymentUrl = newPaymentUrl;
-        item.reminderValue = newReminderValue;
-        item.reminderUnit = newReminderUnit;
         item.lastUpdated = Date.now();
         
         // שמירה מקומית תחילה
@@ -5714,40 +5668,26 @@ function checkUrgentPayments() {
     const list = db.lists[db.currentId];
     if (!list || !list.items) return;
 
-    const now = Date.now();
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
-    const urgentItems = list.items.filter(item => {
+    const overdueItems = list.items.filter(item => {
         if (!item.dueDate || item.isPaid || item.checked) return false;
         
         const dueDate = new Date(item.dueDate);
         dueDate.setHours(0, 0, 0, 0);
         
-        // בדוק אם התאריך עבר
-        const isOverdue = dueDate <= today;
-        
-        // בדוק אם יש להתריע לפי reminderValue ו-reminderUnit
-        if (item.reminderValue && item.reminderUnit) {
-            const reminderTimeMs = getReminderMilliseconds(item.reminderValue, item.reminderUnit);
-            const dueDateMs = dueDate.getTime();
-            const reminderDate = new Date(dueDateMs - reminderTimeMs);
-            
-            const isReminderTime = now >= reminderDate.getTime() && now <= dueDateMs + (24 * 60 * 60 * 1000);
-            return isOverdue || isReminderTime;
-        }
-        
-        return isOverdue;
+        return dueDate <= today;
     });
 
     // Update app badge
-    updateAppBadge(urgentItems.length);
+    updateAppBadge(overdueItems.length);
 
     // Check if modal should be shown
-    if (urgentItems.length > 0) {
+    if (overdueItems.length > 0) {
         const shouldShowModal = checkSnoozeStatus();
         if (shouldShowModal) {
-            showUrgentAlertModal(urgentItems);
+            showUrgentAlertModal(overdueItems);
         }
     }
 }
@@ -5792,70 +5732,23 @@ function checkSnoozeStatus() {
 }
 
 // Show the urgent alert modal with overdue items
-function showUrgentAlertModal(urgentItems) {
+function showUrgentAlertModal(overdueItems) {
     const modal = document.getElementById('urgentAlertModal');
     const itemsList = document.getElementById('urgentItemsList');
 
     if (!modal || !itemsList) return;
 
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-
-    // Build items HTML - separate overdue and upcoming
-    const overdueItemsFiltered = urgentItems.filter(item => {
-        const dueDate = new Date(item.dueDate);
-        dueDate.setHours(0, 0, 0, 0);
-        return dueDate < today;
-    });
-    
-    const upcomingItemsFiltered = urgentItems.filter(item => {
-        const dueDate = new Date(item.dueDate);
-        dueDate.setHours(0, 0, 0, 0);
-        return dueDate >= today;
-    });
-    
+    // Build items HTML
     let itemsHTML = '';
-    
-    // הצגת פריטים באיחור
-    if (overdueItemsFiltered.length > 0) {
-        itemsHTML += '<div style="font-weight: bold; color: #ef4444; margin-bottom: 10px;">⚠️ באיחור:</div>';
-        overdueItemsFiltered.forEach(item => {
-            const formattedDate = formatDate(item.dueDate);
-            itemsHTML += `
-                <div class="urgent-item" style="border-right: 3px solid #ef4444;">
-                    <div class="urgent-item-name">${item.name}</div>
-                    <div class="urgent-item-date">📅 תאריך יעד: ${formattedDate}</div>
-                </div>
-            `;
-        });
-    }
-    
-    // הצגת תזכורות עתידיות
-    if (upcomingItemsFiltered.length > 0) {
-        if (overdueItemsFiltered.length > 0) {
-            itemsHTML += '<div style="margin-top: 15px;"></div>';
-        }
-        itemsHTML += '<div style="font-weight: bold; color: #3b82f6; margin-bottom: 10px;">🔔 תזכורות:</div>';
-        upcomingItemsFiltered.forEach(item => {
-            const formattedDate = formatDate(item.dueDate);
-            const dueDate = new Date(item.dueDate);
-            dueDate.setHours(0, 0, 0, 0);
-            const daysUntil = Math.floor((dueDate - today) / 86400000);
-            const daysText = daysUntil === 0 ? 'היום' : daysUntil === 1 ? 'מחר' : `בעוד ${daysUntil} ימים`;
-            
-            let reminderText = '';
-            if (item.reminderValue && item.reminderUnit) {
-                reminderText = ` (התראה: ${formatReminderText(item.reminderValue, item.reminderUnit)} לפני)`;
-            }
-            
-            itemsHTML += `
-                <div class="urgent-item" style="border-right: 3px solid #3b82f6;">
-                    <div class="urgent-item-name">${item.name}</div>
-                    <div class="urgent-item-date">📅 תאריך יעד: ${formattedDate} (${daysText})${reminderText}</div>
-                </div>
-            `;
-        });
-    }
+    overdueItems.forEach(item => {
+        const formattedDate = formatDate(item.dueDate);
+        itemsHTML += `
+            <div class="urgent-item">
+                <div class="urgent-item-name">${item.name}</div>
+                <div class="urgent-item-date">📅 תאריך יעד: ${formattedDate}</div>
+            </div>
+        `;
+    });
 
     itemsList.innerHTML = itemsHTML;
     modal.classList.add('active');
@@ -6072,7 +5965,6 @@ function enhanceItemHTML(item, idx, originalHTML) {
 // ========== Notification Center Functions ==========
 function getNotificationItems() {
     const notificationItems = [];
-    const now = Date.now();
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     
@@ -6086,20 +5978,8 @@ function getNotificationItems() {
                 const dueDate = new Date(item.dueDate);
                 dueDate.setHours(0, 0, 0, 0);
                 
-                // חישוב זמן ההתראה לפי reminderValue ו-reminderUnit
-                let reminderTimeMs = 0;
-                if (item.reminderValue && item.reminderUnit) {
-                    reminderTimeMs = getReminderMilliseconds(item.reminderValue, item.reminderUnit);
-                }
-                
-                const dueDateMs = dueDate.getTime();
-                const reminderDate = new Date(dueDateMs - reminderTimeMs);
-                
-                const isOverdue = dueDate < today;
-                const isReminderTime = reminderTimeMs > 0 && now >= reminderDate.getTime() && now <= dueDateMs + (24 * 60 * 60 * 1000);
-                const shouldNotify = isOverdue || isReminderTime;
-                
-                if (shouldNotify || dueDate <= threeDaysFromNow) {
+                if (dueDate <= threeDaysFromNow) {
+                    const isOverdue = dueDate < today;
                     const isToday = dueDate.getTime() === today.getTime();
                     const isTomorrow = dueDate.getTime() === new Date(today.getTime() + 86400000).getTime();
                     
@@ -6118,10 +5998,7 @@ function getNotificationItems() {
                         urgency,
                         isOverdue,
                         isToday,
-                        isTomorrow,
-                        isUpcoming: !isOverdue && isReminderTime,
-                        reminderValue: item.reminderValue,
-                        reminderUnit: item.reminderUnit
+                        isTomorrow
                     });
                 }
             }
@@ -6158,16 +6035,7 @@ function openNotificationCenter() {
         container.innerHTML = '';
         notificationItems.forEach(notif => {
             const div = document.createElement('div');
-            
-            // קביעת סוג ההתראה וצבע
-            let notifClass = 'soon';
-            if (notif.isOverdue) {
-                notifClass = 'overdue';
-            } else if (notif.isUpcoming && !notif.isToday) {
-                notifClass = 'upcoming';
-            }
-            
-            div.className = `notification-item ${notifClass}`;
+            div.className = `notification-item ${notif.isOverdue ? 'overdue' : 'soon'}`;
             div.onclick = () => jumpToItem(notif.listId, notif.itemIdx);
             
             let dateText = '';
@@ -6180,12 +6048,7 @@ function openNotificationCenter() {
                 dateText = '📅 מחר';
             } else {
                 const daysUntil = Math.floor((notif.dueDate - new Date().setHours(0,0,0,0)) / 86400000);
-                if (notif.isUpcoming && notif.reminderValue && notif.reminderUnit) {
-                    const reminderText = formatReminderText(notif.reminderValue, notif.reminderUnit);
-                    dateText = `🔔 תזכורת ${reminderText} לפני - תאריך יעד בעוד ${daysUntil} ${daysUntil === 1 ? 'יום' : 'ימים'}`;
-                } else {
-                    dateText = `📅 בעוד ${daysUntil} ${daysUntil === 1 ? 'יום' : 'ימים'}`;
-                }
+                dateText = `📅 בעוד ${daysUntil} ${daysUntil === 1 ? 'יום' : 'ימים'}`;
             }
             
             div.innerHTML = `
