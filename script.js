@@ -6,6 +6,237 @@ let isConnected = false;
 let currentUser = null;
 let syncTimeout = null;
 
+// ========== Notification System ==========
+/**
+ * Shows a temporary notification toast message
+ * @param {string} message - The message to display
+ * @param {number} duration - How long to show the notification in ms (default: 3000)
+ */
+function showNotification(message, duration = 3000) {
+    // Create notification element
+    const notification = document.createElement('div');
+    notification.className = 'notification';
+    notification.textContent = message;
+    notification.style.cssText = `
+        position: fixed;
+        top: 70px;
+        right: 20px;
+        background: white;
+        padding: 15px 20px;
+        border-radius: 15px;
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+        z-index: 9000;
+        transform: translateX(400px);
+        transition: transform 0.3s ease;
+        max-width: 300px;
+        word-wrap: break-word;
+    `;
+
+    document.body.appendChild(notification);
+
+    // Trigger animation
+    setTimeout(() => {
+        notification.style.transform = 'translateX(0)';
+    }, 10);
+
+    // Remove after duration
+    setTimeout(() => {
+        notification.style.transform = 'translateX(400px)';
+        setTimeout(() => {
+            if (notification.parentNode) {
+                notification.parentNode.removeChild(notification);
+            }
+        }, 300);
+    }, duration);
+}
+
+
+// ========== Firebase Authentication Functions ==========
+/**
+ * Opens login.html in a popup window for Google authentication
+ * Listens for postMessage events from the popup to handle auth results
+ */
+function loginWithGoogle() {
+    console.log('🔵 Opening Google login popup...');
+
+    // Open login.html in a popup window
+    const width = 500;
+    const height = 600;
+    const left = (screen.width - width) / 2;
+    const top = (screen.height - height) / 2;
+
+    const popup = window.open(
+        'login.html',
+        'Google Login',
+        `width=${width},height=${height},left=${left},top=${top},toolbar=no,menubar=no,scrollbars=yes,resizable=yes`
+    );
+
+    if (!popup) {
+        showNotification('⚠️ חלון ההתחברות נחסם. אנא אפשר חלונות קופצים לאתר זה.');
+        console.error('❌ Popup was blocked by browser');
+        return;
+    }
+
+    // Listen for messages from the popup
+    const messageHandler = (event) => {
+        // Security: verify origin if needed (optional for same-origin)
+        // if (event.origin !== window.location.origin) return;
+
+        const data = event.data;
+
+        if (data.type === 'vplus-login-success') {
+            console.log('✅ Login successful!', data.email);
+
+            // Update UI to show connected state
+            updateCloudIndicator('connected', data.email);
+
+            // Show success notification
+            showNotification(`✅ התחברת בהצלחה כ: ${data.email}`);
+
+            // Trigger sync after a short delay
+            setTimeout(() => {
+                if (window.firebaseAuth && window.firebaseAuth.currentUser) {
+                    currentUser = window.firebaseAuth.currentUser;
+                    isConnected = true;
+                    syncToCloud();
+                }
+            }, 500);
+
+            // Clean up listener
+            window.removeEventListener('message', messageHandler);
+
+        } else if (data.type === 'vplus-login-error') {
+            console.error('❌ Login error:', data.message, data.code);
+            showNotification(`❌ שגיאה בהתחברות: ${data.message}`);
+            updateCloudIndicator('disconnected');
+            window.removeEventListener('message', messageHandler);
+
+        } else if (data.type === 'vplus-login-cancelled') {
+            console.log('ℹ️ Login cancelled by user');
+            showNotification('ביטול התחברות');
+            updateCloudIndicator('disconnected');
+            window.removeEventListener('message', messageHandler);
+        }
+    };
+
+    window.addEventListener('message', messageHandler);
+
+    // Clean up listener if popup is closed without completing auth
+    const checkPopupClosed = setInterval(() => {
+        if (popup.closed) {
+            clearInterval(checkPopupClosed);
+            window.removeEventListener('message', messageHandler);
+            console.log('ℹ️ Popup closed');
+        }
+    }, 500);
+}
+
+/**
+ * Updates the cloud indicator button to show connection status
+ * @param {string} status - 'connected' or 'disconnected'
+ * @param {string} email - User email (optional, for connected state)
+ */
+function updateCloudIndicator(status, email = '') {
+    const cloudBtn = document.getElementById('cloudBtn');
+    const cloudIndicator = document.getElementById('cloudIndicator');
+    const cloudSyncText = document.getElementById('cloudSyncText');
+
+    if (!cloudBtn || !cloudIndicator) return;
+
+    if (status === 'connected') {
+        cloudBtn.className = 'cloud-btn-connected px-3 py-1 rounded-full text-[10px] font-bold border flex items-center gap-1 cursor-pointer transition-all';
+        cloudIndicator.className = 'w-2 h-2 bg-green-500 rounded-full';
+        if (cloudSyncText) cloudSyncText.textContent = 'מחובר לענן';
+
+        // Update user email in settings modal
+        const userEmailDisplay = document.getElementById('userEmailDisplay');
+        if (userEmailDisplay && email) {
+            userEmailDisplay.textContent = `מחובר כ: ${email}`;
+        }
+
+        // Show logout button
+        const logoutBtn = document.getElementById('logoutBtn');
+        if (logoutBtn) {
+            logoutBtn.classList.remove('hidden');
+        }
+
+    } else {
+        cloudBtn.className = 'cloud-btn-disconnected px-3 py-1 rounded-full text-[10px] font-bold border flex items-center gap-1 cursor-pointer transition-all';
+        cloudIndicator.className = 'w-2 h-2 bg-gray-400 rounded-full';
+        if (cloudSyncText) cloudSyncText.textContent = 'סנכרון ענן';
+
+        // Clear user email
+        const userEmailDisplay = document.getElementById('userEmailDisplay');
+        if (userEmailDisplay) {
+            userEmailDisplay.textContent = 'לא מחובר';
+        }
+
+        // Hide logout button
+        const logoutBtn = document.getElementById('logoutBtn');
+        if (logoutBtn) {
+            logoutBtn.classList.add('hidden');
+        }
+    }
+}
+
+/**
+ * Logs out from Firebase and updates UI
+ */
+function logoutFromCloud() {
+    if (!window.firebaseAuth || !window.signOut) {
+        console.error('❌ Firebase auth not initialized');
+        return;
+    }
+
+    window.signOut(window.firebaseAuth).then(() => {
+        console.log('✅ Logged out successfully');
+        currentUser = null;
+        isConnected = false;
+
+        // Unsubscribe from Firestore listener
+        if (unsubscribeSnapshot) {
+            unsubscribeSnapshot();
+            unsubscribeSnapshot = null;
+        }
+
+        updateCloudIndicator('disconnected');
+        showNotification('✅ התנתקת מהענן');
+
+    }).catch((error) => {
+        console.error('❌ Logout error:', error);
+        showNotification('❌ שגיאה בהתנתקות');
+    });
+}
+
+/**
+ * Syncs local data to Firebase Firestore
+ */
+function syncToCloud() {
+    if (!isConnected || !currentUser || isSyncing) return;
+    if (!window.firebaseDb || !window.doc || !window.setDoc) {
+        console.error('❌ Firebase Firestore not initialized');
+        return;
+    }
+
+    isSyncing = true;
+    console.log('🔄 Syncing to cloud...');
+
+    const userDocRef = window.doc(window.firebaseDb, 'users', currentUser.uid);
+
+    window.setDoc(userDocRef, {
+        data: db,
+        lastSync: Date.now(),
+        email: currentUser.email
+    }).then(() => {
+        console.log('✅ Sync successful');
+        isSyncing = false;
+    }).catch((error) => {
+        console.error('❌ Sync error:', error);
+        isSyncing = false;
+        showNotification('❌ שגיאה בסנכרון לענן');
+    });
+}
+
 // ========== Global Variables for Notes Feature ==========
 let currentNoteItemIndex = null;
 
@@ -19,33 +250,34 @@ let deletedItemIndex = null;
 let deleteTimeout = null;
 let undoNotification = null;
 
+
 // ========== Reminder Time Conversion ==========
 function getReminderMilliseconds(value, unit) {
     if (!value || !unit) return 0;
-    
+
     const numValue = parseInt(value);
     if (isNaN(numValue) || numValue <= 0) return 0;
-    
+
     const conversions = {
         'minutes': numValue * 60 * 1000,
         'hours': numValue * 60 * 60 * 1000,
         'days': numValue * 24 * 60 * 60 * 1000,
         'weeks': numValue * 7 * 24 * 60 * 60 * 1000
     };
-    
+
     return conversions[unit] || 0;
 }
 
 function formatReminderText(value, unit) {
     if (!value || !unit) return '';
-    
+
     const units = {
         'minutes': value === '1' ? 'דקה' : 'דקות',
         'hours': value === '1' ? 'שעה' : 'שעות',
         'days': value === '1' ? 'יום' : 'ימים',
         'weeks': value === '1' ? 'שבוע' : 'שבועות'
     };
-    
+
     return `${value} ${units[unit]}`;
 }
 
@@ -573,7 +805,7 @@ function save() {
     db.lastSync = Date.now();
     localStorage.setItem('BUDGET_FINAL_V28', JSON.stringify(db));
     render();
-    
+
     // Update notification badge
     if (typeof updateNotificationBadge === 'function') {
         updateNotificationBadge();
@@ -1673,30 +1905,30 @@ function searchInSummary() {
 // Helper function to generate dueDate and notes HTML
 function generateItemMetadataHTML(item, idx) {
     let html = '';
-    
+
     // Build dueDate display - NOT clickable itself, parent div handles click
     if (item.dueDate) {
         const today = new Date();
         today.setHours(0, 0, 0, 0);
         const dueDate = new Date(item.dueDate);
         dueDate.setHours(0, 0, 0, 0);
-        
+
         const diffTime = dueDate - today;
         const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-        
+
         let dateClass = 'item-duedate-display';
         let dateText = new Date(item.dueDate).toLocaleDateString('he-IL');
-        
+
         if (diffDays < 0 && !item.checked && !item.isPaid) {
             dateClass += ' overdue';
             dateText += ' (עבר!)';
         } else if (diffDays >= 0 && diffDays <= 3 && !item.checked && !item.isPaid) {
             dateClass += ' soon';
         }
-        
+
         html += `<div class="${dateClass}">📅 ${dateText}</div>`;
     }
-    
+
     // Build payment URL link - ONLY as clickable icon with stopPropagation
     if (item.paymentUrl && item.paymentUrl.trim()) {
         html += `<div style="display: inline-flex; align-items: center; gap: 6px; margin-top: 4px;">
@@ -1707,17 +1939,17 @@ function generateItemMetadataHTML(item, idx) {
             </a>
         </div>`;
     }
-    
+
     // Build notes display - ONLY if there are actual notes (not URLs from paymentUrl field)
     if (item.note && item.note.trim()) {
         html += `<div class="item-notes-display">📝 ${item.note}</div>`;
     }
-    
+
     // Build paid badge
     if (item.isPaid) {
         html += `<div class="item-paid-badge">✓ שולם</div>`;
     }
-    
+
     return html;
 }
 
@@ -1779,10 +2011,10 @@ function render() {
                 });
 
                 // Build dynamic category order: defaults + custom categories + אחר/כללי at end
-                const customCategoriesInList = Array.from(allCategories).filter(cat => 
+                const customCategoriesInList = Array.from(allCategories).filter(cat =>
                     !defaultOrder.includes(cat) && cat !== 'אחר' && cat !== 'כללי'
                 );
-                
+
                 const categoryOrder = [
                     ...defaultOrder,
                     ...customCategoriesInList,
@@ -2679,7 +2911,7 @@ async function shareNative(type) {
 
 function addItemToList(event) {
     if (event) event.preventDefault();
-    
+
     const n = document.getElementById('itemName') ? document.getElementById('itemName').value.trim() : '';
     const p = parseFloat(document.getElementById('itemPrice') ? document.getElementById('itemPrice').value : 0) || 0;
     const q = parseInt(document.getElementById('itemQty') ? document.getElementById('itemQty').value : 1) || 1;
@@ -2769,23 +3001,23 @@ function removeItem(idx) {
     // שמירת הפריט והאינדקס שלו
     deletedItem = JSON.parse(JSON.stringify(db.lists[db.currentId].items[idx]));
     deletedItemIndex = idx;
-    
+
     // מחיקת הפריט
     db.lists[db.currentId].items.splice(idx, 1);
     save();
     render();
-    
+
     // ביטול טיימר קודם אם קיים
     if (deleteTimeout) {
         clearTimeout(deleteTimeout);
     }
-    
+
     // הסרת הודעת ביטול קודמת אם קיימת
     if (undoNotification) {
         undoNotification.remove();
         undoNotification = null;
     }
-    
+
     // יצירת הודעה עם כפתור ביטול
     const notif = document.createElement('div');
     notif.className = 'notification undo-notification';
@@ -2795,10 +3027,10 @@ function removeItem(idx) {
     notif.style.alignItems = 'center';
     notif.style.justifyContent = 'space-between';
     notif.style.gap = '10px';
-    
+
     const message = document.createElement('span');
     message.innerHTML = '<strong>🗑️ מוצר הוסר</strong>';
-    
+
     const undoBtn = document.createElement('button');
     undoBtn.innerHTML = '<strong>↩️ ביטול</strong>';
     undoBtn.style.background = 'white';
@@ -2810,15 +3042,15 @@ function removeItem(idx) {
     undoBtn.style.cursor = 'pointer';
     undoBtn.style.fontSize = '14px';
     undoBtn.onclick = undoDelete;
-    
+
     notif.appendChild(message);
     notif.appendChild(undoBtn);
     document.body.appendChild(notif);
     undoNotification = notif;
-    
+
     // הצגת ההודעה
     setTimeout(() => notif.classList.add('show'), 100);
-    
+
     // טיימר למחיקה סופית אחרי 5 שניות
     deleteTimeout = setTimeout(() => {
         finalizeDelete();
@@ -2832,18 +3064,18 @@ function undoDelete() {
             clearTimeout(deleteTimeout);
             deleteTimeout = null;
         }
-        
+
         // החזרת הפריט למיקום המקורי שלו
         db.lists[db.currentId].items.splice(deletedItemIndex, 0, deletedItem);
-        
+
         // איפוס המשתנים
         deletedItem = null;
         deletedItemIndex = null;
-        
+
         // שמירה ורינדור
         save();
         render();
-        
+
         // הסרת הודעת הביטול
         if (undoNotification) {
             undoNotification.classList.remove('show');
@@ -2852,7 +3084,7 @@ function undoDelete() {
                 undoNotification = null;
             }, 300);
         }
-        
+
         // הצגת הודעת אישור
         showNotification('✅ הפעולה בוטלה');
     }
@@ -2863,7 +3095,7 @@ function finalizeDelete() {
     deletedItem = null;
     deletedItemIndex = null;
     deleteTimeout = null;
-    
+
     // הסרת ההודעה
     if (undoNotification) {
         undoNotification.classList.remove('show');
@@ -3146,7 +3378,7 @@ function saveItemEdit() {
     const newPaymentUrl = document.getElementById('editItemPaymentUrl').value.trim();
     const newReminderValue = document.getElementById('editItemReminderValue') ? document.getElementById('editItemReminderValue').value : '';
     const newReminderUnit = document.getElementById('editItemReminderUnit') ? document.getElementById('editItemReminderUnit').value : '';
-    
+
     if (newName && currentEditIdx !== null) {
         const item = db.lists[db.currentId].items[currentEditIdx];
         item.name = newName;
@@ -3155,28 +3387,28 @@ function saveItemEdit() {
         item.reminderValue = newReminderValue;
         item.reminderUnit = newReminderUnit;
         item.lastUpdated = Date.now();
-        
+
         // שמירה מקומית תחילה
         db.lastActivePage = activePage;
         db.lastSync = Date.now();
         localStorage.setItem('BUDGET_FINAL_V28', JSON.stringify(db));
-        
+
         // רינדור מיידי
         render();
-        
+
         // עדכון תגי התראה
         if (typeof updateNotificationBadge === 'function') {
             updateNotificationBadge();
         }
-        
+
         // סגירת המודל מיד לאחר רינדור
         closeModal('editItemNameModal');
         showNotification('✅ הפריט עודכן!');
-        
+
         if (typeof checkUrgentPayments === 'function') {
             checkUrgentPayments();
         }
-        
+
         // סנכרון לענן ברקע (אסינכרוני)
         if (isConnected && currentUser) {
             if (syncTimeout) clearTimeout(syncTimeout);
@@ -3267,11 +3499,11 @@ function selectCategory(categoryName) {
     if (currentEditIdx !== null) {
         const item = db.lists[db.currentId].items[currentEditIdx];
         item.category = categoryName;
-        
+
         // Update category memory for this product
         if (!db.categoryMemory) db.categoryMemory = {};
         db.categoryMemory[item.name.toLowerCase().trim()] = categoryName;
-        
+
         save();
         showNotification('✓ הקטגוריה עודכנה');
     }
@@ -3282,27 +3514,27 @@ function saveCustomCategory() {
     const customCategory = document.getElementById('customCategoryInput').value.trim();
     if (customCategory && currentEditIdx !== null) {
         const item = db.lists[db.currentId].items[currentEditIdx];
-        
+
         // Update item category
         item.category = customCategory;
-        
+
         // Add to global custom categories if not already there
         if (!db.customCategories) db.customCategories = [];
         if (!db.customCategories.includes(customCategory)) {
             db.customCategories.push(customCategory);
         }
-        
+
         // Update category memory for this product
         if (!db.categoryMemory) db.categoryMemory = {};
         db.categoryMemory[item.name.toLowerCase().trim()] = customCategory;
-        
+
         // Add custom category to CATEGORIES object for color assignment if not exists
         if (!CATEGORIES[customCategory]) {
             // Assign a random color from existing palette or generate new
             const colors = ['#22c55e', '#ef4444', '#3b82f6', '#f59e0b', '#8b5cf6', '#ec4899', '#06b6d4', '#10b981', '#6366f1'];
             CATEGORIES[customCategory] = colors[db.customCategories.length % colors.length];
         }
-        
+
         save();
         showNotification('✓ קטגוריה מותאמת נשמרה');
     }
@@ -3329,9 +3561,9 @@ function renderCustomCategoriesList() {
     db.customCategories.forEach((category, index) => {
         const div = document.createElement('div');
         div.className = 'flex justify-between items-center mb-3 p-4 bg-purple-50 rounded-xl border-2 border-purple-200';
-        
+
         const color = CATEGORIES[category] || '#6b7280';
-        
+
         div.innerHTML = `
             <div class="flex items-center gap-3">
                 <div class="w-4 h-4 rounded-full" style="background-color: ${color}"></div>
@@ -3353,14 +3585,14 @@ let categoryIndexToDelete = null;
 function openDeleteCategoryModal(categoryName, categoryIndex) {
     categoryToDelete = categoryName;
     categoryIndexToDelete = categoryIndex;
-    
+
     const nameDisplay = document.getElementById('categoryToDeleteName');
     if (nameDisplay) {
         nameDisplay.textContent = categoryName;
         const color = CATEGORIES[categoryName] || '#7367f0';
         nameDisplay.style.color = color;
     }
-    
+
     openModal('deleteCategoryModal');
 }
 
@@ -5829,23 +6061,23 @@ function checkUrgentPayments() {
 
     const urgentItems = list.items.filter(item => {
         if (!item.dueDate || item.isPaid || item.checked) return false;
-        
+
         const dueDate = new Date(item.dueDate);
         dueDate.setHours(0, 0, 0, 0);
-        
+
         // בדוק אם התאריך עבר
         const isOverdue = dueDate <= today;
-        
+
         // בדוק אם יש להתריע לפי reminderValue ו-reminderUnit
         if (item.reminderValue && item.reminderUnit) {
             const reminderTimeMs = getReminderMilliseconds(item.reminderValue, item.reminderUnit);
             const dueDateMs = dueDate.getTime();
             const reminderDate = new Date(dueDateMs - reminderTimeMs);
-            
+
             const isReminderTime = now >= reminderDate.getTime() && now <= dueDateMs + (24 * 60 * 60 * 1000);
             return isOverdue || isReminderTime;
         }
-        
+
         return isOverdue;
     });
 
@@ -5916,15 +6148,15 @@ function showUrgentAlertModal(urgentItems) {
         dueDate.setHours(0, 0, 0, 0);
         return dueDate < today;
     });
-    
+
     const upcomingItemsFiltered = urgentItems.filter(item => {
         const dueDate = new Date(item.dueDate);
         dueDate.setHours(0, 0, 0, 0);
         return dueDate >= today;
     });
-    
+
     let itemsHTML = '';
-    
+
     // הצגת פריטים באיחור
     if (overdueItemsFiltered.length > 0) {
         itemsHTML += '<div style="font-weight: bold; color: #ef4444; margin-bottom: 10px;">⚠️ באיחור:</div>';
@@ -5938,7 +6170,7 @@ function showUrgentAlertModal(urgentItems) {
             `;
         });
     }
-    
+
     // הצגת תזכורות עתידיות
     if (upcomingItemsFiltered.length > 0) {
         if (overdueItemsFiltered.length > 0) {
@@ -5951,12 +6183,12 @@ function showUrgentAlertModal(urgentItems) {
             dueDate.setHours(0, 0, 0, 0);
             const daysUntil = Math.floor((dueDate - today) / 86400000);
             const daysText = daysUntil === 0 ? 'היום' : daysUntil === 1 ? 'מחר' : `בעוד ${daysUntil} ימים`;
-            
+
             let reminderText = '';
             if (item.reminderValue && item.reminderUnit) {
                 reminderText = ` (התראה: ${formatReminderText(item.reminderValue, item.reminderUnit)} לפני)`;
             }
-            
+
             itemsHTML += `
                 <div class="urgent-item" style="border-right: 3px solid #3b82f6;">
                     <div class="urgent-item-name">${item.name}</div>
@@ -5973,7 +6205,7 @@ function showUrgentAlertModal(urgentItems) {
 // Snooze urgent alert for specified hours
 function snoozeUrgentAlert(hours) {
     const snoozeUntil = Date.now() + (hours * 60 * 60 * 1000);
-    
+
     if (hours === 4) {
         localStorage.setItem('urgentSnooze4h', snoozeUntil.toString());
     } else if (hours === 24) {
@@ -6002,10 +6234,10 @@ function formatDate(dateString) {
 // Auto-link URLs in notes
 function autoLinkNotes(text) {
     if (!text) return '';
-    
+
     // URL regex pattern
     const urlPattern = /(https?:\/\/[^\s]+)/g;
-    
+
     return text.replace(urlPattern, (url) => {
         return `<a href="${url}" target="_blank" rel="noopener noreferrer">${url}</a>`;
     });
@@ -6017,7 +6249,7 @@ function toggleItemPaid(idx) {
     if (!list || !list.items[idx]) return;
 
     list.items[idx].isPaid = !list.items[idx].isPaid;
-    
+
     // Also mark as checked when paid
     if (list.items[idx].isPaid) {
         list.items[idx].checked = true;
@@ -6031,14 +6263,14 @@ function toggleItemPaid(idx) {
 function editDueDate(idx) {
     currentEditItemIndex = idx;
     currentEditField = 'dueDate';
-    
+
     const list = db.lists[db.currentId];
     const item = list.items[idx];
-    
+
     // Create inline date input
     const dateDisplay = document.querySelector(`[data-duedate-idx="${idx}"]`);
     if (!dateDisplay) return;
-    
+
     const currentValue = item.dueDate || '';
     const input = document.createElement('input');
     input.type = 'date';
@@ -6048,26 +6280,26 @@ function editDueDate(idx) {
     input.style.width = 'auto';
     input.style.padding = '4px 8px';
     input.style.fontSize = '0.85em';
-    
-    input.onchange = function() {
+
+    input.onchange = function () {
         list.items[idx].dueDate = input.value;
         save();
         checkUrgentPayments();
     };
-    
-    input.onblur = function() {
+
+    input.onblur = function () {
         setTimeout(() => {
             if (input.parentNode) {
                 input.remove();
             }
         }, 200);
     };
-    
+
     dateDisplay.parentNode.insertBefore(input, dateDisplay);
     dateDisplay.style.display = 'none';
     input.focus();
-    
-    input.addEventListener('keypress', function(e) {
+
+    input.addEventListener('keypress', function (e) {
         if (e.key === 'Enter') {
             input.blur();
         }
@@ -6078,14 +6310,14 @@ function editDueDate(idx) {
 function editNotes(idx) {
     currentEditItemIndex = idx;
     currentEditField = 'notes';
-    
+
     const list = db.lists[db.currentId];
     const item = list.items[idx];
-    
+
     // Create inline text input
     const notesDisplay = document.querySelector(`[data-notes-idx="${idx}"]`);
     if (!notesDisplay) return;
-    
+
     const currentValue = item.note || '';
     const input = document.createElement('input');
     input.type = 'text';
@@ -6095,25 +6327,25 @@ function editNotes(idx) {
     input.style.width = '100%';
     input.style.padding = '4px 8px';
     input.style.fontSize = '0.85em';
-    
-    input.onchange = function() {
+
+    input.onchange = function () {
         list.items[idx].note = input.value;
         save();
     };
-    
-    input.onblur = function() {
+
+    input.onblur = function () {
         setTimeout(() => {
             if (input.parentNode) {
                 input.remove();
             }
         }, 200);
     };
-    
+
     notesDisplay.parentNode.insertBefore(input, notesDisplay);
     notesDisplay.style.display = 'none';
     input.focus();
-    
-    input.addEventListener('keypress', function(e) {
+
+    input.addEventListener('keypress', function (e) {
         if (e.key === 'Enter') {
             input.blur();
         }
@@ -6121,7 +6353,7 @@ function editNotes(idx) {
 }
 
 // Initialize Peace of Mind features on page load
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', function () {
     // Check urgent payments after a short delay to ensure data is loaded
     setTimeout(() => {
         checkUrgentPayments();
@@ -6129,36 +6361,36 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 // Override the original render function to include Peace of Mind display elements
-const originalRender = window.render || function() {};
+const originalRender = window.render || function () { };
 
 // We'll need to modify the render function, but since it's complex,
 // let's add a helper to enhance item rendering
 function enhanceItemHTML(item, idx, originalHTML) {
     let enhanced = originalHTML;
-    
+
     // Add due date display if exists
     if (item.dueDate) {
         const today = new Date();
         today.setHours(0, 0, 0, 0);
         const dueDate = new Date(item.dueDate);
         dueDate.setHours(0, 0, 0, 0);
-        
+
         const isOverdue = dueDate < today && !item.isPaid && !item.checked;
         const dueDateClass = isOverdue ? 'item-duedate-display overdue' : 'item-duedate-display';
-        
+
         const dueDateHTML = `
             <div class="${dueDateClass}" data-duedate-idx="${idx}" onclick="editDueDate(${idx})">
                 📅 ${formatDate(item.dueDate)}${isOverdue ? ' (פג תוקף!)' : ''}
             </div>
         `;
-        
+
         // Insert after category badge
         const categoryPos = enhanced.lastIndexOf('</div>', enhanced.indexOf('item-number'));
         if (categoryPos > -1) {
             enhanced = enhanced.slice(0, categoryPos) + dueDateHTML + enhanced.slice(categoryPos);
         }
     }
-    
+
     // Add notes display if exists
     if (item.note) {
         const linkedNotes = autoLinkNotes(item.note);
@@ -6167,14 +6399,14 @@ function enhanceItemHTML(item, idx, originalHTML) {
                 📝 ${linkedNotes}
             </div>
         `;
-        
+
         // Insert after category badge or due date
         const insertPos = enhanced.lastIndexOf('</div>', enhanced.indexOf('flex justify-between items-center mb-4'));
         if (insertPos > -1) {
             enhanced = enhanced.slice(0, insertPos) + notesHTML + enhanced.slice(insertPos);
         }
     }
-    
+
     return enhanced;
 }
 
@@ -6184,40 +6416,40 @@ function getNotificationItems() {
     const now = Date.now();
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    
+
     const threeDaysFromNow = new Date(today);
     threeDaysFromNow.setDate(threeDaysFromNow.getDate() + 3);
-    
+
     Object.keys(db.lists).forEach(listId => {
         const list = db.lists[listId];
         list.items.forEach((item, idx) => {
             if (item.dueDate && !item.checked && !item.isPaid) {
                 const dueDate = new Date(item.dueDate);
                 dueDate.setHours(0, 0, 0, 0);
-                
+
                 // חישוב זמן ההתראה לפי reminderValue ו-reminderUnit
                 let reminderTimeMs = 0;
                 if (item.reminderValue && item.reminderUnit) {
                     reminderTimeMs = getReminderMilliseconds(item.reminderValue, item.reminderUnit);
                 }
-                
+
                 const dueDateMs = dueDate.getTime();
                 const reminderDate = new Date(dueDateMs - reminderTimeMs);
-                
+
                 const isOverdue = dueDate < today;
                 const isReminderTime = reminderTimeMs > 0 && now >= reminderDate.getTime() && now <= dueDateMs + (24 * 60 * 60 * 1000);
                 const shouldNotify = isOverdue || isReminderTime;
-                
+
                 if (shouldNotify || dueDate <= threeDaysFromNow) {
                     const isToday = dueDate.getTime() === today.getTime();
                     const isTomorrow = dueDate.getTime() === new Date(today.getTime() + 86400000).getTime();
-                    
+
                     let urgency = 0;
                     if (isOverdue) urgency = 3;
                     else if (isToday) urgency = 2;
                     else if (isTomorrow) urgency = 1;
                     else urgency = 0;
-                    
+
                     notificationItems.push({
                         item,
                         itemIdx: idx,
@@ -6236,19 +6468,19 @@ function getNotificationItems() {
             }
         });
     });
-    
+
     notificationItems.sort((a, b) => {
         if (b.urgency !== a.urgency) return b.urgency - a.urgency;
         return a.dueDate - b.dueDate;
     });
-    
+
     return notificationItems;
 }
 
 function updateNotificationBadge() {
     const notificationItems = getNotificationItems();
     const badge = document.getElementById('notificationBadge');
-    
+
     if (notificationItems.length > 0) {
         badge.textContent = notificationItems.length;
         badge.style.display = 'flex';
@@ -6260,14 +6492,14 @@ function updateNotificationBadge() {
 function openNotificationCenter() {
     const notificationItems = getNotificationItems();
     const container = document.getElementById('notificationsList');
-    
+
     if (notificationItems.length === 0) {
         container.innerHTML = '<p class="text-gray-400 text-center py-8">אין התראות כרגע 🎉</p>';
     } else {
         container.innerHTML = '';
         notificationItems.forEach(notif => {
             const div = document.createElement('div');
-            
+
             // קביעת סוג ההתראה וצבע
             let notifClass = 'soon';
             if (notif.isOverdue) {
@@ -6275,20 +6507,20 @@ function openNotificationCenter() {
             } else if (notif.isUpcoming && !notif.isToday) {
                 notifClass = 'upcoming';
             }
-            
+
             div.className = `notification-item ${notifClass}`;
             div.onclick = () => jumpToItem(notif.listId, notif.itemIdx);
-            
+
             let dateText = '';
             if (notif.isOverdue) {
-                const daysOverdue = Math.floor((new Date().setHours(0,0,0,0) - notif.dueDate) / 86400000);
+                const daysOverdue = Math.floor((new Date().setHours(0, 0, 0, 0) - notif.dueDate) / 86400000);
                 dateText = `⚠️ איחור ${daysOverdue} ${daysOverdue === 1 ? 'יום' : 'ימים'}`;
             } else if (notif.isToday) {
                 dateText = '📅 היום!';
             } else if (notif.isTomorrow) {
                 dateText = '📅 מחר';
             } else {
-                const daysUntil = Math.floor((notif.dueDate - new Date().setHours(0,0,0,0)) / 86400000);
+                const daysUntil = Math.floor((notif.dueDate - new Date().setHours(0, 0, 0, 0)) / 86400000);
                 if (notif.isUpcoming && notif.reminderValue && notif.reminderUnit) {
                     const reminderText = formatReminderText(notif.reminderValue, notif.reminderUnit);
                     dateText = `🔔 תזכורת ${reminderText} לפני - תאריך יעד בעוד ${daysUntil} ${daysUntil === 1 ? 'יום' : 'ימים'}`;
@@ -6296,7 +6528,7 @@ function openNotificationCenter() {
                     dateText = `📅 בעוד ${daysUntil} ${daysUntil === 1 ? 'יום' : 'ימים'}`;
                 }
             }
-            
+
             div.innerHTML = `
                 <div class="notification-item-title">${notif.item.name}</div>
                 <div class="notification-item-date">${dateText}</div>
@@ -6305,7 +6537,7 @@ function openNotificationCenter() {
             container.appendChild(div);
         });
     }
-    
+
     openModal('notificationCenterModal');
 }
 
@@ -6313,15 +6545,15 @@ function jumpToItem(listId, itemIdx) {
     closeModal('notificationCenterModal');
     db.currentId = listId;
     activePage = 'lists';
-    
+
     setTimeout(() => {
         render();
-        
+
         const itemCard = document.querySelector(`[data-id="${itemIdx}"]`);
         if (itemCard) {
             itemCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
             itemCard.classList.add('highlight-item');
-            
+
             setTimeout(() => {
                 itemCard.classList.remove('highlight-item');
             }, 2000);
@@ -6338,36 +6570,36 @@ function autoLinkNotes(noteText) {
 function toggleVoiceInput() {
     const input = document.getElementById('newItemInput');
     if (!input) return;
-    
+
     if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
         showNotification('הדפדפן לא תומך בזיהוי קולי', 'error');
         return;
     }
-    
+
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     const recognition = new SpeechRecognition();
     recognition.lang = 'he-IL';
     recognition.continuous = false;
-    
+
     const voiceIcon = document.getElementById('voiceIcon');
     voiceIcon.textContent = '⏺️';
-    
+
     recognition.onresult = (event) => {
         const transcript = event.results[0][0].transcript;
         input.value = transcript;
         voiceIcon.textContent = '🎤';
         showNotification('✅ זוהה: ' + transcript);
     };
-    
+
     recognition.onerror = () => {
         voiceIcon.textContent = '🎤';
         showNotification('שגיאה בזיהוי קולי', 'error');
     };
-    
+
     recognition.onend = () => {
         voiceIcon.textContent = '🎤';
     };
-    
+
     try {
         recognition.start();
         showNotification('🎤 מאזין...');
@@ -6380,7 +6612,7 @@ function toggleVoiceInput() {
 function addItem() {
     const input = document.getElementById('newItemInput');
     const name = input.value.trim();
-    
+
     if (name) {
         const category = detectCategory(name);
         db.lists[db.currentId].items.push({
@@ -6396,7 +6628,7 @@ function addItem() {
             lastUpdated: Date.now(),
             cloudId: 'item_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9)
         });
-        
+
         input.value = '';
         save();
         showNotification('✅ ' + name + ' נוסף!');
@@ -6433,7 +6665,7 @@ function switchTab(tab) {
     const shoppingTab = document.getElementById('shoppingTab');
     const analysisTab = document.getElementById('analysisTab');
     const tabs = document.querySelectorAll('.tab-btn');
-    
+
     if (tab === 'shopping') {
         shoppingTab.style.display = 'block';
         analysisTab.style.display = 'none';
@@ -6451,20 +6683,20 @@ function switchTab(tab) {
 function updateCategoryChart() {
     const list = db.lists[db.currentId];
     if (!list || list.items.length === 0) return;
-    
+
     const categoryTotals = {};
     list.items.forEach(item => {
         const cat = item.category || 'אחר';
         categoryTotals[cat] = (categoryTotals[cat] || 0) + (item.price * item.qty);
     });
-    
+
     const canvas = document.getElementById('categoryChart');
     const ctx = canvas.getContext('2d');
-    
+
     if (window.categoryChartInstance) {
         window.categoryChartInstance.destroy();
     }
-    
+
     window.categoryChartInstance = new Chart(ctx, {
         type: 'doughnut',
         data: {
@@ -6493,7 +6725,7 @@ function exportToExcel() {
 }
 
 // Initialize notification badge on page load
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', function () {
     setTimeout(() => {
         if (typeof updateNotificationBadge === 'function') {
             updateNotificationBadge();
