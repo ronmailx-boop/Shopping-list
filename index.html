@@ -1770,6 +1770,19 @@ ${error.message}
     </div>
 
     <script src="script.js"></script>
+
+      <!-- Firebase Cloud Messaging SDK -->
+  <script type="module">
+    import { getMessaging } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-messaging.js';
+    if (window.firebaseApp) {
+      const messaging = getMessaging(window.firebaseApp);
+      window.firebaseMessaging = messaging;
+      console.log('✅ Firebase Messaging initialized');
+    }
+  </script>
+
+  <!-- Push Notifications Handler -->
+  <script src="push-notifications.js" type="module"></script>
 </body>
 
 </html>
