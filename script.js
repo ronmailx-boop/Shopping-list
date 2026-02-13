@@ -12,6 +12,7 @@ let currentNoteItemIndex = null;
 // ========== Global Variables for Peace of Mind Features ==========
 let currentEditItemIndex = null;
 let currentEditField = null;
+let pendingDelete = null; // {idx, item, listId, timeout}
 
 // ========== Reminder Time Conversion ==========
 function getReminderMilliseconds(value, unit) {
@@ -2760,10 +2761,61 @@ function changeQty(idx, d) {
 }
 
 function removeItem(idx) {
+        // אם יש מחיקה ממתינה אחרת, בטל אותה
+    if (pendingDelete && pendingDelete.timeout) {
+        clearTimeout(pendingDelete.timeout);
+        pendingDelete = null;
+    }
+
+    // שמור את המוצר לפני המחיקה
+    const item = db.lists[db.currentId].items[idx];
+    const listId = db.currentId;
+
+    // מחק את המוצר מהרשימה
     db.lists[db.currentId].items.splice(idx, 1);
     save();
-    showNotification('🗑️ מוצר הוסר');
+
+    // הצג הודעה עם אפשרות ביטול
+    const notification = document.createElement('div');
+    notification.style.cssText = 'position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#333;color:#fff;padding:12px 20px;border-radius:8px;display:flex;align-items:center;gap:15px;z-index:10000;box-shadow:0 4px 12px rgba(0,0,0,0.3);';
+    notification.innerHTML = `
+        <span>🗑️ מוצר הוסר</span>
+        <button onclick="undoDelete()" style="background:#7367f0;color:#fff;border:none;padding:8px 16px;border-radius:6px;cursor:pointer;font-weight:bold;">ביטול</button>
+    `;
+    document.body.appendChild(notification);
+
+    // הגדר טיימר למחיקה סופית אחרי 5 שניות
+    const timeout = setTimeout(() => {
+        pendingDelete = null;
+        document.body.removeChild(notification);
+    }, 5000);
+
+    // שמור את המידע למחיקה הממתינה
+    pendingDelete = {idx, item, listId, timeout, notification};
+
+
+    function undoDelete() {
+    if (!pendingDelete) return;
+
+    // בטל את הטיימר
+    clearTimeout(pendingDelete.timeout);
+
+    // החזר את המוצר לרשימה
+    db.lists[pendingDelete.listId].items.splice(pendingDelete.idx, 0, pendingDelete.item);
+    save();
+
+    // הסר את ההודעה
+    if (pendingDelete.notification && pendingDelete.notification.parentNode) {
+        document.body.removeChild(pendingDelete.notification);
+    }
+
+    // נקה את המחיקה הממתינה
+    pendingDelete = null;
+
+    // הצג הודעה שהמוצר שוחזר
+    showNotification('✅ מוצר שוחזר בהצלחה!');
 }
+    window.undoDelete = undoDelete;
 
 function toggleLock() {
     isLocked = !isLocked;
