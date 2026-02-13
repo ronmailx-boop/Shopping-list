@@ -1491,8 +1491,6 @@ function showNotification(message, type = 'success') {
     notif.className = 'notification';
     notif.style.background = type === 'success' ? '#22c55e' : type === 'warning' ? '#f59e0b' : '#ef4444';
     notif.style.color = 'white';
-    notif.style.maxWidth = '350px';
-    notif.style.wordWrap = 'break-word';
     notif.innerHTML = `<strong>${message}</strong>`;
     document.body.appendChild(notif);
 
@@ -1500,7 +1498,7 @@ function showNotification(message, type = 'success') {
     setTimeout(() => {
         notif.classList.remove('show');
         setTimeout(() => notif.remove(), 300);
-    }, 4000); // Extended to 4 seconds for longer messages
+    }, 3000);
 }
 
 // ========== Autocomplete Functions ==========
@@ -3654,12 +3652,6 @@ function loginWithGoogle() {
         return;
     }
 
-    if (!window.googleProvider) {
-        showNotification('⚠️ Google provider לא זמין', 'warning');
-        console.warn('⚠️ Google Provider לא זמין');
-        return;
-    }
-
     // Check if already logged in
     if (window.firebaseAuth.currentUser) {
         showNotification('✅ אתה כבר מחובר', 'success');
@@ -3669,43 +3661,17 @@ function loginWithGoogle() {
     }
 
     console.log('🔐 מתחיל תהליך התחברות Google...');
-    console.log('🔐 Auth:', window.firebaseAuth ? 'זמין' : 'לא זמין');
-    console.log('🔐 Provider:', window.googleProvider ? 'זמין' : 'לא זמין');
     updateCloudIndicator('syncing');
 
-    // Use signInWithPopup and handle the promise correctly
-    window.signInWithPopup(window.firebaseAuth, window.googleProvider)
-        .then((result) => {
-            console.log('✅ התחברות הצליחה!', result.user.email);
-            showNotification('✅ התחברת בהצלחה!', 'success');
-            currentUser = result.user;
-            isConnected = true;
-            updateCloudIndicator('connected');
-            
-            // Setup Firestore listener
-            setupFirestoreListener(result.user);
-        })
-        .catch((error) => {
-            console.error("❌ שגיאת התחברות:", error);
-            console.error("❌ קוד שגיאה:", error.code);
-            console.error("❌ הודעת שגיאה:", error.message);
-            
-            // Handle different error types
-            if (error.code === 'auth/popup-closed-by-user') {
-                console.log('ℹ️ המשתמש סגר את חלון ההתחברות');
-                showNotification('ℹ️ חלון ההתחברות נסגר', 'warning');
-            } else if (error.code === 'auth/cancelled-popup-request') {
-                console.log('ℹ️ בקשת popup בוטלה');
-                showNotification('ℹ️ ההתחברות בוטלה', 'warning');
-            } else if (error.code === 'auth/popup-blocked') {
-                console.log('⚠️ הדפדפן חסם את חלון ההתחברות');
-                showNotification('⚠️ הדפדפן חסם את חלון ההתחברות. אנא אפשר חלונות קופצים עבור אתר זה', 'warning');
-            } else {
-                showDetailedError('Login', error);
-            }
-            
-            updateCloudIndicator('disconnected');
-        });
+    try {
+        // Trigger Google sign-in redirect
+        window.signInWithPopup(window.firebaseAuth, window.googleProvider);
+        console.log('🔄 מפנה לדף התחברות Google...');
+    } catch (error) {
+        console.error("❌ שגיאת התחברות:", error);
+        showDetailedError('Login', error);
+        updateCloudIndicator('disconnected');
+    }
 }
 
 function logoutFromCloud() {
@@ -3754,9 +3720,9 @@ function updateCloudIndicator(status) {
         // Show short status instead of full email to save space
         if (text) text.textContent = "מחובר ✅";
     } else if (status === 'syncing') {
-        // Yellow indicator - syncing in progress with pulse animation
+        // Yellow indicator - syncing in progress
         indicator.className = 'w-2 h-2 bg-yellow-500 rounded-full animate-pulse';
-        cloudBtn.className = 'cloud-btn-syncing px-3 py-1 rounded-full text-[10px] font-bold border flex items-center gap-1 cursor-pointer transition-all';
+        cloudBtn.className = 'cloud-btn-disconnected px-3 py-1 rounded-full text-[10px] font-bold border flex items-center gap-1 cursor-pointer transition-all';
         if (text) text.textContent = "מסנכרן...";
     } else {
         // Red indicator - disconnected state
@@ -3953,7 +3919,7 @@ async function syncToCloud() {
         const userDocRef = window.doc(window.firebaseDb, "shopping_lists", currentUser.uid);
         await window.setDoc(userDocRef, db);
         console.log('✅ סנכרון לענן הושלם בהצלחה');
-        // Removed notification - indicator shows sync status
+        showNotification('✅ שמור בענן', 'success');
     } catch (error) {
         console.error("❌ שגיאה בכתיבה לענן:", error);
         showDetailedError('Cloud Sync', error);
