@@ -1440,7 +1440,10 @@ ${error.message}
             </div>
             <input type="number" id="itemPrice" inputmode="decimal" placeholder="מחיר" class="modal-input">
             <input type="number" id="itemQty" placeholder="כמות" class="modal-input" value="1" min="1">
-            <input type="date" id="itemDueDate" placeholder="תאריך יעד (אופציונלי)" class="modal-input">
+            <div style="margin-bottom: 5px;">
+                <label class="text-sm font-bold text-gray-600 block text-center mb-1">📅 תאריך יעד</label>
+                <input type="date" id="itemDueDate" class="modal-input">
+            </div>
             <input type="url" id="itemPaymentUrl" placeholder="🔗 קישור לתשלום (אופציונלי)" class="modal-input">
             <input type="text" id="itemNotes" placeholder="📝 הערות (אופציונלי)" class="modal-input">
             <select id="itemCategory" class="modal-input">
@@ -1571,7 +1574,10 @@ ${error.message}
         <div class="edit-modal">
             <h2>📝 עריכת פריט</h2>
             <input type="text" id="editItemName" class="modal-input" placeholder="שם הפריט">
-            <input type="date" id="editItemDueDate" class="modal-input" placeholder="תאריך יעד">
+            <div style="margin-bottom: 5px;">
+                <label class="text-sm font-bold text-gray-600 block text-center mb-1">📅 תאריך יעד</label>
+                <input type="date" id="editItemDueDate" class="modal-input">
+            </div>
             <input type="url" id="editItemPaymentUrl" class="modal-input" placeholder="🔗 קישור לתשלום (אופציונלי)">
             <div style="margin-bottom: 5px;">
                 <label class="text-sm font-bold text-gray-600 block text-center mb-1">🔔 התראה מראש</label>
