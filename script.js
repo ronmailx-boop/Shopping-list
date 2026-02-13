@@ -6,12 +6,276 @@ let isConnected = false;
 let currentUser = null;
 let syncTimeout = null;
 
+// ========== Debug Mode ==========
+window.VPLUS_DEBUG = true;
+console.log('%c🚀 vplus Starting...', 'color: #22c55e; font-size: 20px; font-weight: bold');
+
+// Global error handler
+window.addEventListener('error', function(event) {
+    console.error('❌ Global Error:', event.error);
+    console.error('Message:', event.message);
+    console.error('Filename:', event.filename);
+    console.error('Line:', event.lineno, 'Column:', event.colno);
+});
+
+window.addEventListener('unhandledrejection', function(event) {
+    console.error('❌ Unhandled Promise Rejection:', event.reason);
+});
+
+// ========== Service Worker Registration ==========
+let serviceWorkerRegistration = null;
+let notificationPermission = 'default';
+
+// רישום Service Worker
+async function registerServiceWorker() {
+    if (!('serviceWorker' in navigator)) {
+        console.warn('⚠️ Service Worker לא נתמך בדפדפן זה');
+        return null;
+    }
+    
+    try {
+        const registration = await navigator.serviceWorker.register('/sw.js', {
+            scope: '/'
+        });
+        
+        console.log('✅ Service Worker נרשם בהצלחה:', registration.scope);
+        serviceWorkerRegistration = registration;
+        
+        // המתן לאקטיבציה
+        if (registration.waiting) {
+            console.log('⏳ Service Worker ממתין...');
+        }
+        
+        if (registration.active) {
+            console.log('🚀 Service Worker פעיל!');
+        }
+        
+        // האזן לעדכונים
+        registration.addEventListener('updatefound', () => {
+            console.log('🔄 עדכון Service Worker זמין');
+            const newWorker = registration.installing;
+            newWorker.addEventListener('statechange', () => {
+                if (newWorker.state === 'activated') {
+                    console.log('✅ Service Worker עודכן!');
+                }
+            });
+        });
+        
+        return registration;
+    } catch (error) {
+        console.error('❌ שגיאה ברישום Service Worker:', error);
+        return null;
+    }
+}
+
+// בקשת הרשאות להתראות
+async function requestNotificationPermission() {
+    if (!('Notification' in window)) {
+        console.warn('⚠️ התראות לא נתמכות בדפדפן זה');
+        return 'denied';
+    }
+    
+    // בדוק הרשאה נוכחית
+    notificationPermission = Notification.permission;
+    console.log('🔔 הרשאת התראות נוכחית:', notificationPermission);
+    
+    if (notificationPermission === 'granted') {
+        console.log('✅ הרשאות התראות כבר ניתנו');
+        return 'granted';
+    }
+    
+    if (notificationPermission === 'denied') {
+        console.log('❌ הרשאות התראות נדחו על ידי המשתמש');
+        showNotification('❌ התראות חסומות - אפשר בהגדרות הדפדפן', 'error');
+        return 'denied';
+    }
+    
+    // בקש הרשאה
+    try {
+        notificationPermission = await Notification.requestPermission();
+        console.log('🔔 תוצאת בקשת הרשאה:', notificationPermission);
+        
+        if (notificationPermission === 'granted') {
+            showNotification('✅ התראות מופעלות! תקבל התראות גם כשהאפליקציה סגורה', 'success');
+            
+            // הצג התראת בדיקה
+            setTimeout(() => {
+                showTestNotification();
+            }, 2000);
+        } else {
+            showNotification('⚠️ התראות לא אושרו - לא תקבל התראות כשהאפליקציה סגורה', 'warning');
+        }
+        
+        return notificationPermission;
+    } catch (error) {
+        console.error('❌ שגיאה בבקשת הרשאות:', error);
+        return 'denied';
+    }
+}
+
+// התראת בדיקה
+function showTestNotification() {
+    if (notificationPermission !== 'granted') return;
+    
+    if (serviceWorkerRegistration) {
+        serviceWorkerRegistration.showNotification('🎉 vplus', {
+            body: 'התראות פועלות! תקבל התראות על תשלומים ותזכורות',
+            icon: '/icon-192.png',
+            badge: '/badge-72.png',
+            vibrate: [200, 100, 200],
+            tag: 'test-notification'
+        });
+    }
+}
+
+// תזמון התראה דרך Service Worker
+function scheduleNotificationViaServiceWorker(item, listName, reminderTimestamp) {
+    if (notificationPermission !== 'granted') {
+        console.log('⚠️ אין הרשאות להתראות - מדלג על תזמון');
+        return;
+    }
+    
+    if (!serviceWorkerRegistration || !serviceWorkerRegistration.active) {
+        console.log('⚠️ Service Worker לא פעיל - מדלג על תזמון');
+        return;
+    }
+    
+    const notificationId = `notif_${item.cloudId}_${Date.now()}`;
+    
+    const notificationData = {
+        id: notificationId,
+        title: `🔔 ${item.name}`,
+        body: `תזכורת: ${listName} - ${formatDate(item.dueDate)}`,
+        icon: '/icon-192.png',
+        badge: '/badge-72.png',
+        timestamp: reminderTimestamp,
+        itemData: {
+            itemId: item.cloudId,
+            itemName: item.name,
+            dueDate: item.dueDate,
+            listName: listName
+        }
+    };
+    
+    console.log('📤 שולח התראה ל-Service Worker:', notificationData);
+    
+    serviceWorkerRegistration.active.postMessage({
+        type: 'SCHEDULE_NOTIFICATION',
+        notification: notificationData
+    });
+}
+
+// תזמון כל ההתראות העתידיות
+function scheduleAllFutureNotifications() {
+    if (notificationPermission !== 'granted') return;
+    
+    console.log('📅 מתזמן את כל ההתראות העתידיות...');
+    
+    let scheduledCount = 0;
+    
+    Object.keys(db.lists).forEach(listId => {
+        const list = db.lists[listId];
+        list.items.forEach(item => {
+            if (item.dueDate && !item.checked && !item.isPaid && item.reminderValue && item.reminderUnit) {
+                const dueDate = new Date(item.dueDate);
+                const reminderMs = getReminderMilliseconds(item.reminderValue, item.reminderUnit);
+                const reminderTimestamp = dueDate.getTime() - reminderMs;
+                
+                // תזמן רק אם התזמון עתידי
+                if (reminderTimestamp > Date.now()) {
+                    scheduleNotificationViaServiceWorker(item, list.name, reminderTimestamp);
+                    scheduledCount++;
+                }
+            }
+        });
+    });
+    
+    console.log(`✅ תוזמנו ${scheduledCount} התראות עתידיות`);
+    if (scheduledCount > 0) {
+        showNotification(`✅ ${scheduledCount} התראות תוזמנו בהצלחה`, 'success');
+    }
+}
+
+// בדיקת סטטוס Service Worker
+function checkServiceWorkerStatus() {
+    if (!serviceWorkerRegistration) {
+        console.log('❌ Service Worker לא רשום');
+        return false;
+    }
+    
+    if (serviceWorkerRegistration.active) {
+        console.log('✅ Service Worker פעיל');
+        return true;
+    }
+    
+    console.log('⚠️ Service Worker לא פעיל');
+    return false;
+}
+
+// אתחול התראות
+async function initializeNotifications() {
+    console.log('🎬 מאתחל מערכת התראות...');
+    
+    // רשום Service Worker
+    const registration = await registerServiceWorker();
+    
+    if (!registration) {
+        console.log('❌ לא ניתן לאתחל התראות - Service Worker נכשל');
+        return false;
+    }
+    
+    // המתן שה-Service Worker יהיה מוכן
+    await navigator.serviceWorker.ready;
+    console.log('✅ Service Worker מוכן');
+    
+    // בקש הרשאות (רק אם עוד לא נתנו)
+    if (Notification.permission === 'default') {
+        // אל תבקש הרשאה אוטומטית - רק כשהמשתמש מוסיף התראה
+        console.log('ℹ️ הרשאות התראות ימבקשו כשתוסיף התראה ראשונה');
+    } else if (Notification.permission === 'granted') {
+        // אם כבר יש הרשאות - תזמן התראות קיימות
+        scheduleAllFutureNotifications();
+    }
+    
+    return true;
+}
+
 // ========== Global Variables for Notes Feature ==========
 let currentNoteItemIndex = null;
 
 // ========== Global Variables for Peace of Mind Features ==========
 let currentEditItemIndex = null;
 let currentEditField = null;
+
+// ========== Reminder Time Conversion ==========
+function getReminderMilliseconds(value, unit) {
+    if (!value || !unit) return 0;
+    
+    const numValue = parseInt(value);
+    if (isNaN(numValue) || numValue <= 0) return 0;
+    
+    const conversions = {
+        'minutes': numValue * 60 * 1000,
+        'hours': numValue * 60 * 60 * 1000,
+        'days': numValue * 24 * 60 * 60 * 1000,
+        'weeks': numValue * 7 * 24 * 60 * 60 * 1000
+    };
+    
+    return conversions[unit] || 0;
+}
+
+function formatReminderText(value, unit) {
+    if (!value || !unit) return '';
+    
+    const units = {
+        'minutes': value === '1' ? 'דקה' : 'דקות',
+        'hours': value === '1' ? 'שעה' : 'שעות',
+        'days': value === '1' ? 'יום' : 'ימים',
+        'weeks': value === '1' ? 'שבוע' : 'שבועות'
+    };
+    
+    return `${value} ${units[unit]}`;
+}
 
 // ========== Categories ==========
 const CATEGORIES = {
@@ -583,6 +847,7 @@ function toggleDarkMode() {
 }
 
 function showPage(p) {
+    console.log('🔵 showPage called:', p);
     activePage = p;
     save();
 }
@@ -1369,21 +1634,38 @@ function createListFromReceipt(items) {
 }
 
 function toggleBottomBar() {
+    console.log('🔵 toggleBottomBar called');
     const bottomBar = document.querySelector('.bottom-bar');
     const toggleBtn = document.getElementById('floatingToggle');
 
+    if (!bottomBar) {
+        console.error('❌ bottomBar not found');
+        return;
+    }
+    if (!toggleBtn) {
+        console.error('❌ toggleBtn not found');
+        return;
+    }
+
     if (bottomBar.classList.contains('minimized')) {
+        console.log('📤 Expanding bottom bar');
         bottomBar.classList.remove('minimized');
         toggleBtn.classList.remove('bar-hidden');
     } else {
+        console.log('📥 Minimizing bottom bar');
         bottomBar.classList.add('minimized');
         toggleBtn.classList.add('bar-hidden');
     }
 }
 
 function openModal(id) {
+    console.log('🔵 openModal called:', id);
     const m = document.getElementById(id);
-    if (!m) return;
+    if (!m) {
+        console.error('❌ Modal not found:', id);
+        return;
+    }
+    console.log('✅ Modal found, adding active class');
     m.classList.add('active');
 
     if (id === 'inputForm') {
@@ -2650,6 +2932,8 @@ function addItemToList(event) {
     const dueDate = document.getElementById('itemDueDate') ? document.getElementById('itemDueDate').value : '';
     const paymentUrl = document.getElementById('itemPaymentUrl') ? document.getElementById('itemPaymentUrl').value.trim() : '';
     const notes = document.getElementById('itemNotes') ? document.getElementById('itemNotes').value.trim() : '';
+    const reminderValue = document.getElementById('itemReminderValue') ? document.getElementById('itemReminderValue').value : '';
+    const reminderUnit = document.getElementById('itemReminderUnit') ? document.getElementById('itemReminderUnit').value : '';
 
     if (n) {
         // Intelligent category assignment: Priority order:
@@ -2692,6 +2976,8 @@ function addItemToList(event) {
             dueDate: dueDate || '',
             paymentUrl: paymentUrl || '',
             isPaid: false,
+            reminderValue: reminderValue || '',
+            reminderUnit: reminderUnit || '',
             lastUpdated: Date.now(),
             cloudId: 'item_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9)
         });
@@ -2704,10 +2990,42 @@ function addItemToList(event) {
         if (document.getElementById('itemDueDate')) document.getElementById('itemDueDate').value = '';
         if (document.getElementById('itemPaymentUrl')) document.getElementById('itemPaymentUrl').value = '';
         if (document.getElementById('itemNotes')) document.getElementById('itemNotes').value = '';
+        if (document.getElementById('itemReminderValue')) document.getElementById('itemReminderValue').value = '';
+        if (document.getElementById('itemReminderUnit')) document.getElementById('itemReminderUnit').value = '';
 
         closeModal('inputForm');
         save();
         showNotification('✅ מוצר נוסף!');
+        
+        // בקש הרשאות אם יש תאריך יעד והתראה וזו הפעם הראשונה
+        if (dueDate && reminderValue && reminderUnit) {
+            if (notificationPermission === 'default') {
+                requestNotificationPermission().then(permission => {
+                    if (permission === 'granted') {
+                        // תזמן את ההתראה שנוצרה עכשיו
+                        const newItem = db.lists[db.currentId].items[db.lists[db.currentId].items.length - 1];
+                        const dueDateObj = new Date(dueDate);
+                        const reminderMs = getReminderMilliseconds(reminderValue, reminderUnit);
+                        const reminderTimestamp = dueDateObj.getTime() - reminderMs;
+                        
+                        if (reminderTimestamp > Date.now()) {
+                            scheduleNotificationViaServiceWorker(newItem, db.lists[db.currentId].name, reminderTimestamp);
+                        }
+                    }
+                });
+            } else if (notificationPermission === 'granted') {
+                // כבר יש הרשאות - תזמן מיד
+                const newItem = db.lists[db.currentId].items[db.lists[db.currentId].items.length - 1];
+                const dueDateObj = new Date(dueDate);
+                const reminderMs = getReminderMilliseconds(reminderValue, reminderUnit);
+                const reminderTimestamp = dueDateObj.getTime() - reminderMs;
+                
+                if (reminderTimestamp > Date.now()) {
+                    scheduleNotificationViaServiceWorker(newItem, db.lists[db.currentId].name, reminderTimestamp);
+                }
+            }
+        }
+        
         if (typeof checkUrgentPayments === 'function') {
             checkUrgentPayments();
         }
@@ -2730,7 +3048,9 @@ function removeItem(idx) {
 }
 
 function toggleLock() {
+    console.log('🔵 toggleLock called, current state:', isLocked);
     isLocked = !isLocked;
+    console.log('✅ New lock state:', isLocked);
     render();
 }
 
@@ -2980,6 +3300,12 @@ function openEditItemNameModal(idx) {
     document.getElementById('editItemName').value = item.name;
     document.getElementById('editItemDueDate').value = item.dueDate || '';
     document.getElementById('editItemPaymentUrl').value = item.paymentUrl || '';
+    if (document.getElementById('editItemReminderValue')) {
+        document.getElementById('editItemReminderValue').value = item.reminderValue || '';
+    }
+    if (document.getElementById('editItemReminderUnit')) {
+        document.getElementById('editItemReminderUnit').value = item.reminderUnit || '';
+    }
     openModal('editItemNameModal');
 
     setTimeout(() => {
@@ -2993,12 +3319,16 @@ function saveItemEdit() {
     const newName = document.getElementById('editItemName').value.trim();
     const newDueDate = document.getElementById('editItemDueDate').value;
     const newPaymentUrl = document.getElementById('editItemPaymentUrl').value.trim();
+    const newReminderValue = document.getElementById('editItemReminderValue') ? document.getElementById('editItemReminderValue').value : '';
+    const newReminderUnit = document.getElementById('editItemReminderUnit') ? document.getElementById('editItemReminderUnit').value : '';
     
     if (newName && currentEditIdx !== null) {
         const item = db.lists[db.currentId].items[currentEditIdx];
         item.name = newName;
         item.dueDate = newDueDate;
         item.paymentUrl = newPaymentUrl;
+        item.reminderValue = newReminderValue;
+        item.reminderUnit = newReminderUnit;
         item.lastUpdated = Date.now();
         
         // שמירה מקומית תחילה
@@ -3017,6 +3347,17 @@ function saveItemEdit() {
         // סגירת המודל מיד לאחר רינדור
         closeModal('editItemNameModal');
         showNotification('✅ הפריט עודכן!');
+        
+        // תזמן התראה מעודכנת אם יש
+        if (newDueDate && newReminderValue && newReminderUnit && notificationPermission === 'granted') {
+            const dueDateObj = new Date(newDueDate);
+            const reminderMs = getReminderMilliseconds(newReminderValue, newReminderUnit);
+            const reminderTimestamp = dueDateObj.getTime() - reminderMs;
+            
+            if (reminderTimestamp > Date.now()) {
+                scheduleNotificationViaServiceWorker(item, db.lists[db.currentId].name, reminderTimestamp);
+            }
+        }
         
         if (typeof checkUrgentPayments === 'function') {
             checkUrgentPayments();
@@ -3491,7 +3832,11 @@ function initFirebaseAuth() {
 }
 
 function loginWithGoogle() {
+    console.log('🔵 loginWithGoogle called');
+    console.log('🔍 Checking Firebase Auth:', window.firebaseAuth ? 'Available' : 'NOT AVAILABLE');
+    
     if (!window.firebaseAuth) {
+        console.error('❌ Firebase Auth not available!');
         showNotification('⏳ שירות הענן עדיין נטען... נסה שוב בעוד רגע', 'warning');
         console.warn('⚠️ Firebase Auth לא זמין');
         return;
@@ -3499,6 +3844,7 @@ function loginWithGoogle() {
 
     // Check if already logged in
     if (window.firebaseAuth.currentUser) {
+        console.log('ℹ️ Already logged in:', window.firebaseAuth.currentUser.email);
         showNotification('✅ אתה כבר מחובר', 'success');
         console.log('ℹ️ משתמש כבר מחובר:', window.firebaseAuth.currentUser.email);
         openModal('settingsModal'); // Show settings instead
@@ -3509,6 +3855,7 @@ function loginWithGoogle() {
     updateCloudIndicator('syncing');
 
     try {
+        console.log('🔐 Calling signInWithPopup...');
         // Trigger Google sign-in redirect
         window.signInWithPopup(window.firebaseAuth, window.googleProvider);
         console.log('🔄 מפנה לדף התחברות Google...');
@@ -3784,8 +4131,11 @@ if (currentLang === 'he') {
     html.setAttribute('lang', currentLang);
 }
 
+console.log('🎨 Calling initial render()...');
 render();
+console.log('✅ Initial render() completed');
 updateUILanguage();
+console.log('✅ UI Language updated');
 
 // ========== Excel Import Functions ==========
 
@@ -5668,26 +6018,54 @@ function checkUrgentPayments() {
     const list = db.lists[db.currentId];
     if (!list || !list.items) return;
 
+    const now = Date.now();
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
-    const overdueItems = list.items.filter(item => {
+    const urgentItems = list.items.filter(item => {
         if (!item.dueDate || item.isPaid || item.checked) return false;
         
         const dueDate = new Date(item.dueDate);
         dueDate.setHours(0, 0, 0, 0);
         
-        return dueDate <= today;
+        // בדוק אם התאריך עבר
+        const isOverdue = dueDate <= today;
+        
+        // בדוק אם יש להתריע לפי reminderValue ו-reminderUnit
+        if (item.reminderValue && item.reminderUnit) {
+            const reminderTimeMs = getReminderMilliseconds(item.reminderValue, item.reminderUnit);
+            const dueDateMs = dueDate.getTime();
+            const reminderDate = new Date(dueDateMs - reminderTimeMs);
+            
+            const isReminderTime = now >= reminderDate.getTime() && now <= dueDateMs + (24 * 60 * 60 * 1000);
+            return isOverdue || isReminderTime;
+        }
+        
+        return isOverdue;
+    });
+
+    console.log('🔔 בדיקת התראות:', {
+        זמןנוכחי: new Date(now).toLocaleString('he-IL'),
+        פריטיםדחופים: urgentItems.length,
+        פריטים: urgentItems.map(item => ({
+            שם: item.name,
+            תאריךיעד: item.dueDate,
+            התראה: item.reminderValue ? `${item.reminderValue} ${item.reminderUnit}` : 'אין'
+        }))
     });
 
     // Update app badge
-    updateAppBadge(overdueItems.length);
+    updateAppBadge(urgentItems.length);
 
     // Check if modal should be shown
-    if (overdueItems.length > 0) {
+    if (urgentItems.length > 0) {
         const shouldShowModal = checkSnoozeStatus();
+        console.log('🔔 האם להציג מודל?', shouldShowModal);
         if (shouldShowModal) {
-            showUrgentAlertModal(overdueItems);
+            console.log('✅ מציג מודל התראות!');
+            showUrgentAlertModal(urgentItems);
+        } else {
+            console.log('⏸️ מודל התראות מושהה (Snooze פעיל)');
         }
     }
 }
@@ -5711,6 +6089,7 @@ function updateAppBadge(count) {
 function checkSnoozeStatus() {
     // Check session storage first (user clicked Close this session)
     if (sessionStorage.getItem('urgentAlertClosed')) {
+        console.log('⏸️ מודל סגור לסשן הנוכחי');
         return false;
     }
 
@@ -5721,34 +6100,86 @@ function checkSnoozeStatus() {
     const now = Date.now();
 
     if (snooze4h && now < parseInt(snooze4h)) {
+        const remainingMinutes = Math.round((parseInt(snooze4h) - now) / 60000);
+        console.log(`⏸️ Snooze 4h פעיל - נשארו ${remainingMinutes} דקות`);
         return false;
     }
 
     if (snoozeTomorrow && now < parseInt(snoozeTomorrow)) {
+        const remainingHours = Math.round((parseInt(snoozeTomorrow) - now) / 3600000);
+        console.log(`⏸️ Snooze מחר פעיל - נשארו ${remainingHours} שעות`);
         return false;
     }
 
+    console.log('✅ אין Snooze פעיל - מודל יכול להופיע');
     return true;
 }
 
 // Show the urgent alert modal with overdue items
-function showUrgentAlertModal(overdueItems) {
+function showUrgentAlertModal(urgentItems) {
     const modal = document.getElementById('urgentAlertModal');
     const itemsList = document.getElementById('urgentItemsList');
 
     if (!modal || !itemsList) return;
 
-    // Build items HTML
-    let itemsHTML = '';
-    overdueItems.forEach(item => {
-        const formattedDate = formatDate(item.dueDate);
-        itemsHTML += `
-            <div class="urgent-item">
-                <div class="urgent-item-name">${item.name}</div>
-                <div class="urgent-item-date">📅 תאריך יעד: ${formattedDate}</div>
-            </div>
-        `;
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    // Build items HTML - separate overdue and upcoming
+    const overdueItemsFiltered = urgentItems.filter(item => {
+        const dueDate = new Date(item.dueDate);
+        dueDate.setHours(0, 0, 0, 0);
+        return dueDate < today;
     });
+    
+    const upcomingItemsFiltered = urgentItems.filter(item => {
+        const dueDate = new Date(item.dueDate);
+        dueDate.setHours(0, 0, 0, 0);
+        return dueDate >= today;
+    });
+    
+    let itemsHTML = '';
+    
+    // הצגת פריטים באיחור
+    if (overdueItemsFiltered.length > 0) {
+        itemsHTML += '<div style="font-weight: bold; color: #ef4444; margin-bottom: 10px;">⚠️ באיחור:</div>';
+        overdueItemsFiltered.forEach(item => {
+            const formattedDate = formatDate(item.dueDate);
+            itemsHTML += `
+                <div class="urgent-item" style="border-right: 3px solid #ef4444;">
+                    <div class="urgent-item-name">${item.name}</div>
+                    <div class="urgent-item-date">📅 תאריך יעד: ${formattedDate}</div>
+                </div>
+            `;
+        });
+    }
+    
+    // הצגת תזכורות עתידיות
+    if (upcomingItemsFiltered.length > 0) {
+        if (overdueItemsFiltered.length > 0) {
+            itemsHTML += '<div style="margin-top: 15px;"></div>';
+        }
+        itemsHTML += '<div style="font-weight: bold; color: #3b82f6; margin-bottom: 10px;">🔔 תזכורות:</div>';
+        upcomingItemsFiltered.forEach(item => {
+            const formattedDate = formatDate(item.dueDate);
+            const dueDate = new Date(item.dueDate);
+            dueDate.setHours(0, 0, 0, 0);
+            const daysUntil = Math.floor((dueDate - today) / 86400000);
+            const daysText = daysUntil === 0 ? 'היום' : daysUntil === 1 ? 'מחר' : `בעוד ${daysUntil} ימים`;
+            
+            let reminderText = '';
+            if (item.reminderValue && item.reminderUnit) {
+                reminderText = ` (התראה: ${formatReminderText(item.reminderValue, item.reminderUnit)} לפני)`;
+            }
+            
+            itemsHTML += `
+                <div class="urgent-item" style="border-right: 3px solid #3b82f6;">
+                    <div class="urgent-item-name">${item.name}</div>
+                    <div class="urgent-item-date">📅 תאריך יעד: ${formattedDate} (${daysText})${reminderText}</div>
+                </div>
+            `;
+        });
+    }
 
     itemsList.innerHTML = itemsHTML;
     modal.classList.add('active');
@@ -5965,6 +6396,7 @@ function enhanceItemHTML(item, idx, originalHTML) {
 // ========== Notification Center Functions ==========
 function getNotificationItems() {
     const notificationItems = [];
+    const now = Date.now();
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     
@@ -5978,8 +6410,20 @@ function getNotificationItems() {
                 const dueDate = new Date(item.dueDate);
                 dueDate.setHours(0, 0, 0, 0);
                 
-                if (dueDate <= threeDaysFromNow) {
-                    const isOverdue = dueDate < today;
+                // חישוב זמן ההתראה לפי reminderValue ו-reminderUnit
+                let reminderTimeMs = 0;
+                if (item.reminderValue && item.reminderUnit) {
+                    reminderTimeMs = getReminderMilliseconds(item.reminderValue, item.reminderUnit);
+                }
+                
+                const dueDateMs = dueDate.getTime();
+                const reminderDate = new Date(dueDateMs - reminderTimeMs);
+                
+                const isOverdue = dueDate < today;
+                const isReminderTime = reminderTimeMs > 0 && now >= reminderDate.getTime() && now <= dueDateMs + (24 * 60 * 60 * 1000);
+                const shouldNotify = isOverdue || isReminderTime;
+                
+                if (shouldNotify || dueDate <= threeDaysFromNow) {
                     const isToday = dueDate.getTime() === today.getTime();
                     const isTomorrow = dueDate.getTime() === new Date(today.getTime() + 86400000).getTime();
                     
@@ -5998,7 +6442,10 @@ function getNotificationItems() {
                         urgency,
                         isOverdue,
                         isToday,
-                        isTomorrow
+                        isTomorrow,
+                        isUpcoming: !isOverdue && isReminderTime,
+                        reminderValue: item.reminderValue,
+                        reminderUnit: item.reminderUnit
                     });
                 }
             }
@@ -6035,7 +6482,16 @@ function openNotificationCenter() {
         container.innerHTML = '';
         notificationItems.forEach(notif => {
             const div = document.createElement('div');
-            div.className = `notification-item ${notif.isOverdue ? 'overdue' : 'soon'}`;
+            
+            // קביעת סוג ההתראה וצבע
+            let notifClass = 'soon';
+            if (notif.isOverdue) {
+                notifClass = 'overdue';
+            } else if (notif.isUpcoming && !notif.isToday) {
+                notifClass = 'upcoming';
+            }
+            
+            div.className = `notification-item ${notifClass}`;
             div.onclick = () => jumpToItem(notif.listId, notif.itemIdx);
             
             let dateText = '';
@@ -6048,7 +6504,12 @@ function openNotificationCenter() {
                 dateText = '📅 מחר';
             } else {
                 const daysUntil = Math.floor((notif.dueDate - new Date().setHours(0,0,0,0)) / 86400000);
-                dateText = `📅 בעוד ${daysUntil} ${daysUntil === 1 ? 'יום' : 'ימים'}`;
+                if (notif.isUpcoming && notif.reminderValue && notif.reminderUnit) {
+                    const reminderText = formatReminderText(notif.reminderValue, notif.reminderUnit);
+                    dateText = `🔔 תזכורת ${reminderText} לפני - תאריך יעד בעוד ${daysUntil} ${daysUntil === 1 ? 'יום' : 'ימים'}`;
+                } else {
+                    dateText = `📅 בעוד ${daysUntil} ${daysUntil === 1 ? 'יום' : 'ימים'}`;
+                }
             }
             
             div.innerHTML = `
@@ -6248,6 +6709,17 @@ function exportToExcel() {
 
 // Initialize notification badge on page load
 document.addEventListener('DOMContentLoaded', function() {
+    console.log('🚀 vplus התחיל - מאתחל מערכת התראות...');
+    
+    // אתחול Service Worker והתראות
+    initializeNotifications().then(success => {
+        if (success) {
+            console.log('✅ מערכת התראות מאותחלת');
+        } else {
+            console.log('⚠️ מערכת התראות לא הצליחה להתאתחל');
+        }
+    });
+    
     setTimeout(() => {
         if (typeof updateNotificationBadge === 'function') {
             updateNotificationBadge();
@@ -6256,5 +6728,33 @@ document.addEventListener('DOMContentLoaded', function() {
             checkUrgentPayments();
         }
     }, 500);
+    
+    // בדיקת התראות כל דקה
+    console.log('⏰ מתזמן בדיקות התראות אוטומטיות כל דקה');
+    setInterval(() => {
+        console.log('🔄 בדיקה אוטומטית (כל דקה)');
+        if (typeof checkUrgentPayments === 'function') {
+            checkUrgentPayments();
+        }
+        if (typeof updateNotificationBadge === 'function') {
+            updateNotificationBadge();
+        }
+    }, 60000); // כל 60 שניות (דקה אחת)
 });
 
+// בדיקת התראות כשחוזרים לאפליקציה (Tab Visible)
+document.addEventListener('visibilitychange', function() {
+    if (!document.hidden) {
+        // המשתמש חזר לטאב - בדוק התראות מיד!
+        console.log('👀 משתמש חזר לאפליקציה - בודק התראות...');
+        if (typeof checkUrgentPayments === 'function') {
+            checkUrgentPayments();
+        }
+        if (typeof updateNotificationBadge === 'function') {
+            updateNotificationBadge();
+        }
+    }
+});
+
+console.log('%c✅ script.js loaded successfully!', 'color: #22c55e; font-size: 16px; font-weight: bold');
+console.log('📊 Total functions defined:', Object.keys(window).filter(k => typeof window[k] === 'function').length);
