@@ -585,24 +585,6 @@
             border-color: #e5e7eb;
         }
 
-        .cloud-btn-syncing {
-            background: #fef3c7 !important;
-            color: #92400e !important;
-            border-color: #fde68a !important;
-            animation: cloudPulse 2s ease-in-out infinite;
-        }
-
-        @keyframes cloudPulse {
-            0%, 100% {
-                opacity: 1;
-                transform: scale(1);
-            }
-            50% {
-                opacity: 0.85;
-                transform: scale(0.98);
-            }
-        }
-
         /* Bank Import Button Styles */
         .bank-import-btn {
             display: inline-flex;
@@ -1165,7 +1147,7 @@ ${error.message}
         </h1>
 
         <div class="header-controls">
-            <div id="cloudBtn"
+            <div id="cloudBtn" onclick="loginWithGoogle()"
                 class="cloud-btn-disconnected px-3 py-1 rounded-full text-[10px] font-bold border flex items-center gap-1 cursor-pointer transition-all">
                 <span id="cloudSyncText">סנכרון ענן</span>
                 <div id="cloudIndicator" class="w-2 h-2 bg-gray-400 rounded-full"></div>
@@ -1440,7 +1422,10 @@ ${error.message}
             </div>
             <input type="number" id="itemPrice" inputmode="decimal" placeholder="מחיר" class="modal-input">
             <input type="number" id="itemQty" placeholder="כמות" class="modal-input" value="1" min="1">
-            <input type="date" id="itemDueDate" placeholder="תאריך יעד (אופציונלי)" class="modal-input">
+            <div style="margin-bottom: 5px;">
+                <label class="text-sm font-bold text-gray-600 block text-center mb-1">📅 תאריך יעד</label>
+                <input type="date" id="itemDueDate" class="modal-input">
+            </div>
             <input type="url" id="itemPaymentUrl" placeholder="🔗 קישור לתשלום (אופציונלי)" class="modal-input">
             <input type="text" id="itemNotes" placeholder="📝 הערות (אופציונלי)" class="modal-input">
             <select id="itemCategory" class="modal-input">
@@ -1571,7 +1556,10 @@ ${error.message}
         <div class="edit-modal">
             <h2>📝 עריכת פריט</h2>
             <input type="text" id="editItemName" class="modal-input" placeholder="שם הפריט">
-            <input type="date" id="editItemDueDate" class="modal-input" placeholder="תאריך יעד">
+            <div style="margin-bottom: 5px;">
+                <label class="text-sm font-bold text-gray-600 block text-center mb-1">📅 תאריך יעד</label>
+                <input type="date" id="editItemDueDate" class="modal-input">
+            </div>
             <input type="url" id="editItemPaymentUrl" class="modal-input" placeholder="🔗 קישור לתשלום (אופציונלי)">
             <div style="margin-bottom: 5px;">
                 <label class="text-sm font-bold text-gray-600 block text-center mb-1">🔔 התראה מראש</label>
