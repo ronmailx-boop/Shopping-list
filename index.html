@@ -11,6 +11,15 @@
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <!-- PDF.js Library for PDF parsing -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script>var pdfjsLib = window["pdfjs-dist/build/pdf"];</script>
+    <script>
+        // Configure PDF.js worker
+        if (typeof pdfjsLib !== 'undefined') {
+            pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+        }
+    </script>
 
     <style>
         * {
@@ -196,6 +205,140 @@
             justify-content: center;
         }
 
+        .notification-bell {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, #f59e0b 0%, #fb923c 100%);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 20px;
+            cursor: pointer;
+            box-shadow: 0 4px 8px rgba(245, 158, 11, 0.3);
+            transition: transform 0.2s;
+            position: relative;
+            flex-shrink: 0;
+        }
+
+        .notification-bell:active {
+            transform: scale(0.95);
+        }
+
+        .notification-badge {
+            position: absolute;
+            top: -4px;
+            right: -4px;
+            background: #ef4444;
+            color: white;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 11px;
+            font-weight: bold;
+            border: 2px solid white;
+        }
+
+        .notification-item {
+            background: white;
+            border-radius: 15px;
+            padding: 12px;
+            margin-bottom: 10px;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: 2px solid transparent;
+        }
+
+        .notification-item:hover {
+            border-color: #7367f0;
+            box-shadow: 0 4px 12px rgba(115, 103, 240, 0.2);
+        }
+
+        .notification-item.overdue {
+            border-left: 4px solid #ef4444;
+        }
+
+        .notification-item.soon {
+            border-left: 4px solid #f97316;
+        }
+
+        .notification-item.upcoming {
+            border-left: 4px solid #3b82f6;
+        }
+
+        .notification-item-title {
+            font-weight: bold;
+            margin-bottom: 4px;
+        }
+
+        .notification-item-date {
+            font-size: 0.85em;
+            color: #6b7280;
+        }
+
+        .notification-item-list {
+            font-size: 0.8em;
+            color: #9ca3af;
+            margin-top: 4px;
+        }
+
+        .item-card.highlight-item {
+            animation: highlightPulse 2s ease-in-out;
+            box-shadow: 0 0 20px rgba(115, 103, 240, 0.5);
+        }
+
+        @keyframes highlightPulse {
+            0%, 100% { box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03); }
+            50% { box-shadow: 0 0 30px rgba(115, 103, 240, 0.8); }
+        }
+
+        .item-duedate-display {
+            font-size: 0.85em;
+            color: #6b7280;
+            margin-top: 4px;
+            cursor: pointer;
+            padding: 2px 6px;
+            border-radius: 8px;
+            display: inline-block;
+        }
+
+        .item-duedate-display.overdue {
+            color: #ef4444;
+            font-weight: bold;
+            background: #fee2e2;
+        }
+
+        .item-duedate-display.soon {
+            color: #f97316;
+            font-weight: bold;
+            background: #ffedd5;
+        }
+
+        .item-payment-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            font-size: 0.85em;
+            color: #7367f0;
+            cursor: pointer;
+            padding: 4px 8px;
+            border-radius: 8px;
+            background: #f3f4f6;
+            margin-left: 8px;
+            margin-top: 4px;
+            transition: all 0.2s;
+            text-decoration: none;
+        }
+
+        .item-payment-link:hover {
+            background: #e5e7eb;
+            transform: scale(1.05);
+        }
+
         .trash-btn {
             width: 44px;
             height: 44px;
@@ -345,6 +488,15 @@
             transform: translateX(0);
         }
 
+        .undo-notification button:hover {
+            background: #f3f4f6 !important;
+            transform: scale(1.05);
+        }
+
+        .undo-notification button:active {
+            transform: scale(0.95);
+        }
+
         .floating-toggle-btn {
             position: fixed;
             bottom: 220px;
@@ -431,6 +583,342 @@
             background: #f3f4f6;
             color: #6b7280;
             border-color: #e5e7eb;
+        }
+
+        .cloud-btn-syncing {
+            background: #fef3c7 !important;
+            color: #92400e !important;
+            border-color: #fde68a !important;
+            animation: cloudPulse 2s ease-in-out infinite;
+        }
+
+        @keyframes cloudPulse {
+            0%, 100% {
+                opacity: 1;
+                transform: scale(1);
+            }
+            50% {
+                opacity: 0.85;
+                transform: scale(0.98);
+            }
+        }
+
+        /* Bank Import Button Styles */
+        .bank-import-btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 12px 20px;
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            color: white;
+            border-radius: 15px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s;
+            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+            border: none;
+            font-size: 14px;
+        }
+
+        .bank-import-btn:active {
+            transform: scale(0.95);
+        }
+
+        .bank-import-btn:hover {
+            box-shadow: 0 6px 16px rgba(16, 185, 129, 0.4);
+        }
+
+        /* Note icon styles */
+        .note-icon {
+            width: 24px;
+            height: 24px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            background: linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%);
+            border: 1px solid #d1d5db;
+        }
+
+        .note-icon:hover {
+            transform: scale(1.1);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .note-icon.has-note {
+            background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+            border-color: #fbbf24;
+            position: relative;
+        }
+
+        .note-icon.has-note::after {
+            content: '';
+            position: absolute;
+            top: -2px;
+            right: -2px;
+            width: 8px;
+            height: 8px;
+            background: #f59e0b;
+            border-radius: 50%;
+            border: 2px solid white;
+        }
+
+        .note-modal-textarea {
+            width: 100%;
+            min-height: 120px;
+            padding: 12px;
+            border: 2px solid #f3f4f6;
+            border-radius: 16px;
+            font-size: 15px;
+            text-align: right;
+            outline: none;
+            margin-bottom: 15px;
+            font-family: system-ui, sans-serif;
+            background: #f9fafb !important;
+            color: #333;
+            resize: vertical;
+        }
+
+        .note-modal-textarea:focus {
+            border-color: #fbbf24;
+            background: #fff !important;
+        }
+        
+        .urgent-alert-modal {
+            background-color: #ffffff !important;
+            border-radius: 30px;
+            padding: 25px;
+            text-align: center;
+            color: #333;
+            border: 3px solid #ef4444;
+            box-shadow: 0 20px 50px rgba(239, 68, 68, 0.4);
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+        
+        .urgent-alert-header {
+            font-size: 3em;
+            margin-bottom: 10px;
+        }
+        
+        .urgent-alert-title {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #ef4444;
+            margin-bottom: 15px;
+        }
+        
+        .urgent-items-list {
+            text-align: right;
+            margin: 20px 0;
+            padding: 15px;
+            background: #fef2f2;
+            border-radius: 15px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        
+        .urgent-item {
+            padding: 10px;
+            margin-bottom: 8px;
+            background: white;
+            border-radius: 10px;
+            border-right: 4px solid #ef4444;
+            font-size: 0.95rem;
+        }
+        
+        .urgent-item-name {
+            font-weight: bold;
+            color: #1f2937;
+        }
+        
+        .urgent-item-date {
+            color: #ef4444;
+            font-size: 0.85rem;
+            margin-top: 3px;
+        }
+        
+        .urgent-buttons {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-top: 20px;
+        }
+        
+        .urgent-btn {
+            padding: 15px;
+            border-radius: 15px;
+            font-weight: bold;
+            font-size: 1rem;
+            cursor: pointer;
+            border: none;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        
+        .urgent-btn:active {
+            transform: scale(0.97);
+        }
+        
+        .urgent-btn-snooze {
+            background: #fbbf24;
+            color: white;
+        }
+        
+        .urgent-btn-tomorrow {
+            background: #3b82f6;
+            color: white;
+        }
+        
+        .urgent-btn-close {
+            background: #6b7280;
+            color: white;
+        }
+        
+        .dark-mode .urgent-alert-modal {
+            background-color: #2a2a3e !important;
+            border-color: #ef4444;
+        }
+        
+        .dark-mode .urgent-alert-title {
+            color: #fca5a5;
+        }
+        
+        .dark-mode .urgent-items-list {
+            background: #1a1a2e;
+        }
+        
+        .dark-mode .urgent-item {
+            background: #2a2a3e;
+            border-right-color: #ef4444;
+        }
+        
+        .dark-mode .urgent-item-name {
+            color: #e0e0e0;
+        }
+        
+        .item-notes-display {
+            font-size: 0.85em;
+            color: #6b7280;
+            margin-top: 5px;
+            cursor: pointer;
+            padding: 5px;
+            border-radius: 8px;
+            transition: background 0.2s;
+            word-wrap: break-word;
+        }
+        
+        .item-notes-display:hover {
+            background: rgba(115, 103, 240, 0.05);
+        }
+        
+        .item-notes-display a {
+            color: #7367f0;
+            text-decoration: underline;
+        }
+        
+        .item-duedate-display {
+            font-size: 0.85em;
+            color: #f59e0b;
+            margin-top: 5px;
+            cursor: pointer;
+            padding: 5px;
+            border-radius: 8px;
+            transition: background 0.2s;
+            font-weight: 600;
+        }
+        
+        .item-duedate-display:hover {
+            background: rgba(245, 158, 11, 0.1);
+        }
+        
+        .item-duedate-display.overdue {
+            color: #ef4444;
+            font-weight: bold;
+        }
+        
+        .dark-mode .item-notes-display {
+            color: #9ca3af;
+        }
+        
+        .dark-mode .item-notes-display a {
+            color: #a78bfa;
+        }
+        
+        .dark-mode .item-duedate-display {
+            color: #fbbf24;
+        }
+        
+        .dark-mode .item-duedate-display.overdue {
+            color: #fca5a5;
+        }
+
+        /* --- Floating Pills Styles (FIXED) --- */
+
+        /* 1. Main Wide Button */
+        .hero-wide-btn {
+            background: linear-gradient(135deg, #7367f0 0%, #9055ff 100%);
+            width: 100%;
+            padding: 18px 24px;
+            border-radius: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            box-shadow: 0 10px 30px -5px rgba(115, 103, 240, 0.4);
+            border: 1px solid rgba(255,255,255,0.1);
+            transition: transform 0.2s, box-shadow 0.2s;
+            position: relative;
+            overflow: hidden;
+            margin-bottom: 16px;
+            color: white !important; /* Force white text */
+            cursor: pointer;
+        }
+
+        .hero-wide-btn:active {
+            transform: scale(0.98);
+            box-shadow: 0 5px 15px -5px rgba(115, 103, 240, 0.3);
+        }
+
+        /* 2. Pills Container */
+        .pills-container {
+            display: flex;
+            gap: 8px; /* Reduced gap */
+            width: 100%;
+        }
+
+        /* 3. Individual Pill - Compact Mode */
+        .action-pill {
+            flex: 1;
+            background: white;
+            border: 1px solid #edf2f7;
+            padding: 10px 4px; /* Reduced side padding */
+            border-radius: 50px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.03);
+            transition: all 0.2s;
+            cursor: pointer;
+            white-space: nowrap;
+            min-width: 0; /* CRITICAL: Allows shrinking to fit screen */
+        }
+
+        .action-pill:active {
+            transform: scale(0.95);
+            background: #f8fafc;
+        }
+
+        .pill-icon { 
+            font-size: 16px; 
+        }
+        
+        .pill-text { 
+            font-size: 12px; 
+            font-weight: 700; 
+            color: #4b5563; 
         }
     </style>
 
@@ -677,7 +1165,7 @@ ${error.message}
         </h1>
 
         <div class="header-controls">
-            <div id="cloudBtn" onclick="loginWithGoogle()"
+            <div id="cloudBtn"
                 class="cloud-btn-disconnected px-3 py-1 rounded-full text-[10px] font-bold border flex items-center gap-1 cursor-pointer transition-all">
                 <span id="cloudSyncText">סנכרון ענן</span>
                 <div id="cloudIndicator" class="w-2 h-2 bg-gray-400 rounded-full"></div>
@@ -695,6 +1183,11 @@ ${error.message}
                     <path fill="#EA4335"
                         d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.09l3.66 2.84c.87-2.6 3.3-4.55 6.16-4.55z" />
                 </svg>
+            </div>
+
+            <div class="notification-bell" onclick="openNotificationCenter()">
+                🔔
+                <div class="notification-badge" id="notificationBadge" style="display: none;">0</div>
             </div>
 
             <button onclick="openModal('settingsModal')" class="p-2 rounded-full hover:bg-gray-100 gear-btn">
@@ -717,16 +1210,49 @@ ${error.message}
         </div>
 
         <div id="pageLists">
-            <div class="lists-header-card bg-white p-2 rounded-2xl border border-gray-100 shadow-sm mb-4">
-                <div class="flex gap-2">
-                    <button onclick="openModal('newListModal')"
-                        class="bg-indigo-600 text-white flex-1 py-3 rounded-xl font-bold">+ רשימה חדשה</button>
-                    <button onclick="openModal('importModal')"
-                        class="bg-green-500 text-white flex-1 py-3 rounded-xl font-bold">📥 ייבוא</button>
-                    <label for="excel-upload" class="bg-blue-500 text-white flex-1 py-3 rounded-xl font-bold cursor-pointer text-center">📊 ייבוא מאקסל</label>
-                    <input type="file" id="excel-upload" accept=".xlsx, .xls" style="display: none;" onchange="handleExcelUpload(event)">
+            <!-- NEW FLOATING PILLS SECTION -->
+            <div class="mb-6 px-1">
+                
+                <div class="flex justify-between items-end mb-3">
+                    <h2 class="text-sm font-bold text-slate-400 uppercase tracking-wider">פעולות מהירות</h2>
                 </div>
+
+                <button onclick="openModal('newListModal')" class="hero-wide-btn group">
+                    <div class="flex items-center gap-3">
+                        <div class="bg-white/20 w-10 h-10 rounded-xl flex items-center justify-center backdrop-blur-sm group-active:scale-90 transition-transform">
+                            <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"></path></svg>
+                        </div>
+                        <div class="text-right">
+                            <span class="block text-xl font-black leading-none tracking-tight text-white">רשימה חדשה</span>
+                        </div>
+                    </div>
+                    <div class="text-white/80 text-sm font-medium">צור ידנית ➔</div>
+                </button>
+
+                <div class="pills-container">
+                    
+                    <button onclick="openModal('importModal')" class="action-pill">
+                        <span class="pill-icon">📋</span>
+                        <span class="pill-text">הדבק</span>
+                    </button>
+
+                    <label for="excel-upload" class="action-pill">
+                        <span class="pill-icon">📊</span>
+                        <span class="pill-text">Excel</span>
+                    </label>
+
+                    <label for="bankFileInput" class="action-pill">
+                        <span class="pill-icon">🏦</span>
+                        <span class="pill-text">בנק</span>
+                    </label>
+
+                </div>
+                
+                <input type="file" id="bankFileInput" accept=".xls,.xlsx,.pdf" style="display: none;" onchange="importBankFile(event)">
+                <input type="file" id="excel-upload" accept=".xlsx, .xls" style="display: none;" onchange="handleExcelUpload(event)">
+
             </div>
+            <!-- END NEW FLOATING PILLS SECTION -->
             <div class="mb-3">
                 <div class="relative">
                     <input type="text" id="listSearchInput" oninput="searchInList()" placeholder="חפש מוצר ברשימה..."
@@ -913,6 +1439,10 @@ ${error.message}
                 <div id="autocompleteContainer" class="autocomplete-container"></div>
             </div>
             <input type="number" id="itemPrice" inputmode="decimal" placeholder="מחיר" class="modal-input">
+            <input type="number" id="itemQty" placeholder="כמות" class="modal-input" value="1" min="1">
+            <input type="date" id="itemDueDate" placeholder="תאריך יעד (אופציונלי)" class="modal-input">
+            <input type="url" id="itemPaymentUrl" placeholder="🔗 קישור לתשלום (אופציונלי)" class="modal-input">
+            <input type="text" id="itemNotes" placeholder="📝 הערות (אופציונלי)" class="modal-input">
             <select id="itemCategory" class="modal-input">
                 <option value="">בחר קטגוריה (אופציונלי)</option>
                 <option value="פירות וירקות">🥬 פירות וירקות</option>
@@ -926,11 +1456,24 @@ ${error.message}
                 <option value="היגיינה">🧴 היגיינה</option>
                 <option value="אחר">📦 אחר</option>
             </select>
+            <div style="margin-bottom: 5px;">
+                <label class="text-sm font-bold text-gray-600 block text-center mb-1">🔔 התראה מראש</label>
+                <div class="flex gap-2">
+                    <input type="number" id="itemReminderValue" placeholder="מספר" class="modal-input" min="0" style="flex: 1;">
+                    <select id="itemReminderUnit" class="modal-input" style="flex: 1;">
+                        <option value="">בחר יחידה</option>
+                        <option value="minutes">דקות</option>
+                        <option value="hours">שעות</option>
+                        <option value="days">ימים</option>
+                        <option value="weeks">שבועות</option>
+                    </select>
+                </div>
+            </div>
             <div class="flex gap-3">
                 <button class="bg-green-500 text-white flex-1 py-4 rounded-xl font-bold shadow-md"
-                    onclick="addItem()">הוסף</button>
+                    onclick="event.stopPropagation(); addItemToList(event);">הוסף</button>
                 <button class="bg-gray-100 text-gray-500 flex-1 py-4 rounded-xl font-bold"
-                    onclick="closeModal('inputForm')">ביטול</button>
+                    onclick="event.stopPropagation(); closeModal('inputForm');">ביטול</button>
             </div>
         </div>
     </div>
@@ -943,9 +1486,9 @@ ${error.message}
                 style="resize: vertical; min-height: 150px;"></textarea>
             <div class="flex gap-3">
                 <button class="bg-green-500 text-white flex-1 py-4 rounded-xl font-bold shadow-md"
-                    onclick="importFromText()">ייבא</button>
+                    onclick="event.stopPropagation(); importFromText();">ייבא</button>
                 <button class="bg-gray-100 flex-1 py-4 rounded-xl font-bold"
-                    onclick="closeModal('importModal')">ביטול</button>
+                    onclick="event.stopPropagation(); closeModal('importModal');">ביטול</button>
             </div>
         </div>
     </div>
@@ -964,9 +1507,9 @@ ${error.message}
             </div>
             <div class="flex gap-3">
                 <button class="bg-indigo-600 text-white flex-1 py-4 rounded-xl font-bold shadow-md"
-                    onclick="saveNewList()">צור</button>
+                    onclick="event.stopPropagation(); saveNewList();">צור</button>
                 <button class="bg-gray-100 flex-1 py-4 rounded-xl font-bold"
-                    onclick="closeModal('newListModal')">ביטול</button>
+                    onclick="event.stopPropagation(); closeModal('newListModal');">ביטול</button>
             </div>
         </div>
     </div>
@@ -1004,9 +1547,9 @@ ${error.message}
             <input type="number" id="editListBudget" placeholder="תקציב (אופציונלי)" class="modal-input">
             <div class="flex gap-3">
                 <button class="bg-indigo-600 text-white flex-1 py-4 rounded-xl font-bold"
-                    onclick="saveListName()">שמור</button>
+                    onclick="event.stopPropagation(); saveListName();">שמור</button>
                 <button class="bg-gray-100 flex-1 py-4 rounded-xl font-bold"
-                    onclick="closeModal('editListNameModal')">ביטול</button>
+                    onclick="event.stopPropagation(); closeModal('editListNameModal');">ביטול</button>
             </div>
         </div>
     </div>
@@ -1017,10 +1560,66 @@ ${error.message}
             <input type="number" id="editTotalInput" class="modal-input">
             <div class="flex gap-3">
                 <button class="bg-indigo-600 text-white flex-1 py-4 rounded-xl font-bold"
-                    onclick="saveTotal()">עדכן</button>
+                    onclick="event.stopPropagation(); saveTotal();">עדכן</button>
                 <button class="bg-gray-100 flex-1 py-4 rounded-xl font-bold"
-                    onclick="closeModal('editTotalModal')">ביטול</button>
+                    onclick="event.stopPropagation(); closeModal('editTotalModal');">ביטול</button>
             </div>
+        </div>
+    </div>
+
+    <div id="editItemNameModal" class="modal-overlay no-print">
+        <div class="edit-modal">
+            <h2>📝 עריכת פריט</h2>
+            <input type="text" id="editItemName" class="modal-input" placeholder="שם הפריט">
+            <input type="date" id="editItemDueDate" class="modal-input" placeholder="תאריך יעד">
+            <input type="url" id="editItemPaymentUrl" class="modal-input" placeholder="🔗 קישור לתשלום (אופציונלי)">
+            <div style="margin-bottom: 5px;">
+                <label class="text-sm font-bold text-gray-600 block text-center mb-1">🔔 התראה מראש</label>
+                <div class="flex gap-2">
+                    <input type="number" id="editItemReminderValue" placeholder="מספר" class="modal-input" min="0" style="flex: 1;">
+                    <select id="editItemReminderUnit" class="modal-input" style="flex: 1;">
+                        <option value="">בחר יחידה</option>
+                        <option value="minutes">דקות</option>
+                        <option value="hours">שעות</option>
+                        <option value="days">ימים</option>
+                        <option value="weeks">שבועות</option>
+                    </select>
+                </div>
+            </div>
+            <div class="flex gap-3">
+                <button class="bg-indigo-600 text-white flex-1 py-4 rounded-xl font-bold"
+                    onclick="event.stopPropagation(); saveItemEdit();">שמור</button>
+                <button class="bg-gray-100 flex-1 py-4 rounded-xl font-bold"
+                    onclick="event.stopPropagation(); closeModal('editItemNameModal');">ביטול</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Notification Center Modal -->
+    <div id="notificationCenterModal" class="modal-overlay no-print">
+        <div class="edit-modal" style="max-height: 80vh;">
+            <h2>🔔 מרכז התראות</h2>
+            <div id="notificationsList" style="max-height: 500px; overflow-y: auto; margin-top: 15px;">
+            </div>
+            <button class="bg-gray-100 w-full py-4 rounded-xl font-bold mt-3"
+                onclick="closeModal('notificationCenterModal')">סגור</button>
+        </div>
+    </div>
+
+    <div id="editCategoryModal" class="modal-overlay no-print">
+        <div class="edit-modal" style="max-height: 80vh; overflow-y: auto;">
+            <h2>בחירת קטגוריה</h2>
+            <div id="categoryOptions" class="mb-4" style="max-height: 400px; overflow-y: auto;">
+                <!-- Category buttons will be inserted here -->
+            </div>
+            <div class="border-t-2 border-gray-200 pt-4 mt-4">
+                <div class="text-sm font-bold text-gray-600 mb-2">✏️ קטגוריה מותאמת אישית</div>
+                <input type="text" id="customCategoryInput" class="modal-input" placeholder="הזן שם קטגוריה חדשה..." onkeypress="if(event.key==='Enter') saveCustomCategory()">
+                <button class="bg-purple-500 text-white w-full py-3 rounded-xl font-bold mt-2"
+                    onclick="saveCustomCategory()">שמור קטגוריה מותאמת</button>
+            </div>
+            <button class="bg-gray-100 w-full py-4 rounded-xl font-bold mt-3"
+                onclick="closeModal('editCategoryModal')">ביטול</button>
         </div>
     </div>
 
@@ -1080,6 +1679,10 @@ ${error.message}
                 class="w-full bg-yellow-50 text-yellow-600 py-4 rounded-xl font-bold mb-3" id="savedTemplatesBtn">
                 ⭐ תבניות שמורות
             </button>
+            <button onclick="openCategoryManager(); closeModal('settingsModal')"
+                class="w-full bg-purple-50 text-purple-600 py-4 rounded-xl font-bold mb-3" id="manageCategoriesBtn">
+                🗂️ ניהול קטגוריות
+            </button>
             <button onclick="preparePrint()" class="w-full bg-orange-500 text-white py-4 rounded-xl font-bold mb-3"
                 id="printPDFBtn">
                 הדפס PDF 🖨️
@@ -1132,10 +1735,91 @@ ${error.message}
         </div>
     </div>
 
+    <div id="itemNoteModal" class="modal-overlay no-print">
+        <div class="edit-modal">
+            <h2>📝 הערה למוצר</h2>
+            <textarea id="itemNoteInput" class="note-modal-textarea" placeholder="הוסף הערה למוצר..."></textarea>
+            <div class="flex gap-3">
+                <button class="bg-yellow-500 text-white flex-1 py-4 rounded-xl font-bold"
+                    onclick="event.stopPropagation(); saveItemNote();">שמור</button>
+                <button class="bg-gray-100 flex-1 py-4 rounded-xl font-bold"
+                    onclick="event.stopPropagation(); closeModal('itemNoteModal');">ביטול</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="categoryManagerModal" class="modal-overlay no-print">
+        <div class="edit-modal">
+            <h2>🗂️ ניהול קטגוריות מותאמות</h2>
+            <p class="text-sm text-gray-600 mb-4">קטגוריות שיצרת - ניתן למחוק קטגוריות שאינן בשימוש</p>
+            <div id="customCategoriesList" style="max-height: 400px; overflow-y: auto;">
+                <!-- Custom categories will be listed here -->
+            </div>
+            <button onclick="closeModal('categoryManagerModal')" class="mt-4 bg-gray-100 w-full py-4 rounded-xl font-bold">סגור</button>
+        </div>
+    </div>
+
+    <div id="deleteCategoryModal" class="modal-overlay no-print">
+        <div class="edit-modal">
+            <h2 class="text-red-600">מחיקת קטגוריה</h2>
+            <p class="text-center text-gray-700 mb-2">האם אתה בטוח שברצונך למחוק את הקטגוריה</p>
+            <p class="text-center font-bold text-xl mb-2" id="categoryToDeleteName" style="color: #7367f0;">...</p>
+            <p class="text-center text-sm text-gray-600 mb-4">כל הפריטים בקטגוריה זו יועברו לקטגוריה 'אחר'</p>
+            <div class="flex gap-3">
+                <button id="confirmDeleteCategoryBtn" class="bg-red-500 text-white flex-1 py-4 rounded-xl font-bold"
+                    onclick="executeDeleteCategory()">מחק</button>
+                <button class="bg-gray-100 flex-1 py-4 rounded-xl font-bold"
+                    onclick="closeModal('deleteCategoryModal')">ביטול</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="urgentAlertModal" class="modal-overlay no-print">
+        <div class="urgent-alert-modal">
+            <div class="urgent-alert-header">⚠️</div>
+            <h2 class="urgent-alert-title">התראות חשובות!</h2>
+            <p style="color: #6b7280; margin-bottom: 15px;">יש לך פריטים הדורשים תשומת לב</p>
+            <div class="urgent-items-list" id="urgentItemsList">
+                <!-- Urgent items will be inserted here -->
+            </div>
+            <div class="urgent-buttons">
+                <button class="urgent-btn urgent-btn-snooze" onclick="snoozeUrgentAlert(4)">
+                    ⏰ הזכר לי בעוד 4 שעות
+                </button>
+                <button class="urgent-btn urgent-btn-tomorrow" onclick="snoozeUrgentAlert(24)">
+                    📅 הזכר לי מחר
+                </button>
+                <button class="urgent-btn urgent-btn-close" onclick="closeUrgentAlert()">
+                    ✕ סגור
+                </button>
+            </div>
+        </div>
+    </div>
+
     <script src="script.js"></script>
+
+      <!-- Firebase Cloud Messaging SDK -->
+  <script type="module">
+    import { getMessaging } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-messaging.js';
+    if (window.firebaseApp) {
+      const messaging = getMessaging(window.firebaseApp);
+      window.firebaseMessaging = messaging;
+      console.log('✅ Firebase Messaging initialized');
+    }
+  </script>
+
+  <!-- Push Notifications Handler -->
+  <script src="push-notifications.js" type="module"></script>
 </body>
 
 </html>
+
+
+
+
+
+
+
 
 
 
