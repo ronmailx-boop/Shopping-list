@@ -1037,7 +1037,7 @@
         console.log('🔵 Starting Firebase initialization...');
         
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import { getAuth, signInWithPopup, GoogleAuthProvider, getRedirectResult, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+        import { getAuth, signInWithPopup, signInWithRedirect, GoogleAuthProvider, getRedirectResult, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
         import { getFirestore, doc, setDoc, onSnapshot, getDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
         try {
@@ -1070,6 +1070,7 @@
             window.googleProvider = provider;
 
             window.signInWithPopup = signInWithPopup;
+            window.signInWithRedirect = signInWithRedirect;
             window.getRedirectResult = getRedirectResult;
             window.signOut = signOut;
             window.onAuthStateChanged = onAuthStateChanged;
