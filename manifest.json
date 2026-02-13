@@ -85,7 +85,7 @@
       "url": "/?action=new",
       "icons": [
         {
-          "src": "/icon-96.png",
+          "src": "icon-96.png",
           "sizes": "96x96"
         }
       ]
@@ -97,7 +97,7 @@
       "url": "/?action=stats",
       "icons": [
         {
-          "src": "/icon-96.png",
+          "src": "icon-96.png",
           "sizes": "96x96"
         }
       ]
