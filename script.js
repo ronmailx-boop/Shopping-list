@@ -3754,9 +3754,9 @@ function updateCloudIndicator(status) {
         // Show short status instead of full email to save space
         if (text) text.textContent = "מחובר ✅";
     } else if (status === 'syncing') {
-        // Yellow indicator - syncing in progress
+        // Yellow indicator - syncing in progress with pulse animation
         indicator.className = 'w-2 h-2 bg-yellow-500 rounded-full animate-pulse';
-        cloudBtn.className = 'cloud-btn-disconnected px-3 py-1 rounded-full text-[10px] font-bold border flex items-center gap-1 cursor-pointer transition-all';
+        cloudBtn.className = 'cloud-btn-syncing px-3 py-1 rounded-full text-[10px] font-bold border flex items-center gap-1 cursor-pointer transition-all';
         if (text) text.textContent = "מסנכרן...";
     } else {
         // Red indicator - disconnected state
@@ -3953,7 +3953,7 @@ async function syncToCloud() {
         const userDocRef = window.doc(window.firebaseDb, "shopping_lists", currentUser.uid);
         await window.setDoc(userDocRef, db);
         console.log('✅ סנכרון לענן הושלם בהצלחה');
-        showNotification('✅ שמור בענן', 'success');
+        // Removed notification - indicator shows sync status
     } catch (error) {
         console.error("❌ שגיאה בכתיבה לענן:", error);
         showDetailedError('Cloud Sync', error);
