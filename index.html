@@ -206,340 +206,186 @@
         }
 
         .notification-bell {
+            flex-shrink: 0;
             width: 40px;
             height: 40px;
-            background: linear-gradient(135deg, #f59e0b 0%, #fb923c 100%);
-            border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
-            color: white;
-            font-size: 20px;
-            cursor: pointer;
-            box-shadow: 0 4px 8px rgba(245, 158, 11, 0.3);
-            transition: transform 0.2s;
             position: relative;
-            flex-shrink: 0;
         }
 
-        .notification-bell:active {
-            transform: scale(0.95);
-        }
-
-        .notification-badge {
+        .notification-bell .badge {
             position: absolute;
-            top: -4px;
-            right: -4px;
+            top: 0;
+            right: 0;
             background: #ef4444;
             color: white;
             border-radius: 50%;
-            width: 20px;
-            height: 20px;
+            width: 16px;
+            height: 16px;
+            font-size: 0.625rem;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 11px;
             font-weight: bold;
             border: 2px solid white;
         }
 
-        .notification-item {
-            background: white;
-            border-radius: 15px;
-            padding: 12px;
-            margin-bottom: 10px;
-            cursor: pointer;
-            transition: all 0.2s;
-            border: 2px solid transparent;
-        }
-
-        .notification-item:hover {
-            border-color: #7367f0;
-            box-shadow: 0 4px 12px rgba(115, 103, 240, 0.2);
-        }
-
-        .notification-item.overdue {
-            border-left: 4px solid #ef4444;
-        }
-
-        .notification-item.soon {
-            border-left: 4px solid #f97316;
-        }
-
-        .notification-item.upcoming {
-            border-left: 4px solid #3b82f6;
-        }
-
-        .notification-item-title {
-            font-weight: bold;
-            margin-bottom: 4px;
-        }
-
-        .notification-item-date {
-            font-size: 0.85em;
-            color: #6b7280;
-        }
-
-        .notification-item-list {
-            font-size: 0.8em;
-            color: #9ca3af;
-            margin-top: 4px;
-        }
-
-        .item-card.highlight-item {
-            animation: highlightPulse 2s ease-in-out;
-            box-shadow: 0 0 20px rgba(115, 103, 240, 0.5);
-        }
-
-        @keyframes highlightPulse {
-            0%, 100% { box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03); }
-            50% { box-shadow: 0 0 30px rgba(115, 103, 240, 0.8); }
-        }
-
-        .item-duedate-display {
-            font-size: 0.85em;
-            color: #6b7280;
-            margin-top: 4px;
-            cursor: pointer;
-            padding: 2px 6px;
-            border-radius: 8px;
-            display: inline-block;
-        }
-
-        .item-duedate-display.overdue {
-            color: #ef4444;
-            font-weight: bold;
-            background: #fee2e2;
-        }
-
-        .item-duedate-display.soon {
-            color: #f97316;
-            font-weight: bold;
-            background: #ffedd5;
-        }
-
-        .item-payment-link {
-            display: inline-flex;
-            align-items: center;
-            gap: 4px;
-            font-size: 0.85em;
-            color: #7367f0;
-            cursor: pointer;
-            padding: 4px 8px;
-            border-radius: 8px;
-            background: #f3f4f6;
-            margin-left: 8px;
-            margin-top: 4px;
-            transition: all 0.2s;
-            text-decoration: none;
-        }
-
-        .item-payment-link:hover {
-            background: #e5e7eb;
-            transform: scale(1.05);
-        }
-
-        .trash-btn {
-            width: 44px;
-            height: 44px;
-            background: white;
-            border-radius: 50%;
+        .cloud-sync-status {
             display: flex;
             align-items: center;
-            justify-content: center;
-            color: #ef4444;
-            border: none;
-            cursor: pointer;
-            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-        }
-
-        .category-separator {
-            background: linear-gradient(135deg, #7367f0 0%, #9055ff 100%);
-            color: white;
+            gap: 6px;
+            font-size: 12px;
+            padding: 4px 10px;
             border-radius: 20px;
-            padding: 15px;
-            margin-bottom: 20px;
-            text-align: center;
+            font-weight: 500;
         }
 
-        .category-badge {
-            display: inline-block;
-            padding: 4px 12px;
-            border-radius: 12px;
-            font-size: 11px;
-            font-weight: bold;
-            margin: 2px;
+        .cloud-sync-status.synced {
+            background: linear-gradient(135deg, #dcfce7, #bbf7d0);
+            color: #15803d;
         }
 
-        .stat-card {
-            background: white;
-            border-radius: 20px;
-            padding: 20px;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
-            margin-bottom: 15px;
+        .cloud-sync-status.syncing {
+            background: linear-gradient(135deg, #fef3c7, #fde68a);
+            color: #92400e;
         }
 
-        .progress-bar {
+        .cloud-sync-status.offline {
+            background: linear-gradient(135deg, #fee2e2, #fecaca);
+            color: #991b1b;
+        }
+
+        .notification-bell.has-notifications {
+            animation: ring 2s ease-in-out;
+        }
+
+        @keyframes ring {
+            0%, 100% { transform: rotate(0deg); }
+            10%, 30% { transform: rotate(-10deg); }
+            20%, 40% { transform: rotate(10deg); }
+        }
+
+        .note-modal-textarea {
             width: 100%;
-            height: 8px;
-            background: #e5e7eb;
-            border-radius: 10px;
-            overflow: hidden;
-            margin-top: 8px;
+            padding: 12px;
+            border: 2px solid #f3f4f6;
+            border-radius: 16px;
+            font-size: 14px;
+            text-align: right;
+            outline: none;
+            margin-bottom: 10px;
+            font-weight: normal;
+            background: #f9fafb !important;
+            color: #333;
+            resize: vertical;
+            min-height: 100px;
+            font-family: inherit;
         }
 
-        .progress-fill {
-            height: 100%;
-            background: linear-gradient(90deg, #22c55e 0%, #16a34a 100%);
-            border-radius: 10px;
-            transition: width 0.3s ease;
+        .note-modal-textarea:focus {
+            border-color: #7367f0;
         }
 
-        body.dark-mode {
-            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
-            color: #e0e0e0;
-        }
-
-        .dark-mode .app-header {
-            background: #16213e;
-            border-bottom: 1px solid #0f3460;
-        }
-
-        .dark-mode .item-card,
-        .dark-mode .bg-white,
-        .dark-mode .stat-card {
-            background-color: #0f3460 !important;
-            border-color: #1a1a2e;
-            color: white;
-        }
-
-        .dark-mode #selectAllLabel {
-            color: white !important;
-        }
-
-        .dark-mode .select-all-container {
-            background-color: #0f3460 !important;
-        }
-
-        .dark-mode #searchInput {
-            background-color: #0f3460 !important;
-            color: white;
-        }
-
-        .dark-mode .item-number {
-            color: #a5a2f7;
-        }
-
-        .dark-mode .item-card span.font-bold {
-            color: white !important;
-        }
-
-        .dark-mode .item-card .bg-gray-50 {
-            background-color: rgba(255, 255, 255, 0.1) !important;
-            border-color: rgba(255, 255, 255, 0.2);
-        }
-
-        .dark-mode .modal-input {
-            background-color: #0f3460 !important;
-            color: white !important;
-            border-color: #1a1a2e;
-        }
-
-        .dark-mode .edit-modal {
-            background-color: #16213e !important;
-            color: white;
-            border-color: #0f3460;
-        }
-
-        @media print {
-
-            .no-print,
-            .bottom-bar,
-            .app-header,
-            .tab-btn,
-            .modal-overlay,
-            .trash-btn,
-            input,
-            button {
-                display: none !important;
-            }
-
-            #printArea {
-                display: block !important;
-                width: 100%;
-                direction: rtl;
-            }
-        }
-
-        .notification {
-            position: fixed;
-            top: 70px;
-            right: 20px;
+        .urgent-alert-modal {
+            width: 90%;
+            max-width: 450px;
             background: white;
-            padding: 15px 20px;
+            border-radius: 25px;
+            padding: 25px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+            animation: urgentPulse 0.5s ease-out;
+        }
+
+        @keyframes urgentPulse {
+            0% { transform: scale(0.9); opacity: 0; }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        .urgent-alert-header {
+            font-size: 4rem;
+            text-align: center;
+            margin-bottom: 10px;
+            animation: shake 0.5s infinite;
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: rotate(0deg); }
+            25% { transform: rotate(-5deg); }
+            75% { transform: rotate(5deg); }
+        }
+
+        .urgent-alert-title {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #ef4444;
+            text-align: center;
+            margin-bottom: 5px;
+        }
+
+        .urgent-items-list {
+            max-height: 300px;
+            overflow-y: auto;
+            margin: 15px 0;
+        }
+
+        .urgent-item {
+            background: linear-gradient(135deg, #fef2f2, #fee2e2);
+            border: 2px solid #fca5a5;
             border-radius: 15px;
-            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
-            z-index: 9000;
-            transform: translateX(400px);
-            transition: transform 0.3s ease;
+            padding: 15px;
+            margin-bottom: 10px;
+            text-align: right;
         }
 
-        .notification.show {
-            transform: translateX(0);
+        .urgent-item-name {
+            font-weight: bold;
+            font-size: 1.1rem;
+            color: #991b1b;
+            margin-bottom: 5px;
         }
 
-        .undo-notification button:hover {
-            background: #f3f4f6 !important;
-            transform: scale(1.05);
+        .urgent-item-date {
+            color: #7f1d1d;
+            font-size: 0.9rem;
         }
 
-        .undo-notification button:active {
+        .urgent-buttons {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .urgent-btn {
+            padding: 14px;
+            border-radius: 15px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: none;
+            font-size: 1rem;
+        }
+
+        .urgent-btn:active {
             transform: scale(0.95);
         }
 
-        .floating-toggle-btn {
-            position: fixed;
-            bottom: 220px;
-            right: 10px;
-            width: 35px;
-            height: 35px;
-            background: white;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.2);
-            cursor: pointer;
-            z-index: 1001;
-            transition: all 0.3s ease;
-            border: 2px solid rgba(115, 103, 240, 0.3);
+        .urgent-btn-snooze {
+            background: linear-gradient(135deg, #fef3c7, #fde68a);
+            color: #92400e;
         }
 
-        .floating-toggle-btn:active {
-            transform: scale(0.9);
+        .urgent-btn-tomorrow {
+            background: linear-gradient(135deg, #dbeafe, #bfdbfe);
+            color: #1e3a8a;
         }
 
-        .floating-toggle-btn svg {
-            transition: transform 0.3s ease;
-            color: #7367f0;
-        }
-
-        .floating-toggle-btn.bar-hidden {
-            bottom: 10px;
-        }
-
-        .floating-toggle-btn.bar-hidden svg {
-            transform: rotate(180deg);
-        }
-
-        .template-badge {
-            background: #fbbf24;
-            color: white;
-            padding: 2px 8px;
-            border-radius: 8px;
-            font-size: 10px;
-            font-weight: bold;
-            margin-right: 8px;
+        .urgent-btn-close {
+            background: linear-gradient(135deg, #f3f4f6, #e5e7eb);
+            color: #374151;
         }
 
         .autocomplete-container {
@@ -548,19 +394,23 @@
             left: 0;
             right: 0;
             background: white;
-            border: 2px solid #e5e7eb;
-            border-top: none;
             border-radius: 0 0 16px 16px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
             max-height: 200px;
             overflow-y: auto;
             z-index: 1000;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            display: none;
+        }
+
+        .autocomplete-container.active {
+            display: block;
         }
 
         .autocomplete-item {
-            padding: 10px;
+            padding: 12px;
             cursor: pointer;
             border-bottom: 1px solid #f3f4f6;
+            text-align: right;
             transition: background 0.2s;
         }
 
@@ -572,862 +422,202 @@
             border-bottom: none;
         }
 
-        /* Cloud Button Connected State */
-        .cloud-btn-connected {
-            background: #dcfce7 !important;
-            color: #15803d !important;
-            border-color: #86efac !important;
-        }
-
-        .cloud-btn-disconnected {
-            background: #f3f4f6;
-            color: #6b7280;
-            border-color: #e5e7eb;
-        }
-
-        .cloud-btn-syncing {
-            background: #fef3c7 !important;
-            color: #92400e !important;
-            border-color: #fde68a !important;
-            animation: cloudPulse 2s ease-in-out infinite;
-        }
-
-        @keyframes cloudPulse {
-            0%, 100% {
-                opacity: 1;
-                transform: scale(1);
-            }
-            50% {
-                opacity: 0.85;
-                transform: scale(0.98);
-            }
-        }
-
-        /* Bank Import Button Styles */
-        .bank-import-btn {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
-            padding: 12px 20px;
-            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-            color: white;
-            border-radius: 15px;
+        .autocomplete-item-name {
             font-weight: bold;
-            cursor: pointer;
-            transition: all 0.2s;
-            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
-            border: none;
-            font-size: 14px;
-        }
-
-        .bank-import-btn:active {
-            transform: scale(0.95);
-        }
-
-        .bank-import-btn:hover {
-            box-shadow: 0 6px 16px rgba(16, 185, 129, 0.4);
-        }
-
-        /* Note icon styles */
-        .note-icon {
-            width: 24px;
-            height: 24px;
-            border-radius: 8px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            transition: all 0.2s;
-            background: linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%);
-            border: 1px solid #d1d5db;
-        }
-
-        .note-icon:hover {
-            transform: scale(1.1);
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-        }
-
-        .note-icon.has-note {
-            background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
-            border-color: #fbbf24;
-            position: relative;
-        }
-
-        .note-icon.has-note::after {
-            content: '';
-            position: absolute;
-            top: -2px;
-            right: -2px;
-            width: 8px;
-            height: 8px;
-            background: #f59e0b;
-            border-radius: 50%;
-            border: 2px solid white;
-        }
-
-        .note-modal-textarea {
-            width: 100%;
-            min-height: 120px;
-            padding: 12px;
-            border: 2px solid #f3f4f6;
-            border-radius: 16px;
-            font-size: 15px;
-            text-align: right;
-            outline: none;
-            margin-bottom: 15px;
-            font-family: system-ui, sans-serif;
-            background: #f9fafb !important;
             color: #333;
-            resize: vertical;
         }
 
-        .note-modal-textarea:focus {
-            border-color: #fbbf24;
-            background: #fff !important;
-        }
-        
-        .urgent-alert-modal {
-            background-color: #ffffff !important;
-            border-radius: 30px;
-            padding: 25px;
-            text-align: center;
-            color: #333;
-            border: 3px solid #ef4444;
-            box-shadow: 0 20px 50px rgba(239, 68, 68, 0.4);
-            max-height: 80vh;
-            overflow-y: auto;
-        }
-        
-        .urgent-alert-header {
-            font-size: 3em;
-            margin-bottom: 10px;
-        }
-        
-        .urgent-alert-title {
-            font-size: 1.5rem;
-            font-weight: bold;
-            color: #ef4444;
-            margin-bottom: 15px;
-        }
-        
-        .urgent-items-list {
-            text-align: right;
-            margin: 20px 0;
-            padding: 15px;
-            background: #fef2f2;
-            border-radius: 15px;
-            max-height: 300px;
-            overflow-y: auto;
-        }
-        
-        .urgent-item {
-            padding: 10px;
-            margin-bottom: 8px;
-            background: white;
-            border-radius: 10px;
-            border-right: 4px solid #ef4444;
-            font-size: 0.95rem;
-        }
-        
-        .urgent-item-name {
-            font-weight: bold;
-            color: #1f2937;
-        }
-        
-        .urgent-item-date {
-            color: #ef4444;
-            font-size: 0.85rem;
-            margin-top: 3px;
-        }
-        
-        .urgent-buttons {
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-            margin-top: 20px;
-        }
-        
-        .urgent-btn {
-            padding: 15px;
-            border-radius: 15px;
-            font-weight: bold;
-            font-size: 1rem;
-            cursor: pointer;
-            border: none;
-            transition: transform 0.2s, box-shadow 0.2s;
-        }
-        
-        .urgent-btn:active {
-            transform: scale(0.97);
-        }
-        
-        .urgent-btn-snooze {
-            background: #fbbf24;
-            color: white;
-        }
-        
-        .urgent-btn-tomorrow {
-            background: #3b82f6;
-            color: white;
-        }
-        
-        .urgent-btn-close {
-            background: #6b7280;
-            color: white;
-        }
-        
-        .dark-mode .urgent-alert-modal {
-            background-color: #2a2a3e !important;
-            border-color: #ef4444;
-        }
-        
-        .dark-mode .urgent-alert-title {
-            color: #fca5a5;
-        }
-        
-        .dark-mode .urgent-items-list {
-            background: #1a1a2e;
-        }
-        
-        .dark-mode .urgent-item {
-            background: #2a2a3e;
-            border-right-color: #ef4444;
-        }
-        
-        .dark-mode .urgent-item-name {
-            color: #e0e0e0;
-        }
-        
-        .item-notes-display {
+        .autocomplete-item-price {
             font-size: 0.85em;
-            color: #6b7280;
-            margin-top: 5px;
-            cursor: pointer;
-            padding: 5px;
-            border-radius: 8px;
-            transition: background 0.2s;
-            word-wrap: break-word;
-        }
-        
-        .item-notes-display:hover {
-            background: rgba(115, 103, 240, 0.05);
-        }
-        
-        .item-notes-display a {
             color: #7367f0;
-            text-decoration: underline;
-        }
-        
-        .item-duedate-display {
-            font-size: 0.85em;
-            color: #f59e0b;
-            margin-top: 5px;
-            cursor: pointer;
-            padding: 5px;
-            border-radius: 8px;
-            transition: background 0.2s;
-            font-weight: 600;
-        }
-        
-        .item-duedate-display:hover {
-            background: rgba(245, 158, 11, 0.1);
-        }
-        
-        .item-duedate-display.overdue {
-            color: #ef4444;
-            font-weight: bold;
-        }
-        
-        .dark-mode .item-notes-display {
-            color: #9ca3af;
-        }
-        
-        .dark-mode .item-notes-display a {
-            color: #a78bfa;
-        }
-        
-        .dark-mode .item-duedate-display {
-            color: #fbbf24;
-        }
-        
-        .dark-mode .item-duedate-display.overdue {
-            color: #fca5a5;
+            margin-top: 2px;
         }
 
-        /* --- Floating Pills Styles (FIXED) --- */
-
-        /* 1. Main Wide Button */
-        .hero-wide-btn {
-            background: linear-gradient(135deg, #7367f0 0%, #9055ff 100%);
-            width: 100%;
-            padding: 18px 24px;
-            border-radius: 20px;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            box-shadow: 0 10px 30px -5px rgba(115, 103, 240, 0.4);
-            border: 1px solid rgba(255,255,255,0.1);
-            transition: transform 0.2s, box-shadow 0.2s;
-            position: relative;
-            overflow: hidden;
-            margin-bottom: 16px;
-            color: white !important; /* Force white text */
-            cursor: pointer;
-        }
-
-        .hero-wide-btn:active {
-            transform: scale(0.98);
-            box-shadow: 0 5px 15px -5px rgba(115, 103, 240, 0.3);
-        }
-
-        /* 2. Pills Container */
-        .pills-container {
-            display: flex;
-            gap: 8px; /* Reduced gap */
-            width: 100%;
-        }
-
-        /* 3. Individual Pill - Compact Mode */
-        .action-pill {
-            flex: 1;
-            background: white;
-            border: 1px solid #edf2f7;
-            padding: 10px 4px; /* Reduced side padding */
-            border-radius: 50px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 6px;
-            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.03);
-            transition: all 0.2s;
-            cursor: pointer;
-            white-space: nowrap;
-            min-width: 0; /* CRITICAL: Allows shrinking to fit screen */
-        }
-
-        .action-pill:active {
-            transform: scale(0.95);
-            background: #f8fafc;
-        }
-
-        .pill-icon { 
-            font-size: 16px; 
-        }
-        
-        .pill-text { 
-            font-size: 12px; 
-            font-weight: 700; 
-            color: #4b5563; 
-        }
-    </style>
-
-    <script>
-        if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => {
-                navigator.serviceWorker.register('sw.js')
-                    .then(registration => {
-                        console.log('SW registered:', registration);
-                    })
-                    .catch(error => {
-                        console.log('SW registration failed:', error);
-                    });
-            });
-        }
-    </script>
-
-
-    <style>
-        /* ERROR DISPLAY STYLES */
-        #firebaseErrorDisplay {
+        .notification {
             position: fixed;
             top: 80px;
-            left: 50%;
-            transform: translateX(-50%);
-            background: #fee2e2;
-            border: 3px solid #ef4444;
-            color: #991b1b;
-            padding: 20px;
+            right: 20px;
+            background: linear-gradient(135deg, #7367f0 0%, #9055ff 100%);
+            color: white;
+            padding: 15px 25px;
             border-radius: 20px;
-            box-shadow: 0 10px 40px rgba(239, 68, 68, 0.3);
-            z-index: 10000;
-            max-width: 90%;
-            width: 500px;
-            display: none;
-            animation: slideDown 0.3s ease-out;
-        }
-
-        #firebaseErrorDisplay.show {
-            display: block;
-        }
-
-        @keyframes slideDown {
-            from {
-                transform: translateX(-50%) translateY(-100px);
-                opacity: 0;
-            }
-            to {
-                transform: translateX(-50%) translateY(0);
-                opacity: 1;
-            }
-        }
-
-        .error-title {
-            font-size: 18px;
+            box-shadow: 0 10px 30px rgba(115, 103, 240, 0.4);
+            z-index: 9999;
+            animation: slideIn 0.3s ease-out;
             font-weight: bold;
-            margin-bottom: 10px;
-            display: flex;
-            align-items: center;
-            gap: 8px;
+            max-width: 80%;
         }
 
-        .error-message {
-            font-size: 14px;
-            line-height: 1.6;
-            white-space: pre-wrap;
-            margin-bottom: 15px;
+        @keyframes slideIn {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
         }
 
-        .error-close-btn {
+        @keyframes slideOut {
+            from { transform: translateX(0); opacity: 1; }
+            to { transform: translateX(100%); opacity: 0; }
+        }
+
+        .notification.warning {
+            background: linear-gradient(135deg, #f59e0b 0%, #f97316 100%);
+        }
+
+        .notification.success {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+        }
+
+        .notification.error {
+            background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+        }
+
+        .undo-notification {
+            position: fixed;
+            bottom: 100px;
+            right: 20px;
             background: #ef4444;
             color: white;
+            padding: 15px 20px;
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            z-index: 9999;
+            animation: slideIn 0.3s ease-out;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            max-width: 90%;
+        }
+
+        .undo-btn {
+            background: white;
+            color: #ef4444;
             border: none;
-            padding: 10px 20px;
-            border-radius: 10px;
+            padding: 8px 16px;
+            border-radius: 12px;
             font-weight: bold;
             cursor: pointer;
-            width: 100%;
+            transition: transform 0.2s;
+            flex-shrink: 0;
         }
 
-        .error-close-btn:active {
+        .undo-btn:active {
             transform: scale(0.95);
         }
-    </style>
 
-    <script>
-        // Helper function to show errors visually
-        function showFirebaseError(title, message) {
-            console.error('🔴 Firebase Error:', title, message);
-            
-            // Create error display if it doesn't exist
-            let errorDiv = document.getElementById('firebaseErrorDisplay');
-            if (!errorDiv) {
-                errorDiv = document.createElement('div');
-                errorDiv.id = 'firebaseErrorDisplay';
-                document.body.appendChild(errorDiv);
+        @media print {
+            .no-print {
+                display: none !important;
             }
             
-            errorDiv.innerHTML = `
-                <div class="error-title">⚠️ ${title}</div>
-                <div class="error-message">${message}</div>
-                <button class="error-close-btn" onclick="document.getElementById('firebaseErrorDisplay').classList.remove('show')">סגור</button>
-            `;
+            body {
+                background: white;
+                padding: 0;
+            }
             
-            errorDiv.classList.add('show');
+            .app-header {
+                position: static;
+                box-shadow: none;
+                border-bottom: 2px solid #eee;
+                page-break-after: avoid;
+            }
             
-            // Also log to console
-            console.log('%c══════════════════════════════════', 'color: red; font-weight: bold');
-            console.log('%c🔴 ' + title, 'color: red; font-size: 16px; font-weight: bold');
-            console.log('%c' + message, 'color: red; font-size: 14px');
-            console.log('%c══════════════════════════════════', 'color: red; font-weight: bold');
+            .item-card {
+                box-shadow: none;
+                border: 1px solid #eee;
+                page-break-inside: avoid;
+                margin-bottom: 8px;
+            }
+            
+            #listsContainer {
+                padding: 10px;
+            }
         }
-    </script>
-
-    <script type="module">
-        console.log('🔵 Starting Firebase initialization...');
-        
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import { getAuth, signInWithPopup, signInWithRedirect, GoogleAuthProvider, getRedirectResult, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-        import { getFirestore, doc, setDoc, onSnapshot, getDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
-
-        try {
-            const firebaseConfig = { 
-                apiKey: "AIzaSyBqIqxoiwwqeKkjlYJpEiqgCG09PgabwhI", 
-                authDomain: "vplus-pro.firebaseapp.com", 
-                projectId: "vplus-pro", 
-                storageBucket: "vplus-pro.firebasestorage.app", 
-                messagingSenderId: "386740827706", 
-                appId: "1:386740827706:web:a3c95c895826df4bb26703" 
-            };
-
-            console.log('🔵 Initializing Firebase app...');
-            const app = initializeApp(firebaseConfig);
-            
-            console.log('🔵 Getting Auth instance...');
-            const auth = getAuth(app);
-            
-            console.log('🔵 Getting Firestore instance...');
-            const db = getFirestore(app);
-            
-            console.log('🔵 Creating Google provider...');
-            const provider = new GoogleAuthProvider();
-            provider.addScope('email');
-            provider.addScope('profile');
-
-            window.firebaseApp = app;
-            window.firebaseAuth = auth;
-            window.firebaseDb = db;
-            window.googleProvider = provider;
-
-            window.signInWithPopup = signInWithPopup;
-            window.signInWithRedirect = signInWithRedirect;
-            window.getRedirectResult = getRedirectResult;
-            window.signOut = signOut;
-            window.onAuthStateChanged = onAuthStateChanged;
-            window.doc = doc;
-            window.setDoc = setDoc;
-            window.onSnapshot = onSnapshot;
-            window.getDoc = getDoc;
-
-            console.log('✅ Firebase initialized successfully');
-
-            // Check for redirect result
-            console.log('🔵 Checking for redirect result...');
-            getRedirectResult(auth).then((result) => {
-                if (result && result.user) {
-                    console.log('✅ Login successful!', result.user.email);
-                    showFirebaseError('התחברות הצליחה! ✅', 'ברוך הבא ' + result.user.email);
-                    setTimeout(() => {
-                        document.getElementById('firebaseErrorDisplay').classList.remove('show');
-                    }, 3000);
-                } else {
-                    console.log('ℹ️ No redirect result (normal page load)');
-                }
-            }).catch((error) => {
-                console.error('❌ Redirect error caught:', error);
-                
-                let errorTitle = "שגיאה בהתחברות";
-                let errorMsg = "";
-                
-                if (error.code === 'auth/unauthorized-domain') {
-                    errorTitle = "⚠️ הדומיין לא מורשה";
-                    errorMsg = `הדומיין הזה לא מורשה להתחברות ב-Firebase.
-
-צעדים לפתרון:
-1. פתח את Firebase Console
-2. עבור ל: Authentication → Settings
-3. גלול ל: Authorized domains
-4. הוסף את הדומיין: ${window.location.hostname}
-
-לחץ על "Add domain" והדבק: ${window.location.hostname}`;
-                } else if (error.code === 'auth/operation-not-allowed') {
-                    errorTitle = "⚠️ Google Sign-In לא מופעל";
-                    errorMsg = `שיטת ההתחברות של Google לא מופעלת בפרויקט.
-
-צעדים לפתרון:
-1. פתח את Firebase Console
-2. עבור ל: Authentication → Sign-in method
-3. מצא את "Google" ברשימה
-4. לחץ עליו ואפשר אותו (Enable)
-5. שמור את השינויים`;
-                } else if (error.code === 'auth/popup-blocked') {
-                    errorTitle = "⚠️ חלון נחסם";
-                    errorMsg = `הדפדפן חסם את חלון ההתחברות.
-
-אפשר חלונות קופצים (pop-ups) לאתר זה בהגדרות הדפדפן.`;
-                } else if (error.code === 'auth/network-request-failed') {
-                    errorTitle = "⚠️ בעיית רשת";
-                    errorMsg = `לא ניתן להתחבר לשרתי Firebase.
-
-בדוק את החיבור לאינטרנט ונסה שוב.`;
-                } else {
-                    errorMsg = `קוד שגיאה: ${error.code || 'UNKNOWN'}
-
-הודעה טכנית:
-${error.message}
-
-פתח את Console (F12) למידע נוסף.`;
-                }
-                
-                showFirebaseError(errorTitle, errorMsg);
-                
-                // Also update cloud indicator
-                setTimeout(() => {
-                    if (window.updateCloudIndicator) {
-                        window.updateCloudIndicator('disconnected');
-                    }
-                }, 100);
-            });
-
-        } catch (e) {
-            console.error('❌ Firebase initialization failed:', e);
-            showFirebaseError('שגיאה קריטית', 'Firebase לא הצליח לטעון:\n\n' + e.message);
-        }
-    </script>
+    </style>
 </head>
 
 <body>
-
     <div class="app-header no-print">
-        <h1 class="font-bold text-2xl" style="direction: ltr;">
-            <span style="color: #22c55e !important;">V</span>
-            <span class="text-indigo-600">plus</span>
-            <span style="font-size: 10px; color: #9055ff; vertical-align: super;">PRO</span>
-        </h1>
-
         <div class="header-controls">
-            <div id="cloudBtn"
-                class="cloud-btn-disconnected px-3 py-1 rounded-full text-[10px] font-bold border flex items-center gap-1 cursor-pointer transition-all">
-                <span id="cloudSyncText">סנכרון ענן</span>
-                <div id="cloudIndicator" class="w-2 h-2 bg-gray-400 rounded-full"></div>
+            <div id="cloudSyncStatus" class="cloud-sync-status offline" style="display: none;">
+                <span id="cloudSyncIcon">☁️</span>
+                <span id="cloudSyncText">לא מחובר</span>
             </div>
-
-            <div
-                class="w-10 h-10 rounded-full border border-gray-200 flex items-center justify-center bg-white shadow-sm cursor-pointer overflow-hidden">
-                <svg class="w-6 h-6 flex-shrink-0" viewBox="0 0 24 24" style="width: 24px; height: 24px;">
-                    <path fill="#4285F4"
-                        d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
-                    <path fill="#34A853"
-                        d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-1 .67-2.28 1.07-3.71 1.07-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
-                    <path fill="#FBBC05"
-                        d="M5.84 14.11c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.09H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.91l3.66-2.8z" />
-                    <path fill="#EA4335"
-                        d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.09l3.66 2.84c.87-2.6 3.3-4.55 6.16-4.55z" />
+            <button class="notification-bell" id="notificationBellBtn" onclick="openModal('notificationCenterModal')" style="display: none;">
+                <svg class="w-6 h-6 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path>
                 </svg>
-            </div>
-
-            <div class="notification-bell" onclick="openNotificationCenter()">
-                🔔
-                <div class="notification-badge" id="notificationBadge" style="display: none;">0</div>
-            </div>
-
-            <button onclick="openModal('settingsModal')" class="p-2 rounded-full hover:bg-gray-100 gear-btn">
-                <svg class="w-7 h-7 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                        d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z">
-                    </path>
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                        d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                <span class="badge" id="notificationBadge" style="display: none;">0</span>
+            </button>
+            <button class="gear-btn" onclick="openModal('settingsModal')">
+                <svg class="w-6 h-6 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
                 </svg>
             </button>
         </div>
-    </div>
-
-    <div class="max-w-md mx-auto p-4 no-print">
-        <div class="flex gap-3 mb-6">
-            <div id="tabLists" onclick="showPage('lists')" class="tab-btn">הרשימה שלי</div>
-            <div id="tabSummary" onclick="showPage('summary')" class="tab-btn">הרשימות שלי</div>
-            <div id="tabStats" onclick="showPage('stats')" class="tab-btn">📊 סטטיסטיקות</div>
-        </div>
-
-        <div id="pageLists">
-            <!-- NEW FLOATING PILLS SECTION -->
-            <div class="mb-6 px-1">
-                
-                <div class="flex justify-between items-end mb-3">
-                    <h2 class="text-sm font-bold text-slate-400 uppercase tracking-wider">פעולות מהירות</h2>
-                </div>
-
-                <button onclick="openModal('newListModal')" class="hero-wide-btn group">
-                    <div class="flex items-center gap-3">
-                        <div class="bg-white/20 w-10 h-10 rounded-xl flex items-center justify-center backdrop-blur-sm group-active:scale-90 transition-transform">
-                            <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"></path></svg>
-                        </div>
-                        <div class="text-right">
-                            <span class="block text-xl font-black leading-none tracking-tight text-white">רשימה חדשה</span>
-                        </div>
-                    </div>
-                    <div class="text-white/80 text-sm font-medium">צור ידנית ➔</div>
-                </button>
-
-                <div class="pills-container">
-                    
-                    <button onclick="openModal('importModal')" class="action-pill">
-                        <span class="pill-icon">📋</span>
-                        <span class="pill-text">הדבק</span>
-                    </button>
-
-                    <label for="excel-upload" class="action-pill">
-                        <span class="pill-icon">📊</span>
-                        <span class="pill-text">Excel</span>
-                    </label>
-
-                    <label for="bankFileInput" class="action-pill">
-                        <span class="pill-icon">🏦</span>
-                        <span class="pill-text">בנק</span>
-                    </label>
-
-                </div>
-                
-                <input type="file" id="bankFileInput" accept=".xls,.xlsx,.pdf" style="display: none;" onchange="importBankFile(event)">
-                <input type="file" id="excel-upload" accept=".xlsx, .xls" style="display: none;" onchange="handleExcelUpload(event)">
-
-            </div>
-            <!-- END NEW FLOATING PILLS SECTION -->
-            <div class="mb-3">
-                <div class="relative">
-                    <input type="text" id="listSearchInput" oninput="searchInList()" placeholder="חפש מוצר ברשימה..."
-                        class="w-full p-3 pr-12 rounded-2xl border-2 border-indigo-200 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 text-base">
-                    <svg class="w-5 h-5 text-gray-400 absolute left-4 top-1/2 -translate-y-1/2" fill="none"
-                        stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                            d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
-                    </svg>
-                    <button onclick="clearListSearch()"
-                        class="absolute left-12 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">✕</button>
-                </div>
-            </div>
-            <div class="category-separator">
-                <div class="flex justify-between items-center px-2">
-                    <button onclick="shareNative('list')" class="text-white opacity-90">
-                        <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z">
-                            </path>
-                        </svg>
-                    </button>
-                    <button onclick="openModal('translateModal')" class="text-white opacity-90" title="תרגם רשימה">
-                        <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                d="M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9h7M11 21l5-10 5 10M12.751 5C11.783 10.77 8.07 15.61 3 18.129">
-                            </path>
-                        </svg>
-                    </button>
-                    <div class="flex-1 text-center">
-                        <div id="listNameDisplay" class="text-2xl font-black truncate"
-                            onclick="openModal('editListNameModal')"></div>
-                        <div id="itemCountDisplay"
-                            class="text-[10px] font-bold opacity-80 uppercase tracking-wider mt-0.5">0 מוצרים</div>
-                    </div>
-                    <button onclick="toggleTemplateMode()" class="text-white opacity-90">
-                        <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2">
-                            </path>
-                        </svg>
-                    </button>
-                </div>
-                <div id="statusTag" class="text-[10px] font-bold mt-2 opacity-80 text-center">נעול</div>
-                <button onclick="toggleCategorySorting()" id="categorySortBtn"
-                    class="text-[10px] font-bold mt-1 bg-white/20 hover:bg-white/30 text-white py-1 px-3 rounded-full transition">
-                    <span id="categorySortText">🔤 מיון לפי קטגוריות</span>
-                </button>
-                <div id="budgetWarning"
-                    class="hidden text-[10px] font-bold mt-2 bg-red-500 text-white py-1 px-3 rounded-full inline-block">
-                    ⚠️ חריגה מתקציב!</div>
-            </div>
-            <div id="itemsContainer"></div>
-        </div>
-
-        <div id="pageSummary" class="hidden">
-            <div
-                class="bg-white rounded-2xl p-4 mb-4 shadow-sm border border-gray-100 flex items-center gap-3 select-all-container">
-                <input type="checkbox" id="selectAllLists" onchange="toggleSelectAll(this.checked)"
-                    class="w-7 h-7 accent-indigo-600">
-                <span id="selectAllLabel" class="font-bold text-slate-700 text-lg flex-1">בחר את כל הרשימות</span>
-                <button onclick="shareNative('summary')" class="text-indigo-600">
-                    <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                            d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z">
-                        </path>
-                    </svg>
-                </button>
-            </div>
-            <div id="summaryContainer"></div>
-        </div>
-
-        <div id="pageStats" class="hidden">
-            <div class="stat-card">
-                <h3 class="text-xl font-bold mb-4" id="monthlyStatsTitle">📊 סטטיסטיקות חודשיות</h3>
-                <div class="mb-4">
-                    <div class="flex justify-between mb-2">
-                        <span class="font-bold" id="monthlyExpensesLabel">הוצאות החודש</span>
-                        <span class="text-indigo-600 font-black" id="monthlyTotal">₪0.00</span>
-                    </div>
-                    <div class="progress-bar">
-                        <div class="progress-fill" id="monthlyProgress" style="width: 0%"></div>
-                    </div>
-                </div>
-                <div class="grid grid-cols-2 gap-3 mb-4">
-                    <div class="bg-green-50 p-3 rounded-xl cursor-pointer hover:bg-green-100 transition"
-                        onclick="showCompletedListsModal()">
-                        <div class="text-xs text-green-600 mb-1" id="completedListsCountLabel">רשימות הושלמו 👆</div>
-                        <div class="text-2xl font-black text-green-600" id="completedLists">0</div>
-                    </div>
-                    <div class="bg-blue-50 p-3 rounded-xl">
-                        <div class="text-xs text-blue-600 mb-1" id="avgPerListLabel">ממוצע לרשימה</div>
-                        <div class="text-2xl font-black text-blue-600" id="avgPerList">₪0</div>
-                    </div>
-                </div>
-                <canvas id="monthlyChart" height="200"></canvas>
-            </div>
-
-            <div class="stat-card">
-                <h3 class="text-xl font-bold mb-4" id="categoryExpensesTitle">💰 הוצאות לפי קטגוריה</h3>
-                <div style="max-width: 350px; margin: 0 auto;">
-                    <canvas id="categoryDoughnutChart" height="250"></canvas>
-                </div>
-                <div id="categoryBreakdown" class="mt-4"></div>
-            </div>
-
-            <div class="stat-card">
-                <h3 class="text-xl font-bold mb-4" id="popularItemsTitle">🏆 מוצרים פופולריים</h3>
-                <div id="popularItems"></div>
-            </div>
-
-            <div class="stat-card">
-                <h3 class="text-xl font-bold mb-4" id="historyStatsTitle">📁 היסטוריה</h3>
-                <button onclick="openModal('historyModal')"
-                    class="w-full bg-indigo-600 text-white py-3 rounded-xl font-bold">
-                    <span id="viewCompletedListsBtn">צפה ברשימות שהושלמו</span>
-                </button>
-            </div>
+        <div style="display: flex; flex-direction: column; align-items: flex-end;">
+            <h1 style="margin: 0; font-size: 1.5rem; font-weight: bold; color: #7367f0;">vplus</h1>
+            <div style="font-size: 0.8rem; color: #6b7280;" id="userEmailHeaderDisplay"></div>
         </div>
     </div>
 
-    <!-- Floating Toggle Button -->
-    <div id="floatingToggle" class="floating-toggle-btn no-print" onclick="toggleBottomBar()">
-        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M19 9l-7 7-7-7"></path>
-        </svg>
+    <div style="padding: 20px;" id="mainContent">
+        <input type="text" id="searchInput" placeholder="🔍 חיפוש..." 
+            style="width: 100%; padding: 14px; border-radius: 20px; border: 2px solid #f3f4f6; font-size: 16px; text-align: center; margin-bottom: 15px; background: white;">
+        
+        <div id="listsContainer"></div>
     </div>
 
-    <div class="bottom-bar text-white no-print" onclick="toggleBottomBar()">
-        <div class="flex items-center justify-between mb-4">
-            <div class="flex-1 text-center">
-                <div class="text-[10px] opacity-70" id="totalListLabel">סה"כ רשימה</div>
-                <div class="text-xl font-bold">₪<span id="displayTotal">0.00</span></div>
-            </div>
-            <div class="flex-shrink-0 flex gap-3">
-                <button onclick="event.stopPropagation(); openModal('inputForm')"
-                    class="w-16 h-16 bg-green-500 rounded-full flex items-center justify-center shadow-2xl border-4 border-white/20 text-white text-4xl font-bold">+</button>
-            </div>
-            <div class="flex-1 text-center">
-                <div class="text-[10px] opacity-70" id="paidInListLabel">שולם ברשימה</div>
-                <div class="text-xl font-bold">₪<span id="displayPaid">0.00</span></div>
-            </div>
+    <div class="bottom-bar no-print" id="bottomBar">
+        <div style="display: flex; justify-content: center; gap: 10px; margin-bottom: 15px;">
+            <div class="tab-btn tab-active" id="tabList" onclick="switchTab('list')">📋 הרשימה</div>
+            <div class="tab-btn" id="tabChart" onclick="switchTab('chart')">📊 גרפים</div>
         </div>
-        <div class="flex items-center justify-between gap-4">
-            <button id="mainLockBtn" onclick="event.stopPropagation(); toggleLock()" class="bottom-circle-btn bg-blue-600">
+        <div id="listActions" style="display: flex; align-items: center; gap: 8px; justify-content: space-between;">
+            <button class="bottom-circle-btn" style="background: white; color: #7367f0;" onclick="openModal('newListModal')">
                 <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path id="lockIconPath" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                        d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z">
-                    </path>
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M12 4v16m8-8H4"></path>
                 </svg>
             </button>
-            <div class="text-center flex-1">
-                <div class="text-[10px] opacity-70" id="remainingToPayLabel">נשאר לשלם</div>
-                <div class="text-2xl font-black text-orange-300">₪<span id="displayLeft">0.00</span></div>
+            <button class="bottom-circle-btn" style="background: white; color: #7367f0;" onclick="openModal('importModal')">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path>
+                </svg>
+            </button>
+            <div style="flex: 1; background: white; border-radius: 20px; padding: 6px; display: flex; align-items: center; justify-content: space-between; box-shadow: 0 4px 10px rgba(0,0,0,0.1);">
+                <button style="background: transparent; border: none; color: #7367f0; font-size: 1.2rem; font-weight: bold; cursor: pointer; padding: 8px 12px;" onclick="changeList(-1)">◀</button>
+                <div id="listSelector" style="flex: 1; text-align: center; font-weight: bold; color: #333; font-size: 0.9rem; cursor: pointer;" onclick="toggleListDropdown()">רשימה 1</div>
+                <button style="background: transparent; border: none; color: #7367f0; font-size: 1.2rem; font-weight: bold; cursor: pointer; padding: 8px 12px;" onclick="changeList(1)">▶</button>
             </div>
-            <button onclick="event.stopPropagation(); openModal('confirmModal')" class="bottom-circle-btn bg-red-500">
+            <button class="bottom-circle-btn" style="background: white; color: #f59e0b;" onclick="openModal('inputForm')">
                 <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"></path>
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M12 4v16m8-8H4"></path>
+                </svg>
+            </button>
+            <button class="bottom-circle-btn" style="background: white; color: #10b981;" onclick="shareList()">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"></path>
                 </svg>
             </button>
         </div>
+        <div id="chartActions" style="display: none; text-align: center;">
+            <div style="background: white; border-radius: 20px; padding: 15px; margin-bottom: 10px;">
+                <canvas id="myChart"></canvas>
+            </div>
+        </div>
     </div>
 
-    <div id="printArea" class="hidden"></div>
+    <div id="listDropdown" style="display: none; position: fixed; bottom: 220px; left: 50%; transform: translateX(-50%); background: white; border-radius: 20px; padding: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.2); z-index: 8000; max-height: 400px; overflow-y: auto; width: 90%; max-width: 350px;" class="no-print">
+        <h3 style="margin: 0 0 10px 0; text-align: center; color: #7367f0; font-size: 1.1rem;">בחר רשימה</h3>
+        <div id="listDropdownContent"></div>
+        <button onclick="toggleListDropdown()" style="width: 100%; margin-top: 10px; padding: 10px; background: #f3f4f6; border: none; border-radius: 15px; font-weight: bold; color: #666; cursor: pointer;">סגור</button>
+    </div>
 
-    <!-- Modals -->
     <div id="inputForm" class="modal-overlay no-print">
-        <div class="edit-modal" style="position: relative;">
-            <h2 id="addItemModalTitle">הוספת מוצר</h2>
-
-            <!-- Voice Input Button - Top Right Corner -->
-            <button onclick="startVoiceInput()" id="voiceBtn"
-                class="absolute top-4 left-4 w-12 h-12 bg-purple-500 rounded-full flex items-center justify-center shadow-lg border-2 border-white/30 text-white hover:bg-purple-600 transition-all hover:scale-110"
-                style="z-index: 10;" title="הקלט קולי">
+        <div class="edit-modal">
+            <h2>➕ הוספת מוצר</h2>
+            <button onclick="startVoiceInput()" 
+                style="width: 100%; padding: 12px; background: linear-gradient(135deg, #ec4899 0%, #f43f5e 100%); color: white; border: none; border-radius: 16px; font-weight: bold; margin-bottom: 10px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;">
                 <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                         d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z">
@@ -1442,6 +632,7 @@ ${error.message}
             <input type="number" id="itemPrice" inputmode="decimal" placeholder="מחיר" class="modal-input">
             <input type="number" id="itemQty" placeholder="כמות" class="modal-input" value="1" min="1">
             <input type="date" id="itemDueDate" placeholder="תאריך יעד (אופציונלי)" class="modal-input">
+            <input type="time" id="itemDueTime" placeholder="שעת יעד (אופציונלי)" class="modal-input" style="display: none;">
             <input type="url" id="itemPaymentUrl" placeholder="🔗 קישור לתשלום (אופציונלי)" class="modal-input">
             <input type="text" id="itemNotes" placeholder="📝 הערות (אופציונלי)" class="modal-input">
             <select id="itemCategory" class="modal-input">
@@ -1499,65 +690,18 @@ ${error.message}
             <h2>רשימה חדשה</h2>
             <input type="text" id="newListNameInput" placeholder="שם הרשימה" class="modal-input">
             <input type="url" id="newListUrlInput" placeholder="כתובת אתר (אופציונלי)" class="modal-input">
-            <input type="number" id="newListBudget" placeholder="תקציב (אופציונלי)" class="modal-input">
-            <div class="flex items-center justify-center gap-2 mb-3">
-                <label class="flex items-center gap-2 cursor-pointer">
-                    <input type="checkbox" id="newListTemplate" class="w-5 h-5 accent-indigo-600">
-                    <span class="text-sm font-bold">⭐ שמור כתבנית</span>
-                </label>
-            </div>
             <div class="flex gap-3">
-                <button class="bg-indigo-600 text-white flex-1 py-4 rounded-xl font-bold shadow-md"
-                    onclick="event.stopPropagation(); saveNewList();">צור</button>
+                <button class="bg-indigo-600 text-white flex-1 py-4 rounded-xl font-bold"
+                    onclick="event.stopPropagation(); createNewList();">צור</button>
                 <button class="bg-gray-100 flex-1 py-4 rounded-xl font-bold"
                     onclick="event.stopPropagation(); closeModal('newListModal');">ביטול</button>
             </div>
         </div>
     </div>
 
-    <div id="confirmModal" class="modal-overlay no-print">
-        <div class="edit-modal">
-            <h2 class="text-green-600">סיום רשימה</h2>
-            <p class="mb-6">לסמן רשימה זו כהושלמה ולשמור בהיסטוריה?</p>
-            <div class="flex gap-3">
-                <button class="bg-green-500 text-white flex-1 py-4 rounded-xl font-bold shadow-lg"
-                    onclick="completeList()">השלם</button>
-                <button class="bg-gray-100 flex-1 py-4 rounded-xl font-bold"
-                    onclick="closeModal('confirmModal')">ביטול</button>
-            </div>
-        </div>
-    </div>
-
-    <div id="deleteListModal" class="modal-overlay no-print">
-        <div class="edit-modal">
-            <h2 class="text-red-600">מחיקת רשימה</h2>
-            <div class="flex gap-3">
-                <button id="confirmDeleteListBtn" class="bg-red-500 text-white flex-1 py-4 rounded-xl font-bold"
-                    onclick="deleteFullList()">מחק</button>
-                <button class="bg-gray-100 flex-1 py-4 rounded-xl font-bold"
-                    onclick="closeModal('deleteListModal')">ביטול</button>
-            </div>
-        </div>
-    </div>
-
-    <div id="editListNameModal" class="modal-overlay no-print">
-        <div class="edit-modal">
-            <h2>עריכת רשימה</h2>
-            <input type="text" id="editListNameInput" placeholder="שם הרשימה" class="modal-input">
-            <input type="url" id="editListUrlInput" placeholder="כתובת אתר (אופציונלי)" class="modal-input">
-            <input type="number" id="editListBudget" placeholder="תקציב (אופציונלי)" class="modal-input">
-            <div class="flex gap-3">
-                <button class="bg-indigo-600 text-white flex-1 py-4 rounded-xl font-bold"
-                    onclick="event.stopPropagation(); saveListName();">שמור</button>
-                <button class="bg-gray-100 flex-1 py-4 rounded-xl font-bold"
-                    onclick="event.stopPropagation(); closeModal('editListNameModal');">ביטול</button>
-            </div>
-        </div>
-    </div>
-
     <div id="editTotalModal" class="modal-overlay no-print">
         <div class="edit-modal">
-            <h2>עדכון מחיר</h2>
+            <h2>עדכון סכום כולל</h2>
             <input type="number" id="editTotalInput" class="modal-input">
             <div class="flex gap-3">
                 <button class="bg-indigo-600 text-white flex-1 py-4 rounded-xl font-bold"
@@ -1573,6 +717,7 @@ ${error.message}
             <h2>📝 עריכת פריט</h2>
             <input type="text" id="editItemName" class="modal-input" placeholder="שם הפריט">
             <input type="date" id="editItemDueDate" class="modal-input" placeholder="תאריך יעד">
+            <input type="time" id="editItemDueTime" class="modal-input" placeholder="שעת יעד" style="display: none;">
             <input type="url" id="editItemPaymentUrl" class="modal-input" placeholder="🔗 קישור לתשלום (אופציונלי)">
             <div style="margin-bottom: 5px;">
                 <label class="text-sm font-bold text-gray-600 block text-center mb-1">🔔 התראה מראש</label>
@@ -1814,13 +959,3 @@ ${error.message}
 </body>
 
 </html>
-
-
-
-
-
-
-
-
-
-
