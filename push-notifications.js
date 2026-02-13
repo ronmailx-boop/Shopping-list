@@ -18,7 +18,7 @@ async function requestNotificationPermission() {
       
       // Get FCM token
       const token = await getToken(messaging, {
-        vapidKey: 'YOUR_VAPID_KEY_HERE' // נצטרך להגדיר בFirebase Console
+        vapidKey: 'BEfW0mtDR1km7wNEJk2iODQM5_ipheXBc7Ty_ZdxunMHlT8nLpPDNv8WhuLNJt8J2I5T6g290rBWNJMcVeEHhOe
       });
       
       if (token) {
