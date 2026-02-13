@@ -13,6 +13,12 @@ let currentNoteItemIndex = null;
 let currentEditItemIndex = null;
 let currentEditField = null;
 
+// ========== Global Variables for Undo Delete Feature ==========
+let deletedItem = null;
+let deletedItemIndex = null;
+let deleteTimeout = null;
+let undoNotification = null;
+
 // ========== Reminder Time Conversion ==========
 function getReminderMilliseconds(value, unit) {
     if (!value || !unit) return 0;
@@ -2760,9 +2766,112 @@ function changeQty(idx, d) {
 }
 
 function removeItem(idx) {
+    // שמירת הפריט והאינדקס שלו
+    deletedItem = JSON.parse(JSON.stringify(db.lists[db.currentId].items[idx]));
+    deletedItemIndex = idx;
+    
+    // מחיקת הפריט
     db.lists[db.currentId].items.splice(idx, 1);
     save();
-    showNotification('🗑️ מוצר הוסר');
+    render();
+    
+    // ביטול טיימר קודם אם קיים
+    if (deleteTimeout) {
+        clearTimeout(deleteTimeout);
+    }
+    
+    // הסרת הודעת ביטול קודמת אם קיימת
+    if (undoNotification) {
+        undoNotification.remove();
+        undoNotification = null;
+    }
+    
+    // יצירת הודעה עם כפתור ביטול
+    const notif = document.createElement('div');
+    notif.className = 'notification undo-notification';
+    notif.style.background = '#ef4444';
+    notif.style.color = 'white';
+    notif.style.display = 'flex';
+    notif.style.alignItems = 'center';
+    notif.style.justifyContent = 'space-between';
+    notif.style.gap = '10px';
+    
+    const message = document.createElement('span');
+    message.innerHTML = '<strong>🗑️ מוצר הוסר</strong>';
+    
+    const undoBtn = document.createElement('button');
+    undoBtn.innerHTML = '<strong>↩️ ביטול</strong>';
+    undoBtn.style.background = 'white';
+    undoBtn.style.color = '#ef4444';
+    undoBtn.style.border = 'none';
+    undoBtn.style.padding = '8px 16px';
+    undoBtn.style.borderRadius = '10px';
+    undoBtn.style.fontWeight = 'bold';
+    undoBtn.style.cursor = 'pointer';
+    undoBtn.style.fontSize = '14px';
+    undoBtn.onclick = undoDelete;
+    
+    notif.appendChild(message);
+    notif.appendChild(undoBtn);
+    document.body.appendChild(notif);
+    undoNotification = notif;
+    
+    // הצגת ההודעה
+    setTimeout(() => notif.classList.add('show'), 100);
+    
+    // טיימר למחיקה סופית אחרי 5 שניות
+    deleteTimeout = setTimeout(() => {
+        finalizeDelete();
+    }, 5000);
+}
+
+function undoDelete() {
+    if (deletedItem !== null && deletedItemIndex !== null) {
+        // ביטול הטיימר
+        if (deleteTimeout) {
+            clearTimeout(deleteTimeout);
+            deleteTimeout = null;
+        }
+        
+        // החזרת הפריט למיקום המקורי שלו
+        db.lists[db.currentId].items.splice(deletedItemIndex, 0, deletedItem);
+        
+        // איפוס המשתנים
+        deletedItem = null;
+        deletedItemIndex = null;
+        
+        // שמירה ורינדור
+        save();
+        render();
+        
+        // הסרת הודעת הביטול
+        if (undoNotification) {
+            undoNotification.classList.remove('show');
+            setTimeout(() => {
+                undoNotification.remove();
+                undoNotification = null;
+            }, 300);
+        }
+        
+        // הצגת הודעת אישור
+        showNotification('✅ הפעולה בוטלה');
+    }
+}
+
+function finalizeDelete() {
+    // מחיקה סופית - איפוס המשתנים
+    deletedItem = null;
+    deletedItemIndex = null;
+    deleteTimeout = null;
+    
+    // הסרת ההודעה
+    if (undoNotification) {
+        undoNotification.classList.remove('show');
+        setTimeout(() => {
+            undoNotification.remove();
+            undoNotification = null;
+        }, 300);
+    }
 }
 
 function toggleLock() {
