@@ -104,7 +104,8 @@
     }
   ],
   "prefer_related_applications": false,
-  "related_applications": []
+  "related_applications": [],
+  "gcm_sender_id": "103953800507"
 }
 
 
