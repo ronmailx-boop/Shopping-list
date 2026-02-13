@@ -2686,6 +2686,7 @@ function addItemToList(event) {
     const p = parseFloat(document.getElementById('itemPrice') ? document.getElementById('itemPrice').value : 0) || 0;
     const q = parseInt(document.getElementById('itemQty') ? document.getElementById('itemQty').value : 1) || 1;
     const dueDate = document.getElementById('itemDueDate') ? document.getElementById('itemDueDate').value : '';
+    const dueTime = document.getElementById('itemDueTime') ? document.getElementById('itemDueTime').value : '';
     const paymentUrl = document.getElementById('itemPaymentUrl') ? document.getElementById('itemPaymentUrl').value.trim() : '';
     const notes = document.getElementById('itemNotes') ? document.getElementById('itemNotes').value.trim() : '';
     const reminderValue = document.getElementById('itemReminderValue') ? document.getElementById('itemReminderValue').value : '';
@@ -2730,6 +2731,7 @@ function addItemToList(event) {
             category: finalCategory,
             note: notes || '',
             dueDate: dueDate || '',
+            dueTime: dueTime || '',
             paymentUrl: paymentUrl || '',
             isPaid: false,
             reminderValue: reminderValue || '',
@@ -2744,6 +2746,7 @@ function addItemToList(event) {
         if (document.getElementById('itemQty')) document.getElementById('itemQty').value = '1';
         if (document.getElementById('itemCategory')) document.getElementById('itemCategory').value = '';
         if (document.getElementById('itemDueDate')) document.getElementById('itemDueDate').value = '';
+        if (document.getElementById('itemDueTime')) document.getElementById('itemDueTime').value = '';
         if (document.getElementById('itemPaymentUrl')) document.getElementById('itemPaymentUrl').value = '';
         if (document.getElementById('itemNotes')) document.getElementById('itemNotes').value = '';
         if (document.getElementById('itemReminderValue')) document.getElementById('itemReminderValue').value = '';
@@ -3126,7 +3129,17 @@ function openEditItemNameModal(idx) {
     const item = db.lists[db.currentId].items[idx];
     document.getElementById('editItemName').value = item.name;
     document.getElementById('editItemDueDate').value = item.dueDate || '';
+    document.getElementById('editItemDueTime').value = item.dueTime || '';
     document.getElementById('editItemPaymentUrl').value = item.paymentUrl || '';
+    
+    // Show/hide time field based on date
+    const timeField = document.getElementById('editItemDueTime');
+    if (item.dueDate) {
+        timeField.style.display = 'block';
+    } else {
+        timeField.style.display = 'none';
+    }
+    
     if (document.getElementById('editItemReminderValue')) {
         document.getElementById('editItemReminderValue').value = item.reminderValue || '';
     }
@@ -3145,6 +3158,7 @@ function openEditItemNameModal(idx) {
 function saveItemEdit() {
     const newName = document.getElementById('editItemName').value.trim();
     const newDueDate = document.getElementById('editItemDueDate').value;
+    const newDueTime = document.getElementById('editItemDueTime').value;
     const newPaymentUrl = document.getElementById('editItemPaymentUrl').value.trim();
     const newReminderValue = document.getElementById('editItemReminderValue') ? document.getElementById('editItemReminderValue').value : '';
     const newReminderUnit = document.getElementById('editItemReminderUnit') ? document.getElementById('editItemReminderUnit').value : '';
@@ -3153,6 +3167,7 @@ function saveItemEdit() {
         const item = db.lists[db.currentId].items[currentEditIdx];
         item.name = newName;
         item.dueDate = newDueDate;
+        item.dueTime = newDueTime;
         item.paymentUrl = newPaymentUrl;
         item.reminderValue = newReminderValue;
         item.reminderUnit = newReminderUnit;
@@ -5864,19 +5879,28 @@ function checkUrgentPayments() {
     const urgentItems = list.items.filter(item => {
         if (!item.dueDate || item.isPaid || item.checked) return false;
         
-        const dueDate = new Date(item.dueDate);
-        dueDate.setHours(0, 0, 0, 0);
+        // Parse due date and time
+        let dueDateTime;
+        if (item.dueTime) {
+            // If time is specified, use exact datetime
+            const [hours, minutes] = item.dueTime.split(':').map(Number);
+            dueDateTime = new Date(item.dueDate);
+            dueDateTime.setHours(hours, minutes, 0, 0);
+        } else {
+            // If no time specified, use end of day
+            dueDateTime = new Date(item.dueDate);
+            dueDateTime.setHours(23, 59, 59, 999);
+        }
         
-        // בדוק אם התאריך עבר
-        const isOverdue = dueDate <= today;
+        // Check if overdue
+        const isOverdue = dueDateTime.getTime() <= now;
         
-        // בדוק אם יש להתריע לפי reminderValue ו-reminderUnit
+        // Check if reminder time has arrived
         if (item.reminderValue && item.reminderUnit) {
             const reminderTimeMs = getReminderMilliseconds(item.reminderValue, item.reminderUnit);
-            const dueDateMs = dueDate.getTime();
-            const reminderDate = new Date(dueDateMs - reminderTimeMs);
+            const reminderDateTime = new Date(dueDateTime.getTime() - reminderTimeMs);
             
-            const isReminderTime = now >= reminderDate.getTime() && now <= dueDateMs + (24 * 60 * 60 * 1000);
+            const isReminderTime = now >= reminderDateTime.getTime() && now <= dueDateTime.getTime() + (24 * 60 * 60 * 1000);
             return isOverdue || isReminderTime;
         }
         
@@ -6528,6 +6552,34 @@ function exportToExcel() {
 
 // Initialize notification badge on page load
 document.addEventListener('DOMContentLoaded', function() {
+    // Date/time field event listeners
+    const itemDueDateField = document.getElementById('itemDueDate');
+    const itemDueTimeField = document.getElementById('itemDueTime');
+    const editItemDueDateField = document.getElementById('editItemDueDate');
+    const editItemDueTimeField = document.getElementById('editItemDueTime');
+    
+    if (itemDueDateField && itemDueTimeField) {
+        itemDueDateField.addEventListener('change', function() {
+            if (this.value) {
+                itemDueTimeField.style.display = 'block';
+            } else {
+                itemDueTimeField.style.display = 'none';
+                itemDueTimeField.value = '';
+            }
+        });
+    }
+    
+    if (editItemDueDateField && editItemDueTimeField) {
+        editItemDueDateField.addEventListener('change', function() {
+            if (this.value) {
+                editItemDueTimeField.style.display = 'block';
+            } else {
+                editItemDueTimeField.style.display = 'none';
+                editItemDueTimeField.value = '';
+            }
+        });
+    }
+    
     setTimeout(() => {
         if (typeof updateNotificationBadge === 'function') {
             updateNotificationBadge();
@@ -6537,6 +6589,4 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }, 500);
 });
-
-
 
