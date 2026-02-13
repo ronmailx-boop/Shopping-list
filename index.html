@@ -266,6 +266,10 @@
             border-left: 4px solid #f97316;
         }
 
+        .notification-item.upcoming {
+            border-left: 4px solid #3b82f6;
+        }
+
         .notification-item-title {
             font-weight: bold;
             margin-bottom: 4px;
@@ -1425,6 +1429,19 @@ ${error.message}
                 <option value="היגיינה">🧴 היגיינה</option>
                 <option value="אחר">📦 אחר</option>
             </select>
+            <div style="margin-bottom: 5px;">
+                <label class="text-sm font-bold text-gray-600 block text-center mb-1">🔔 התראה מראש</label>
+                <div class="flex gap-2">
+                    <input type="number" id="itemReminderValue" placeholder="מספר" class="modal-input" min="0" style="flex: 1;">
+                    <select id="itemReminderUnit" class="modal-input" style="flex: 1;">
+                        <option value="">בחר יחידה</option>
+                        <option value="minutes">דקות</option>
+                        <option value="hours">שעות</option>
+                        <option value="days">ימים</option>
+                        <option value="weeks">שבועות</option>
+                    </select>
+                </div>
+            </div>
             <div class="flex gap-3">
                 <button class="bg-green-500 text-white flex-1 py-4 rounded-xl font-bold shadow-md"
                     onclick="event.stopPropagation(); addItemToList(event);">הוסף</button>
@@ -1529,6 +1546,19 @@ ${error.message}
             <input type="text" id="editItemName" class="modal-input" placeholder="שם הפריט">
             <input type="date" id="editItemDueDate" class="modal-input" placeholder="תאריך יעד">
             <input type="url" id="editItemPaymentUrl" class="modal-input" placeholder="🔗 קישור לתשלום (אופציונלי)">
+            <div style="margin-bottom: 5px;">
+                <label class="text-sm font-bold text-gray-600 block text-center mb-1">🔔 התראה מראש</label>
+                <div class="flex gap-2">
+                    <input type="number" id="editItemReminderValue" placeholder="מספר" class="modal-input" min="0" style="flex: 1;">
+                    <select id="editItemReminderUnit" class="modal-input" style="flex: 1;">
+                        <option value="">בחר יחידה</option>
+                        <option value="minutes">דקות</option>
+                        <option value="hours">שעות</option>
+                        <option value="days">ימים</option>
+                        <option value="weeks">שבועות</option>
+                    </select>
+                </div>
+            </div>
             <div class="flex gap-3">
                 <button class="bg-indigo-600 text-white flex-1 py-4 rounded-xl font-bold"
                     onclick="event.stopPropagation(); saveItemEdit();">שמור</button>
@@ -1720,8 +1750,8 @@ ${error.message}
     <div id="urgentAlertModal" class="modal-overlay no-print">
         <div class="urgent-alert-modal">
             <div class="urgent-alert-header">⚠️</div>
-            <h2 class="urgent-alert-title">תשלומים דחופים!</h2>
-            <p style="color: #6b7280; margin-bottom: 15px;">יש לך תשלומים שעברו את תאריך היעד</p>
+            <h2 class="urgent-alert-title">התראות חשובות!</h2>
+            <p style="color: #6b7280; margin-bottom: 15px;">יש לך פריטים הדורשים תשומת לב</p>
             <div class="urgent-items-list" id="urgentItemsList">
                 <!-- Urgent items will be inserted here -->
             </div>
