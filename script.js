@@ -6572,8 +6572,11 @@ async function checkClipboardOnStartup() {
         const clipboardText = await navigator.clipboard.readText();
         
         if (!clipboardText || clipboardText.trim() === '') {
+            console.log('Clipboard is empty');
             return;
         }
+
+        console.log('Clipboard text found, length:', clipboardText.length);
 
         // Get clipboard state from localStorage
         const clipboardState = JSON.parse(localStorage.getItem('clipboardState') || '{}');
@@ -6581,14 +6584,20 @@ async function checkClipboardOnStartup() {
         const dismissed = clipboardState.clipboardDismissed || false;
         const imported = clipboardState.clipboardImported || false;
 
+        console.log('Clipboard check - Same text?', clipboardText === lastText, 'Dismissed?', dismissed, 'Imported?', imported);
+
         // Check if this is new text
         if (clipboardText === lastText) {
             // Same text - check if dismissed or imported
             if (dismissed || imported) {
+                console.log('Skipping - already dismissed or imported');
                 return; // Don't show modal
             }
+            // Same text but not dismissed/imported - show again
+            console.log('Showing modal for same text (not dismissed/imported)');
         } else {
             // New text - reset state
+            console.log('New clipboard text detected!');
             clipboardState.lastClipboardText = clipboardText;
             clipboardState.clipboardDismissed = false;
             clipboardState.clipboardImported = false;
@@ -6729,6 +6738,11 @@ function changeDetectedType() {
 function acceptClipboardImport() {
     // Close modal
     document.getElementById('clipboardImportModal').style.display = 'none';
+    
+    // Mark as accepted (not imported yet, but user confirmed)
+    const clipboardState = JSON.parse(localStorage.getItem('clipboardState') || '{}');
+    clipboardState.clipboardImported = true;
+    localStorage.setItem('clipboardState', JSON.stringify(clipboardState));
     
     // Store pending import (will be used when user selects/creates a list)
     // pendingImportText and detectedListType are already set globally
@@ -7102,12 +7116,20 @@ document.addEventListener('DOMContentLoaded', function() {
 document.addEventListener('visibilitychange', function() {
     if (!document.hidden) {
         // App is visible again
+        console.log('App became visible - checking clipboard');
         setTimeout(() => {
             checkClipboardOnStartup();
-        }, 300);
+        }, 500); // Increased to 500ms for better reliability
     }
 });
 
+// Also check on window focus (when switching back from another app)
+window.addEventListener('focus', function() {
+    console.log('Window gained focus - checking clipboard');
+    setTimeout(() => {
+        checkClipboardOnStartup();
+    }, 500);
+});
 
 
 
