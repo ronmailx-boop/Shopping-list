@@ -1441,7 +1441,6 @@ ${error.message}
             <input type="number" id="itemPrice" inputmode="decimal" placeholder="מחיר" class="modal-input">
             <input type="number" id="itemQty" placeholder="כמות" class="modal-input" value="1" min="1">
             <input type="date" id="itemDueDate" placeholder="תאריך יעד (אופציונלי)" class="modal-input">
-            <input type="time" id="itemDueTime" placeholder="שעת יעד (אופציונלי)" class="modal-input" style="display: none;">
             <input type="url" id="itemPaymentUrl" placeholder="🔗 קישור לתשלום (אופציונלי)" class="modal-input">
             <input type="text" id="itemNotes" placeholder="📝 הערות (אופציונלי)" class="modal-input">
             <select id="itemCategory" class="modal-input">
@@ -1573,7 +1572,6 @@ ${error.message}
             <h2>📝 עריכת פריט</h2>
             <input type="text" id="editItemName" class="modal-input" placeholder="שם הפריט">
             <input type="date" id="editItemDueDate" class="modal-input" placeholder="תאריך יעד">
-            <input type="time" id="editItemDueTime" class="modal-input" placeholder="שעת יעד" style="display: none;">
             <input type="url" id="editItemPaymentUrl" class="modal-input" placeholder="🔗 קישור לתשלום (אופציונלי)">
             <div style="margin-bottom: 5px;">
                 <label class="text-sm font-bold text-gray-600 block text-center mb-1">🔔 התראה מראש</label>
@@ -1794,6 +1792,32 @@ ${error.message}
                 <button class="urgent-btn urgent-btn-close" onclick="closeUrgentAlert()">
                     ✕ סגור
                 </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Clipboard Import Modal -->
+    <div id="clipboardImportModal" class="modal-overlay no-print" style="display: none;">
+        <div class="edit-modal">
+            <h2>ייבוא רשימה מטקסט</h2>
+            <p class="text-sm text-gray-500 mb-4">הדבק טקסט מווצאטסאפ או כל רשימה</p>
+            <textarea id="clipboardImportText" class="modal-input" rows="8"
+                style="resize: vertical; min-height: 150px; max-height: 300px; overflow-y: auto;" readonly></textarea>
+            
+            <div id="clipboardDetectedType" style="margin: 10px 0; padding: 10px; background: #f0f9ff; border-radius: 12px; display: none;">
+                <div style="font-size: 0.9rem; color: #0369a1; font-weight: bold; margin-bottom: 5px;">
+                    🤖 זיהוי אוטומטי: <span id="detectedTypeName"></span>
+                </div>
+                <button onclick="changeDetectedType()" style="font-size: 0.8rem; color: #7367f0; background: transparent; border: none; cursor: pointer; text-decoration: underline;">
+                    לא נכון? לחץ לשינוי
+                </button>
+            </div>
+            
+            <div class="flex gap-3">
+                <button class="bg-green-500 text-white flex-1 py-4 rounded-xl font-bold shadow-md"
+                    onclick="acceptClipboardImport()">ייבא</button>
+                <button class="bg-gray-100 flex-1 py-4 rounded-xl font-bold"
+                    onclick="dismissClipboardImport()">ביטול</button>
             </div>
         </div>
     </div>
