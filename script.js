@@ -6568,28 +6568,6 @@ async function checkClipboardOnStartup() {
             return;
         }
 
-        // Try to request permission first
-        try {
-            const permission = await navigator.permissions.query({ name: 'clipboard-read' });
-            console.log('Clipboard permission status:', permission.state);
-            
-            if (permission.state === 'denied') {
-                console.log('Clipboard access denied by user');
-                // Show one-time notification about clipboard permissions
-                const hasShownClipboardNotice = localStorage.getItem('clipboardNoticeShown');
-                if (!hasShownClipboardNotice) {
-                    setTimeout(() => {
-                        showNotification('💡 לייבוא אוטומטי מקליפבורד, אפשר גישה בהגדרות הדפדפן');
-                        localStorage.setItem('clipboardNoticeShown', 'true');
-                    }, 2000);
-                }
-                return;
-            }
-        } catch (permissionError) {
-            // Permissions API might not be supported - try anyway
-            console.log('Permissions API not available, trying direct access');
-        }
-
         // Read clipboard text
         const clipboardText = await navigator.clipboard.readText();
         
@@ -6598,7 +6576,7 @@ async function checkClipboardOnStartup() {
             return;
         }
 
-        console.log('Clipboard text found, length:', clipboardText.length);
+        console.log('✅ Clipboard text found, length:', clipboardText.length);
 
         // Get clipboard state from localStorage
         const clipboardState = JSON.parse(localStorage.getItem('clipboardState') || '{}');
@@ -6619,7 +6597,7 @@ async function checkClipboardOnStartup() {
             console.log('Showing modal for same text (not dismissed/imported)');
         } else {
             // New text - reset state
-            console.log('New clipboard text detected!');
+            console.log('🆕 New clipboard text detected!');
             clipboardState.lastClipboardText = clipboardText;
             clipboardState.clipboardDismissed = false;
             clipboardState.clipboardImported = false;
@@ -6630,19 +6608,8 @@ async function checkClipboardOnStartup() {
         showClipboardImportModal(clipboardText);
 
     } catch (error) {
-        console.log('Clipboard access error:', error.name, error.message);
-        
-        // If it's a NotAllowedError, it means user needs to grant permission
-        if (error.name === 'NotAllowedError') {
-            const hasShownClipboardNotice = localStorage.getItem('clipboardNoticeShown');
-            if (!hasShownClipboardNotice) {
-                setTimeout(() => {
-                    showNotification('💡 ייבוא מקליפבורד דורש הרשאת גישה בדפדפן');
-                    localStorage.setItem('clipboardNoticeShown', 'true');
-                }, 2000);
-            }
-        }
-        // Silently fail for other errors
+        console.log('❌ Clipboard access error:', error.name, error.message);
+        // Silently fail - clipboard access not available or denied
     }
 }
 
@@ -7140,19 +7107,8 @@ document.addEventListener('DOMContentLoaded', function() {
             checkUrgentPayments();
         }
         
-        // Check if first time user and show clipboard permission guide
-        const hasSeenClipboardGuide = localStorage.getItem('clipboardGuideShown');
-        if (!hasSeenClipboardGuide) {
-            setTimeout(() => {
-                if (confirm('💡 האפליקציה יכולה לייבא רשימות אוטומטית מטקסט שהעתקת!\n\nכדי שזה יעבוד, צריך לאפשר גישה לקליפבורד בפעם הראשונה.\n\nללחוץ OK לבדיקה?')) {
-                    localStorage.setItem('clipboardGuideShown', 'true');
-                    checkClipboardOnStartup();
-                }
-            }, 2000);
-        } else {
-            // Check clipboard on startup
-            checkClipboardOnStartup();
-        }
+        // Always check clipboard on startup
+        checkClipboardOnStartup();
     }, 500);
 });
 
