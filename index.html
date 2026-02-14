@@ -1449,6 +1449,7 @@ ${error.message}
             </div>
             <input type="number" id="itemPrice" inputmode="decimal" placeholder="מחיר" class="modal-input">
             <input type="number" id="itemQty" placeholder="כמות" class="modal-input" value="1" min="1">
+            <label class="text-sm font-bold text-gray-600 block text-center mb-1">📅 תאריך ושעת יעד</label>
             <input type="date" id="itemDueDate" placeholder="תאריך יעד (אופציונלי)" class="modal-input">
             <input type="time" id="itemDueTime" placeholder="שעת יעד (אופציונלי)" class="modal-input">
             <input type="url" id="itemPaymentUrl" placeholder="🔗 קישור לתשלום (אופציונלי)" class="modal-input">
@@ -1799,6 +1800,9 @@ ${error.message}
                 <button class="urgent-btn urgent-btn-tomorrow" onclick="snoozeUrgentAlert(24)">
                     📅 הזכר לי מחר
                 </button>
+                <button class="urgent-btn urgent-btn-custom" onclick="openCustomSnooze()" style="background: #8b5cf6;">
+                    ⚙️ מותאם אישית
+                </button>
                 <button class="urgent-btn urgent-btn-close" onclick="closeUrgentAlert()">
                     ✕ סגור
                 </button>
@@ -1833,6 +1837,77 @@ ${error.message}
                 </button>
                 <button class="bg-gray-100 flex-1 py-4 rounded-xl font-bold"
                         onclick="dismissClipboardImport()">
+                    ביטול
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Custom Snooze Modal -->
+    <div id="customSnoozeModal" class="modal-overlay no-print">
+        <div class="edit-modal">
+            <h2>⚙️ דחיית התראה - מותאם אישית</h2>
+            <p class="text-sm text-gray-600 mb-4">בחר מתי תרצה שנזכיר לך שוב</p>
+            <div style="margin-bottom: 5px;">
+                <label class="text-sm font-bold text-gray-600 block text-center mb-1">הזכר לי בעוד:</label>
+                <div class="flex gap-2">
+                    <input type="number" id="customSnoozeValue" placeholder="מספר" class="modal-input" min="1" value="1" style="flex: 1;">
+                    <select id="customSnoozeUnit" class="modal-input" style="flex: 1;">
+                        <option value="minutes">דקות</option>
+                        <option value="hours" selected>שעות</option>
+                        <option value="days">ימים</option>
+                    </select>
+                </div>
+            </div>
+            <div class="flex gap-3">
+                <button class="bg-purple-500 text-white flex-1 py-4 rounded-xl font-bold"
+                    onclick="applyCustomSnooze()">
+                    ✓ אישור
+                </button>
+                <button class="bg-gray-100 flex-1 py-4 rounded-xl font-bold"
+                    onclick="closeModal('customSnoozeModal')">
+                    ביטול
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Reminder Modal -->
+    <div id="editReminderModal" class="modal-overlay no-print">
+        <div class="edit-modal">
+            <h2>✏️ עריכת התראה</h2>
+            <p class="text-sm text-gray-600 mb-2">ערוך את התאריך, השעה וההתראה</p>
+            
+            <label class="text-sm font-bold text-gray-600 block text-center mb-1">שם המוצר</label>
+            <input type="text" id="editItemName" class="modal-input" readonly style="background: #f3f4f6;">
+            
+            <label class="text-sm font-bold text-gray-600 block text-center mb-1 mt-2">📅 תאריך יעד</label>
+            <input type="date" id="editItemDueDate" class="modal-input">
+            
+            <label class="text-sm font-bold text-gray-600 block text-center mb-1 mt-2">🕐 שעת יעד</label>
+            <input type="time" id="editItemDueTime" class="modal-input">
+            
+            <div style="margin-top: 10px; margin-bottom: 5px;">
+                <label class="text-sm font-bold text-gray-600 block text-center mb-1">🔔 התראה מראש</label>
+                <div class="flex gap-2">
+                    <input type="number" id="editItemReminderValue" placeholder="מספר" class="modal-input" min="0" style="flex: 1;">
+                    <select id="editItemReminderUnit" class="modal-input" style="flex: 1;">
+                        <option value="">ללא התראה</option>
+                        <option value="minutes">דקות</option>
+                        <option value="hours">שעות</option>
+                        <option value="days">ימים</option>
+                        <option value="weeks">שבועות</option>
+                    </select>
+                </div>
+            </div>
+            
+            <div class="flex gap-3">
+                <button class="bg-green-500 text-white flex-1 py-4 rounded-xl font-bold"
+                    onclick="saveReminderEdit()">
+                    ✓ שמור
+                </button>
+                <button class="bg-gray-100 flex-1 py-4 rounded-xl font-bold"
+                    onclick="closeModal('editReminderModal')">
                     ביטול
                 </button>
             </div>
