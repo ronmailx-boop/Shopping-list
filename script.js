@@ -1880,7 +1880,7 @@ function render() {
                                     </div>
                                 </div>
                                 <div class="flex justify-between items-center">
-                                    ${item.category === 'תור/פגישה' ? '' : `
+                                    ${item.dueDate && item.dueTime && item.price === 0 ? '' : `
                                     <div class="flex items-center gap-3 bg-gray-50 rounded-xl px-2 py-1 border">
                                         <button onclick="changeQty(${idx}, 1)" class="text-green-500 text-2xl font-bold">+</button>
                                         <span class="font-bold w-6 text-center">${item.qty}</span>
@@ -1953,7 +1953,7 @@ function render() {
                                         </div>
                                     </div>
                                     <div class="flex justify-between items-center">
-                                        ${item.category === 'תור/פגישה' ? '' : `
+                                        ${item.dueDate && item.dueTime && item.price === 0 ? '' : `
                                         <div class="flex items-center gap-3 bg-gray-50 rounded-xl px-2 py-1 border">
                                             <button onclick="changeQty(${idx}, 1)" class="text-green-500 text-2xl font-bold">+</button>
                                             <span class="font-bold w-6 text-center">${item.qty}</span>
