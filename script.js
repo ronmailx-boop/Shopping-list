@@ -1885,7 +1885,7 @@ function render() {
                                     </div>
                                 </div>
                                 <div class="flex justify-between items-center">
-                                    ${item.dueDate && item.dueTime && item.price === 0 ? '' : `
+                                    ${item.isGeneralNote ? '' : `
                                     <div class="flex items-center gap-3 bg-gray-50 rounded-xl px-2 py-1 border">
                                         <button onclick="changeQty(${idx}, 1)" class="text-green-500 text-2xl font-bold">+</button>
                                         <span class="font-bold w-6 text-center">${item.qty}</span>
@@ -1958,7 +1958,7 @@ function render() {
                                         </div>
                                     </div>
                                     <div class="flex justify-between items-center">
-                                        ${item.dueDate && item.dueTime && item.price === 0 ? '' : `
+                                        ${item.isGeneralNote ? '' : `
                                         <div class="flex items-center gap-3 bg-gray-50 rounded-xl px-2 py-1 border">
                                             <button onclick="changeQty(${idx}, 1)" class="text-green-500 text-2xl font-bold">+</button>
                                             <span class="font-bold w-6 text-center">${item.qty}</span>
@@ -2019,12 +2019,14 @@ function render() {
                             </div>
                         </div>
                         <div class="flex justify-between items-center">
+                            ${item.isGeneralNote ? '' : `
                             <div class="flex items-center gap-3 bg-gray-50 rounded-xl px-2 py-1 border">
                                 <button onclick="changeQty(${idx}, 1)" class="text-green-500 text-2xl font-bold">+</button>
                                 <span class="font-bold w-6 text-center">${item.qty}</span>
                                 <button onclick="changeQty(${idx}, -1)" class="text-red-500 text-2xl font-bold">-</button>
                             </div>
                             <span onclick="openEditTotalModal(${idx})" class="text-2xl font-black text-indigo-600" style="cursor: pointer;">₪${sub.toFixed(2)}</span>
+                            `}
                         </div>
                     `;
                     container.appendChild(div);
@@ -2149,19 +2151,6 @@ function render() {
     document.getElementById('displayTotal').innerText = total.toFixed(2);
     document.getElementById('displayPaid').innerText = paid.toFixed(2);
     document.getElementById('displayLeft').innerText = (total - paid).toFixed(2);
-    
-    // Hide bottom bar money display if everything is 0
-    const bottomBar = document.querySelector('.bottom-bar');
-    if (bottomBar) {
-        if (total === 0 && paid === 0) {
-            // No money involved - hide the bar
-            bottomBar.style.display = 'none';
-        } else {
-            // Money involved - show the bar
-            bottomBar.style.display = 'block';
-        }
-    }
-    
     initSortable();
 }
 
@@ -7142,6 +7131,7 @@ function parseGeneralListText(text) {
         isPaid: false,
         reminderValue: '',
         reminderUnit: '',
+        isGeneralNote: true,  // Mark as general note - hide price/qty in UI
         lastUpdated: Date.now(),
         cloudId: 'item_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9)
     }];
