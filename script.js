@@ -19,6 +19,10 @@ let deletedItemIndex = null;
 let deleteTimeout = null;
 let undoNotification = null;
 
+// ========== Global Variables for Clipboard Import ==========
+let pendingImportText = null;
+let detectedListType = null;
+
 // ========== Reminder Time Conversion ==========
 function getReminderMilliseconds(value, unit) {
     if (!value || !unit) return 0;
@@ -2093,7 +2097,7 @@ function render() {
                     <div class="flex justify-between items-center mb-4">
                         <div class="flex items-center gap-3 flex-1">
                             <input type="checkbox" ${isSel ? 'checked' : ''} onchange="toggleSum('${id}')" class="w-7 h-7 accent-indigo-600">
-                            <div class="flex-1 text-2xl font-bold cursor-pointer" onclick="db.currentId='${id}'; showPage('lists')">
+                            <div class="flex-1 text-2xl font-bold cursor-pointer" onclick="selectListAndImport('${id}'); showPage('lists')">
                                 ${templateBadge}${l.name}
                             </div>
                         </div>
@@ -2686,7 +2690,6 @@ function addItemToList(event) {
     const p = parseFloat(document.getElementById('itemPrice') ? document.getElementById('itemPrice').value : 0) || 0;
     const q = parseInt(document.getElementById('itemQty') ? document.getElementById('itemQty').value : 1) || 1;
     const dueDate = document.getElementById('itemDueDate') ? document.getElementById('itemDueDate').value : '';
-    const dueTime = document.getElementById('itemDueTime') ? document.getElementById('itemDueTime').value : '';
     const paymentUrl = document.getElementById('itemPaymentUrl') ? document.getElementById('itemPaymentUrl').value.trim() : '';
     const notes = document.getElementById('itemNotes') ? document.getElementById('itemNotes').value.trim() : '';
     const reminderValue = document.getElementById('itemReminderValue') ? document.getElementById('itemReminderValue').value : '';
@@ -2731,7 +2734,6 @@ function addItemToList(event) {
             category: finalCategory,
             note: notes || '',
             dueDate: dueDate || '',
-            dueTime: dueTime || '',
             paymentUrl: paymentUrl || '',
             isPaid: false,
             reminderValue: reminderValue || '',
@@ -2746,7 +2748,6 @@ function addItemToList(event) {
         if (document.getElementById('itemQty')) document.getElementById('itemQty').value = '1';
         if (document.getElementById('itemCategory')) document.getElementById('itemCategory').value = '';
         if (document.getElementById('itemDueDate')) document.getElementById('itemDueDate').value = '';
-        if (document.getElementById('itemDueTime')) document.getElementById('itemDueTime').value = '';
         if (document.getElementById('itemPaymentUrl')) document.getElementById('itemPaymentUrl').value = '';
         if (document.getElementById('itemNotes')) document.getElementById('itemNotes').value = '';
         if (document.getElementById('itemReminderValue')) document.getElementById('itemReminderValue').value = '';
@@ -3129,17 +3130,7 @@ function openEditItemNameModal(idx) {
     const item = db.lists[db.currentId].items[idx];
     document.getElementById('editItemName').value = item.name;
     document.getElementById('editItemDueDate').value = item.dueDate || '';
-    document.getElementById('editItemDueTime').value = item.dueTime || '';
     document.getElementById('editItemPaymentUrl').value = item.paymentUrl || '';
-    
-    // Show/hide time field based on date
-    const timeField = document.getElementById('editItemDueTime');
-    if (item.dueDate) {
-        timeField.style.display = 'block';
-    } else {
-        timeField.style.display = 'none';
-    }
-    
     if (document.getElementById('editItemReminderValue')) {
         document.getElementById('editItemReminderValue').value = item.reminderValue || '';
     }
@@ -3158,7 +3149,6 @@ function openEditItemNameModal(idx) {
 function saveItemEdit() {
     const newName = document.getElementById('editItemName').value.trim();
     const newDueDate = document.getElementById('editItemDueDate').value;
-    const newDueTime = document.getElementById('editItemDueTime').value;
     const newPaymentUrl = document.getElementById('editItemPaymentUrl').value.trim();
     const newReminderValue = document.getElementById('editItemReminderValue') ? document.getElementById('editItemReminderValue').value : '';
     const newReminderUnit = document.getElementById('editItemReminderUnit') ? document.getElementById('editItemReminderUnit').value : '';
@@ -3167,7 +3157,6 @@ function saveItemEdit() {
         const item = db.lists[db.currentId].items[currentEditIdx];
         item.name = newName;
         item.dueDate = newDueDate;
-        item.dueTime = newDueTime;
         item.paymentUrl = newPaymentUrl;
         item.reminderValue = newReminderValue;
         item.reminderUnit = newReminderUnit;
@@ -5879,28 +5868,19 @@ function checkUrgentPayments() {
     const urgentItems = list.items.filter(item => {
         if (!item.dueDate || item.isPaid || item.checked) return false;
         
-        // Parse due date and time
-        let dueDateTime;
-        if (item.dueTime) {
-            // If time is specified, use exact datetime
-            const [hours, minutes] = item.dueTime.split(':').map(Number);
-            dueDateTime = new Date(item.dueDate);
-            dueDateTime.setHours(hours, minutes, 0, 0);
-        } else {
-            // If no time specified, use end of day
-            dueDateTime = new Date(item.dueDate);
-            dueDateTime.setHours(23, 59, 59, 999);
-        }
+        const dueDate = new Date(item.dueDate);
+        dueDate.setHours(0, 0, 0, 0);
         
-        // Check if overdue
-        const isOverdue = dueDateTime.getTime() <= now;
+        // בדוק אם התאריך עבר
+        const isOverdue = dueDate <= today;
         
-        // Check if reminder time has arrived
+        // בדוק אם יש להתריע לפי reminderValue ו-reminderUnit
         if (item.reminderValue && item.reminderUnit) {
             const reminderTimeMs = getReminderMilliseconds(item.reminderValue, item.reminderUnit);
-            const reminderDateTime = new Date(dueDateTime.getTime() - reminderTimeMs);
+            const dueDateMs = dueDate.getTime();
+            const reminderDate = new Date(dueDateMs - reminderTimeMs);
             
-            const isReminderTime = now >= reminderDateTime.getTime() && now <= dueDateTime.getTime() + (24 * 60 * 60 * 1000);
+            const isReminderTime = now >= reminderDate.getTime() && now <= dueDateMs + (24 * 60 * 60 * 1000);
             return isOverdue || isReminderTime;
         }
         
@@ -6473,9 +6453,27 @@ function createNewList() {
             items: []
         };
         db.currentId = id;
-        save();
+        
+        // Check if there's pending import text
+        if (pendingImportText && detectedListType) {
+            importTextToList(id, pendingImportText, detectedListType);
+        } else {
+            save();
+            render();
+            showNotification('✅ רשימה חדשה נוצרה!');
+        }
+    }
+}
+
+// Select existing list and import pending text if exists
+function selectListAndImport(listId) {
+    db.currentId = listId;
+    
+    // Check if there's pending import text
+    if (pendingImportText && detectedListType) {
+        importTextToList(listId, pendingImportText, detectedListType);
+    } else {
         render();
-        showNotification('✅ רשימה חדשה נוצרה!');
     }
 }
 
@@ -6550,6 +6548,375 @@ function exportToExcel() {
     showNotification('יצוא לאקסל - בפיתוח');
 }
 
+// ========== Clipboard Import Feature ==========
+
+// Check clipboard on app open/resume
+async function checkClipboardOnStartup() {
+    try {
+        // Check if Clipboard API is available
+        if (!navigator.clipboard || !navigator.clipboard.readText) {
+            console.log('Clipboard API not available');
+            return;
+        }
+
+        // Read clipboard text
+        const clipboardText = await navigator.clipboard.readText();
+        
+        if (!clipboardText || clipboardText.trim() === '') {
+            return;
+        }
+
+        // Get clipboard state from localStorage
+        const clipboardState = JSON.parse(localStorage.getItem('clipboardState') || '{}');
+        const lastText = clipboardState.lastClipboardText || '';
+        const dismissed = clipboardState.clipboardDismissed || false;
+        const imported = clipboardState.clipboardImported || false;
+
+        // Check if this is new text
+        if (clipboardText === lastText) {
+            // Same text - check if dismissed or imported
+            if (dismissed || imported) {
+                return; // Don't show modal
+            }
+        } else {
+            // New text - reset state
+            clipboardState.lastClipboardText = clipboardText;
+            clipboardState.clipboardDismissed = false;
+            clipboardState.clipboardImported = false;
+            localStorage.setItem('clipboardState', JSON.stringify(clipboardState));
+        }
+
+        // Show import modal
+        showClipboardImportModal(clipboardText);
+
+    } catch (error) {
+        console.log('Clipboard access error:', error);
+        // Clipboard access denied or not available - silently fail
+    }
+}
+
+// Show clipboard import modal
+function showClipboardImportModal(text) {
+    const modal = document.getElementById('clipboardImportModal');
+    const textarea = document.getElementById('clipboardImportText');
+    const detectedTypeDiv = document.getElementById('clipboardDetectedType');
+    const detectedTypeName = document.getElementById('detectedTypeName');
+
+    // Set the text
+    textarea.value = text;
+    pendingImportText = text;
+
+    // Detect list type
+    detectedListType = detectListType(text);
+    
+    // Show detected type
+    const typeNames = {
+        'shopping': '🛒 רשימת קניות',
+        'appointment': '🏥 תור/פגישה',
+        'tasks': '✅ רשימת משימות',
+        'general': '📝 רשימה כללית'
+    };
+    
+    detectedTypeName.textContent = typeNames[detectedListType] || '📝 רשימה כללית';
+    detectedTypeDiv.style.display = 'block';
+
+    // Show modal
+    modal.style.display = 'flex';
+}
+
+// Detect list type from text
+function detectListType(text) {
+    const lines = text.split('\n').filter(line => line.trim() !== '');
+    
+    // Check for appointment indicators
+    const appointmentKeywords = ['תור', 'פגישה', 'ד"ר', 'דוקטור', 'רופא', 'מרפאה', 'בית חולים', 'קליניקה'];
+    const hasAppointmentKeyword = appointmentKeywords.some(keyword => text.includes(keyword));
+    
+    // Check for date/time patterns
+    const datePattern = /\d{1,2}[\/\.\-]\d{1,2}[\/\.\-]?\d{0,4}/;
+    const timePattern = /\d{1,2}:\d{2}|בשעה|שעה/;
+    const hasDateTime = datePattern.test(text) || timePattern.test(text);
+    
+    // Check for phone pattern
+    const phonePattern = /0\d{1,2}[\-\s]?\d{7}|טלפון|טל:|נייד/;
+    const hasPhone = phonePattern.test(text);
+    
+    // Check for address pattern
+    const addressPattern = /רחוב|רח'|כתובת|מיקום/;
+    const hasAddress = addressPattern.test(text);
+    
+    if ((hasAppointmentKeyword || (hasDateTime && hasPhone)) && lines.length <= 10) {
+        return 'appointment';
+    }
+    
+    // Check for shopping list indicators
+    const pricePattern = /\d+\s*ש"ח|₪\s*\d+|\d+\s*שקל/;
+    const hasPrice = pricePattern.test(text);
+    
+    // Check for common shopping items
+    const shoppingKeywords = ['חלב', 'לחם', 'ביצים', 'גבינה', 'יוגורט', 'עגבניות', 'מלפפון'];
+    const shoppingItemCount = shoppingKeywords.filter(keyword => text.includes(keyword)).length;
+    
+    if (hasPrice || shoppingItemCount >= 2 || (lines.length >= 3 && lines.length <= 30)) {
+        return 'shopping';
+    }
+    
+    // Check for tasks indicators
+    const taskKeywords = ['משימה', 'לעשות', 'להשלים', 'לבדוק', 'לקנות', 'להתקשר'];
+    const hasTaskKeyword = taskKeywords.some(keyword => text.includes(keyword));
+    
+    if (hasTaskKeyword && lines.length >= 2) {
+        return 'tasks';
+    }
+    
+    // Default to shopping if multiple lines
+    if (lines.length >= 3) {
+        return 'shopping';
+    }
+    
+    return 'general';
+}
+
+// Change detected type manually
+function changeDetectedType() {
+    const types = ['shopping', 'appointment', 'tasks', 'general'];
+    const currentIndex = types.indexOf(detectedListType);
+    const nextIndex = (currentIndex + 1) % types.length;
+    detectedListType = types[nextIndex];
+    
+    const typeNames = {
+        'shopping': '🛒 רשימת קניות',
+        'appointment': '🏥 תור/פגישה',
+        'tasks': '✅ רשימת משימות',
+        'general': '📝 רשימה כללית'
+    };
+    
+    document.getElementById('detectedTypeName').textContent = typeNames[detectedListType];
+}
+
+// Accept clipboard import
+function acceptClipboardImport() {
+    // Close modal
+    document.getElementById('clipboardImportModal').style.display = 'none';
+    
+    // Store pending import (will be used when user selects/creates a list)
+    // pendingImportText and detectedListType are already set globally
+    
+    showNotification('✅ בחר רשימה או צור רשימה חדשה להוספת הפריטים');
+}
+
+// Dismiss clipboard import
+function dismissClipboardImport() {
+    // Close modal
+    document.getElementById('clipboardImportModal').style.display = 'none';
+    
+    // Mark as dismissed in localStorage
+    const clipboardState = JSON.parse(localStorage.getItem('clipboardState') || '{}');
+    clipboardState.clipboardDismissed = true;
+    localStorage.setItem('clipboardState', JSON.stringify(clipboardState));
+    
+    // Clear pending import
+    pendingImportText = null;
+    detectedListType = null;
+}
+
+// Parse and import text to a list
+function importTextToList(listId, text, listType) {
+    if (!text || !listId) return;
+    
+    const list = db.lists[listId];
+    if (!list) return;
+    
+    // Parse based on detected type
+    let items = [];
+    
+    if (listType === 'appointment') {
+        // Parse as single appointment
+        items = parseAppointmentText(text);
+    } else if (listType === 'shopping' || listType === 'tasks') {
+        // Parse as multiple items
+        items = parseShoppingListText(text);
+    } else {
+        // Parse as general list
+        items = parseGeneralListText(text);
+    }
+    
+    // Add items to list
+    items.forEach(item => {
+        list.items.push(item);
+    });
+    
+    // Mark as imported
+    const clipboardState = JSON.parse(localStorage.getItem('clipboardState') || '{}');
+    clipboardState.clipboardImported = true;
+    localStorage.setItem('clipboardState', JSON.stringify(clipboardState));
+    
+    // Clear pending import
+    pendingImportText = null;
+    detectedListType = null;
+    
+    save();
+    render();
+    showNotification(`✅ ${items.length} פריטים נוספו לרשימה!`);
+}
+
+// Parse appointment text
+function parseAppointmentText(text) {
+    const lines = text.split('\n').map(line => line.trim()).filter(line => line !== '');
+    
+    let name = '';
+    let dueDate = '';
+    let dueTime = '';
+    let location = '';
+    let phone = '';
+    let notes = '';
+    
+    // Extract date
+    const datePattern = /(\d{1,2}[\/\.\-]\d{1,2}[\/\.\-]?\d{0,4})/;
+    const dateMatch = text.match(datePattern);
+    if (dateMatch) {
+        const dateParts = dateMatch[1].split(/[\/\.\-]/);
+        if (dateParts.length >= 2) {
+            const day = dateParts[0].padStart(2, '0');
+            const month = dateParts[1].padStart(2, '0');
+            const year = dateParts[2] || new Date().getFullYear();
+            dueDate = `${year}-${month}-${day}`;
+        }
+    }
+    
+    // Extract time
+    const timePattern = /(\d{1,2}):(\d{2})/;
+    const timeMatch = text.match(timePattern);
+    if (timeMatch) {
+        dueTime = `${timeMatch[1].padStart(2, '0')}:${timeMatch[2]}`;
+    }
+    
+    // Extract phone
+    const phonePattern = /(0\d{1,2}[\-\s]?\d{7})/;
+    const phoneMatch = text.match(phonePattern);
+    if (phoneMatch) {
+        phone = phoneMatch[1];
+    }
+    
+    // Extract name (look for Dr. or first meaningful line)
+    for (const line of lines) {
+        if (line.includes('ד"ר') || line.includes('דוקטור') || line.includes('רופא')) {
+            name = line;
+            break;
+        }
+    }
+    if (!name && lines.length > 0) {
+        name = lines[0];
+    }
+    
+    // Extract location
+    for (const line of lines) {
+        if (line.includes('רחוב') || line.includes('רח\'') || line.includes('כתובת') || line.includes('מיקום')) {
+            location = line;
+            break;
+        }
+    }
+    
+    // Rest as notes
+    notes = lines.filter(line => 
+        line !== name && 
+        !line.includes(dueTime) && 
+        !line.includes(phone) && 
+        line !== location
+    ).join('\n');
+    
+    return [{
+        name: name || 'פגישה',
+        price: 0,
+        qty: 1,
+        checked: false,
+        category: 'אחר',
+        note: [location, phone, notes].filter(Boolean).join('\n'),
+        dueDate: dueDate,
+        dueTime: dueTime,
+        paymentUrl: '',
+        isPaid: false,
+        reminderValue: '',
+        reminderUnit: '',
+        lastUpdated: Date.now(),
+        cloudId: 'item_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9)
+    }];
+}
+
+// Parse shopping list text
+function parseShoppingListText(text) {
+    const lines = text.split('\n').map(line => line.trim()).filter(line => line !== '');
+    const items = [];
+    
+    lines.forEach(line => {
+        if (!line) return;
+        
+        // Try to extract price
+        let price = 0;
+        let name = line;
+        
+        // Pattern: "חלב 12" or "חלב 12 ש"ח" or "חלב ₪12"
+        const pricePattern = /(.+?)\s*[₪]?\s*(\d+(?:\.\d+)?)\s*(?:ש"ח|שקל)?/;
+        const match = line.match(pricePattern);
+        
+        if (match) {
+            name = match[1].trim();
+            price = parseFloat(match[2]) || 0;
+        }
+        
+        // Auto-detect category
+        const category = detectCategory(name) || 'אחר';
+        
+        items.push({
+            name: name,
+            price: price,
+            qty: 1,
+            checked: false,
+            category: category,
+            note: '',
+            dueDate: '',
+            dueTime: '',
+            paymentUrl: '',
+            isPaid: false,
+            reminderValue: '',
+            reminderUnit: '',
+            lastUpdated: Date.now(),
+            cloudId: 'item_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9)
+        });
+    });
+    
+    return items;
+}
+
+// Parse general list text
+function parseGeneralListText(text) {
+    const lines = text.split('\n').map(line => line.trim()).filter(line => line !== '');
+    const items = [];
+    
+    lines.forEach(line => {
+        if (!line) return;
+        
+        items.push({
+            name: line,
+            price: 0,
+            qty: 1,
+            checked: false,
+            category: 'אחר',
+            note: '',
+            dueDate: '',
+            dueTime: '',
+            paymentUrl: '',
+            isPaid: false,
+            reminderValue: '',
+            reminderUnit: '',
+            lastUpdated: Date.now(),
+            cloudId: 'item_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9)
+        });
+    });
+    
+    return items;
+}
+
 // Initialize notification badge on page load
 document.addEventListener('DOMContentLoaded', function() {
     // Date/time field event listeners
@@ -6587,7 +6954,19 @@ document.addEventListener('DOMContentLoaded', function() {
         if (typeof checkUrgentPayments === 'function') {
             checkUrgentPayments();
         }
+        
+        // Check clipboard on startup
+        checkClipboardOnStartup();
     }, 500);
 });
 
+// Check clipboard when app becomes visible (returns from background)
+document.addEventListener('visibilitychange', function() {
+    if (!document.hidden) {
+        // App is visible again
+        setTimeout(() => {
+            checkClipboardOnStartup();
+        }, 300);
+    }
+});
 
