@@ -6628,8 +6628,12 @@ function showClipboardImportModal(text) {
 function detectListType(text) {
     const lines = text.split('\n').filter(line => line.trim() !== '');
     
-    // Check for appointment indicators
-    const appointmentKeywords = ['תור', 'פגישה', 'ד"ר', 'דוקטור', 'רופא', 'מרפאה', 'בית חולים', 'קליניקה'];
+    // Check for appointment indicators - IMPROVED
+    const appointmentKeywords = [
+        'תור', 'פגישה', 'ד"ר', 'דוקטור', 'רופא', 'מרפאה', 'בית חולים', 'קליניקה',
+        'מכבידנט', 'כללית', 'מאוחדת', 'לאומית', 'פרופ', 'מומחה',
+        'טיפול', 'בדיקה', 'ייעוץ', 'ניתוח', 'צילום', 'אולטרסאונד'
+    ];
     const hasAppointmentKeyword = appointmentKeywords.some(keyword => text.includes(keyword));
     
     // Check for date/time patterns
@@ -6638,14 +6642,27 @@ function detectListType(text) {
     const hasDateTime = datePattern.test(text) || timePattern.test(text);
     
     // Check for phone pattern
-    const phonePattern = /0\d{1,2}[\-\s]?\d{7}|טלפון|טל:|נייד/;
+    const phonePattern = /0\d{1,2}[\-\s]?\d{3,4}[\-\s]?\d{3,4}|טלפון|טל:|נייד/;
     const hasPhone = phonePattern.test(text);
     
+    // Check for URL (common in appointments)
+    const hasUrl = /https?:\/\//.test(text);
+    
     // Check for address pattern
-    const addressPattern = /רחוב|רח'|כתובת|מיקום/;
+    const addressPattern = /רחוב|רח'|כתובת|מיקום|קומה|בניין/;
     const hasAddress = addressPattern.test(text);
     
-    if ((hasAppointmentKeyword || (hasDateTime && hasPhone)) && lines.length <= 10) {
+    // Strong appointment indicators:
+    // 1. Has appointment keyword + date/time
+    // 2. Has date + time + (phone OR url OR address)
+    // 3. Text is relatively short (not a shopping list)
+    const strongAppointment = 
+        (hasAppointmentKeyword && hasDateTime) ||
+        (hasDateTime && hasPhone) ||
+        (hasDateTime && hasUrl) ||
+        (hasDateTime && hasAddress && lines.length <= 10);
+    
+    if (strongAppointment) {
         return 'appointment';
     }
     
@@ -6654,10 +6671,10 @@ function detectListType(text) {
     const hasPrice = pricePattern.test(text);
     
     // Check for common shopping items
-    const shoppingKeywords = ['חלב', 'לחם', 'ביצים', 'גבינה', 'יוגורט', 'עגבניות', 'מלפפון'];
+    const shoppingKeywords = ['חלב', 'לחם', 'ביצים', 'גבינה', 'יוגורט', 'עגבניות', 'מלפפון', 'בשר', 'עוף', 'דגים'];
     const shoppingItemCount = shoppingKeywords.filter(keyword => text.includes(keyword)).length;
     
-    if (hasPrice || shoppingItemCount >= 2 || (lines.length >= 3 && lines.length <= 30)) {
+    if (hasPrice || shoppingItemCount >= 2 || (lines.length >= 3 && lines.length <= 30 && !hasDateTime)) {
         return 'shopping';
     }
     
@@ -6669,9 +6686,14 @@ function detectListType(text) {
         return 'tasks';
     }
     
-    // Default to shopping if multiple lines
-    if (lines.length >= 3) {
+    // Default to shopping if multiple lines without clear appointment indicators
+    if (lines.length >= 3 && !hasDateTime) {
         return 'shopping';
+    }
+    
+    // If very short text with date/time but no other indicators - probably appointment
+    if (lines.length <= 3 && hasDateTime) {
+        return 'appointment';
     }
     
     return 'general';
@@ -6770,60 +6792,146 @@ function parseAppointmentText(text) {
     let location = '';
     let phone = '';
     let notes = '';
+    let url = '';
     
-    // Extract date
-    const datePattern = /(\d{1,2}[\/\.\-]\d{1,2}[\/\.\-]?\d{0,4})/;
+    // Extract URL first (so we can remove it from text)
+    const urlPattern = /(https?:\/\/[^\s]+)/g;
+    const urlMatch = text.match(urlPattern);
+    if (urlMatch) {
+        url = urlMatch[0];
+    }
+    
+    // Extract date - improved patterns
+    // Patterns: DD/MM/YY, DD/MM/YYYY, DD.MM.YY, DD-MM-YY
+    const datePattern = /(\d{1,2})[\/\.\-](\d{1,2})[\/\.\-](\d{2,4})/;
     const dateMatch = text.match(datePattern);
     if (dateMatch) {
-        const dateParts = dateMatch[1].split(/[\/\.\-]/);
-        if (dateParts.length >= 2) {
-            const day = dateParts[0].padStart(2, '0');
-            const month = dateParts[1].padStart(2, '0');
-            const year = dateParts[2] || new Date().getFullYear();
-            dueDate = `${year}-${month}-${day}`;
+        let day = dateMatch[1].padStart(2, '0');
+        let month = dateMatch[2].padStart(2, '0');
+        let year = dateMatch[3];
+        
+        // Handle 2-digit year (26 → 2026)
+        if (year.length === 2) {
+            year = '20' + year;
         }
+        
+        dueDate = `${year}-${month}-${day}`;
     }
     
     // Extract time
-    const timePattern = /(\d{1,2}):(\d{2})/;
+    const timePattern = /(?:בשעה|שעה)?\s*(\d{1,2}):(\d{2})/;
     const timeMatch = text.match(timePattern);
     if (timeMatch) {
         dueTime = `${timeMatch[1].padStart(2, '0')}:${timeMatch[2]}`;
     }
     
     // Extract phone
-    const phonePattern = /(0\d{1,2}[\-\s]?\d{7})/;
+    const phonePattern = /(0\d{1,2}[\-\s]?\d{3,4}[\-\s]?\d{3,4})/;
     const phoneMatch = text.match(phonePattern);
     if (phoneMatch) {
         phone = phoneMatch[1];
     }
     
-    // Extract name (look for Dr. or first meaningful line)
-    for (const line of lines) {
-        if (line.includes('ד"ר') || line.includes('דוקטור') || line.includes('רופא')) {
-            name = line;
-            break;
+    // Extract name - look for patterns
+    // Pattern 1: "תור ל[שם]" or "תור למיטל"
+    const namePattern1 = /תור ל(\w+)/;
+    const nameMatch1 = text.match(namePattern1);
+    if (nameMatch1) {
+        name = 'תור ל' + nameMatch1[1];
+    }
+    
+    // Pattern 2: Look for doctor/clinic names
+    if (!name) {
+        for (const line of lines) {
+            if (line.includes('ד"ר') || line.includes('דוקטור') || line.includes('רופא') || 
+                line.includes('פרופ') || line.includes('מרפאה') || line.includes('קליניקה')) {
+                name = line;
+                break;
+            }
         }
     }
+    
+    // Pattern 3: Look for specific clinic names (מכבידנט, כללית, מאוחדת, לאומית)
+    if (!name) {
+        const clinicPattern = /(מכבידנט|כללית|מאוחדת|לאומית|קופ[הת]\s+חולים)[\s\w-]*/;
+        const clinicMatch = text.match(clinicPattern);
+        if (clinicMatch) {
+            name = clinicMatch[0];
+        }
+    }
+    
+    // Default: first line
     if (!name && lines.length > 0) {
         name = lines[0];
     }
     
-    // Extract location
-    for (const line of lines) {
-        if (line.includes('רחוב') || line.includes('רח\'') || line.includes('כתובת') || line.includes('מיקום')) {
-            location = line;
-            break;
+    // Extract location - improved
+    // Pattern 1: Specific location indicators
+    const locationPattern = /(ב?מכבידנט|ב?כללית|ב?מאוחדת|ב?לאומית)[\s\w-]*/;
+    const locationMatch = text.match(locationPattern);
+    if (locationMatch) {
+        location = locationMatch[0];
+    }
+    
+    // Pattern 2: Street/address patterns
+    if (!location) {
+        for (const line of lines) {
+            if (line.includes('רחוב') || line.includes('רח\'') || line.includes('כתובת') || 
+                line.includes('מיקום') || line.includes('ב-') || /\d+\s*\w+/.test(line)) {
+                location = line;
+                break;
+            }
         }
     }
     
-    // Rest as notes
-    notes = lines.filter(line => 
-        line !== name && 
-        !line.includes(dueTime) && 
-        !line.includes(phone) && 
-        line !== location
-    ).join('\n');
+    // Extract doctor/contact person
+    const doctorPattern = /(?:ל)?גב['׳]?\s+(\w+\s+\w+)|(?:ל)?ד["״]ר\s+(\w+\s+\w+)|(?:ל)?פרופ['׳]?\s+(\w+\s+\w+)/;
+    const doctorMatch = text.match(doctorPattern);
+    let doctorName = '';
+    if (doctorMatch) {
+        doctorName = doctorMatch[0];
+    }
+    
+    // Build notes from remaining text
+    const noteParts = [];
+    
+    // Add doctor name if found and different from main name
+    if (doctorName && !name.includes(doctorName)) {
+        noteParts.push(doctorName);
+    }
+    
+    // Add location if found
+    if (location) {
+        noteParts.push('📍 ' + location);
+    }
+    
+    // Add phone if found
+    if (phone) {
+        noteParts.push('☎️ ' + phone);
+    }
+    
+    // Add URL if found
+    if (url) {
+        noteParts.push('🔗 ' + url);
+    }
+    
+    // Add remaining text as notes (filter out already extracted info)
+    for (const line of lines) {
+        const isExtracted = 
+            (name && line.includes(name)) ||
+            (location && line.includes(location)) ||
+            (phone && line.includes(phone)) ||
+            (url && line.includes(url)) ||
+            (doctorName && line.includes(doctorName)) ||
+            (dueTime && line.includes(dueTime)) ||
+            (dateMatch && line.includes(dateMatch[0]));
+        
+        if (!isExtracted && line.length > 3) {
+            noteParts.push(line);
+        }
+    }
+    
+    notes = noteParts.join('\n');
     
     return [{
         name: name || 'פגישה',
@@ -6831,16 +6939,17 @@ function parseAppointmentText(text) {
         qty: 1,
         checked: false,
         category: 'אחר',
-        note: [location, phone, notes].filter(Boolean).join('\n'),
+        note: notes,
         dueDate: dueDate,
         dueTime: dueTime,
-        paymentUrl: '',
+        paymentUrl: url,
         isPaid: false,
         reminderValue: '',
         reminderUnit: '',
         lastUpdated: Date.now(),
         cloudId: 'item_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9)
     }];
+}
 }
 
 // Parse shopping list text
