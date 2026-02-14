@@ -1880,12 +1880,14 @@ function render() {
                                     </div>
                                 </div>
                                 <div class="flex justify-between items-center">
+                                    ${item.category === 'תור/פגישה' ? '' : `
                                     <div class="flex items-center gap-3 bg-gray-50 rounded-xl px-2 py-1 border">
                                         <button onclick="changeQty(${idx}, 1)" class="text-green-500 text-2xl font-bold">+</button>
                                         <span class="font-bold w-6 text-center">${item.qty}</span>
                                         <button onclick="changeQty(${idx}, -1)" class="text-red-500 text-2xl font-bold">-</button>
                                     </div>
                                     <span onclick="openEditTotalModal(${idx})" class="text-2xl font-black text-indigo-600" style="cursor: pointer;">₪${sub.toFixed(2)}</span>
+                                    `}
                                 </div>
                             `;
                             container.appendChild(div);
@@ -1951,12 +1953,14 @@ function render() {
                                         </div>
                                     </div>
                                     <div class="flex justify-between items-center">
+                                        ${item.category === 'תור/פגישה' ? '' : `
                                         <div class="flex items-center gap-3 bg-gray-50 rounded-xl px-2 py-1 border">
                                             <button onclick="changeQty(${idx}, 1)" class="text-green-500 text-2xl font-bold">+</button>
                                             <span class="font-bold w-6 text-center">${item.qty}</span>
                                             <button onclick="changeQty(${idx}, -1)" class="text-red-500 text-2xl font-bold">-</button>
                                         </div>
                                         <span onclick="openEditTotalModal(${idx})" class="text-2xl font-black text-indigo-600" style="cursor: pointer;">₪${sub.toFixed(2)}</span>
+                                        `}
                                     </div>
                                 `;
                                 container.appendChild(div);
@@ -6818,9 +6822,18 @@ function parseAppointmentText(text) {
         dueDate = `${year}-${month}-${day}`;
     }
     
-    // Extract time
-    const timePattern = /(?:בשעה|שעה)?\s*(\d{1,2}):(\d{2})/;
-    const timeMatch = text.match(timePattern);
+    // Extract time - IMPROVED with multiple patterns
+    let timeMatch = text.match(/בשעה\s+(\d{1,2}):(\d{2})/);
+    if (!timeMatch) {
+        timeMatch = text.match(/שעה\s+(\d{1,2}):(\d{2})/);
+    }
+    if (!timeMatch) {
+        timeMatch = text.match(/\s(\d{1,2}):(\d{2})\s/);
+    }
+    if (!timeMatch) {
+        // Try at end of line
+        timeMatch = text.match(/(\d{1,2}):(\d{2})/);
+    }
     if (timeMatch) {
         dueTime = `${timeMatch[1].padStart(2, '0')}:${timeMatch[2]}`;
     }
@@ -6832,15 +6845,25 @@ function parseAppointmentText(text) {
         phone = phoneMatch[1];
     }
     
-    // Extract name - look for patterns
-    // Pattern 1: "תור ל[שם]" or "תור למיטל"
+    // Extract name - IMPROVED with better patterns
+    // Pattern 1: "תור ל[שם]" - extract the name after "ל"
     const namePattern1 = /תור ל(\w+)/;
     const nameMatch1 = text.match(namePattern1);
     if (nameMatch1) {
-        name = 'תור ל' + nameMatch1[1];
+        const personName = nameMatch1[1];
+        
+        // Also look for clinic/location name
+        const clinicPattern = /(מכבידנט|כללית|מאוחדת|לאומית)[\s\w-]*/;
+        const clinicMatch = text.match(clinicPattern);
+        
+        if (clinicMatch) {
+            name = `תור ל${personName} - ${clinicMatch[0]}`;
+        } else {
+            name = `תור ל${personName}`;
+        }
     }
     
-    // Pattern 2: Look for doctor/clinic names
+    // Pattern 2: Look for doctor/clinic names if no "תור ל" found
     if (!name) {
         for (const line of lines) {
             if (line.includes('ד"ר') || line.includes('דוקטור') || line.includes('רופא') || 
@@ -6851,9 +6874,9 @@ function parseAppointmentText(text) {
         }
     }
     
-    // Pattern 3: Look for specific clinic names (מכבידנט, כללית, מאוחדת, לאומית)
+    // Pattern 3: Look for specific clinic names
     if (!name) {
-        const clinicPattern = /(מכבידנט|כללית|מאוחדת|לאומית|קופ[הת]\s+חולים)[\s\w-]*/;
+        const clinicPattern = /(מכבידנט|כללית|מאוחדת|לאומית)[\s\w-]*/;
         const clinicMatch = text.match(clinicPattern);
         if (clinicMatch) {
             name = clinicMatch[0];
@@ -6866,8 +6889,7 @@ function parseAppointmentText(text) {
     }
     
     // Extract location - improved
-    // Pattern 1: Specific location indicators
-    const locationPattern = /(ב?מכבידנט|ב?כללית|ב?מאוחדת|ב?לאומית)[\s\w-]*/;
+    const locationPattern = /(מכבידנט|כללית|מאוחדת|לאומית)[\s\w-]*/;
     const locationMatch = text.match(locationPattern);
     if (locationMatch) {
         location = locationMatch[0];
@@ -6884,19 +6906,19 @@ function parseAppointmentText(text) {
         }
     }
     
-    // Extract doctor/contact person
+    // Extract doctor/contact person - IMPROVED
     const doctorPattern = /(?:ל)?גב['׳]?\s+(\w+\s+\w+)|(?:ל)?ד["״]ר\s+(\w+\s+\w+)|(?:ל)?פרופ['׳]?\s+(\w+\s+\w+)/;
     const doctorMatch = text.match(doctorPattern);
     let doctorName = '';
     if (doctorMatch) {
-        doctorName = doctorMatch[0];
+        doctorName = '👤 ' + doctorMatch[0];
     }
     
     // Build notes from remaining text
     const noteParts = [];
     
-    // Add doctor name if found and different from main name
-    if (doctorName && !name.includes(doctorName)) {
+    // Add doctor name if found
+    if (doctorName) {
         noteParts.push(doctorName);
     }
     
@@ -6917,17 +6939,20 @@ function parseAppointmentText(text) {
     
     // Add remaining text as notes (filter out already extracted info)
     for (const line of lines) {
-        const isExtracted = 
-            (name && line.includes(name)) ||
-            (location && line.includes(location)) ||
-            (phone && line.includes(phone)) ||
-            (url && line.includes(url)) ||
-            (doctorName && line.includes(doctorName)) ||
-            (dueTime && line.includes(dueTime)) ||
-            (dateMatch && line.includes(dateMatch[0]));
+        const lineClean = line.trim();
+        if (lineClean.length < 3) continue;
         
-        if (!isExtracted && line.length > 3) {
-            noteParts.push(line);
+        const isExtracted = 
+            (name && lineClean.includes(name.replace('תור ל', '').replace(' - ', ''))) ||
+            (location && lineClean.includes(location)) ||
+            (phone && lineClean.includes(phone)) ||
+            (url && lineClean.includes(url)) ||
+            (doctorName && lineClean.includes(doctorName.replace('👤 ', ''))) ||
+            (dueTime && lineClean.includes(dueTime)) ||
+            (dateMatch && lineClean.includes(dateMatch[0]));
+        
+        if (!isExtracted) {
+            noteParts.push(lineClean);
         }
     }
     
@@ -6938,7 +6963,7 @@ function parseAppointmentText(text) {
         price: 0,
         qty: 1,
         checked: false,
-        category: 'אחר',
+        category: 'תור/פגישה',
         note: notes,
         dueDate: dueDate,
         dueTime: dueTime,
