@@ -1705,7 +1705,22 @@ function generateItemMetadataHTML(item, idx) {
             dateClass += ' soon';
         }
         
-        html += `<div class="${dateClass}">📅 ${dateText}</div>`;
+        // Add edit button for reminder
+        const reminderInfo = (item.reminderValue && item.reminderUnit) 
+            ? ` 🔔 ${formatReminderText(item.reminderValue, item.reminderUnit)}`
+            : '';
+        
+        html += `<div style="display: flex; align-items: center; gap: 8px;">
+            <div class="${dateClass}">📅 ${dateText}${reminderInfo}</div>
+            <button onclick="event.stopPropagation(); openEditReminder(${idx})" 
+                    class="text-indigo-500 hover:text-indigo-700" 
+                    style="padding: 2px 6px; border-radius: 6px; background: #eef2ff; border: none; cursor: pointer;"
+                    title="ערוך תאריך והתראה">
+                <svg style="width: 14px; height: 14px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+                </svg>
+            </button>
+        </div>`;
     }
     
     // Build payment URL link - ONLY as clickable icon with stopPropagation
@@ -7406,3 +7421,87 @@ save = function() {
     originalSave.apply(this, arguments);
     setTimeout(checkAndScheduleNotifications, 100);
 };
+
+// ========== Custom Snooze Functions ==========
+let currentSnoozeItemData = null;
+
+function openCustomSnooze() {
+    // Get current urgent item data
+    const modal = document.getElementById('urgentAlertModal');
+    if (modal && modal.classList.contains('active')) {
+        closeModal('urgentAlertModal');
+        openModal('customSnoozeModal');
+    }
+}
+
+function applyCustomSnooze() {
+    const value = document.getElementById('customSnoozeValue').value;
+    const unit = document.getElementById('customSnoozeUnit').value;
+    
+    if (!value || value <= 0) {
+        showNotification('⚠️ נא להזין מספר חיובי', 'warning');
+        return;
+    }
+    
+    // Convert to hours
+    let hours = parseFloat(value);
+    if (unit === 'minutes') {
+        hours = hours / 60;
+    } else if (unit === 'days') {
+        hours = hours * 24;
+    }
+    
+    snoozeUrgentAlert(hours);
+    closeModal('customSnoozeModal');
+    
+    // Reset form
+    document.getElementById('customSnoozeValue').value = '1';
+    document.getElementById('customSnoozeUnit').value = 'hours';
+}
+
+// ========== Edit Reminder Functions ==========
+let currentEditReminderIndex = null;
+
+function openEditReminder(itemIndex) {
+    const item = db.lists[db.currentId].items[itemIndex];
+    if (!item) return;
+    
+    currentEditReminderIndex = itemIndex;
+    
+    // Fill in current values
+    document.getElementById('editItemName').value = item.name || '';
+    document.getElementById('editItemDueDate').value = item.dueDate || '';
+    document.getElementById('editItemDueTime').value = item.dueTime || '';
+    document.getElementById('editItemReminderValue').value = item.reminderValue || '';
+    document.getElementById('editItemReminderUnit').value = item.reminderUnit || '';
+    
+    openModal('editReminderModal');
+}
+
+function saveReminderEdit() {
+    if (currentEditReminderIndex === null) return;
+    
+    const item = db.lists[db.currentId].items[currentEditReminderIndex];
+    if (!item) return;
+    
+    // Update item
+    item.dueDate = document.getElementById('editItemDueDate').value || '';
+    item.dueTime = document.getElementById('editItemDueTime').value || '';
+    item.reminderValue = document.getElementById('editItemReminderValue').value || '';
+    item.reminderUnit = document.getElementById('editItemReminderUnit').value || '';
+    item.lastUpdated = Date.now();
+    
+    // Save and re-schedule notifications
+    save();
+    
+    // Re-initialize notifications
+    if (typeof checkAndScheduleNotifications === 'function') {
+        checkAndScheduleNotifications();
+    }
+    
+    closeModal('editReminderModal');
+    showNotification('✅ ההתראה עודכנה בהצלחה');
+    
+    currentEditReminderIndex = null;
+}
+
