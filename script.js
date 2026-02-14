@@ -2701,6 +2701,7 @@ function addItemToList(event) {
     const p = parseFloat(document.getElementById('itemPrice') ? document.getElementById('itemPrice').value : 0) || 0;
     const q = parseInt(document.getElementById('itemQty') ? document.getElementById('itemQty').value : 1) || 1;
     const dueDate = document.getElementById('itemDueDate') ? document.getElementById('itemDueDate').value : '';
+    const dueTime = document.getElementById('itemDueTime') ? document.getElementById('itemDueTime').value : '';
     const paymentUrl = document.getElementById('itemPaymentUrl') ? document.getElementById('itemPaymentUrl').value.trim() : '';
     const notes = document.getElementById('itemNotes') ? document.getElementById('itemNotes').value.trim() : '';
     const reminderValue = document.getElementById('itemReminderValue') ? document.getElementById('itemReminderValue').value : '';
@@ -2745,6 +2746,7 @@ function addItemToList(event) {
             category: finalCategory,
             note: notes || '',
             dueDate: dueDate || '',
+            dueTime: dueTime || '',
             paymentUrl: paymentUrl || '',
             isPaid: false,
             reminderValue: reminderValue || '',
@@ -2759,6 +2761,7 @@ function addItemToList(event) {
         if (document.getElementById('itemQty')) document.getElementById('itemQty').value = '1';
         if (document.getElementById('itemCategory')) document.getElementById('itemCategory').value = '';
         if (document.getElementById('itemDueDate')) document.getElementById('itemDueDate').value = '';
+        if (document.getElementById('itemDueTime')) document.getElementById('itemDueTime').value = '';
         if (document.getElementById('itemPaymentUrl')) document.getElementById('itemPaymentUrl').value = '';
         if (document.getElementById('itemNotes')) document.getElementById('itemNotes').value = '';
         if (document.getElementById('itemReminderValue')) document.getElementById('itemReminderValue').value = '';
@@ -7202,3 +7205,197 @@ window.addEventListener('focus', function() {
 
 
 
+
+// ========== Notification System for Due Items ==========
+let scheduledNotifications = new Map();
+
+// Check and schedule notifications for items with due dates
+function checkAndScheduleNotifications() {
+    const currentList = db.lists[db.currentId];
+    if (!currentList || !currentList.items) return;
+    
+    // Clear existing timers
+    scheduledNotifications.forEach(timer => clearTimeout(timer));
+    scheduledNotifications.clear();
+    
+    currentList.items.forEach((item, index) => {
+        if (!item.checked && item.dueDate && item.reminderValue && item.reminderUnit) {
+            scheduleItemNotification(item, index);
+        }
+    });
+}
+
+// Schedule a single notification for an item
+function scheduleItemNotification(item, index) {
+    try {
+        // Parse due date and time
+        const dueDateObj = new Date(item.dueDate);
+        
+        // If time is specified, set it
+        if (item.dueTime) {
+            const [hours, minutes] = item.dueTime.split(':');
+            dueDateObj.setHours(parseInt(hours), parseInt(minutes), 0, 0);
+        } else {
+            // Default to 9:00 AM if no time specified
+            dueDateObj.setHours(9, 0, 0, 0);
+        }
+        
+        // Calculate reminder time
+        const reminderMs = getReminderMilliseconds(item.reminderValue, item.reminderUnit);
+        const notificationTime = dueDateObj.getTime() - reminderMs;
+        const now = Date.now();
+        
+        // Only schedule if notification time is in the future
+        if (notificationTime > now) {
+            const delay = notificationTime - now;
+            
+            const timerId = setTimeout(() => {
+                showItemNotification(item, index);
+            }, delay);
+            
+            scheduledNotifications.set(`${item.cloudId || index}`, timerId);
+            
+            console.log(`📅 Scheduled notification for "${item.name}" at ${new Date(notificationTime).toLocaleString()}`);
+        } else if (now >= notificationTime && now <= dueDateObj.getTime()) {
+            // If we're past the reminder time but before the due time, show now
+            showItemNotification(item, index);
+        }
+    } catch (error) {
+        console.error('Error scheduling notification:', error);
+    }
+}
+
+// Show notification for an item
+function showItemNotification(item, index) {
+    const title = `⏰ תזכורת: ${item.name}`;
+    let body = '';
+    
+    if (item.dueDate) {
+        const dueDate = new Date(item.dueDate);
+        let dateStr = dueDate.toLocaleDateString('he-IL');
+        
+        if (item.dueTime) {
+            dateStr += ` בשעה ${item.dueTime}`;
+        }
+        
+        body = `יעד: ${dateStr}`;
+        
+        if (item.price) {
+            body += `\nמחיר: ₪${item.price.toFixed(2)}`;
+        }
+    }
+    
+    // Show browser notification if permission granted
+    if ('Notification' in window && Notification.permission === 'granted') {
+        const notification = new Notification(title, {
+            body: body,
+            icon: '/icon-192.png',
+            badge: '/badge-72.png',
+            tag: `item-${item.cloudId || index}`,
+            requireInteraction: true,
+            vibrate: [200, 100, 200],
+            data: {
+                itemIndex: index,
+                listId: db.currentId
+            }
+        });
+        
+        notification.onclick = function() {
+            window.focus();
+            // Switch to the items page
+            switchPage('pageItems');
+            this.close();
+        };
+    }
+    
+    // Also show in-app notification
+    showInAppNotification(item);
+    
+    // Play sound
+    playNotificationSound();
+}
+
+// Show in-app notification modal
+function showInAppNotification(item) {
+    const modal = document.getElementById('urgentAlertModal');
+    if (!modal) return;
+    
+    const itemsList = document.getElementById('urgentItemsList');
+    if (!itemsList) return;
+    
+    let dateTimeStr = '';
+    if (item.dueDate) {
+        const dueDate = new Date(item.dueDate);
+        dateTimeStr = dueDate.toLocaleDateString('he-IL');
+        if (item.dueTime) {
+            dateTimeStr += ` בשעה ${item.dueTime}`;
+        }
+    }
+    
+    itemsList.innerHTML = `
+        <div class="urgent-item">
+            <div class="urgent-item-name">${item.name}</div>
+            ${dateTimeStr ? `<div class="urgent-item-time">יעד: ${dateTimeStr}</div>` : ''}
+            ${item.price ? `<div class="urgent-item-time">מחיר: ₪${item.price.toFixed(2)}</div>` : ''}
+            ${item.note ? `<div class="urgent-item-time">הערה: ${item.note}</div>` : ''}
+        </div>
+    `;
+    
+    modal.classList.add('active');
+}
+
+// Play notification sound
+function playNotificationSound() {
+    try {
+        const audio = new Audio('data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuBzvLaiTYIF2m98OScTgwOUKni8LVjHAU2kdby');
+        audio.volume = 0.3;
+        audio.play().catch(e => console.log('Could not play sound:', e));
+    } catch (error) {
+        console.log('Audio playback failed:', error);
+    }
+}
+
+// Request notification permission
+async function requestNotificationPermission() {
+    if (!('Notification' in window)) {
+        console.log('This browser does not support notifications');
+        return false;
+    }
+    
+    if (Notification.permission === 'granted') {
+        return true;
+    }
+    
+    if (Notification.permission !== 'denied') {
+        const permission = await Notification.requestPermission();
+        return permission === 'granted';
+    }
+    
+    return false;
+}
+
+// Initialize notification system
+function initNotificationSystem() {
+    // Request permission
+    requestNotificationPermission();
+    
+    // Schedule notifications for current list
+    checkAndScheduleNotifications();
+    
+    // Re-check every minute
+    setInterval(checkAndScheduleNotifications, 60000);
+}
+
+// Call on page load
+window.addEventListener('load', () => {
+    setTimeout(() => {
+        initNotificationSystem();
+    }, 2000);
+});
+
+// Re-schedule when switching lists or adding items
+const originalSave = save;
+save = function() {
+    originalSave.apply(this, arguments);
+    setTimeout(checkAndScheduleNotifications, 100);
+};
