@@ -1805,6 +1805,39 @@ ${error.message}
         </div>
     </div>
 
+    <!-- Clipboard Import Modal -->
+    <div id="clipboardImportModal" class="modal-overlay no-print">
+        <div class="edit-modal">
+            <h2>ייבוא רשימה מטקסט</h2>
+            <p class="text-sm text-gray-600 mb-2">הדבק טקסט מואוטסאפ או כל רשימה</p>
+            
+            <div id="clipboardDetectedType" class="mb-3 p-3 bg-indigo-50 rounded-xl text-center">
+                <p class="text-sm text-gray-600 mb-1">סוג רשימה מזוהה:</p>
+                <p id="detectedTypeName" class="font-bold text-indigo-600">🛒 רשימת קניות</p>
+                <button onclick="changeDetectedType()" class="text-xs text-indigo-500 underline mt-1">
+                    שנה סוג
+                </button>
+            </div>
+
+            <textarea id="clipboardImportText" 
+                      class="modal-input" 
+                      rows="8" 
+                      placeholder="הדבק כאן טקסט לייבוא...
+אני מעתיק את הטקסט ואני פותח את האפליקציה שלי ,צריכה לקפוץ החלונית הזו,עם הטקסט המועתק ולתת לי לייבא את הטקסט לאחת הרשימות."></textarea>
+
+            <div class="flex gap-3">
+                <button class="bg-green-500 text-white flex-1 py-4 rounded-xl font-bold"
+                        onclick="acceptClipboardImport()">
+                    ייבא
+                </button>
+                <button class="bg-gray-100 flex-1 py-4 rounded-xl font-bold"
+                        onclick="dismissClipboardImport()">
+                    ביטול
+                </button>
+            </div>
+        </div>
+    </div>
+
     <script src="script.js"></script>
 
       <!-- Firebase Cloud Messaging SDK -->
