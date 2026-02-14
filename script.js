@@ -7113,31 +7113,25 @@ function parseShoppingListText(text) {
 
 // Parse general list text
 function parseGeneralListText(text) {
-    const lines = text.split('\n').map(line => line.trim()).filter(line => line !== '');
-    const items = [];
+    // For general lists, keep the entire text as ONE item (like Google Keep)
+    // Don't split into lines - it's a single note/memo
     
-    lines.forEach(line => {
-        if (!line) return;
-        
-        items.push({
-            name: line,
-            price: 0,
-            qty: 0,  // No automatic quantity
-            checked: false,
-            category: 'אחר',
-            note: '',
-            dueDate: '',
-            dueTime: '',
-            paymentUrl: '',
-            isPaid: false,
-            reminderValue: '',
-            reminderUnit: '',
-            lastUpdated: Date.now(),
-            cloudId: 'item_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9)
-        });
-    });
-    
-    return items;
+    return [{
+        name: text.trim(),  // The entire text as one item
+        price: 0,
+        qty: 0,
+        checked: false,
+        category: 'אחר',
+        note: '',
+        dueDate: '',
+        dueTime: '',
+        paymentUrl: '',
+        isPaid: false,
+        reminderValue: '',
+        reminderUnit: '',
+        lastUpdated: Date.now(),
+        cloudId: 'item_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9)
+    }];
 }
 
 // Initialize notification badge on page load
