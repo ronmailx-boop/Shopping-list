@@ -7285,27 +7285,34 @@ function showItemNotification(item, index) {
         }
     }
     
-    // Show browser notification if permission granted
-    if ('Notification' in window && Notification.permission === 'granted') {
-        const notification = new Notification(title, {
-            body: body,
-            icon: '/icon-192.png',
-            badge: '/badge-72.png',
-            tag: `item-${item.cloudId || index}`,
-            requireInteraction: true,
-            vibrate: [200, 100, 200],
-            data: {
-                itemIndex: index,
-                listId: db.currentId
-            }
+    // Show system notification via Service Worker
+    if (typeof showSystemNotification === 'function') {
+        showSystemNotification(title, body, `item-${item.cloudId || index}`, {
+            itemIndex: index,
+            listId: db.currentId
         });
-        
-        notification.onclick = function() {
-            window.focus();
-            // Switch to the items page
-            switchPage('pageItems');
-            this.close();
-        };
+    } else {
+        // Fallback: browser notification
+        if ('Notification' in window && Notification.permission === 'granted') {
+            const notification = new Notification(title, {
+                body: body,
+                icon: '/icon-96.png',
+                badge: '/icon-96.png',
+                tag: `item-${item.cloudId || index}`,
+                requireInteraction: true,
+                vibrate: [200, 100, 200],
+                data: {
+                    itemIndex: index,
+                    listId: db.currentId
+                }
+            });
+            
+            notification.onclick = function() {
+                window.focus();
+                switchPage('pageItems');
+                this.close();
+            };
+        }
     }
     
     // Also show in-app notification
