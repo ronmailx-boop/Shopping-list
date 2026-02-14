@@ -2149,6 +2149,19 @@ function render() {
     document.getElementById('displayTotal').innerText = total.toFixed(2);
     document.getElementById('displayPaid').innerText = paid.toFixed(2);
     document.getElementById('displayLeft').innerText = (total - paid).toFixed(2);
+    
+    // Hide bottom bar money display if everything is 0
+    const bottomBar = document.querySelector('.bottom-bar');
+    if (bottomBar) {
+        if (total === 0 && paid === 0) {
+            // No money involved - hide the bar
+            bottomBar.style.display = 'none';
+        } else {
+            // Money involved - show the bar
+            bottomBar.style.display = 'block';
+        }
+    }
+    
     initSortable();
 }
 
