@@ -6642,6 +6642,77 @@ function showClipboardImportModal(text) {
     modal.style.display = 'flex';
 }
 
+// Open manual import - same as clipboard import but allows manual paste
+async function openManualImport() {
+    const modal = document.getElementById('clipboardImportModal');
+    const textarea = document.getElementById('clipboardImportText');
+    const detectedTypeDiv = document.getElementById('clipboardDetectedType');
+    const detectedTypeName = document.getElementById('detectedTypeName');
+
+    // Try to read from clipboard first
+    let clipboardText = '';
+    try {
+        if (navigator.clipboard && navigator.clipboard.readText) {
+            clipboardText = await navigator.clipboard.readText();
+        }
+    } catch (error) {
+        console.log('Could not read clipboard, user will paste manually');
+    }
+
+    // Set the text (empty if clipboard read failed)
+    textarea.value = clipboardText;
+    pendingImportText = clipboardText;
+
+    // Detect list type if we have text
+    if (clipboardText.trim()) {
+        detectedListType = detectListType(clipboardText);
+        
+        const typeNames = {
+            'shopping': '🛒 רשימת קניות',
+            'appointment': '🏥 תור/פגישה',
+            'tasks': '✅ רשימת משימות',
+            'general': '📝 רשימה כללית'
+        };
+        
+        detectedTypeName.textContent = typeNames[detectedListType] || '📝 רשימה כללית';
+        detectedTypeDiv.style.display = 'block';
+    } else {
+        // No text yet - set default
+        detectedListType = 'shopping';
+        detectedTypeName.textContent = '🛒 רשימת קניות';
+        detectedTypeDiv.style.display = 'block';
+    }
+
+    // Show modal
+    modal.style.display = 'flex';
+    
+    // Focus on textarea for easy paste
+    setTimeout(() => {
+        textarea.focus();
+    }, 100);
+}
+
+// Update detected type when user types/pastes in textarea
+function updateDetectedTypeFromInput() {
+    const textarea = document.getElementById('clipboardImportText');
+    const detectedTypeName = document.getElementById('detectedTypeName');
+    const text = textarea.value;
+    
+    if (text.trim()) {
+        pendingImportText = text;
+        detectedListType = detectListType(text);
+        
+        const typeNames = {
+            'shopping': '🛒 רשימת קניות',
+            'appointment': '🏥 תור/פגישה',
+            'tasks': '✅ רשימת משימות',
+            'general': '📝 רשימה כללית'
+        };
+        
+        detectedTypeName.textContent = typeNames[detectedListType] || '📝 רשימה כללית';
+    }
+}
+
 // Detect list type from text
 function detectListType(text) {
     const lines = text.split('\n').filter(line => line.trim() !== '');
