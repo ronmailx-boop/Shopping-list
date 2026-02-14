@@ -45,10 +45,19 @@
             display: flex;
             flex-direction: column;
             transition: transform 0.2s, box-shadow 0.2s;
+            overflow-wrap: break-word;
+            word-wrap: break-word;
+            word-break: break-word;
         }
 
         .item-card:active {
             transform: scale(0.98);
+        }
+        
+        /* Handle long URLs and text */
+        .item-card a {
+            word-break: break-all;
+            overflow-wrap: break-word;
         }
 
         .item-number {
@@ -1796,32 +1805,6 @@ ${error.message}
         </div>
     </div>
 
-    <!-- Clipboard Import Modal -->
-    <div id="clipboardImportModal" class="modal-overlay no-print" style="display: none;">
-        <div class="edit-modal">
-            <h2>ייבוא רשימה מטקסט</h2>
-            <p class="text-sm text-gray-500 mb-4">הדבק טקסט מווצאטסאפ או כל רשימה</p>
-            <textarea id="clipboardImportText" class="modal-input" rows="8"
-                style="resize: vertical; min-height: 150px; max-height: 300px; overflow-y: auto;" readonly></textarea>
-            
-            <div id="clipboardDetectedType" style="margin: 10px 0; padding: 10px; background: #f0f9ff; border-radius: 12px; display: none;">
-                <div style="font-size: 0.9rem; color: #0369a1; font-weight: bold; margin-bottom: 5px;">
-                    🤖 זיהוי אוטומטי: <span id="detectedTypeName"></span>
-                </div>
-                <button onclick="changeDetectedType()" style="font-size: 0.8rem; color: #7367f0; background: transparent; border: none; cursor: pointer; text-decoration: underline;">
-                    לא נכון? לחץ לשינוי
-                </button>
-            </div>
-            
-            <div class="flex gap-3">
-                <button class="bg-green-500 text-white flex-1 py-4 rounded-xl font-bold shadow-md"
-                    onclick="acceptClipboardImport()">ייבא</button>
-                <button class="bg-gray-100 flex-1 py-4 rounded-xl font-bold"
-                    onclick="dismissClipboardImport()">ביטול</button>
-            </div>
-        </div>
-    </div>
-
     <script src="script.js"></script>
 
       <!-- Firebase Cloud Messaging SDK -->
@@ -1839,6 +1822,7 @@ ${error.message}
 </body>
 
 </html>
+
 
 
 
