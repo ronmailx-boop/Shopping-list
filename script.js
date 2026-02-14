@@ -6564,8 +6564,30 @@ async function checkClipboardOnStartup() {
     try {
         // Check if Clipboard API is available
         if (!navigator.clipboard || !navigator.clipboard.readText) {
-            console.log('Clipboard API not available');
+            console.log('Clipboard API not available in this browser');
             return;
+        }
+
+        // Try to request permission first
+        try {
+            const permission = await navigator.permissions.query({ name: 'clipboard-read' });
+            console.log('Clipboard permission status:', permission.state);
+            
+            if (permission.state === 'denied') {
+                console.log('Clipboard access denied by user');
+                // Show one-time notification about clipboard permissions
+                const hasShownClipboardNotice = localStorage.getItem('clipboardNoticeShown');
+                if (!hasShownClipboardNotice) {
+                    setTimeout(() => {
+                        showNotification('💡 לייבוא אוטומטי מקליפבורד, אפשר גישה בהגדרות הדפדפן');
+                        localStorage.setItem('clipboardNoticeShown', 'true');
+                    }, 2000);
+                }
+                return;
+            }
+        } catch (permissionError) {
+            // Permissions API might not be supported - try anyway
+            console.log('Permissions API not available, trying direct access');
         }
 
         // Read clipboard text
@@ -6608,8 +6630,19 @@ async function checkClipboardOnStartup() {
         showClipboardImportModal(clipboardText);
 
     } catch (error) {
-        console.log('Clipboard access error:', error);
-        // Clipboard access denied or not available - silently fail
+        console.log('Clipboard access error:', error.name, error.message);
+        
+        // If it's a NotAllowedError, it means user needs to grant permission
+        if (error.name === 'NotAllowedError') {
+            const hasShownClipboardNotice = localStorage.getItem('clipboardNoticeShown');
+            if (!hasShownClipboardNotice) {
+                setTimeout(() => {
+                    showNotification('💡 ייבוא מקליפבורד דורש הרשאת גישה בדפדפן');
+                    localStorage.setItem('clipboardNoticeShown', 'true');
+                }, 2000);
+            }
+        }
+        // Silently fail for other errors
     }
 }
 
@@ -6980,7 +7013,7 @@ function parseAppointmentText(text) {
     return [{
         name: name || 'פגישה',
         price: 0,
-        qty: 1,
+        qty: 0,  // No quantity for appointments
         checked: false,
         category: 'תור/פגישה',
         note: notes,
@@ -7022,7 +7055,7 @@ function parseShoppingListText(text) {
         items.push({
             name: name,
             price: price,
-            qty: 1,
+            qty: 1,  // Keep quantity for shopping lists
             checked: false,
             category: category,
             note: '',
@@ -7051,7 +7084,7 @@ function parseGeneralListText(text) {
         items.push({
             name: line,
             price: 0,
-            qty: 1,
+            qty: 0,  // No automatic quantity
             checked: false,
             category: 'אחר',
             note: '',
@@ -7107,8 +7140,19 @@ document.addEventListener('DOMContentLoaded', function() {
             checkUrgentPayments();
         }
         
-        // Check clipboard on startup
-        checkClipboardOnStartup();
+        // Check if first time user and show clipboard permission guide
+        const hasSeenClipboardGuide = localStorage.getItem('clipboardGuideShown');
+        if (!hasSeenClipboardGuide) {
+            setTimeout(() => {
+                if (confirm('💡 האפליקציה יכולה לייבא רשימות אוטומטית מטקסט שהעתקת!\n\nכדי שזה יעבוד, צריך לאפשר גישה לקליפבורד בפעם הראשונה.\n\nללחוץ OK לבדיקה?')) {
+                    localStorage.setItem('clipboardGuideShown', 'true');
+                    checkClipboardOnStartup();
+                }
+            }, 2000);
+        } else {
+            // Check clipboard on startup
+            checkClipboardOnStartup();
+        }
     }, 500);
 });
 
