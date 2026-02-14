@@ -1240,7 +1240,7 @@ ${error.message}
 
                 <div class="pills-container">
                     
-                    <button onclick="openModal('importModal')" class="action-pill">
+                    <button onclick="openManualImport()" class="action-pill">
                         <span class="pill-icon">📋</span>
                         <span class="pill-text">הדבק</span>
                     </button>
@@ -1822,8 +1822,8 @@ ${error.message}
             <textarea id="clipboardImportText" 
                       class="modal-input" 
                       rows="8" 
-                      placeholder="הדבק כאן טקסט לייבוא...
-אני מעתיק את הטקסט ואני פותח את האפליקציה שלי ,צריכה לקפוץ החלונית הזו,עם הטקסט המועתק ולתת לי לייבא את הטקסט לאחת הרשימות."></textarea>
+                      oninput="updateDetectedTypeFromInput()"
+                      placeholder="הדבק כאן טקסט לייבוא..."></textarea>
 
             <div class="flex gap-3">
                 <button class="bg-green-500 text-white flex-1 py-4 rounded-xl font-bold"
@@ -1855,7 +1855,6 @@ ${error.message}
 </body>
 
 </html>
-
 
 
 
