@@ -132,19 +132,8 @@ self.addEventListener('push', event => {
     requireInteraction: true,
     renotify: true,
     silent: false,
-    data: notificationData.data,
-    actions: [
-      {
-        action: 'open',
-        title: 'פתח',
-        icon: '/icon-96.png'
-      },
-      {
-        action: 'dismiss',
-        title: 'סגור',
-        icon: '/icon-96.png'
-      }
-    ]
+    data: notificationData.data
+    // Removed actions to show only one icon
   };
 
   event.waitUntil(
@@ -218,11 +207,8 @@ self.addEventListener('message', event => {
       tag: tag || 'vplus-notification',
       requireInteraction: true,
       renotify: true,
-      data: data || {},
-      actions: [
-        { action: 'open', title: 'פתח', icon: '/icon-96.png' },
-        { action: 'dismiss', title: 'סגור', icon: '/icon-96.png' }
-      ]
+      data: data || {}
+      // Removed actions to show only one icon
     }).then(() => {
       updateBadge(badgeCount);
     });
