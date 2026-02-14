@@ -1693,6 +1693,11 @@ function generateItemMetadataHTML(item, idx) {
         let dateClass = 'item-duedate-display';
         let dateText = new Date(item.dueDate).toLocaleDateString('he-IL');
         
+        // Add time if exists
+        if (item.dueTime) {
+            dateText += ` ⏰ ${item.dueTime}`;
+        }
+        
         if (diffDays < 0 && !item.checked && !item.isPaid) {
             dateClass += ' overdue';
             dateText += ' (עבר!)';
@@ -7102,7 +7107,4 @@ document.addEventListener('visibilitychange', function() {
         }, 300);
     }
 });
-
-
-
 
