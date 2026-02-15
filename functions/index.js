@@ -1,228 +1,308 @@
+/**
+ * Firebase Cloud Functions for VPlus Push Notifications
+ * שולח התראות push כשיש שינויים ברשימת קניות
+ */
+
 const functions = require('firebase-functions');
 const admin = require('firebase-admin');
 
 admin.initializeApp();
 
-// Cloud Function לשליחת התראה כשמתווסף פריט חדש לרשימת קניות
-exports.sendItemAddedNotification = functions.firestore
-    .document('shopping_lists/{listId}/items/{itemId}')
-    .onCreate(async (snap, context) => {
-        try {
-            const itemData = snap.data();
-            const listId = context.params.listId;
-            
-            // קבלת מידע על הרשימה
-            const listDoc = await admin.firestore()
-                .collection('shopping_lists')
-                .doc(listId)
-                .get();
-            
-            if (!listDoc.exists) {
-                console.log('List not found');
-                return null;
-            }
-            
-            const listData = listDoc.data();
-            const sharedWith = listData.sharedWith || [];
-            const ownerId = listData.userId;
-            
-            // איסוף כל ה-FCM tokens של המשתמשים המשותפים
-            const userIds = [ownerId, ...sharedWith];
-            const tokens = [];
-            
-            for (const userId of userIds) {
-                const userDoc = await admin.firestore()
-                    .collection('users')
-                    .doc(userId)
-                    .get();
-                
-                if (userDoc.exists && userDoc.data().fcmToken) {
-                    tokens.push(userDoc.data().fcmToken);
-                }
-            }
-            
-            if (tokens.length === 0) {
-                console.log('No FCM tokens found');
-                return null;
-            }
-            
-            // יצירת ההודעה
-            const message = {
-                notification: {
-                    title: 'פריט חדש נוסף',
-                    body: `${itemData.name} נוסף לרשימה`,
-                },
-                data: {
-                    listId: listId,
-                    itemId: context.params.itemId,
-                    type: 'item_added',
-                },
-                tokens: tokens,
-                android: {
-                    priority: 'high',
-                },
-                webpush: {
-                    headers: {
-                        Urgency: 'high',
-                    },
-                },
-            };
-            
-            // שליחת ההתראה
-            const response = await admin.messaging().sendEachForMulticast(message);
-            console.log('Successfully sent notifications:', response.successCount);
-            
-            return response;
-        } catch (error) {
-            console.error('Error sending notification:', error);
-            return null;
+/**
+ * שולח התראה push כשיש שינוי ברשימת קניות
+ * מופעל אוטומטית כש-Firestore מתעדכן
+ */
+exports.sendShoppingListNotification = functions.firestore
+  .document('shopping_lists/{userId}')
+  .onUpdate(async (change, context) => {
+    const userId = context.params.userId;
+    
+    console.log('📝 שינוי זוהה ברשימה של:', userId);
+    
+    const before = change.before.data();
+    const after = change.after.data();
+    
+    // בדיקה: האם יש שינוי אמיתי?
+    if (JSON.stringify(before) === JSON.stringify(after)) {
+      console.log('⏭️ אין שינוי אמיתי, מדלג');
+      return null;
+    }
+    
+    try {
+      // שלב 1: מצא את כל המשתמשים עם FCM tokens
+      const usersSnapshot = await admin.firestore()
+        .collection('users')
+        .where('fcmToken', '!=', null)
+        .get();
+      
+      if (usersSnapshot.empty) {
+        console.log('⚠️ אין משתמשים עם FCM tokens');
+        return null;
+      }
+      
+      // שלב 2: זהה מה השתנה
+      const changeDetails = detectChanges(before, after);
+      
+      if (!changeDetails.hasChanges) {
+        console.log('⏭️ אין שינויים משמעותיים');
+        return null;
+      }
+      
+      // שלב 3: צור הודעת התראה
+      const notification = {
+        title: '🔔 עדכון ברשימה',
+        body: changeDetails.message,
+        icon: '/icon-192.png',
+        badge: '/badge-72.png',
+        tag: 'vplus-update',
+        requireInteraction: true,
+        data: {
+          type: 'list_update',
+          userId: userId,
+          timestamp: Date.now().toString(),
+          changeType: changeDetails.type
         }
-    });
+      };
+      
+      // שלב 4: שלח לכל המשתמשים (מלבד מי ששינה)
+      const tokens = [];
+      const promises = [];
+      
+      usersSnapshot.forEach(doc => {
+        const userData = doc.data();
+        // אל תשלח למשתמש שעשה את השינוי
+        if (doc.id !== userId && userData.fcmToken) {
+          tokens.push(userData.fcmToken);
+        }
+      });
+      
+      if (tokens.length === 0) {
+        console.log('⚠️ אין tokens לשלוח אליהם');
+        return null;
+      }
+      
+      // שלח בקבוצות של 500 (מגבלת FCM)
+      const batchSize = 500;
+      for (let i = 0; i < tokens.length; i += batchSize) {
+        const batch = tokens.slice(i, i + batchSize);
+        
+        const message = {
+          notification: {
+            title: notification.title,
+            body: notification.body
+          },
+          data: notification.data,
+          webpush: {
+            notification: {
+              icon: notification.icon,
+              badge: notification.badge,
+              tag: notification.tag,
+              requireInteraction: notification.requireInteraction,
+              vibrate: [200, 100, 200]
+            },
+            fcmOptions: {
+              link: 'https://vplus-pro.web.app'
+            }
+          },
+          tokens: batch
+        };
+        
+        promises.push(
+          admin.messaging().sendMulticast(message)
+            .then(response => {
+              console.log(`✅ נשלח בהצלחה: ${response.successCount}/${batch.length}`);
+              
+              // טיפול ב-tokens לא תקפים
+              if (response.failureCount > 0) {
+                const failedTokens = [];
+                response.responses.forEach((resp, idx) => {
+                  if (!resp.success) {
+                    failedTokens.push(batch[idx]);
+                    console.error('❌ שגיאה:', resp.error);
+                  }
+                });
+                // מחק tokens לא תקפים
+                return cleanupInvalidTokens(failedTokens);
+              }
+            })
+        );
+      }
+      
+      await Promise.all(promises);
+      console.log('✅ כל ההתראות נשלחו');
+      
+    } catch (error) {
+      console.error('❌ שגיאה בשליחת התראות:', error);
+    }
+    
+    return null;
+  });
 
-// Cloud Function לשליחת התראה כשמתעדכן פריט
-exports.sendItemUpdatedNotification = functions.firestore
-    .document('shopping_lists/{listId}/items/{itemId}')
-    .onUpdate(async (change, context) => {
-        try {
-            const before = change.before.data();
-            const after = change.after.data();
-            const listId = context.params.listId;
-            
-            // בדיקה אם השתנה סטטוס (נקנה/לא נקנה)
-            if (before.purchased !== after.purchased) {
-                const listDoc = await admin.firestore()
-                    .collection('shopping_lists')
-                    .doc(listId)
-                    .get();
-                
-                if (!listDoc.exists) {
-                    return null;
-                }
-                
-                const listData = listDoc.data();
-                const sharedWith = listData.sharedWith || [];
-                const ownerId = listData.userId;
-                
-                const userIds = [ownerId, ...sharedWith];
-                const tokens = [];
-                
-                for (const userId of userIds) {
-                    const userDoc = await admin.firestore()
-                        .collection('users')
-                        .doc(userId)
-                        .get();
-                    
-                    if (userDoc.exists && userDoc.data().fcmToken) {
-                        tokens.push(userDoc.data().fcmToken);
-                    }
-                }
-                
-                if (tokens.length === 0) {
-                    return null;
-                }
-                
-                const statusText = after.purchased ? 'נקנה' : 'בוטל';
-                
-                const message = {
-                    notification: {
-                        title: 'עדכון פריט',
-                        body: `${after.name} ${statusText}`,
-                    },
-                    data: {
-                        listId: listId,
-                        itemId: context.params.itemId,
-                        type: 'item_updated',
-                    },
-                    tokens: tokens,
-                    android: {
-                        priority: 'high',
-                    },
-                    webpush: {
-                        headers: {
-                            Urgency: 'high',
-                        },
-                    },
-                };
-                
-                const response = await admin.messaging().sendEachForMulticast(message);
-                console.log('Successfully sent update notifications:', response.successCount);
-                
-                return response;
-            }
-            
-            return null;
-        } catch (error) {
-            console.error('Error sending update notification:', error);
-            return null;
-        }
-    });
+/**
+ * מזהה מה השתנה ברשימה
+ */
+function detectChanges(before, after) {
+  const result = {
+    hasChanges: false,
+    type: 'unknown',
+    message: 'הרשימה עודכנה'
+  };
+  
+  // בדיקה: פריטים נוספו
+  const beforeItems = getAllItems(before);
+  const afterItems = getAllItems(after);
+  
+  if (afterItems.length > beforeItems.length) {
+    const addedCount = afterItems.length - beforeItems.length;
+    result.hasChanges = true;
+    result.type = 'items_added';
+    result.message = `${addedCount} פריט${addedCount > 1 ? 'ים' : ''} נוסף${addedCount > 1 ? 'ו' : ''} לרשימה`;
+    return result;
+  }
+  
+  // בדיקה: פריטים הוסרו
+  if (afterItems.length < beforeItems.length) {
+    const removedCount = beforeItems.length - afterItems.length;
+    result.hasChanges = true;
+    result.type = 'items_removed';
+    result.message = `${removedCount} פריט${removedCount > 1 ? 'ים' : ''} הוסר${removedCount > 1 ? 'ו' : ''} מהרשימה`;
+    return result;
+  }
+  
+  // בדיקה: פריטים סומנו/בוטלו
+  const beforeChecked = beforeItems.filter(item => item.checked).length;
+  const afterChecked = afterItems.filter(item => item.checked).length;
+  
+  if (afterChecked > beforeChecked) {
+    const checkedCount = afterChecked - beforeChecked;
+    result.hasChanges = true;
+    result.type = 'items_checked';
+    result.message = `${checkedCount} פריט${checkedCount > 1 ? 'ים' : ''} סומן${checkedCount > 1 ? 'ו' : ''} כהושלם`;
+    return result;
+  }
+  
+  if (afterChecked < beforeChecked) {
+    const uncheckedCount = beforeChecked - afterChecked;
+    result.hasChanges = true;
+    result.type = 'items_unchecked';
+    result.message = `${uncheckedCount} פריט${uncheckedCount > 1 ? 'ים' : ''} בוטל${uncheckedCount > 1 ? 'ו' : ''}`;
+    return result;
+  }
+  
+  // בדיקה: פריטים עודכנו
+  const itemsChanged = detectItemChanges(beforeItems, afterItems);
+  if (itemsChanged.length > 0) {
+    result.hasChanges = true;
+    result.type = 'items_updated';
+    result.message = `${itemsChanged.length} פריט${itemsChanged.length > 1 ? 'ים' : ''} עודכן${itemsChanged.length > 1 ? 'ו' : ''}`;
+    return result;
+  }
+  
+  return result;
+}
 
-// Cloud Function לשליחת התראה כשנמחק פריט
-exports.sendItemDeletedNotification = functions.firestore
-    .document('shopping_lists/{listId}/items/{itemId}')
-    .onDelete(async (snap, context) => {
-        try {
-            const itemData = snap.data();
-            const listId = context.params.listId;
-            
-            const listDoc = await admin.firestore()
-                .collection('shopping_lists')
-                .doc(listId)
-                .get();
-            
-            if (!listDoc.exists) {
-                return null;
-            }
-            
-            const listData = listDoc.data();
-            const sharedWith = listData.sharedWith || [];
-            const ownerId = listData.userId;
-            
-            const userIds = [ownerId, ...sharedWith];
-            const tokens = [];
-            
-            for (const userId of userIds) {
-                const userDoc = await admin.firestore()
-                    .collection('users')
-                    .doc(userId)
-                    .get();
-                
-                if (userDoc.exists && userDoc.data().fcmToken) {
-                    tokens.push(userDoc.data().fcmToken);
-                }
-            }
-            
-            if (tokens.length === 0) {
-                return null;
-            }
-            
-            const message = {
-                notification: {
-                    title: 'פריט נמחק',
-                    body: `${itemData.name} הוסר מהרשימה`,
-                },
-                data: {
-                    listId: listId,
-                    itemId: context.params.itemId,
-                    type: 'item_deleted',
-                },
-                tokens: tokens,
-                android: {
-                    priority: 'high',
-                },
-                webpush: {
-                    headers: {
-                        Urgency: 'high',
-                    },
-                },
-            };
-            
-            const response = await admin.messaging().sendEachForMulticast(message);
-            console.log('Successfully sent delete notifications:', response.successCount);
-            
-            return response;
-        } catch (error) {
-            console.error('Error sending delete notification:', error);
-            return null;
-        }
+/**
+ * מחלץ את כל הפריטים מכל הרשימות
+ */
+function getAllItems(data) {
+  const items = [];
+  
+  if (data && data.lists) {
+    Object.values(data.lists).forEach(list => {
+      if (list.items && Array.isArray(list.items)) {
+        items.push(...list.items);
+      }
     });
+  }
+  
+  return items;
+}
+
+/**
+ * מזהה פריטים שהשתנו
+ */
+function detectItemChanges(beforeItems, afterItems) {
+  const changed = [];
+  
+  // השווה לפי cloudId
+  for (let i = 0; i < Math.min(beforeItems.length, afterItems.length); i++) {
+    const before = beforeItems[i];
+    const after = afterItems[i];
+    
+    if (before.cloudId === after.cloudId) {
+      // בדוק אם יש שינוי
+      if (before.name !== after.name || 
+          before.price !== after.price || 
+          before.qty !== after.qty ||
+          before.note !== after.note) {
+        changed.push(after);
+      }
+    }
+  }
+  
+  return changed;
+}
+
+/**
+ * מנקה FCM tokens לא תקפים מה-database
+ */
+async function cleanupInvalidTokens(tokens) {
+  const promises = [];
+  
+  for (const token of tokens) {
+    const userQuery = admin.firestore()
+      .collection('users')
+      .where('fcmToken', '==', token)
+      .limit(1);
+    
+    promises.push(
+      userQuery.get()
+        .then(snapshot => {
+          if (!snapshot.empty) {
+            const doc = snapshot.docs[0];
+            return doc.ref.update({ fcmToken: admin.firestore.FieldValue.delete() });
+          }
+        })
+        .catch(err => console.error('Error cleaning token:', err))
+    );
+  }
+  
+  await Promise.all(promises);
+  console.log(`🧹 נוקו ${tokens.length} tokens לא תקפים`);
+}
+
+/**
+ * פונקציית עזר לבדיקת ההתראות
+ * ניתן להפעיל ידנית: https://console.firebase.google.com/project/vplus-pro/functions
+ */
+exports.testNotification = functions.https.onRequest(async (req, res) => {
+  try {
+    const usersSnapshot = await admin.firestore()
+      .collection('users')
+      .where('fcmToken', '!=', null)
+      .limit(1)
+      .get();
+    
+    if (usersSnapshot.empty) {
+      res.status(404).send('אין משתמשים עם FCM tokens');
+      return;
+    }
+    
+    const token = usersSnapshot.docs[0].data().fcmToken;
+    
+    const message = {
+      notification: {
+        title: '🧪 התראת בדיקה',
+        body: 'זוהי התראת בדיקה מ-VPlus'
+      },
+      token: token
+    };
+    
+    const response = await admin.messaging().send(message);
+    res.status(200).send('התראה נשלחה: ' + response);
+    
+  } catch (error) {
+    console.error('Error:', error);
+    res.status(500).send('שגיאה: ' + error.message);
+  }
+});
