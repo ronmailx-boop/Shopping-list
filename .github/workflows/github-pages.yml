@@ -1,4 +1,4 @@
-name: Deploy to GitHub Pages
+name: Deploy to GitHub Pages and Firebase Functions
 
 on:
   push:
@@ -6,7 +6,8 @@ on:
       - main
 
 jobs:
-  deploy:
+  # משימה 1: עדכון האתר ב-GitHub Pages (מה שיש לך היום)
+  deploy-pages:
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -27,3 +28,27 @@ jobs:
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
+
+  # משימה 2: עדכון הפונקציות ב-Firebase (התוספת החדשה)
+  deploy-firebase:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 18
+
+      - name: Install Functions Dependencies
+        run: |
+          cd functions
+          npm install
+
+      - name: Deploy to Firebase Functions
+        uses: w9jds/firebase-action@master
+        with:
+          args: deploy --only functions
+        env:
+          GCP_SA_KEY: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_VPLUS_PRO }}
