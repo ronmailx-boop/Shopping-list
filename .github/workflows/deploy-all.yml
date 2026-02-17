@@ -26,7 +26,8 @@ jobs:
       - name: Deploy Firebase Functions
         uses: w9jds/firebase-action@master
         with:
-          args: deploy --only functions --project vplus-pro
+          args: deploy --only functions --project vplus-pro --force
+
         env:
           GCP_SA_KEY: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_VPLUS_PRO }}
       
