@@ -54,7 +54,7 @@ async function requestNotificationPermission() {
 async function getFCMTokenAndSave() {
   try {
     const token = await getToken(messaging, {
-      vapidKey: 'TviGfZMHazB5vTDsoZq3m2YBXAPJOJ19r5X6iJyfIWI'
+      vapidKey: 'BEfWQmtDR1km7wNEkJk2lODQM5_IpheXBc7Ty_ZdxunMHIT8nLpPDNv8WhuLNJ18J2l5T6g290rBWNJMcVaEHh0'
     });
     
     if (token) {
