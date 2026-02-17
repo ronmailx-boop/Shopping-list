@@ -1936,7 +1936,9 @@ ${error.message}
     <div id="debugLog" style="font-family:monospace;font-size:11px;"></div>
   </div>
 
-  <script>
+  <script type="module">
+  import { getMessaging, getToken } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-messaging.js';
+
   function debugLog(msg) {
     const div = document.getElementById('debugLog');
     div.innerHTML += '<br>' + msg;
@@ -1947,35 +1949,62 @@ ${error.message}
     document.getElementById('debugLog').innerHTML = '';
 
     // Check auth
-    if (window.firebaseAuth && window.firebaseAuth.currentUser) {
-      debugLog('✅ User: ' + window.firebaseAuth.currentUser.email);
-      debugLog('✅ UID: ' + window.firebaseAuth.currentUser.uid);
-    } else {
-      debugLog('❌ לא מחובר!');
+    if (!window.firebaseAuth || !window.firebaseAuth.currentUser) {
+      debugLog('❌ לא מחובר! התחבר עם Google קודם');
       return;
     }
+
+    const user = window.firebaseAuth.currentUser;
+    debugLog('✅ User: ' + user.email);
+    debugLog('✅ UID: ' + user.uid);
 
     // Check notification permission
     debugLog('🔔 Permission: ' + Notification.permission);
 
-    // Check Firestore users collection
+    // Request permission if needed
+    if (Notification.permission !== 'granted') {
+      debugLog('⚠️ מבקש הרשאה...');
+      const perm = await Notification.requestPermission();
+      debugLog('🔔 תוצאה: ' + perm);
+      if (perm !== 'granted') {
+        debugLog('❌ ההרשאה נדחתה!');
+        return;
+      }
+    }
+
+    // Get FCM Token directly
     try {
-      const userId = window.firebaseAuth.currentUser.uid;
-      const userDoc = await window.getDoc(window.doc(window.firebaseDb, 'users', userId));
-      if (userDoc.exists()) {
-        const data = userDoc.data();
-        debugLog('✅ User doc exists!');
-        debugLog('FCM Token: ' + (data.fcmToken ? data.fcmToken.substring(0,20) + '...' : '❌ אין!'));
+      debugLog('📡 מאתחל Messaging...');
+      const messaging = getMessaging(window.firebaseApp);
+      debugLog('✅ Messaging אותחל!');
+
+      debugLog('🔑 מנסה לקבל FCM Token...');
+      const token = await getToken(messaging, {
+        vapidKey: 'BEfW0mtDR1km7wNEJk2iODQM5_ipheXBc7Ty_ZdxunMHlT8nLpPDNv8WhuLNJt8J2I5T6g290rBWNJMcVeEHhOe',
+        serviceWorkerRegistration: await navigator.serviceWorker.register('/firebase-messaging-sw.js')
+      });
+
+      if (token) {
+        debugLog('✅ Token: ' + token.substring(0, 25) + '...');
+
+        // Save to Firestore
+        debugLog('💾 שומר ל-Firestore...');
+        await window.setDoc(
+          window.doc(window.firebaseDb, 'users', user.uid),
+          { fcmToken: token, updatedAt: new Date() },
+          { merge: true }
+        );
+        debugLog('🎉 נשמר בהצלחה! התראות יעבדו!');
       } else {
-        debugLog('❌ אין user document!');
-        debugLog('💾 מנסה לשמור FCM Token...');
-        await window.requestNotificationPermission();
-        debugLog('✅ נשמר! רענן ובדוק שוב');
+        debugLog('❌ לא התקבל Token!');
       }
     } catch(e) {
       debugLog('❌ שגיאה: ' + e.message);
+      console.error(e);
     }
   }
+
+  window.runDebug = runDebug;
   </script>
 
 </body>
