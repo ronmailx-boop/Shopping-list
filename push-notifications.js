@@ -263,6 +263,21 @@ window.addEventListener('load', () => {
   // Initialize FCM token management with auth listener
   initFCMTokenManagement();
   
+  // האזן להודעות מה-Service Worker (לחיצה על התראה כשהאפליקציה פתוחה)
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.addEventListener('message', (event) => {
+      if (event.data && event.data.type === 'NOTIFICATION_CLICKED') {
+        const { listId, itemName } = event.data.data || {};
+        console.log('📨 Notification clicked, listId:', listId, 'item:', itemName);
+        
+        // נווט לרשימה הרלוונטית אם קיימת הפונקציה
+        if (listId && typeof switchToList === 'function') {
+          switchToList(listId);
+        }
+      }
+    });
+  }
+  
   // Delayed auto-request for notifications (only if permission is default)
   setTimeout(() => {
     if ('Notification' in window && Notification.permission === 'default') {
