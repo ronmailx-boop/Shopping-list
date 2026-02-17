@@ -1,7 +1,7 @@
 {
   "name": "vplus-cloud-functions",
   "description": "Cloud Functions for VPlus Shopping List Push Notifications",
-  "version": "1.1.0",
+  "version": "1.0.0",
   "scripts": {
     "lint": "echo 'No lint configured'",
     "serve": "firebase emulators:start --only functions",
