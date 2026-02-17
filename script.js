@@ -3706,16 +3706,51 @@ function loginWithGoogle() {
     console.log('🔐 Provider:', window.googleProvider ? 'זמין' : 'לא זמין');
     updateCloudIndicator('syncing');
 
-    // Use signInWithRedirect - works on all domains including GitHub Pages
-    showNotification('⏳ מעביר לדף ההתחברות...', 'success');
-    window.signInWithRedirect(window.firebaseAuth, window.googleProvider)
-        .catch((error) => {
-            console.error("❌ שגיאת התחברות:", error);
-            console.error("❌ קוד שגיאה:", error.code);
-            console.error("❌ הודעת שגיאה:", error.message);
-            showDetailedError('Login', error);
-            updateCloudIndicator('disconnected');
-        });
+    // Use signInWithRedirect for GitHub Pages, signInWithPopup for Firebase domains
+    const isGitHubPages = window.location.hostname.includes('github.io');
+    
+    if (isGitHubPages) {
+        // GitHub Pages - use Redirect (Popup is blocked)
+        console.log('🔐 GitHub Pages detected - using Redirect...');
+        showNotification('⏳ מעביר לדף ההתחברות של Google...', 'success');
+        window.signInWithRedirect(window.firebaseAuth, window.googleProvider)
+            .catch((error) => {
+                console.error("❌ שגיאת התחברות:", error);
+                showDetailedError('Login', error);
+                updateCloudIndicator('disconnected');
+            });
+    } else {
+        // Firebase domains - use Popup (faster UX)
+        console.log('🔐 Firebase domain detected - using Popup...');
+        window.signInWithPopup(window.firebaseAuth, window.googleProvider)
+            .then((result) => {
+                console.log('✅ התחברות הצליחה!', result.user.email);
+                showNotification('✅ התחברת בהצלחה!', 'success');
+                currentUser = result.user;
+                isConnected = true;
+                updateCloudIndicator('connected');
+                setupFirestoreListener(result.user);
+            })
+            .catch((error) => {
+                console.error("❌ שגיאת התחברות:", error);
+                console.error("❌ קוד שגיאה:", error.code);
+                console.error("❌ הודעת שגיאה:", error.message);
+                
+                if (error.code === 'auth/popup-closed-by-user') {
+                    console.log('ℹ️ המשתמש סגר את חלון ההתחברות');
+                    showNotification('ℹ️ חלון ההתחברות נסגר', 'warning');
+                } else if (error.code === 'auth/cancelled-popup-request') {
+                    console.log('ℹ️ בקשת popup בוטלה');
+                    showNotification('ℹ️ ההתחברות בוטלה', 'warning');
+                } else if (error.code === 'auth/popup-blocked') {
+                    console.log('⚠️ הדפדפן חסם את חלון ההתחברות');
+                    showNotification('⚠️ הדפדפן חסם את חלון ההתחברות', 'warning');
+                } else {
+                    showDetailedError('Login', error);
+                }
+                updateCloudIndicator('disconnected');
+            });
+    }
 }
 
 function logoutFromCloud() {
