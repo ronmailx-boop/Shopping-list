@@ -1046,7 +1046,7 @@
         console.log('🔵 Starting Firebase initialization...');
         
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import { getAuth, signInWithPopup, signInWithRedirect, GoogleAuthProvider, getRedirectResult, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+        import { getAuth, signInWithPopup, GoogleAuthProvider, getRedirectResult, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
         import { getFirestore, doc, setDoc, onSnapshot, getDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
         try {
@@ -1079,7 +1079,6 @@
             window.googleProvider = provider;
 
             window.signInWithPopup = signInWithPopup;
-            window.signInWithRedirect = signInWithRedirect;
             window.getRedirectResult = getRedirectResult;
             window.signOut = signOut;
             window.onAuthStateChanged = onAuthStateChanged;
@@ -1979,11 +1978,25 @@ ${error.message}
       const messaging = getMessaging(window.firebaseApp);
       debugLog('✅ Messaging אותחל!');
 
+      debugLog('🔧 רושם Service Worker...');
+      let swReg;
+      try {
+        swReg = await navigator.serviceWorker.register('/firebase-messaging-sw.js');
+        await navigator.serviceWorker.ready;
+        debugLog('✅ SW רשום!');
+      } catch(swErr) {
+        debugLog('⚠️ SW: ' + swErr.message);
+        const regs = await navigator.serviceWorker.getRegistrations();
+        swReg = regs.find(r => r.scope.includes(location.origin));
+        debugLog(swReg ? '✅ SW קיים!' : '❌ אין SW!');
+      }
+
       debugLog('🔑 מנסה לקבל FCM Token...');
-      const token = await getToken(messaging, {
-        vapidKey: 'BEfW0mtDR1km7wNEJk2iODQM5_ipheXBc7Ty_ZdxunMHlT8nLpPDNv8WhuLNJt8J2I5T6g290rBWNJMcVeEHhOe',
-        serviceWorkerRegistration: await navigator.serviceWorker.register('/firebase-messaging-sw.js')
-      });
+      const tokenOpts = {
+        vapidKey: 'BEfWQmtDR1km7wNEkJk2lODQM5_IpheXBc7Ty_ZdxunMHIT8nLpPDNv8WhuLNJ18J2l5T6g290rBWNJMcVaEHh0'
+      };
+      if (swReg) tokenOpts.serviceWorkerRegistration = swReg;
+      const token = await getToken(messaging, tokenOpts);
 
       if (token) {
         debugLog('✅ Token: ' + token.substring(0, 25) + '...');
@@ -2011,7 +2024,6 @@ ${error.message}
 </body>
 
 </html>
-
 
 
 
