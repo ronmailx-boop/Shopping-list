@@ -3706,37 +3706,14 @@ function loginWithGoogle() {
     console.log('🔐 Provider:', window.googleProvider ? 'זמין' : 'לא זמין');
     updateCloudIndicator('syncing');
 
-    // Use signInWithPopup and handle the promise correctly
-    window.signInWithPopup(window.firebaseAuth, window.googleProvider)
-        .then((result) => {
-            console.log('✅ התחברות הצליחה!', result.user.email);
-            showNotification('✅ התחברת בהצלחה!', 'success');
-            currentUser = result.user;
-            isConnected = true;
-            updateCloudIndicator('connected');
-            
-            // Setup Firestore listener
-            setupFirestoreListener(result.user);
-        })
+    // Use signInWithRedirect - works on all domains including GitHub Pages
+    showNotification('⏳ מעביר לדף ההתחברות...', 'success');
+    window.signInWithRedirect(window.firebaseAuth, window.googleProvider)
         .catch((error) => {
             console.error("❌ שגיאת התחברות:", error);
             console.error("❌ קוד שגיאה:", error.code);
             console.error("❌ הודעת שגיאה:", error.message);
-            
-            // Handle different error types
-            if (error.code === 'auth/popup-closed-by-user') {
-                console.log('ℹ️ המשתמש סגר את חלון ההתחברות');
-                showNotification('ℹ️ חלון ההתחברות נסגר', 'warning');
-            } else if (error.code === 'auth/cancelled-popup-request') {
-                console.log('ℹ️ בקשת popup בוטלה');
-                showNotification('ℹ️ ההתחברות בוטלה', 'warning');
-            } else if (error.code === 'auth/popup-blocked') {
-                console.log('⚠️ הדפדפן חסם את חלון ההתחברות');
-                showNotification('⚠️ הדפדפן חסם את חלון ההתחברות. אנא אפשר חלונות קופצים עבור אתר זה', 'warning');
-            } else {
-                showDetailedError('Login', error);
-            }
-            
+            showDetailedError('Login', error);
             updateCloudIndicator('disconnected');
         });
 }
