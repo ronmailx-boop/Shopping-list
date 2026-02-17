@@ -14,44 +14,59 @@ firebase.initializeApp({
 
 const messaging = firebase.messaging();
 
-// Handle background messages
+// ─── טיפול בהתראות רקע (האפליקציה סגורה / ממוזערת) ───────────────────────
+// FCM קורא לזה אוטומטית כשמגיעה הודעה מהשרת והאפליקציה לא בחזית
 messaging.onBackgroundMessage((payload) => {
-  console.log('[firebase-messaging-sw.js] Received background message:', payload);
-  
-  const notificationTitle = payload.notification?.title || 'התראה חדשה';
-  const notificationOptions = {
-    body: payload.notification?.body || 'יש לך התראה חדשה מ-VPlus',
-    icon: '/icon-192.png',
-    badge: '/badge-72.png',
-    vibrate: [200, 100, 200],
-    tag: 'vplus-notification',
-    requireInteraction: false,
-    data: payload.data
+  console.log('[FCM-SW] Background message received:', payload);
+
+  const title = payload.notification?.title || '⏰ תזכורת VPlus';
+  const body  = payload.notification?.body  || 'יש לך תזכורת חדשה';
+
+  const options = {
+    body,
+    icon:               '/icon-192.png',
+    badge:              '/badge-72.png',
+    vibrate:            [300, 100, 300, 100, 300],
+    tag:                'vplus-reminder-' + (payload.data?.itemName || Date.now()),
+    requireInteraction: true,   // ההתראה נשארת עד שהמשתמש לוחץ
+    renotify:           true,
+    silent:             false,
+    data: {
+      listId:   payload.data?.listId   || '',
+      itemName: payload.data?.itemName || '',
+      dueDate:  payload.data?.dueDate  || '',
+      url:      '/'
+    }
   };
 
-  return self.registration.showNotification(notificationTitle, notificationOptions);
+  return self.registration.showNotification(title, options);
 });
 
-// Handle notification click
+// ─── לחיצה על התראה ────────────────────────────────────────────────────────
 self.addEventListener('notificationclick', (event) => {
-  console.log('[firebase-messaging-sw.js] Notification clicked:', event);
-  
+  console.log('[FCM-SW] Notification clicked:', event.notification.data);
   event.notification.close();
-  
-  // Open or focus the app
+
+  const targetUrl = event.notification.data?.url || '/';
+
   event.waitUntil(
     clients.matchAll({ type: 'window', includeUncontrolled: true })
       .then((clientList) => {
-        // Check if there's already a window open
+        // אם האפליקציה כבר פתוחה — פוקוס עליה ושלח אירוע
         for (const client of clientList) {
           if (client.url.includes(self.location.origin) && 'focus' in client) {
+            client.postMessage({
+              type: 'NOTIFICATION_CLICKED',
+              data: event.notification.data
+            });
             return client.focus();
           }
         }
-        // If no window is open, open a new one
+        // אחרת — פתח חלון חדש
         if (clients.openWindow) {
-          return clients.openWindow('/');
+          return clients.openWindow(targetUrl);
         }
       })
   );
 });
+
