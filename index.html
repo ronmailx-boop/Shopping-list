@@ -1929,6 +1929,55 @@ ${error.message}
 
   <!-- Push Notifications Handler -->
   <script src="push-notifications.js" type="module"></script>
+
+  <!-- Debug FCM Button -->
+  <div id="debugDiv" style="position:fixed;top:10px;left:10px;z-index:9999;background:white;padding:10px;border-radius:10px;box-shadow:0 2px 10px rgba(0,0,0,0.3);font-size:12px;max-width:80vw;overflow:auto;max-height:50vh;">
+    <button onclick="runDebug()" style="background:#7367f0;color:white;padding:8px 16px;border:none;border-radius:8px;margin-bottom:8px;width:100%">🔍 בדוק FCM</button>
+    <div id="debugLog" style="font-family:monospace;font-size:11px;"></div>
+  </div>
+
+  <script>
+  function debugLog(msg) {
+    const div = document.getElementById('debugLog');
+    div.innerHTML += '<br>' + msg;
+    console.log(msg);
+  }
+
+  async function runDebug() {
+    document.getElementById('debugLog').innerHTML = '';
+
+    // Check auth
+    if (window.firebaseAuth && window.firebaseAuth.currentUser) {
+      debugLog('✅ User: ' + window.firebaseAuth.currentUser.email);
+      debugLog('✅ UID: ' + window.firebaseAuth.currentUser.uid);
+    } else {
+      debugLog('❌ לא מחובר!');
+      return;
+    }
+
+    // Check notification permission
+    debugLog('🔔 Permission: ' + Notification.permission);
+
+    // Check Firestore users collection
+    try {
+      const userId = window.firebaseAuth.currentUser.uid;
+      const userDoc = await window.getDoc(window.doc(window.firebaseDb, 'users', userId));
+      if (userDoc.exists()) {
+        const data = userDoc.data();
+        debugLog('✅ User doc exists!');
+        debugLog('FCM Token: ' + (data.fcmToken ? data.fcmToken.substring(0,20) + '...' : '❌ אין!'));
+      } else {
+        debugLog('❌ אין user document!');
+        debugLog('💾 מנסה לשמור FCM Token...');
+        await window.requestNotificationPermission();
+        debugLog('✅ נשמר! רענן ובדוק שוב');
+      }
+    } catch(e) {
+      debugLog('❌ שגיאה: ' + e.message);
+    }
+  }
+  </script>
+
 </body>
 
 </html>
