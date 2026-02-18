@@ -1,3 +1,43 @@
+// ========== Firebase Cloud Messaging Support ==========
+importScripts('https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js');
+importScripts('https://www.gstatic.com/firebasejs/10.7.1/firebase-messaging-compat.js');
+
+firebase.initializeApp({
+  apiKey: "AIzaSyBqIqxoiwwqeKkjlYJpEiqgCG09PgabwhI",
+  authDomain: "vplus-pro.firebaseapp.com",
+  projectId: "vplus-pro",
+  storageBucket: "vplus-pro.firebasestorage.app",
+  messagingSenderId: "386740827706",
+  appId: "1:386740827706:web:a3c95c895826df4bb26703"
+});
+
+const messaging = firebase.messaging();
+
+// טיפול בהודעות FCM ברקע (האפליקציה סגורה)
+messaging.onBackgroundMessage((payload) => {
+  console.log('[SW] FCM background message received:', payload);
+
+  const title = payload.notification?.title || '🔔 התראה - VPlus';
+  const options = {
+    body: payload.notification?.body || 'יש לך התראה חדשה מ-VPlus',
+    icon: '/icon-96.png',
+    badge: '/icon-96.png',
+    vibrate: [300, 100, 300, 100, 300],
+    tag: payload.data?.type === 'reminder' ? 'vplus-reminder' : 'vplus-notification',
+    requireInteraction: true,
+    renotify: true,
+    data: payload.data || {}
+  };
+
+  badgeCount++;
+  return Promise.all([
+    self.registration.showNotification(title, options),
+    updateBadge(badgeCount)
+  ]);
+});
+
+
+// ========== Cache & Install ==========
 const CACHE_NAME = 'vplus-pro-v1.0.2';
 const urlsToCache = [
   '/',
@@ -6,7 +46,6 @@ const urlsToCache = [
   '/manifest.json'
 ];
 
-// Install Service Worker
 self.addEventListener('install', event => {
   console.log('[SW] Installing...');
   event.waitUntil(
@@ -21,7 +60,6 @@ self.addEventListener('install', event => {
   self.skipWaiting();
 });
 
-// Activate Service Worker
 self.addEventListener('activate', event => {
   console.log('[SW] Activating...');
   event.waitUntil(
@@ -39,7 +77,6 @@ self.addEventListener('activate', event => {
   self.clients.claim();
 });
 
-// Fetch Strategy
 self.addEventListener('fetch', event => {
   event.respondWith(
     fetch(event.request)
@@ -59,51 +96,47 @@ self.addEventListener('fetch', event => {
   );
 });
 
-// ========== NOTIFICATION BADGE SUPPORT ==========
+
+// ========== Badge Support ==========
 let badgeCount = 0;
 
-// Update badge count
 async function updateBadge(count) {
   badgeCount = count || 0;
-  
   try {
-    // Try to set app badge (Chrome/Edge on Android)
     if ('setAppBadge' in navigator) {
       if (badgeCount > 0) {
         await navigator.setAppBadge(badgeCount);
       } else {
         await navigator.clearAppBadge();
       }
-      console.log('[SW] Badge updated:', badgeCount);
-    }
-    // Fallback for older API
-    else if ('setClientBadge' in self.registration) {
+    } else if ('setClientBadge' in self.registration) {
       if (badgeCount > 0) {
         await self.registration.setClientBadge(badgeCount);
       } else {
         await self.registration.clearClientBadge();
       }
-      console.log('[SW] Badge updated (fallback):', badgeCount);
     }
+    console.log('[SW] Badge updated:', badgeCount);
   } catch (error) {
     console.log('[SW] Badge API not supported:', error);
   }
 }
 
-// ========== PUSH NOTIFICATION HANDLER ==========
+
+// ========== Push Notification Handler ==========
+// מטפל בהודעות push ישירות (כגיבוי למקרה ש-FCM לא תופס)
 self.addEventListener('push', event => {
-  console.log('[SW] Push notification received:', event);
-  
+  console.log('[SW] Push event received:', event);
+
   let notificationData = {
     title: '🔔 התראה - VPlus',
-    body: 'יש לך פריט חשוב הדורשים תשומת לב',
+    body: 'יש לך פריט הדורש תשומת לב',
     icon: '/icon-96.png',
     badge: '/icon-96.png',
     tag: 'vplus-reminder',
     data: {}
   };
-  
-  // Parse notification data
+
   if (event.data) {
     try {
       const data = event.data.json();
@@ -119,86 +152,77 @@ self.addEventListener('push', event => {
       notificationData.body = event.data.text();
     }
   }
-  
-  // Increment badge
+
   badgeCount++;
-  
-  const options = {
-    body: notificationData.body,
-    icon: notificationData.icon,
-    badge: notificationData.badge,
-    vibrate: [300, 100, 300, 100, 300],
-    tag: notificationData.tag,
-    requireInteraction: true,
-    renotify: true,
-    silent: false,
-    data: notificationData.data
-    // Removed actions to show only one icon
-  };
 
   event.waitUntil(
     Promise.all([
-      self.registration.showNotification(notificationData.title, options),
+      self.registration.showNotification(notificationData.title, {
+        body: notificationData.body,
+        icon: notificationData.icon,
+        badge: notificationData.badge,
+        vibrate: [300, 100, 300, 100, 300],
+        tag: notificationData.tag,
+        requireInteraction: true,
+        renotify: true,
+        data: notificationData.data
+      }),
       updateBadge(badgeCount)
     ])
   );
 });
 
-// ========== NOTIFICATION CLICK HANDLER ==========
+
+// ========== Notification Click Handler ==========
 self.addEventListener('notificationclick', event => {
-  console.log('[SW] Notification clicked:', event.action);
-  
+  console.log('[SW] Notification clicked');
+
   event.notification.close();
-  
-  // Decrement badge
   badgeCount = Math.max(0, badgeCount - 1);
   updateBadge(badgeCount);
-  
-  if (event.action === 'open' || !event.action) {
-    event.waitUntil(
-      clients.matchAll({ type: 'window', includeUncontrolled: true })
-        .then(clientList => {
-          // Focus existing window
-          for (let client of clientList) {
-            if (client.url.includes(self.registration.scope) && 'focus' in client) {
-              return client.focus();
-            }
+
+  event.waitUntil(
+    clients.matchAll({ type: 'window', includeUncontrolled: true })
+      .then(clientList => {
+        for (let client of clientList) {
+          if (client.url.includes(self.registration.scope) && 'focus' in client) {
+            return client.focus();
           }
-          // Open new window
-          if (clients.openWindow) {
-            return clients.openWindow('/');
-          }
-        })
-    );
-  }
+        }
+        if (clients.openWindow) {
+          return clients.openWindow('/');
+        }
+      })
+  );
 });
 
-// ========== NOTIFICATION CLOSE HANDLER ==========
+
+// ========== Notification Close Handler ==========
 self.addEventListener('notificationclose', event => {
   console.log('[SW] Notification closed');
   badgeCount = Math.max(0, badgeCount - 1);
   updateBadge(badgeCount);
 });
 
-// ========== MESSAGE HANDLER (from main app) ==========
+
+// ========== Message Handler (from main app) ==========
 self.addEventListener('message', event => {
   console.log('[SW] Message received:', event.data);
-  
-  if (event.data && event.data.type === 'CLEAR_BADGE') {
+
+  if (event.data?.type === 'CLEAR_BADGE') {
     badgeCount = 0;
     updateBadge(0);
   }
-  
-  if (event.data && event.data.type === 'SET_BADGE') {
+
+  if (event.data?.type === 'SET_BADGE') {
     badgeCount = event.data.count || 0;
     updateBadge(badgeCount);
   }
-  
-  if (event.data && event.data.type === 'SHOW_NOTIFICATION') {
+
+  if (event.data?.type === 'SHOW_NOTIFICATION') {
     const { title, body, tag, data } = event.data;
-    
     badgeCount++;
-    
+
     self.registration.showNotification(title || '🔔 התראה - VPlus', {
       body: body || 'יש לך התראה חדשה',
       icon: '/icon-96.png',
@@ -208,9 +232,6 @@ self.addEventListener('message', event => {
       requireInteraction: true,
       renotify: true,
       data: data || {}
-      // Removed actions to show only one icon
-    }).then(() => {
-      updateBadge(badgeCount);
-    });
+    }).then(() => updateBadge(badgeCount));
   }
 });
