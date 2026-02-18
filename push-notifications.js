@@ -53,8 +53,13 @@ async function requestNotificationPermission() {
 // Get FCM token and save it
 async function getFCMTokenAndSave() {
   try {
+    // חובה להעביר את ה-registration של sw.js כדי ש-FCM ידע להשתמש בו
+    // (ולא יחפש את firebase-messaging-sw.js)
+    const registration = await navigator.serviceWorker.ready;
+
     const token = await getToken(messaging, {
-      vapidKey: 'BEfWQmtDR1km7wNEkJk2lODQM5_IpheXBc7Ty_ZdxunMHIT8nLpPDNv8WhuLNJ18J2l5T6g290rBWNJMcVaEHh0'
+      vapidKey: 'BEfWQmtDR1km7wNEkJk2lODQM5_IpheXBc7Ty_ZdxunMHIT8nLpPDNv8WhuLNJ18J2l5T6g290rBWNJMcVaEHh0',
+      serviceWorkerRegistration: registration
     });
     
     if (token) {
