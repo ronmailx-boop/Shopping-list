@@ -1,6 +1,7 @@
 /**
  * Firebase Cloud Functions for VPlus Push Notifications
  * שולח התראות push כשיש שינויים ברשימת קניות
+ * + שולח תזכורות מתוזמנות לפי dueDate/dueTime
  */
 
 const functions = require('firebase-functions');
@@ -8,10 +9,9 @@ const admin = require('firebase-admin');
 
 admin.initializeApp();
 
-/**
- * שולח התראה push כשיש שינוי ברשימת קניות
- * מופעל אוטומטית כש-Firestore מתעדכן
- */
+// ─────────────────────────────────────────────
+// פונקציה 1: התראה כשיש שינוי ברשימה (קיימת)
+// ─────────────────────────────────────────────
 exports.sendShoppingListNotification = functions.firestore
   .document('shopping_lists/{userId}')
   .onUpdate(async (change, context) => {
@@ -22,14 +22,12 @@ exports.sendShoppingListNotification = functions.firestore
     const before = change.before.data();
     const after = change.after.data();
     
-    // בדיקה: האם יש שינוי אמיתי?
     if (JSON.stringify(before) === JSON.stringify(after)) {
       console.log('⏭️ אין שינוי אמיתי, מדלג');
       return null;
     }
     
     try {
-      // שלב 1: מצא את כל המשתמשים עם FCM tokens
       const usersSnapshot = await admin.firestore()
         .collection('users')
         .where('fcmToken', '!=', null)
@@ -40,7 +38,6 @@ exports.sendShoppingListNotification = functions.firestore
         return null;
       }
       
-      // שלב 2: זהה מה השתנה
       const changeDetails = detectChanges(before, after);
       
       if (!changeDetails.hasChanges) {
@@ -48,29 +45,9 @@ exports.sendShoppingListNotification = functions.firestore
         return null;
       }
       
-      // שלב 3: צור הודעת התראה
-      const notification = {
-        title: '🔔 עדכון ברשימה',
-        body: changeDetails.message,
-        icon: '/icon-192.png',
-        badge: '/badge-72.png',
-        tag: 'vplus-update',
-        requireInteraction: true,
-        data: {
-          type: 'list_update',
-          userId: userId,
-          timestamp: Date.now().toString(),
-          changeType: changeDetails.type
-        }
-      };
-      
-      // שלב 4: שלח לכל המשתמשים (מלבד מי ששינה)
       const tokens = [];
-      const promises = [];
-      
       usersSnapshot.forEach(doc => {
         const userData = doc.data();
-        // אל תשלח למשתמש שעשה את השינוי
         if (doc.id !== userId && userData.fcmToken) {
           tokens.push(userData.fcmToken);
         }
@@ -81,55 +58,16 @@ exports.sendShoppingListNotification = functions.firestore
         return null;
       }
       
-      // שלח בקבוצות של 500 (מגבלת FCM)
-      const batchSize = 500;
-      for (let i = 0; i < tokens.length; i += batchSize) {
-        const batch = tokens.slice(i, i + batchSize);
-        
-        const message = {
-          notification: {
-            title: notification.title,
-            body: notification.body
-          },
-          data: notification.data,
-          webpush: {
-            notification: {
-              icon: notification.icon,
-              badge: notification.badge,
-              tag: notification.tag,
-              requireInteraction: notification.requireInteraction,
-              vibrate: [200, 100, 200]
-            },
-            fcmOptions: {
-              link: 'https://vplus-pro.web.app'
-            }
-          },
-          tokens: batch
-        };
-        
-        promises.push(
-          admin.messaging().sendMulticast(message)
-            .then(response => {
-              console.log(`✅ נשלח בהצלחה: ${response.successCount}/${batch.length}`);
-              
-              // טיפול ב-tokens לא תקפים
-              if (response.failureCount > 0) {
-                const failedTokens = [];
-                response.responses.forEach((resp, idx) => {
-                  if (!resp.success) {
-                    failedTokens.push(batch[idx]);
-                    console.error('❌ שגיאה:', resp.error);
-                  }
-                });
-                // מחק tokens לא תקפים
-                return cleanupInvalidTokens(failedTokens);
-              }
-            })
-        );
-      }
-      
-      await Promise.all(promises);
-      console.log('✅ כל ההתראות נשלחו');
+      await sendFCMToTokens(tokens, {
+        title: '🔔 עדכון ברשימה',
+        body: changeDetails.message,
+        data: {
+          type: 'list_update',
+          userId: userId,
+          timestamp: Date.now().toString(),
+          changeType: changeDetails.type
+        }
+      });
       
     } catch (error) {
       console.error('❌ שגיאה בשליחת התראות:', error);
@@ -138,143 +76,122 @@ exports.sendShoppingListNotification = functions.firestore
     return null;
   });
 
-/**
- * מזהה מה השתנה ברשימה
- */
-function detectChanges(before, after) {
-  const result = {
-    hasChanges: false,
-    type: 'unknown',
-    message: 'הרשימה עודכנה'
-  };
-  
-  // בדיקה: פריטים נוספו
-  const beforeItems = getAllItems(before);
-  const afterItems = getAllItems(after);
-  
-  if (afterItems.length > beforeItems.length) {
-    const addedCount = afterItems.length - beforeItems.length;
-    result.hasChanges = true;
-    result.type = 'items_added';
-    result.message = `${addedCount} פריט${addedCount > 1 ? 'ים' : ''} נוסף${addedCount > 1 ? 'ו' : ''} לרשימה`;
-    return result;
-  }
-  
-  // בדיקה: פריטים הוסרו
-  if (afterItems.length < beforeItems.length) {
-    const removedCount = beforeItems.length - afterItems.length;
-    result.hasChanges = true;
-    result.type = 'items_removed';
-    result.message = `${removedCount} פריט${removedCount > 1 ? 'ים' : ''} הוסר${removedCount > 1 ? 'ו' : ''} מהרשימה`;
-    return result;
-  }
-  
-  // בדיקה: פריטים סומנו/בוטלו
-  const beforeChecked = beforeItems.filter(item => item.checked).length;
-  const afterChecked = afterItems.filter(item => item.checked).length;
-  
-  if (afterChecked > beforeChecked) {
-    const checkedCount = afterChecked - beforeChecked;
-    result.hasChanges = true;
-    result.type = 'items_checked';
-    result.message = `${checkedCount} פריט${checkedCount > 1 ? 'ים' : ''} סומן${checkedCount > 1 ? 'ו' : ''} כהושלם`;
-    return result;
-  }
-  
-  if (afterChecked < beforeChecked) {
-    const uncheckedCount = beforeChecked - afterChecked;
-    result.hasChanges = true;
-    result.type = 'items_unchecked';
-    result.message = `${uncheckedCount} פריט${uncheckedCount > 1 ? 'ים' : ''} בוטל${uncheckedCount > 1 ? 'ו' : ''}`;
-    return result;
-  }
-  
-  // בדיקה: פריטים עודכנו
-  const itemsChanged = detectItemChanges(beforeItems, afterItems);
-  if (itemsChanged.length > 0) {
-    result.hasChanges = true;
-    result.type = 'items_updated';
-    result.message = `${itemsChanged.length} פריט${itemsChanged.length > 1 ? 'ים' : ''} עודכן${itemsChanged.length > 1 ? 'ו' : ''}`;
-    return result;
-  }
-  
-  return result;
-}
 
-/**
- * מחלץ את כל הפריטים מכל הרשימות
- */
-function getAllItems(data) {
-  const items = [];
-  
-  if (data && data.lists) {
-    Object.values(data.lists).forEach(list => {
-      if (list.items && Array.isArray(list.items)) {
-        items.push(...list.items);
-      }
-    });
-  }
-  
-  return items;
-}
-
-/**
- * מזהה פריטים שהשתנו
- */
-function detectItemChanges(beforeItems, afterItems) {
-  const changed = [];
-  
-  // השווה לפי cloudId
-  for (let i = 0; i < Math.min(beforeItems.length, afterItems.length); i++) {
-    const before = beforeItems[i];
-    const after = afterItems[i];
+// ─────────────────────────────────────────────
+// פונקציה 2: תזכורות מתוזמנות - רצה כל דקה
+// ─────────────────────────────────────────────
+exports.sendScheduledReminders = functions.pubsub
+  .schedule('every 1 minutes')
+  .onRun(async (context) => {
+    console.log('⏰ בודק תזכורות מתוזמנות...');
     
-    if (before.cloudId === after.cloudId) {
-      // בדוק אם יש שינוי
-      if (before.name !== after.name || 
-          before.price !== after.price || 
-          before.qty !== after.qty ||
-          before.note !== after.note) {
-        changed.push(after);
+    const now = new Date();
+    const nowMinute = new Date(now);
+    nowMinute.setSeconds(0, 0); // עיגול לדקה המדויקת
+    
+    try {
+      // קבל את כל המשתמשים עם FCM token
+      const usersSnapshot = await admin.firestore()
+        .collection('users')
+        .where('fcmToken', '!=', null)
+        .get();
+      
+      if (usersSnapshot.empty) {
+        console.log('⚠️ אין משתמשים עם FCM tokens');
+        return null;
       }
+      
+      // בנה map של userId -> fcmToken
+      const userTokens = {};
+      usersSnapshot.forEach(doc => {
+        userTokens[doc.id] = doc.data().fcmToken;
+      });
+      
+      // עבור על כל המשתמשים ובדוק תזכורות
+      const shoppingListsSnapshot = await admin.firestore()
+        .collection('shopping_lists')
+        .get();
+      
+      const reminderPromises = [];
+      
+      shoppingListsSnapshot.forEach(doc => {
+        const userId = doc.id;
+        const token = userTokens[userId];
+        
+        if (!token) return; // אין token למשתמש הזה
+        
+        const data = doc.data();
+        if (!data.lists) return;
+        
+        // עבור על כל הרשימות
+        Object.values(data.lists).forEach(list => {
+          if (!list.items || !Array.isArray(list.items)) return;
+          
+          list.items.forEach(item => {
+            if (item.checked) return; // דלג על פריטים שהושלמו
+            if (!item.dueDate || !item.reminderValue || !item.reminderUnit) return;
+            
+            // חשב את זמן ההתראה
+            const dueDateObj = new Date(item.dueDate);
+            
+            if (item.dueTime) {
+              const [hours, minutes] = item.dueTime.split(':');
+              dueDateObj.setHours(parseInt(hours), parseInt(minutes), 0, 0);
+            } else {
+              dueDateObj.setHours(9, 0, 0, 0); // ברירת מחדל: 9 בבוקר
+            }
+            
+            const reminderMs = getReminderMilliseconds(
+              parseInt(item.reminderValue),
+              item.reminderUnit
+            );
+            
+            const reminderTime = new Date(dueDateObj.getTime() - reminderMs);
+            reminderTime.setSeconds(0, 0); // עיגול לדקה
+            
+            // בדוק אם זמן התזכורת הוא עכשיו (בטווח של דקה)
+            if (reminderTime.getTime() === nowMinute.getTime()) {
+              console.log(`🔔 תזכורת! פריט: "${item.name}" למשתמש: ${userId}`);
+              
+              const timeText = item.dueTime || '09:00';
+              const dateText = new Date(item.dueDate).toLocaleDateString('he-IL');
+              
+              reminderPromises.push(
+                sendFCMToTokens([token], {
+                  title: `⏰ תזכורת: ${item.name}`,
+                  body: `${item.reminderValue} ${formatUnit(item.reminderUnit)} לפני המועד (${dateText} ${timeText})`,
+                  data: {
+                    type: 'reminder',
+                    itemName: item.name,
+                    dueDate: item.dueDate,
+                    dueTime: item.dueTime || '',
+                    userId: userId
+                  }
+                })
+              );
+            }
+          });
+        });
+      });
+      
+      if (reminderPromises.length === 0) {
+        console.log('✅ אין תזכורות לשלוח כרגע');
+      } else {
+        await Promise.all(reminderPromises);
+        console.log(`✅ נשלחו ${reminderPromises.length} תזכורות`);
+      }
+      
+    } catch (error) {
+      console.error('❌ שגיאה בבדיקת תזכורות:', error);
     }
-  }
-  
-  return changed;
-}
-
-/**
- * מנקה FCM tokens לא תקפים מה-database
- */
-async function cleanupInvalidTokens(tokens) {
-  const promises = [];
-  
-  for (const token of tokens) {
-    const userQuery = admin.firestore()
-      .collection('users')
-      .where('fcmToken', '==', token)
-      .limit(1);
     
-    promises.push(
-      userQuery.get()
-        .then(snapshot => {
-          if (!snapshot.empty) {
-            const doc = snapshot.docs[0];
-            return doc.ref.update({ fcmToken: admin.firestore.FieldValue.delete() });
-          }
-        })
-        .catch(err => console.error('Error cleaning token:', err))
-    );
-  }
-  
-  await Promise.all(promises);
-  console.log(`🧹 נוקו ${tokens.length} tokens לא תקפים`);
-}
+    return null;
+  });
 
-/**
- * פונקציית עזר לבדיקת ההתראות
- * ניתן להפעיל ידנית: https://console.firebase.google.com/project/vplus-pro/functions
- */
+
+// ─────────────────────────────────────────────
+// פונקציה 3: בדיקה ידנית (קיימת)
+// ─────────────────────────────────────────────
 exports.testNotification = functions.https.onRequest(async (req, res) => {
   try {
     const usersSnapshot = await admin.firestore()
@@ -306,3 +223,156 @@ exports.testNotification = functions.https.onRequest(async (req, res) => {
     res.status(500).send('שגיאה: ' + error.message);
   }
 });
+
+
+// ─────────────────────────────────────────────
+// פונקציות עזר
+// ─────────────────────────────────────────────
+
+/**
+ * שולח FCM לרשימת tokens
+ */
+async function sendFCMToTokens(tokens, { title, body, data }) {
+  const batchSize = 500;
+  const promises = [];
+  
+  for (let i = 0; i < tokens.length; i += batchSize) {
+    const batch = tokens.slice(i, i + batchSize);
+    
+    const message = {
+      notification: { title, body },
+      data: data || {},
+      webpush: {
+        notification: {
+          icon: '/icon-192.png',
+          badge: '/badge-72.png',
+          vibrate: [200, 100, 200],
+          requireInteraction: true
+        },
+        fcmOptions: {
+          link: 'https://vplus-pro.web.app'
+        }
+      },
+      tokens: batch
+    };
+    
+    promises.push(
+      admin.messaging().sendMulticast(message)
+        .then(response => {
+          console.log(`✅ נשלח: ${response.successCount}/${batch.length}`);
+          if (response.failureCount > 0) {
+            const failedTokens = [];
+            response.responses.forEach((resp, idx) => {
+              if (!resp.success) {
+                failedTokens.push(batch[idx]);
+                console.error('❌ שגיאה:', resp.error);
+              }
+            });
+            return cleanupInvalidTokens(failedTokens);
+          }
+        })
+    );
+  }
+  
+  return Promise.all(promises);
+}
+
+/**
+ * ממיר reminderValue + reminderUnit למילישניות
+ */
+function getReminderMilliseconds(value, unit) {
+  const multipliers = {
+    'minutes': 60 * 1000,
+    'hours':   60 * 60 * 1000,
+    'days':    24 * 60 * 60 * 1000,
+    'weeks':   7 * 24 * 60 * 60 * 1000
+  };
+  return value * (multipliers[unit] || 60 * 1000);
+}
+
+/**
+ * מתרגם יחידת זמן לעברית
+ */
+function formatUnit(unit) {
+  const map = {
+    'minutes': 'דקות',
+    'hours':   'שעות',
+    'days':    'ימים',
+    'weeks':   'שבועות'
+  };
+  return map[unit] || unit;
+}
+
+/**
+ * מזהה מה השתנה ברשימה
+ */
+function detectChanges(before, after) {
+  const result = { hasChanges: false, type: 'unknown', message: 'הרשימה עודכנה' };
+  
+  const beforeItems = getAllItems(before);
+  const afterItems = getAllItems(after);
+  
+  if (afterItems.length > beforeItems.length) {
+    const count = afterItems.length - beforeItems.length;
+    return { hasChanges: true, type: 'items_added', message: `${count} פריט${count > 1 ? 'ים' : ''} נוסף${count > 1 ? 'ו' : ''} לרשימה` };
+  }
+  if (afterItems.length < beforeItems.length) {
+    const count = beforeItems.length - afterItems.length;
+    return { hasChanges: true, type: 'items_removed', message: `${count} פריט${count > 1 ? 'ים' : ''} הוסר${count > 1 ? 'ו' : ''} מהרשימה` };
+  }
+  
+  const beforeChecked = beforeItems.filter(i => i.checked).length;
+  const afterChecked  = afterItems.filter(i => i.checked).length;
+  
+  if (afterChecked > beforeChecked) {
+    const count = afterChecked - beforeChecked;
+    return { hasChanges: true, type: 'items_checked', message: `${count} פריט${count > 1 ? 'ים' : ''} סומן${count > 1 ? 'ו' : ''} כהושלם` };
+  }
+  if (afterChecked < beforeChecked) {
+    const count = beforeChecked - afterChecked;
+    return { hasChanges: true, type: 'items_unchecked', message: `${count} פריט${count > 1 ? 'ים' : ''} בוטל${count > 1 ? 'ו' : ''}` };
+  }
+  
+  const changed = detectItemChanges(beforeItems, afterItems);
+  if (changed.length > 0) {
+    return { hasChanges: true, type: 'items_updated', message: `${changed.length} פריט${changed.length > 1 ? 'ים' : ''} עודכן${changed.length > 1 ? 'ו' : ''}` };
+  }
+  
+  return result;
+}
+
+function getAllItems(data) {
+  const items = [];
+  if (data && data.lists) {
+    Object.values(data.lists).forEach(list => {
+      if (list.items && Array.isArray(list.items)) items.push(...list.items);
+    });
+  }
+  return items;
+}
+
+function detectItemChanges(beforeItems, afterItems) {
+  const changed = [];
+  for (let i = 0; i < Math.min(beforeItems.length, afterItems.length); i++) {
+    const b = beforeItems[i], a = afterItems[i];
+    if (b.cloudId === a.cloudId) {
+      if (b.name !== a.name || b.price !== a.price || b.qty !== a.qty || b.note !== a.note) {
+        changed.push(a);
+      }
+    }
+  }
+  return changed;
+}
+
+async function cleanupInvalidTokens(tokens) {
+  const promises = tokens.map(token =>
+    admin.firestore().collection('users')
+      .where('fcmToken', '==', token).limit(1).get()
+      .then(snap => {
+        if (!snap.empty) return snap.docs[0].ref.update({ fcmToken: admin.firestore.FieldValue.delete() });
+      })
+      .catch(err => console.error('Error cleaning token:', err))
+  );
+  await Promise.all(promises);
+  console.log(`🧹 נוקו ${tokens.length} tokens לא תקפים`);
+}
