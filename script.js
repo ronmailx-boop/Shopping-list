@@ -1567,9 +1567,8 @@ function _showToast({ message, type = 'success', undoCallback = null, duration =
         const icons = { success: '✅', warning: '⚠️', error: '❌', delete: '🗑️', check: '✅', uncheck: '◻️' };
         iconEl.textContent = icons[type] || '✅';
 
-        // טקסט
-        textEl.textContent = message.replace(/^[✅⚠️❌🗑️✓☁️📋⭐💾🎤📊↩️]\s*/, '').replace(/^(✅|⚠️|❌|🗑️)\s/, '');
-        textEl.textContent = message; // שמור את הטקסט המלא
+        // הסר אמוג'י מתחילת הטקסט כדי למנוע כפילות
+        textEl.textContent = message.replace(/^[\u{1F300}-\u{1FAFF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}✅⚠️❌🗑️✓☁️📋⭐💾🎤📊↩️✔️◻️]\s*/u, '');
 
         // כפתור undo
         _toastUndoCallback = undoCallback;
