@@ -18,6 +18,10 @@ let deletedItem = null;
 let deletedItemIndex = null;
 let deleteTimeout = null;
 let undoNotification = null;
+let undoCheckNotification = null;
+let undoCheckTimeout = null;
+let lastCheckedItemName = null;
+let lastCheckedItemIdx = null;
 
 // ========== Global Variables for Clipboard Import ==========
 let pendingImportText = null;
@@ -593,12 +597,18 @@ function save() {
 
 function toggleItem(idx) {
     const item = db.lists[db.currentId].items[idx];
+    const wasChecked = item.checked;
     item.checked = !item.checked;
 
     // מיון דו-שכבתי אוטומטי
     db.lists[db.currentId].items = sortItemsByStatusAndCategory(db.lists[db.currentId].items);
 
     save();
+
+    // הצג undo רק כשמסמנים (לא כשמבטלים סימון)
+    if (!wasChecked) {
+        showUndoCheck(item.name, idx);
+    }
 }
 
 function toggleSum(id) {
@@ -1500,11 +1510,58 @@ function showNotification(message, type = 'success') {
     notif.innerHTML = `<strong>${message}</strong>`;
     document.body.appendChild(notif);
 
+    // הצג גם בסטטוס בר אם נמצאים בדף הרשימות
+    showStatusBar(message, type);
+
     setTimeout(() => notif.classList.add('show'), 100);
     setTimeout(() => {
         notif.classList.remove('show');
         setTimeout(() => notif.remove(), 300);
-    }, 4000); // Extended to 4 seconds for longer messages
+    }, 4000);
+}
+
+// הצגת הודעה בסטטוס בר (מעל "פעולות מהירות")
+function showStatusBar(message, type = 'success') {
+    const bar = document.getElementById('statusBar');
+    const text = document.getElementById('statusBarText');
+    if (!bar || !text) return;
+
+    const colors = {
+        success: { bg: '#f0fdf4', border: '#bbf7d0', color: '#15803d' },
+        warning: { bg: '#fffbeb', border: '#fde68a', color: '#b45309' },
+        error:   { bg: '#fef2f2', border: '#fecaca', color: '#b91c1c' }
+    };
+    const c = colors[type] || colors.success;
+    bar.style.background = c.bg;
+    bar.style.borderColor = c.border;
+    bar.style.color = c.color;
+    text.textContent = message;
+    bar.style.display = 'block';
+
+    if (bar._timeout) clearTimeout(bar._timeout);
+    bar._timeout = setTimeout(() => { bar.style.display = 'none'; }, 5000);
+}
+
+// גלילה לראש הרשימה (לחיצה על סה"כ רשימה)
+function scrollToTopOfList() {
+    const container = document.getElementById('itemsContainer');
+    if (container) {
+        container.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    } else {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+}
+
+// גלילה למוצרים המסומנים (לחיצה על שולם ברשימה)
+function scrollToCheckedItems() {
+    const items = document.querySelectorAll('#itemsContainer .item-card');
+    for (const card of items) {
+        const checkbox = card.querySelector('input[type="checkbox"]');
+        if (checkbox && checkbox.checked) {
+            card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            return;
+        }
+    }
 }
 
 // ========== Autocomplete Functions ==========
@@ -2913,6 +2970,73 @@ function finalizeDelete() {
             undoNotification.remove();
             undoNotification = null;
         }, 300);
+    }
+}
+
+// undo סימון וי על מוצר
+function showUndoCheck(itemName, itemIdx) {
+    if (undoCheckTimeout) clearTimeout(undoCheckTimeout);
+    if (undoCheckNotification) { undoCheckNotification.remove(); undoCheckNotification = null; }
+
+    lastCheckedItemName = itemName;
+    lastCheckedItemIdx = itemIdx;
+
+    const notif = document.createElement('div');
+    notif.className = 'notification undo-notification';
+    notif.style.background = '#6366f1';
+    notif.style.color = 'white';
+    notif.style.display = 'flex';
+    notif.style.alignItems = 'center';
+    notif.style.justifyContent = 'space-between';
+    notif.style.gap = '10px';
+
+    const msg = document.createElement('span');
+    msg.innerHTML = `<strong>✅ "${itemName}" סומן</strong>`;
+
+    const undoBtn = document.createElement('button');
+    undoBtn.innerHTML = '<strong>↩️ ביטול</strong>';
+    undoBtn.style.background = 'white';
+    undoBtn.style.color = '#6366f1';
+    undoBtn.style.border = 'none';
+    undoBtn.style.padding = '8px 16px';
+    undoBtn.style.borderRadius = '10px';
+    undoBtn.style.fontWeight = 'bold';
+    undoBtn.style.cursor = 'pointer';
+    undoBtn.style.fontSize = '14px';
+    undoBtn.onclick = undoCheck;
+
+    notif.appendChild(msg);
+    notif.appendChild(undoBtn);
+    document.body.appendChild(notif);
+    undoCheckNotification = notif;
+
+    setTimeout(() => notif.classList.add('show'), 100);
+    undoCheckTimeout = setTimeout(() => {
+        if (undoCheckNotification) {
+            undoCheckNotification.classList.remove('show');
+            setTimeout(() => { if (undoCheckNotification) { undoCheckNotification.remove(); undoCheckNotification = null; } }, 300);
+        }
+    }, 5000);
+}
+
+function undoCheck() {
+    if (undoCheckTimeout) { clearTimeout(undoCheckTimeout); undoCheckTimeout = null; }
+    
+    // מצא את הפריט לפי שם וביטול הסימון
+    const list = db.lists[db.currentId];
+    if (list && list.items) {
+        const item = list.items.find(i => i.name === lastCheckedItemName && i.checked);
+        if (item) {
+            item.checked = false;
+            db.lists[db.currentId].items = sortItemsByStatusAndCategory(db.lists[db.currentId].items);
+            save();
+            showNotification('✅ הסימון בוטל');
+        }
+    }
+
+    if (undoCheckNotification) {
+        undoCheckNotification.classList.remove('show');
+        setTimeout(() => { undoCheckNotification.remove(); undoCheckNotification = null; }, 300);
     }
 }
 
