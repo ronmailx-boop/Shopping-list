@@ -7595,3 +7595,481 @@ function saveReminderEdit() {
     
     currentEditReminderIndex = null;
 }
+
+
+// ========== WIZARD MODE ==========
+let wizardMode = false;
+let wizardState = {};
+let wizardVoiceRecog = null;
+let wizardVoiceActive = false;
+
+function toggleWizardMode() {
+    wizardMode = !wizardMode;
+    const btn = document.getElementById('wizardModeBtn');
+    const txt = document.getElementById('wizardBtnText');
+    if (wizardMode) {
+        btn.classList.add('wizard-active');
+        txt.textContent = 'פעיל';
+        showNotification('✨ Wizard Mode הופעל! לחץ + להוספת מוצר');
+    } else {
+        btn.classList.remove('wizard-active');
+        txt.textContent = 'Wizard';
+        showNotification('Wizard Mode כובה');
+    }
+    localStorage.setItem('wizardMode', wizardMode);
+}
+
+function openWizard(type) {
+    wizardState = { type, step: 0, data: {} };
+    document.getElementById('wizardOverlay').classList.add('active');
+    document.body.style.overflow = 'hidden';
+
+    if (type === 'addItem') wizardStepAddItem(0);
+    else if (type === 'newList') wizardStepNewList(0);
+    else if (type === 'completeList') wizardStepComplete(0);
+}
+
+function closeWizard() {
+    document.getElementById('wizardOverlay').classList.remove('active');
+    document.body.style.overflow = '';
+    stopWizardVoice();
+    wizardState = {};
+}
+
+function wizardOverlayClick(e) {
+    if (e.target === document.getElementById('wizardOverlay')) closeWizard();
+}
+
+function renderWizardStep({ title, emoji, question, hint, body, dots, step, totalSteps }) {
+    document.getElementById('wizardTitle').textContent = title;
+
+    // dots
+    let dotsHtml = '';
+    for (let i = 0; i < totalSteps; i++) {
+        const cls = i < step ? 'wizard-dot done' : i === step ? 'wizard-dot active' : 'wizard-dot';
+        dotsHtml += `<div class="${cls}"></div>`;
+    }
+    document.getElementById('wizardDots').innerHTML = dotsHtml;
+
+    document.getElementById('wizardBody').innerHTML = `
+        <div class="wizard-emoji">${emoji}</div>
+        <div class="wizard-question">${question}</div>
+        ${hint ? `<div class="wizard-hint">${hint}</div>` : ''}
+        ${body}
+    `;
+}
+
+// ===== WIZARD: ADD ITEM =====
+function wizardStepAddItem(step) {
+    wizardState.step = step;
+    const totalSteps = 4;
+
+    if (step === 0) {
+        // שם מוצר
+        renderWizardStep({
+            title: '✨ הוספת מוצר',
+            emoji: '🛒',
+            question: 'מה תרצה להוסיף?',
+            hint: 'הקלד שם מוצר או השתמש בקול',
+            totalSteps, step,
+            body: `
+                <div class="wizard-input-row">
+                    <input class="wizard-input" id="wItemName" type="text"
+                        placeholder="שם המוצר..."
+                        onkeydown="if(event.key==='Enter') wizardNextAddItem(0)"
+                        oninput="wizardAutocompleteItem(this.value)" />
+                    <button class="wizard-voice-btn" id="wVoiceBtn" onclick="startWizardVoice()">🎙️</button>
+                </div>
+                <div id="wAutocomplete" style="display:none; background:#f8f7ff; border-radius:14px; overflow:hidden; margin-bottom:10px; border:2px solid #e0e7ff;"></div>
+                <div class="wizard-actions">
+                    <button class="wizard-next-btn" onclick="wizardNextAddItem(0)">המשך ➜</button>
+                    <button class="wizard-skip-btn" onclick="closeWizard()">ביטול</button>
+                </div>
+            `
+        });
+        setTimeout(() => document.getElementById('wItemName')?.focus(), 300);
+
+    } else if (step === 1) {
+        // מחיר
+        const name = wizardState.data.name || '';
+        // try load last price from history
+        const hist = getProductHistory();
+        const suggested = hist[name] ? hist[name].price : '';
+        renderWizardStep({
+            title: '✨ הוספת מוצר',
+            emoji: '💰',
+            question: `כמה עולה "${name}"?`,
+            hint: 'דלג אם לא יודע את המחיר',
+            totalSteps, step,
+            body: `
+                <input class="wizard-input" id="wItemPrice" type="number" inputmode="decimal"
+                    placeholder="0.00 ₪"
+                    value="${suggested}"
+                    onkeydown="if(event.key==='Enter') wizardNextAddItem(1)" />
+                <div class="wizard-actions">
+                    <button class="wizard-next-btn" onclick="wizardNextAddItem(1)">המשך ➜</button>
+                    <button class="wizard-skip-btn" onclick="wizardNextAddItem(1, true)">דלג</button>
+                </div>
+            `
+        });
+        setTimeout(() => { const el = document.getElementById('wItemPrice'); if(el){el.focus(); el.select();} }, 300);
+
+    } else if (step === 2) {
+        // כמות
+        renderWizardStep({
+            title: '✨ הוספת מוצר',
+            emoji: '🔢',
+            question: 'כמה יחידות?',
+            hint: 'ברירת מחדל: 1',
+            totalSteps, step,
+            body: `
+                <div style="display:flex;align-items:center;justify-content:center;gap:20px;margin-bottom:14px;">
+                    <button onclick="wChangeQty(-1)" style="width:52px;height:52px;border-radius:50%;border:2px solid #e0e7ff;background:#f8f7ff;font-size:1.5rem;cursor:pointer;font-weight:800;color:#7367f0;">−</button>
+                    <span id="wQtyDisplay" style="font-size:2.5rem;font-weight:900;color:#1e1b4b;min-width:60px;text-align:center;">${wizardState.data.qty||1}</span>
+                    <button onclick="wChangeQty(1)" style="width:52px;height:52px;border-radius:50%;border:2px solid #e0e7ff;background:#f8f7ff;font-size:1.5rem;cursor:pointer;font-weight:800;color:#7367f0;">+</button>
+                </div>
+                <div class="wizard-actions">
+                    <button class="wizard-next-btn" onclick="wizardNextAddItem(2)">המשך ➜</button>
+                    <button class="wizard-skip-btn" onclick="wizardNextAddItem(2, true)">דלג</button>
+                </div>
+            `
+        });
+        if (!wizardState.data.qty) wizardState.data.qty = 1;
+
+    } else if (step === 3) {
+        // תזכורת
+        renderWizardStep({
+            title: '✨ הוספת מוצר',
+            emoji: '⏰',
+            question: 'קבע תזכורת?',
+            hint: 'אופציונלי — דלג אם לא צריך',
+            totalSteps, step,
+            body: `
+                <div class="wizard-date-row">
+                    <input id="wDueDate" type="date" placeholder="תאריך" />
+                    <input id="wDueTime" type="time" placeholder="שעה" />
+                </div>
+                <div class="wizard-actions">
+                    <button class="wizard-next-btn" onclick="wizardNextAddItem(3)">הוסף מוצר ✅</button>
+                    <button class="wizard-skip-btn" onclick="wizardNextAddItem(3, true)">דלג</button>
+                </div>
+            `
+        });
+
+    } else if (step === 4) {
+        // סיכום + שמירה
+        wizardSaveItem();
+    }
+}
+
+function wChangeQty(delta) {
+    wizardState.data.qty = Math.max(1, (wizardState.data.qty || 1) + delta);
+    const el = document.getElementById('wQtyDisplay');
+    if (el) el.textContent = wizardState.data.qty;
+}
+
+function wizardNextAddItem(currentStep, skip = false) {
+    if (currentStep === 0) {
+        const name = document.getElementById('wItemName')?.value.trim();
+        if (!name) { document.getElementById('wItemName')?.focus(); return; }
+        wizardState.data.name = name;
+    } else if (currentStep === 1) {
+        if (!skip) wizardState.data.price = parseFloat(document.getElementById('wItemPrice')?.value) || 0;
+    } else if (currentStep === 2) {
+        // qty already in wizardState.data.qty
+    } else if (currentStep === 3) {
+        if (!skip) {
+            wizardState.data.dueDate = document.getElementById('wDueDate')?.value || '';
+            wizardState.data.dueTime = document.getElementById('wDueTime')?.value || '';
+        }
+    }
+    wizardStepAddItem(currentStep + 1);
+}
+
+function wizardSaveItem() {
+    const d = wizardState.data;
+    if (!d.name) { closeWizard(); return; }
+
+    const learnedCat = getLearnedCategory(d.name);
+    const category = learnedCat || detectCategory(d.name) || 'אחר';
+    if (!db.categoryMemory) db.categoryMemory = {};
+    db.categoryMemory[d.name.toLowerCase().trim()] = category;
+    if (d.price > 0) updatePriceInHistory(d.name, d.price);
+
+    db.lists[db.currentId].items.push({
+        name: d.name,
+        price: d.price || 0,
+        qty: d.qty || 1,
+        checked: false,
+        category,
+        note: '',
+        dueDate: d.dueDate || '',
+        dueTime: d.dueTime || '',
+        paymentUrl: '',
+        isPaid: false,
+        reminderValue: '',
+        reminderUnit: '',
+        lastUpdated: Date.now(),
+        cloudId: 'item_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9)
+    });
+
+    save();
+    closeWizard();
+
+    const priceStr = d.price ? ` · ₪${d.price}` : '';
+    const qtyStr = d.qty > 1 ? ` · x${d.qty}` : '';
+    showNotification(`✅ "${d.name}" נוסף${priceStr}${qtyStr}`);
+    if (typeof checkUrgentPayments === 'function') checkUrgentPayments();
+}
+
+// ===== WIZARD AUTOCOMPLETE =====
+function wizardAutocompleteItem(val) {
+    const container = document.getElementById('wAutocomplete');
+    if (!container) return;
+    if (!val || val.length < 2) { container.style.display = 'none'; return; }
+
+    const hist = getProductHistory();
+    const matches = Object.keys(hist).filter(k => k.includes(val.toLowerCase())).slice(0, 4);
+
+    if (matches.length === 0) { container.style.display = 'none'; return; }
+
+    container.style.display = 'block';
+    container.innerHTML = matches.map(m => `
+        <div onclick="wizardSelectAutocomplete('${m.replace(/'/g,"\\'")}');"
+            style="padding:11px 16px;cursor:pointer;font-weight:700;color:#1e1b4b;border-bottom:1px solid #f1f5f9;font-size:0.95rem;">
+            ${m} ${hist[m].price ? `<span style="color:#7367f0;font-size:0.8rem;">· ₪${hist[m].price}</span>` : ''}
+        </div>
+    `).join('');
+}
+
+function wizardSelectAutocomplete(name) {
+    const input = document.getElementById('wItemName');
+    if (input) input.value = name;
+    const container = document.getElementById('wAutocomplete');
+    if (container) container.style.display = 'none';
+    // auto-fill price
+    const hist = getProductHistory();
+    if (hist[name.toLowerCase()]) wizardState.data._suggestedPrice = hist[name.toLowerCase()].price;
+}
+
+// ===== WIZARD VOICE =====
+function startWizardVoice() {
+    const btn = document.getElementById('wVoiceBtn');
+
+    if (wizardVoiceActive) {
+        stopWizardVoice();
+        return;
+    }
+
+    if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+        showNotification('הדפדפן לא תומך בזיהוי קול', 'warning');
+        return;
+    }
+
+    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    wizardVoiceRecog = new SR();
+    wizardVoiceRecog.lang = 'he-IL';
+    wizardVoiceRecog.continuous = false;
+    wizardVoiceRecog.interimResults = false;
+
+    wizardVoiceRecog.onresult = (e) => {
+        const text = e.results[0][0].transcript;
+        const input = document.getElementById('wItemName');
+        if (input) {
+            input.value = text;
+            wizardAutocompleteItem(text);
+        }
+        stopWizardVoice();
+    };
+
+    wizardVoiceRecog.onerror = () => stopWizardVoice();
+    wizardVoiceRecog.onend = () => stopWizardVoice();
+
+    wizardVoiceRecog.start();
+    wizardVoiceActive = true;
+    if (btn) btn.classList.add('recording');
+}
+
+function stopWizardVoice() {
+    wizardVoiceActive = false;
+    if (wizardVoiceRecog) { try { wizardVoiceRecog.stop(); } catch(e){} wizardVoiceRecog = null; }
+    const btn = document.getElementById('wVoiceBtn');
+    if (btn) btn.classList.remove('recording');
+}
+
+// ===== WIZARD: NEW LIST =====
+function wizardStepNewList(step) {
+    wizardState.step = step;
+    const totalSteps = 3;
+
+    if (step === 0) {
+        renderWizardStep({
+            title: '✨ רשימה חדשה',
+            emoji: '📋',
+            question: 'מה שם הרשימה?',
+            hint: 'למשל: קניות סופר, ציוד בית ספר...',
+            totalSteps, step,
+            body: `
+                <input class="wizard-input" id="wListName" type="text"
+                    placeholder="שם הרשימה..."
+                    onkeydown="if(event.key==='Enter') wizardNextNewList(0)" />
+                <div class="wizard-actions">
+                    <button class="wizard-next-btn" onclick="wizardNextNewList(0)">המשך ➜</button>
+                    <button class="wizard-skip-btn" onclick="closeWizard()">ביטול</button>
+                </div>
+            `
+        });
+        setTimeout(() => document.getElementById('wListName')?.focus(), 300);
+
+    } else if (step === 1) {
+        renderWizardStep({
+            title: '✨ רשימה חדשה',
+            emoji: '💰',
+            question: 'מה התקציב לרשימה?',
+            hint: 'דלג אם אין תקציב מוגדר',
+            totalSteps, step,
+            body: `
+                <input class="wizard-input" id="wListBudget" type="number" inputmode="decimal"
+                    placeholder="0.00 ₪"
+                    onkeydown="if(event.key==='Enter') wizardNextNewList(1)" />
+                <div class="wizard-actions">
+                    <button class="wizard-next-btn" onclick="wizardNextNewList(1)">המשך ➜</button>
+                    <button class="wizard-skip-btn" onclick="wizardNextNewList(1, true)">דלג</button>
+                </div>
+            `
+        });
+        setTimeout(() => document.getElementById('wListBudget')?.focus(), 300);
+
+    } else if (step === 2) {
+        renderWizardStep({
+            title: '✨ רשימה חדשה',
+            emoji: '⭐',
+            question: 'סוג הרשימה?',
+            hint: 'בחר את הסוג המתאים',
+            totalSteps, step,
+            body: `
+                <div class="wizard-list-mode-picker">
+                    <div class="wizard-list-option" onclick="wizardSelectListType('regular',this)">
+                        <span class="wizard-list-option-icon">🛒</span>
+                        <div>
+                            <div class="wizard-list-option-text">רשימת קניות רגילה</div>
+                            <div class="wizard-list-option-sub">לשימוש חד-פעמי</div>
+                        </div>
+                    </div>
+                    <div class="wizard-list-option" onclick="wizardSelectListType('template',this)">
+                        <span class="wizard-list-option-icon">⭐</span>
+                        <div>
+                            <div class="wizard-list-option-text">שמור כתבנית</div>
+                            <div class="wizard-list-option-sub">לשימוש חוזר בעתיד</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="wizard-actions">
+                    <button class="wizard-next-btn" onclick="wizardSaveNewList()">צור רשימה ✅</button>
+                    <button class="wizard-skip-btn" onclick="wizardSaveNewList()">דלג</button>
+                </div>
+            `
+        });
+        wizardState.data.listType = 'regular';
+    }
+}
+
+function wizardSelectListType(type, el) {
+    document.querySelectorAll('.wizard-list-option').forEach(e => e.classList.remove('selected'));
+    el.classList.add('selected');
+    wizardState.data.listType = type;
+}
+
+function wizardNextNewList(currentStep, skip = false) {
+    if (currentStep === 0) {
+        const name = document.getElementById('wListName')?.value.trim();
+        if (!name) { document.getElementById('wListName')?.focus(); return; }
+        wizardState.data.listName = name;
+    } else if (currentStep === 1) {
+        if (!skip) wizardState.data.budget = parseFloat(document.getElementById('wListBudget')?.value) || 0;
+    }
+    wizardStepNewList(currentStep + 1);
+}
+
+function wizardSaveNewList() {
+    const d = wizardState.data;
+    if (!d.listName) { closeWizard(); return; }
+
+    const id = 'L' + Date.now();
+    db.lists[id] = {
+        name: d.listName,
+        url: '',
+        budget: d.budget || 0,
+        isTemplate: d.listType === 'template',
+        items: []
+    };
+    db.currentId = id;
+    activePage = 'lists';
+    save();
+    closeWizard();
+    showNotification(d.listType === 'template' ? '⭐ תבנית נוצרה!' : '✅ רשימה נוצרה!');
+}
+
+// ===== WIZARD: COMPLETE LIST =====
+function wizardStepComplete(step) {
+    wizardState.step = step;
+    const list = db.lists[db.currentId];
+    const checkedCount = list.items.filter(i => i.checked).length;
+    const total = list.items.length;
+    const paidSum = list.items.filter(i => i.checked).reduce((s, i) => s + i.price * i.qty, 0);
+
+    renderWizardStep({
+        title: '✨ סיום קנייה',
+        emoji: '🏁',
+        question: 'מוכן לסיים את הקנייה?',
+        hint: 'הרשימה תישמר בהיסטוריה',
+        totalSteps: 1, step: 0,
+        body: `
+            <div class="wizard-summary">
+                <div class="wizard-summary-row">
+                    <span>מוצרים שסומנו</span>
+                    <strong>${checkedCount} / ${total}</strong>
+                </div>
+                <div class="wizard-summary-row">
+                    <span>סה"כ שולם</span>
+                    <strong>₪${paidSum.toFixed(2)}</strong>
+                </div>
+                <div class="wizard-summary-row">
+                    <span>שם הרשימה</span>
+                    <strong>${list.name}</strong>
+                </div>
+            </div>
+            <div class="wizard-actions">
+                <button class="wizard-next-btn" onclick="wizardConfirmComplete()">סיים קנייה ✅</button>
+                <button class="wizard-skip-btn" onclick="closeWizard()">ביטול</button>
+            </div>
+        `
+    });
+}
+
+function wizardConfirmComplete() {
+    closeWizard();
+    completeList();
+}
+
+// ===== INTERCEPT + BUTTON in wizard mode =====
+function handlePlusBtn(e) {
+    if (e) e.stopPropagation();
+    if (wizardMode) {
+        openWizard('addItem');
+    } else {
+        openModal('inputForm');
+    }
+}
+
+// ===== INIT WIZARD MODE from localStorage =====
+document.addEventListener('DOMContentLoaded', () => {
+    const saved = localStorage.getItem('wizardMode');
+    if (saved === 'true') {
+        wizardMode = true;
+        const btn = document.getElementById('wizardModeBtn');
+        const txt = document.getElementById('wizardBtnText');
+        if (btn) btn.classList.add('wizard-active');
+        if (txt) txt.textContent = 'פעיל';
+    }
+});
