@@ -35,7 +35,7 @@ exports.sendShoppingListNotification = functions.firestore
       
       if (usersSnapshot.empty) {
         console.log('⚠️ אין משתמשים עם FCM tokens');
-        return null;
+        return res.status(200).send('אין משתמשים עם FCM tokens');
       }
       
       const changeDetails = detectChanges(before, after);
@@ -80,9 +80,7 @@ exports.sendShoppingListNotification = functions.firestore
 // ─────────────────────────────────────────────
 // פונקציה 2: תזכורות מתוזמנות - רצה כל דקה
 // ─────────────────────────────────────────────
-exports.sendScheduledReminders = functions.pubsub
-  .schedule('every 1 minutes')
-  .onRun(async (context) => {
+exports.sendScheduledReminders = functions.https.onRequest(async (req, res) => {
     console.log('⏰ בודק תזכורות מתוזמנות...');
     
     const now = new Date();
@@ -98,7 +96,7 @@ exports.sendScheduledReminders = functions.pubsub
       
       if (usersSnapshot.empty) {
         console.log('⚠️ אין משתמשים עם FCM tokens');
-        return null;
+        return res.status(200).send('אין משתמשים עם FCM tokens');
       }
       
       // בנה map של userId -> fcmToken
@@ -183,9 +181,10 @@ exports.sendScheduledReminders = functions.pubsub
       
     } catch (error) {
       console.error('❌ שגיאה בבדיקת תזכורות:', error);
+      return res.status(500).send('שגיאה: ' + error.message);
     }
     
-    return null;
+    return res.status(200).send('OK');
   });
 
 
