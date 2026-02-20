@@ -7598,10 +7598,10 @@ function saveReminderEdit() {
 
 
 // ========== WIZARD MODE ==========
-let wizardMode = false;
-let wizardState = {};
-let wizardVoiceRecog = null;
-let wizardVoiceActive = false;
+var wizardMode = false;
+var wizardState = {};
+var wizardVoiceRecog = null;
+var wizardVoiceActive = false;
 
 function toggleWizardMode() {
     wizardMode = !wizardMode;
