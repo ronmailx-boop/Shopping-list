@@ -618,70 +618,16 @@ function toggleItem(idx) {
 }
 
 function showUndoCheckNotification(itemName, isChecked) {
-    // הסרת הודעת undo קודמת אם קיימת
-    if (undoCheckNotification) {
-        undoCheckNotification.remove();
-        undoCheckNotification = null;
-    }
-    if (undoCheckTimeout) {
-        clearTimeout(undoCheckTimeout);
-        undoCheckTimeout = null;
-    }
-
-    const notif = document.createElement('div');
-    notif.className = 'notification undo-notification';
-    notif.style.background = isChecked ? '#7367f0' : '#64748b';
-    notif.style.color = 'white';
-    notif.style.display = 'flex';
-    notif.style.alignItems = 'center';
-    notif.style.justifyContent = 'space-between';
-    notif.style.gap = '10px';
-
-    const message = document.createElement('span');
-    message.innerHTML = `<strong>${isChecked ? '✅' : '◻️'} "${itemName}" ${isChecked ? 'סומן' : 'הסימון הוסר'}</strong>`;
-
-    const undoBtn = document.createElement('button');
-    undoBtn.innerHTML = '<strong>↩️ ביטול</strong>';
-    undoBtn.style.background = 'white';
-    undoBtn.style.color = '#7367f0';
-    undoBtn.style.border = 'none';
-    undoBtn.style.padding = '8px 16px';
-    undoBtn.style.borderRadius = '10px';
-    undoBtn.style.fontWeight = 'bold';
-    undoBtn.style.cursor = 'pointer';
-    undoBtn.style.fontSize = '14px';
-    undoBtn.onclick = undoCheck;
-
-    notif.appendChild(message);
-    notif.appendChild(undoBtn);
-    document.body.appendChild(notif);
-    undoCheckNotification = notif;
-
-    setTimeout(() => notif.classList.add('show'), 100);
-
-    undoCheckTimeout = setTimeout(() => {
-        if (undoCheckNotification) {
-            undoCheckNotification.classList.remove('show');
-            setTimeout(() => {
-                if (undoCheckNotification) {
-                    undoCheckNotification.remove();
-                    undoCheckNotification = null;
-                }
-            }, 300);
-        }
-        undoCheckTimeout = null;
-    }, 5000);
+    _showToast({
+        message: `${isChecked ? '✅' : '◻️'} "${itemName}" ${isChecked ? 'סומן' : 'הסימון הוסר'}`,
+        type: 'success',
+        undoCallback: undoCheck,
+        duration: 5000
+    });
 }
 
 function undoCheck() {
     if (lastCheckedItem === null) return;
-
-    if (undoCheckTimeout) {
-        clearTimeout(undoCheckTimeout);
-        undoCheckTimeout = null;
-    }
-
-    // מציאת הפריט ברשימה לפי אובייקט ושחזור המצב
     const items = db.lists[db.currentId].items;
     const item = items.find(i => i === lastCheckedItem);
     if (item) {
@@ -690,21 +636,9 @@ function undoCheck() {
         save();
         render();
     }
-
     lastCheckedItem = null;
     lastCheckedIdx = null;
     lastCheckedState = null;
-
-    if (undoCheckNotification) {
-        undoCheckNotification.classList.remove('show');
-        setTimeout(() => {
-            if (undoCheckNotification) {
-                undoCheckNotification.remove();
-                undoCheckNotification = null;
-            }
-        }, 300);
-    }
-
     showNotification('✅ הסימון בוטל');
 }
 
@@ -1597,55 +1531,90 @@ function closeModal(id) {
     if (m) m.classList.remove('active');
 }
 
+// ========== TOAST BAR SYSTEM ==========
+let _toastTimer = null;
+let _toastProgressEl = null;
+let _toastUndoCallback = null;
+
 function showNotification(message, type = 'success') {
-    // הצגה בשורת סטטוס (מעל פעולות מהירות)
-    const statusBar = document.getElementById('statusBarMsg');
-    const label = document.getElementById('quickActionsLabel');
-    if (statusBar) {
-        const bgColor = type === 'success' ? '#22c55e' : type === 'warning' ? '#f59e0b' : '#ef4444';
-        statusBar.style.background = bgColor;
-        statusBar.textContent = message;
-        statusBar.style.display = 'block';
-        if (label) label.style.display = 'none';
-        clearTimeout(statusBar._hideTimer);
-        statusBar._hideTimer = setTimeout(() => {
-            statusBar.style.display = 'none';
-            if (label) label.style.display = '';
-        }, 4000);
-    }
+    _showToast({ message, type });
+}
 
-    // גם toast רגיל
-    const notif = document.createElement('div');
-    notif.className = 'notification';
-    notif.style.background = type === 'success' ? '#22c55e' : type === 'warning' ? '#f59e0b' : '#ef4444';
-    notif.style.color = 'white';
-    notif.style.maxWidth = '350px';
-    notif.style.wordWrap = 'break-word';
-    notif.innerHTML = `<strong>${message}</strong>`;
-    document.body.appendChild(notif);
+function _showToast({ message, type = 'success', undoCallback = null, duration = 4000 }) {
+    const inner = document.getElementById('toastInner');
+    const content = document.getElementById('toastContent');
+    const iconEl = document.getElementById('toastIcon');
+    const textEl = document.getElementById('toastText');
+    const undoBtn = document.getElementById('toastUndoBtn');
+    const progressEl = document.getElementById('toastProgress');
+    if (!inner || !content || !textEl) return;
 
-    setTimeout(() => notif.classList.add('show'), 100);
+    // ביטול טיימר קודם
+    if (_toastTimer) { clearTimeout(_toastTimer); _toastTimer = null; }
+
+    // הסתרה מהירה ואז הצגה מחדש
+    inner.classList.remove('toast-visible');
+
     setTimeout(() => {
-        notif.classList.remove('show');
-        setTimeout(() => notif.remove(), 300);
-    }, 4000);
+        // צבע לפי סוג
+        content.className = 'toast-content';
+        if (type === 'warning') content.classList.add('toast-warning');
+        else if (type === 'error') content.classList.add('toast-error');
+        else if (type === 'delete') content.classList.add('toast-delete');
+        else content.classList.add('toast-success');
+
+        // אייקון
+        const icons = { success: '✅', warning: '⚠️', error: '❌', delete: '🗑️', check: '✅', uncheck: '◻️' };
+        iconEl.textContent = icons[type] || '✅';
+
+        // טקסט
+        textEl.textContent = message.replace(/^[✅⚠️❌🗑️✓☁️📋⭐💾🎤📊↩️]\s*/, '').replace(/^(✅|⚠️|❌|🗑️)\s/, '');
+        textEl.textContent = message; // שמור את הטקסט המלא
+
+        // כפתור undo
+        _toastUndoCallback = undoCallback;
+        if (undoCallback) {
+            undoBtn.style.display = '';
+        } else {
+            undoBtn.style.display = 'none';
+        }
+
+        // progress bar - reset animation
+        progressEl.style.animation = 'none';
+        progressEl.offsetHeight; // reflow
+        progressEl.style.animation = `toastProgress ${duration}ms linear forwards`;
+
+        // הצג
+        inner.classList.add('toast-visible');
+
+        // הסתר אחרי duration
+        _toastTimer = setTimeout(() => {
+            inner.classList.remove('toast-visible');
+            _toastUndoCallback = null;
+        }, duration);
+    }, inner.classList.contains('toast-visible') ? 120 : 0);
+}
+
+function handleToastUndo() {
+    if (_toastUndoCallback) {
+        _toastUndoCallback();
+        _toastUndoCallback = null;
+    }
+    const inner = document.getElementById('toastInner');
+    if (inner) inner.classList.remove('toast-visible');
+    if (_toastTimer) { clearTimeout(_toastTimer); _toastTimer = null; }
 }
 
 function scrollToListTop() {
-    // גלילה לראש הרשימה
     const container = document.getElementById('itemsContainer');
     if (container) {
         const firstItem = container.querySelector('.item-card, .category-separator');
-        if (firstItem) {
-            firstItem.scrollIntoView({ behavior: 'smooth', block: 'start' });
-            return;
-        }
+        if (firstItem) { firstItem.scrollIntoView({ behavior: 'smooth', block: 'start' }); return; }
     }
     window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
 function scrollToCheckedItems() {
-    // חיפוש כותרת "הושלמו" - ה-separator שנוצר בריינדור
     const separators = document.querySelectorAll('.category-separator');
     for (const sep of separators) {
         if (sep.textContent && sep.textContent.includes('הושלמו')) {
@@ -1653,14 +1622,10 @@ function scrollToCheckedItems() {
             return;
         }
     }
-    // אם לא נמצא - גלול לפריט המסומן הראשון
     const allCards = document.querySelectorAll('.item-card');
     for (const card of allCards) {
         const checkbox = card.querySelector('input[type="checkbox"]');
-        if (checkbox && checkbox.checked) {
-            card.scrollIntoView({ behavior: 'smooth', block: 'start' });
-            return;
-        }
+        if (checkbox && checkbox.checked) { card.scrollIntoView({ behavior: 'smooth', block: 'start' }); return; }
     }
     showNotification('אין פריטים מסומנים', 'warning');
 }
@@ -2976,102 +2941,36 @@ function removeItem(idx) {
     render();
     
     // ביטול טיימר קודם אם קיים
-    if (deleteTimeout) {
-        clearTimeout(deleteTimeout);
-    }
+    if (deleteTimeout) { clearTimeout(deleteTimeout); }
     
-    // הסרת הודעת ביטול קודמת אם קיימת
-    if (undoNotification) {
-        undoNotification.remove();
-        undoNotification = null;
-    }
-    
-    // יצירת הודעה עם כפתור ביטול
-    const notif = document.createElement('div');
-    notif.className = 'notification undo-notification';
-    notif.style.background = '#ef4444';
-    notif.style.color = 'white';
-    notif.style.display = 'flex';
-    notif.style.alignItems = 'center';
-    notif.style.justifyContent = 'space-between';
-    notif.style.gap = '10px';
-    
-    const message = document.createElement('span');
-    message.innerHTML = '<strong>🗑️ מוצר הוסר</strong>';
-    
-    const undoBtn = document.createElement('button');
-    undoBtn.innerHTML = '<strong>↩️ ביטול</strong>';
-    undoBtn.style.background = 'white';
-    undoBtn.style.color = '#ef4444';
-    undoBtn.style.border = 'none';
-    undoBtn.style.padding = '8px 16px';
-    undoBtn.style.borderRadius = '10px';
-    undoBtn.style.fontWeight = 'bold';
-    undoBtn.style.cursor = 'pointer';
-    undoBtn.style.fontSize = '14px';
-    undoBtn.onclick = undoDelete;
-    
-    notif.appendChild(message);
-    notif.appendChild(undoBtn);
-    document.body.appendChild(notif);
-    undoNotification = notif;
-    
-    // הצגת ההודעה
-    setTimeout(() => notif.classList.add('show'), 100);
-    
-    // טיימר למחיקה סופית אחרי 5 שניות
-    deleteTimeout = setTimeout(() => {
-        finalizeDelete();
-    }, 5000);
+    // הצגת toast עם כפתור undo
+    _showToast({
+        message: `🗑️ "${deletedItem.name}" הוסר`,
+        type: 'delete',
+        undoCallback: undoDelete,
+        duration: 5000
+    });
+
+    // טיימר למחיקה סופית
+    deleteTimeout = setTimeout(() => { finalizeDelete(); }, 5000);
 }
 
 function undoDelete() {
     if (deletedItem !== null && deletedItemIndex !== null) {
-        // ביטול הטיימר
-        if (deleteTimeout) {
-            clearTimeout(deleteTimeout);
-            deleteTimeout = null;
-        }
-        
-        // החזרת הפריט למיקום המקורי שלו
+        if (deleteTimeout) { clearTimeout(deleteTimeout); deleteTimeout = null; }
         db.lists[db.currentId].items.splice(deletedItemIndex, 0, deletedItem);
-        
-        // איפוס המשתנים
         deletedItem = null;
         deletedItemIndex = null;
-        
-        // שמירה ורינדור
         save();
         render();
-        
-        // הסרת הודעת הביטול
-        if (undoNotification) {
-            undoNotification.classList.remove('show');
-            setTimeout(() => {
-                undoNotification.remove();
-                undoNotification = null;
-            }, 300);
-        }
-        
-        // הצגת הודעת אישור
         showNotification('✅ הפעולה בוטלה');
     }
 }
 
 function finalizeDelete() {
-    // מחיקה סופית - איפוס המשתנים
     deletedItem = null;
     deletedItemIndex = null;
     deleteTimeout = null;
-    
-    // הסרת ההודעה
-    if (undoNotification) {
-        undoNotification.classList.remove('show');
-        setTimeout(() => {
-            undoNotification.remove();
-            undoNotification = null;
-        }, 300);
-    }
 }
 
 function toggleLock() {
