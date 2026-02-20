@@ -35,7 +35,7 @@ exports.sendShoppingListNotification = functions.firestore
       
       if (usersSnapshot.empty) {
         console.log('⚠️ אין משתמשים עם FCM tokens');
-        return res.status(200).send('אין משתמשים עם FCM tokens');
+        return null;
       }
       
       const changeDetails = detectChanges(before, after);
@@ -84,8 +84,11 @@ exports.sendScheduledReminders = functions.https.onRequest(async (req, res) => {
     console.log('⏰ בודק תזכורות מתוזמנות...');
     
     const now = new Date();
+    // עיגול לדקה הנוכחית
     const nowMinute = new Date(now);
-    nowMinute.setSeconds(0, 0); // עיגול לדקה המדויקת
+    nowMinute.setSeconds(0, 0);
+    
+    console.log('🕐 זמן שרת (UTC):', now.toISOString());
     
     try {
       // קבל את כל המשתמשים עם FCM token
@@ -129,15 +132,12 @@ exports.sendScheduledReminders = functions.https.onRequest(async (req, res) => {
             if (item.checked) return; // דלג על פריטים שהושלמו
             if (!item.dueDate || !item.reminderValue || !item.reminderUnit) return;
             
-            // חשב את זמן ההתראה
-            const dueDateObj = new Date(item.dueDate);
+            // חשב את זמן היעד - עם timezone ישראל (UTC+2)
+            // dueDate נשמר כ-"YYYY-MM-DD" ו-dueTime כ-"HH:MM" בשעון ישראל
+            const timeStr = item.dueTime || '09:00';
+            const dueDateObj = new Date(item.dueDate + 'T' + timeStr + ':00+02:00');
             
-            if (item.dueTime) {
-              const [hours, minutes] = item.dueTime.split(':');
-              dueDateObj.setHours(parseInt(hours), parseInt(minutes), 0, 0);
-            } else {
-              dueDateObj.setHours(9, 0, 0, 0); // ברירת מחדל: 9 בבוקר
-            }
+            console.log(`📋 פריט: "${item.name}" | יעד: ${dueDateObj.toISOString()} | תזכורת: ${item.reminderValue} ${item.reminderUnit} לפני`);
             
             const reminderMs = getReminderMilliseconds(
               parseInt(item.reminderValue),
@@ -147,8 +147,11 @@ exports.sendScheduledReminders = functions.https.onRequest(async (req, res) => {
             const reminderTime = new Date(dueDateObj.getTime() - reminderMs);
             reminderTime.setSeconds(0, 0); // עיגול לדקה
             
-            // בדוק אם זמן התזכורת הוא עכשיו (בטווח של דקה)
-            if (reminderTime.getTime() === nowMinute.getTime()) {
+            console.log(`⏱️ זמן תזכורת: ${reminderTime.toISOString()} | עכשיו: ${nowMinute.toISOString()}`);
+            
+            // בדוק אם זמן התזכורת הוא עכשיו - טווח סבלנות של 60 שניות
+            const diff = Math.abs(reminderTime.getTime() - nowMinute.getTime());
+            if (diff < 60000) {
               console.log(`🔔 תזכורת! פריט: "${item.name}" למשתמש: ${userId}`);
               
               const timeText = item.dueTime || '09:00';
@@ -256,7 +259,7 @@ async function sendFCMToTokens(tokens, { title, body, data }) {
     };
     
     promises.push(
-      admin.messaging().sendMulticast(message)
+      admin.messaging().sendEachForMulticast(message)
         .then(response => {
           console.log(`✅ נשלח: ${response.successCount}/${batch.length}`);
           if (response.failureCount > 0) {
