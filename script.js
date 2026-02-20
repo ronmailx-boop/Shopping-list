@@ -1706,9 +1706,16 @@ function generateItemMetadataHTML(item, idx) {
         }
         
         // Add edit button for reminder
-        const reminderInfo = (item.reminderValue && item.reminderUnit) 
-            ? ` 🔔 ${formatReminderText(item.reminderValue, item.reminderUnit)}`
-            : '';
+        let reminderInfo = '';
+        if (item.reminderValue && item.reminderUnit) {
+            const timeStr = item.dueTime || '09:00';
+            const dueDateObj = new Date(item.dueDate + 'T' + timeStr + ':00');
+            const reminderMs = getReminderMilliseconds(item.reminderValue, item.reminderUnit);
+            const reminderTime = new Date(dueDateObj.getTime() - reminderMs);
+            const rh = reminderTime.getHours().toString().padStart(2, '0');
+            const rm = reminderTime.getMinutes().toString().padStart(2, '0');
+            reminderInfo = ` 🔔 ${formatReminderText(item.reminderValue, item.reminderUnit)} לפני | התראה ב-${rh}:${rm}`;
+        }
         
         html += `<div style="display: flex; align-items: center; gap: 8px;">
             <div class="${dateClass}">📅 ${dateText}${reminderInfo}</div>
@@ -7486,6 +7493,22 @@ function openEditReminder(itemIndex) {
     document.getElementById('editItemDueTime').value = item.dueTime || '';
     document.getElementById('editItemReminderValue').value = item.reminderValue || '';
     document.getElementById('editItemReminderUnit').value = item.reminderUnit || '';
+    
+    // הצג שעת התראה בפועל
+    const infoEl = document.getElementById('currentReminderInfo');
+    if (infoEl) {
+        if (item.dueDate && item.dueTime && item.reminderValue && item.reminderUnit) {
+            const dueDateObj = new Date(item.dueDate + 'T' + item.dueTime + ':00');
+            const reminderMs = getReminderMilliseconds(item.reminderValue, item.reminderUnit);
+            const reminderTime = new Date(dueDateObj.getTime() - reminderMs);
+            const rh = reminderTime.getHours().toString().padStart(2, '0');
+            const rm = reminderTime.getMinutes().toString().padStart(2, '0');
+            infoEl.textContent = `⏰ שעת יעד: ${item.dueTime} | 🔔 התראה תישלח ב-${rh}:${rm}`;
+            infoEl.style.display = 'block';
+        } else {
+            infoEl.style.display = 'none';
+        }
+    }
     
     openModal('editReminderModal');
 }
