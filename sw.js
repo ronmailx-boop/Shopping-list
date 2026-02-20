@@ -13,35 +13,7 @@ firebase.initializeApp({
 
 const messaging = firebase.messaging();
 
-// ========== Badge Support ==========
-let badgeCount = 0;
-
-async function updateBadge(count) {
-  badgeCount = count || 0;
-  try {
-    if ('setAppBadge' in navigator) {
-      if (badgeCount > 0) {
-        await navigator.setAppBadge(badgeCount);
-      } else {
-        await navigator.clearAppBadge();
-      }
-    } else if ('setClientBadge' in self.registration) {
-      if (badgeCount > 0) {
-        await self.registration.setClientBadge(badgeCount);
-      } else {
-        await self.registration.clearClientBadge();
-      }
-    }
-    console.log('[SW] Badge updated:', badgeCount);
-  } catch (error) {
-    console.log('[SW] Badge API not supported:', error);
-  }
-}
-
-// ========== FCM Background Message Handler ==========
-// מטפל בהודעות FCM ברקע (האפליקציה סגורה או לא בפוקוס)
-// firebase-messaging-compat מטפל בעצמו בהצגת ה-notification
-// אנחנו מוסיפים כאן רק את עדכון ה-badge
+// טיפול בהודעות FCM ברקע (האפליקציה סגורה)
 messaging.onBackgroundMessage((payload) => {
   console.log('[SW] FCM background message received:', payload);
 
@@ -64,8 +36,9 @@ messaging.onBackgroundMessage((payload) => {
   ]);
 });
 
+
 // ========== Cache & Install ==========
-const CACHE_NAME = 'vplus-pro-v1.0.3';
+const CACHE_NAME = 'vplus-pro-v1.0.2';
 const urlsToCache = [
   '/',
   '/index.html',
@@ -123,6 +96,83 @@ self.addEventListener('fetch', event => {
   );
 });
 
+
+// ========== Badge Support ==========
+let badgeCount = 0;
+
+async function updateBadge(count) {
+  badgeCount = count || 0;
+  try {
+    if ('setAppBadge' in navigator) {
+      if (badgeCount > 0) {
+        await navigator.setAppBadge(badgeCount);
+      } else {
+        await navigator.clearAppBadge();
+      }
+    } else if ('setClientBadge' in self.registration) {
+      if (badgeCount > 0) {
+        await self.registration.setClientBadge(badgeCount);
+      } else {
+        await self.registration.clearClientBadge();
+      }
+    }
+    console.log('[SW] Badge updated:', badgeCount);
+  } catch (error) {
+    console.log('[SW] Badge API not supported:', error);
+  }
+}
+
+
+// ========== Push Notification Handler ==========
+// מטפל בהודעות push ישירות (כגיבוי למקרה ש-FCM לא תופס)
+self.addEventListener('push', event => {
+  console.log('[SW] Push event received:', event);
+
+  let notificationData = {
+    title: '🔔 התראה - VPlus',
+    body: 'יש לך פריט הדורש תשומת לב',
+    icon: '/icon-96.png',
+    badge: '/icon-96.png',
+    tag: 'vplus-reminder',
+    data: {}
+  };
+
+  if (event.data) {
+    try {
+      const data = event.data.json();
+      notificationData = {
+        title: data.title || notificationData.title,
+        body: data.body || notificationData.body,
+        icon: data.icon || notificationData.icon,
+        badge: data.badge || notificationData.badge,
+        tag: data.tag || notificationData.tag,
+        data: data.data || {}
+      };
+    } catch (e) {
+      notificationData.body = event.data.text();
+    }
+  }
+
+  badgeCount++;
+
+  event.waitUntil(
+    Promise.all([
+      self.registration.showNotification(notificationData.title, {
+        body: notificationData.body,
+        icon: notificationData.icon,
+        badge: notificationData.badge,
+        vibrate: [300, 100, 300, 100, 300],
+        tag: notificationData.tag,
+        requireInteraction: true,
+        renotify: true,
+        data: notificationData.data
+      }),
+      updateBadge(badgeCount)
+    ])
+  );
+});
+
+
 // ========== Notification Click Handler ==========
 self.addEventListener('notificationclick', event => {
   console.log('[SW] Notification clicked');
@@ -146,12 +196,14 @@ self.addEventListener('notificationclick', event => {
   );
 });
 
+
 // ========== Notification Close Handler ==========
 self.addEventListener('notificationclose', event => {
   console.log('[SW] Notification closed');
   badgeCount = Math.max(0, badgeCount - 1);
   updateBadge(badgeCount);
 });
+
 
 // ========== Message Handler (from main app) ==========
 self.addEventListener('message', event => {
