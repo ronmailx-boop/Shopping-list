@@ -1553,39 +1553,38 @@
                     });
             });
 
-            // האזנה להודעות מה-Service Worker (למשל כשמשתמש לוחץ על התראה)
+            // ─── האזנה להודעות מה-SW (לחיצה על התראה) ───
             navigator.serviceWorker.addEventListener('message', event => {
                 console.log('[App] Message from SW:', event.data);
                 if (event.data?.type === 'SHOW_URGENT_ALERT') {
-                    function tryShowAlert(attemptsLeft) {
-                        if (typeof checkUrgentPayments === 'function') {
-                            if (typeof _forceShowAfterNotificationClick !== 'undefined') {
-                                _forceShowAfterNotificationClick = true;
-                            }
+                    // מנסה להציג מודל — מחכה לטעינת האפליקציה אם צריך
+                    function tryShow(tries) {
+                        if (typeof _openedFromNotification !== 'undefined' && typeof checkUrgentPayments === 'function') {
+                            sessionStorage.removeItem('urgentAlertClosed');
+                            _openedFromNotification = true;
                             checkUrgentPayments();
-                        } else if (attemptsLeft > 0) {
-                            // האפליקציה עדיין לא נטענה — נסה שוב בעוד 500ms
-                            setTimeout(() => tryShowAlert(attemptsLeft - 1), 500);
+                        } else if (tries > 0) {
+                            setTimeout(() => tryShow(tries - 1), 500);
                         }
                     }
-                    tryShowAlert(10);
+                    tryShow(20);
                 }
             });
 
-            // בדיקה: האם הגענו מלחיצה על התראה (cold start עם ?notif=1 בURL)
+            // ─── Cold Start: נפתחנו מלחיצה על התראה (URL כולל ?notif=1) ───
             if (window.location.search.includes('notif=1')) {
-                console.log('[App] Opened from notification click, will show alert when ready');
-                function tryShowAlertFromURL(attemptsLeft) {
-                    if (typeof checkUrgentPayments === 'function' && typeof _forceShowAfterNotificationClick !== 'undefined') {
-                        _forceShowAfterNotificationClick = true;
+                console.log('[App] Cold start from notification click');
+                function tryShowFromURL(tries) {
+                    if (typeof _openedFromNotification !== 'undefined' && typeof checkUrgentPayments === 'function') {
+                        sessionStorage.removeItem('urgentAlertClosed');
+                        _openedFromNotification = true;
                         checkUrgentPayments();
-                        // נקה את הפרמטר מה-URL בלי לרענן את הדף
                         history.replaceState(null, '', window.location.pathname);
-                    } else if (attemptsLeft > 0) {
-                        setTimeout(() => tryShowAlertFromURL(attemptsLeft - 1), 500);
+                    } else if (tries > 0) {
+                        setTimeout(() => tryShowFromURL(tries - 1), 500);
                     }
                 }
-                setTimeout(() => tryShowAlertFromURL(20), 500);
+                setTimeout(() => tryShowFromURL(30), 300);
             }
         }
     </script>
@@ -2524,22 +2523,12 @@ ${error.message}
                 <!-- Urgent items will be inserted here -->
             </div>
             <div class="urgent-buttons">
-                <!-- Hours row - small chips -->
-                <div style="display:flex; gap:8px; margin-bottom:8px;">
-                    <button class="urgent-btn urgent-btn-snooze" style="flex:1; padding:10px 4px; font-size:0.8rem;"
-                        onclick="snoozeUrgentAlert(1*60*60*1000)">⏰ שעה</button>
-                    <button class="urgent-btn urgent-btn-snooze" style="flex:1; padding:10px 4px; font-size:0.8rem;"
-                        onclick="snoozeUrgentAlert(2*60*60*1000)">⏰ 2 שעות</button>
-                    <button class="urgent-btn urgent-btn-snooze" style="flex:1; padding:10px 4px; font-size:0.8rem;"
-                        onclick="snoozeUrgentAlert(4*60*60*1000)">⏰ 4 שעות</button>
-                </div>
-                <!-- Days row - small chips -->
-                <div style="display:flex; gap:8px; margin-bottom:8px;">
-                    <button class="urgent-btn urgent-btn-tomorrow" style="flex:1; padding:10px 4px; font-size:0.8rem;"
-                        onclick="snoozeUrgentAlert(1*24*60*60*1000)">📅 מחר</button>
-                    <button class="urgent-btn urgent-btn-tomorrow" style="flex:1; padding:10px 4px; font-size:0.8rem;"
-                        onclick="snoozeUrgentAlert(2*24*60*60*1000)">📅 יומיים</button>
-                </div>
+                <button class="urgent-btn urgent-btn-snooze" onclick="snoozeUrgentAlert(4)">
+                    ⏰ הזכר לי בעוד 4 שעות
+                </button>
+                <button class="urgent-btn urgent-btn-tomorrow" onclick="snoozeUrgentAlert(24)">
+                    📅 הזכר לי מחר
+                </button>
                 <button class="urgent-btn urgent-btn-custom" onclick="openCustomSnooze()" style="background: #8b5cf6;">
                     ⚙️ מותאם אישית
                 </button>
