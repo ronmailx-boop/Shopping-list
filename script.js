@@ -8022,8 +8022,11 @@ function initNotificationSystem() {
     // Schedule notifications for current list
     checkAndScheduleNotifications();
     
-    // Re-check every minute
-    setInterval(checkAndScheduleNotifications, 60000);
+    // Re-check every 30 seconds — catches short snoozes (2 min etc.)
+    setInterval(() => {
+        checkAndScheduleNotifications();
+        checkUrgentPayments();
+    }, 30000);
 }
 
 // Call on page load
