@@ -47,6 +47,17 @@ function getReminderMilliseconds(value, unit) {
     return conversions[unit] || 0;
 }
 
+// Compute the nextAlertTime for an item based on its dueDate + dueTime + reminder settings
+function computeNextAlertTime(item) {
+    if (!item.dueDate) return null;
+    if (!item.reminderValue || !item.reminderUnit) return null;
+
+    const timeStr = item.dueTime ? item.dueTime : '00:00';
+    const dueDateMs = new Date(item.dueDate + 'T' + timeStr + ':00').getTime();
+    const reminderMs = getReminderMilliseconds(item.reminderValue, item.reminderUnit);
+    return dueDateMs - reminderMs;
+}
+
 function formatReminderText(value, unit) {
     if (!value || !unit) return '';
     
@@ -3406,9 +3417,11 @@ function addItemToList(event) {
             isPaid: false,
             reminderValue: reminderValue || '',
             reminderUnit: reminderUnit || '',
+            nextAlertTime: null, // will be set below
             lastUpdated: Date.now(),
             cloudId: 'item_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9)
         };
+        newItem.nextAlertTime = computeNextAlertTime(newItem);
 
         // Insert before the first checked item (so new item is last among unchecked)
         const items = db.lists[targetId].items;
@@ -3781,6 +3794,8 @@ function saveItemEdit() {
         item.reminderValue = newReminderValue;
         item.reminderUnit = newReminderUnit;
         item.lastUpdated = Date.now();
+        // Recompute nextAlertTime whenever item is edited
+        item.nextAlertTime = computeNextAlertTime(item);
         
         // שמירה מקומית תחילה
         db.lastActivePage = activePage;
@@ -6490,44 +6505,26 @@ if (typeof updateCategoryDropdown === 'function') {
 
 // Check for urgent payments on page load and display alerts
 function checkUrgentPayments() {
-    const list = db.lists[db.currentId];
-    if (!list || !list.items) return;
-
     const now = Date.now();
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
 
-    const urgentItems = list.items.filter(item => {
-        if (!item.dueDate || item.isPaid || item.checked) return false;
-        
-        const dueDate = new Date(item.dueDate);
-        dueDate.setHours(0, 0, 0, 0);
-        
-        // בדוק אם התאריך עבר
-        const isOverdue = dueDate <= today;
-        
-        // בדוק אם יש להתריע לפי reminderValue ו-reminderUnit
-        if (item.reminderValue && item.reminderUnit) {
-            const reminderTimeMs = getReminderMilliseconds(item.reminderValue, item.reminderUnit);
-            const dueDateMs = dueDate.getTime();
-            const reminderDate = new Date(dueDateMs - reminderTimeMs);
-            
-            const isReminderTime = now >= reminderDate.getTime() && now <= dueDateMs + (24 * 60 * 60 * 1000);
-            return isOverdue || isReminderTime;
-        }
-        
-        return isOverdue;
+    // Collect items whose nextAlertTime has arrived (across all lists)
+    const alertItems = [];
+    Object.keys(db.lists).forEach(listId => {
+        const list = db.lists[listId];
+        list.items.forEach((item, idx) => {
+            if (item.checked || item.isPaid) return;
+            if (item.nextAlertTime && now >= item.nextAlertTime) {
+                alertItems.push({ item, idx, listId, listName: list.name });
+            }
+        });
     });
 
-    // Update app badge
-    updateAppBadge(urgentItems.length);
+    // Update notification center badge (all pending items)
+    updateNotificationBadge();
 
-    // Check if modal should be shown
-    if (urgentItems.length > 0) {
-        const shouldShowModal = checkSnoozeStatus();
-        if (shouldShowModal) {
-            showUrgentAlertModal(urgentItems);
-        }
+    // Auto-popup only for items whose alert just fired (not snoozed)
+    if (alertItems.length > 0 && !sessionStorage.getItem('urgentAlertClosed')) {
+        showUrgentAlertModal(alertItems.map(a => a.item));
     }
 }
 
@@ -6546,29 +6543,8 @@ function updateAppBadge(count) {
     }
 }
 
-// Check snooze status to determine if modal should show
-function checkSnoozeStatus() {
-    // Check session storage first (user clicked Close this session)
-    if (sessionStorage.getItem('urgentAlertClosed')) {
-        return false;
-    }
-
-    // Check localStorage for snooze timestamps
-    const snooze4h = localStorage.getItem('urgentSnooze4h');
-    const snoozeTomorrow = localStorage.getItem('urgentSnoozeTomorrow');
-
-    const now = Date.now();
-
-    if (snooze4h && now < parseInt(snooze4h)) {
-        return false;
-    }
-
-    if (snoozeTomorrow && now < parseInt(snoozeTomorrow)) {
-        return false;
-    }
-
-    return true;
-}
+// Legacy - snooze is now per-item via nextAlertTime
+function checkSnoozeStatus() { return true; }
 
 // Show the urgent alert modal with overdue items
 function showUrgentAlertModal(urgentItems) {
@@ -6640,22 +6616,37 @@ function showUrgentAlertModal(urgentItems) {
     modal.classList.add('active');
 }
 
-// Snooze urgent alert for specified hours
-function snoozeUrgentAlert(hours) {
-    const snoozeUntil = Date.now() + (hours * 60 * 60 * 1000);
-    
-    if (hours === 4) {
-        localStorage.setItem('urgentSnooze4h', snoozeUntil.toString());
-    } else if (hours === 24) {
-        localStorage.setItem('urgentSnoozeTomorrow', snoozeUntil.toString());
-    }
+// Snooze all currently-alerting items by setting their nextAlertTime
+function snoozeUrgentAlert(ms) {
+    const now = Date.now();
+    const snoozeUntil = now + ms;
 
+    Object.keys(db.lists).forEach(listId => {
+        db.lists[listId].items.forEach(item => {
+            if (item.checked || item.isPaid) return;
+            if (item.nextAlertTime && now >= item.nextAlertTime) {
+                item.nextAlertTime = snoozeUntil;
+            }
+        });
+    });
+
+    save();
     closeModal('urgentAlertModal');
+    showNotification('⏰ תוזכר שוב בקרוב');
 }
 
-// Close urgent alert (session-based)
+// Close urgent alert — clear nextAlertTime (won't auto-popup again, still in center)
 function closeUrgentAlert() {
-    sessionStorage.setItem('urgentAlertClosed', 'true');
+    const now = Date.now();
+    Object.keys(db.lists).forEach(listId => {
+        db.lists[listId].items.forEach(item => {
+            if (item.checked || item.isPaid) return;
+            if (item.nextAlertTime && now >= item.nextAlertTime) {
+                item.nextAlertTime = null; // dismiss — won't auto-popup, stays in center
+            }
+        });
+    });
+    save();
     closeModal('urgentAlertModal');
 }
 
@@ -8070,18 +8061,14 @@ function applyCustomSnooze() {
         return;
     }
     
-    // Convert to hours
-    let hours = parseFloat(value);
-    if (unit === 'minutes') {
-        hours = hours / 60;
-    } else if (unit === 'days') {
-        hours = hours * 24;
-    }
+    let ms = parseFloat(value);
+    if (unit === 'minutes') ms = ms * 60 * 1000;
+    else if (unit === 'hours') ms = ms * 60 * 60 * 1000;
+    else if (unit === 'days') ms = ms * 24 * 60 * 60 * 1000;
     
-    snoozeUrgentAlert(hours);
+    snoozeUrgentAlert(ms);
     closeModal('customSnoozeModal');
     
-    // Reset form
     document.getElementById('customSnoozeValue').value = '1';
     document.getElementById('customSnoozeUnit').value = 'hours';
 }
@@ -8133,14 +8120,11 @@ function saveReminderEdit() {
     item.reminderValue = document.getElementById('editItemReminderValue').value || '';
     item.reminderUnit = document.getElementById('editItemReminderUnit').value || '';
     item.lastUpdated = Date.now();
+
+    // Recompute nextAlertTime based on new values
+    item.nextAlertTime = computeNextAlertTime(item);
     
-    // Save and re-schedule notifications
     save();
-    
-    // Re-initialize notifications
-    if (typeof checkAndScheduleNotifications === 'function') {
-        checkAndScheduleNotifications();
-    }
     
     closeModal('editReminderModal');
     showNotification('✅ ההתראה עודכנה בהצלחה');
