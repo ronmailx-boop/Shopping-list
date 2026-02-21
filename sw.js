@@ -153,15 +153,21 @@ self.addEventListener('notificationclick', event => {
         for (let client of clientList) {
           if (client.url.includes(self.registration.scope) && 'focus' in client) {
             return client.focus().then(() => {
-              setTimeout(() => sendShowAlert(client), 300);
+              // Try immediately and again after a short delay (in case focus takes time)
+              sendShowAlert(client);
+              setTimeout(() => sendShowAlert(client), 500);
               return client;
             });
           }
         }
         if (clients.openWindow) {
-          return clients.openWindow('/').then(newClient => {
+          // Pass ?notif=1 in the URL so the app knows to show the modal on cold start
+          return clients.openWindow('/?notif=1').then(newClient => {
             if (newClient) {
+              // Retry multiple times to handle slow page loads
               setTimeout(() => sendShowAlert(newClient), 1500);
+              setTimeout(() => sendShowAlert(newClient), 3000);
+              setTimeout(() => sendShowAlert(newClient), 5000);
             }
           });
         }
