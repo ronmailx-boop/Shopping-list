@@ -2381,7 +2381,14 @@ function renderCompletedLists() {
         div.innerHTML = `
             <div class="flex justify-between items-center mb-2">
                 <span class="font-bold text-green-800 text-base">✅ ${entry.name}</span>
-                <span class="text-xs text-green-600">${date.toLocaleDateString('he-IL')}</span>
+                <div class="flex items-center gap-2">
+                    <span class="text-xs text-green-600">${date.toLocaleDateString('he-IL')}</span>
+                    <button onclick="confirmDeleteHistory(${realIdx}, 'completed')"
+                        style="background:#fee2e2; border:none; border-radius:8px; padding:4px 8px;
+                               font-size:0.7rem; font-weight:800; color:#ef4444; cursor:pointer;">
+                        🗑️ מחק
+                    </button>
+                </div>
             </div>
             <div class="flex justify-between items-center mb-2">
                 <span class="text-sm text-green-700">${entry.items.length} מוצרים</span>
@@ -2685,7 +2692,14 @@ function renderHistory() {
         div.innerHTML = `
             <div class="flex justify-between items-center mb-2">
                 <span class="font-bold text-lg">${entry.name}</span>
-                <span class="text-xs text-gray-500">${date.toLocaleDateString('he-IL')}</span>
+                <div class="flex items-center gap-2">
+                    <span class="text-xs text-gray-500">${date.toLocaleDateString('he-IL')}</span>
+                    <button onclick="confirmDeleteHistory(${realIdx}, 'history')"
+                        style="background:#fee2e2; border:none; border-radius:8px; padding:4px 8px;
+                               font-size:0.7rem; font-weight:800; color:#ef4444; cursor:pointer;">
+                        🗑️ מחק
+                    </button>
+                </div>
             </div>
             <div class="flex justify-between items-center mb-2">
                 <span class="text-sm text-gray-600">${entry.items.length} מוצרים</span>
@@ -2870,7 +2884,105 @@ function executeRestoreList(targetId, histIdx, source) {
     showNotification('✅ רשימה שוחזרה!');
 }
 
-// ===== RESTORE SINGLE ITEM FROM HISTORY =====
+// ===== DELETE FROM HISTORY WITH CONFIRM + UNDO =====
+let _deletedHistoryEntry = null;
+let _deletedHistoryIdx = null;
+let _deleteHistoryTimeout = null;
+
+function confirmDeleteHistory(idx, source) {
+    const entry = db.history[idx];
+    if (!entry) return;
+
+    // Remove existing confirm overlay
+    const existing = document.getElementById('confirmDeleteHistoryOverlay');
+    if (existing) existing.remove();
+
+    const overlay = document.createElement('div');
+    overlay.id = 'confirmDeleteHistoryOverlay';
+    overlay.style.cssText = `
+        position:fixed; inset:0; z-index:10000;
+        display:flex; align-items:center; justify-content:center;
+        background:rgba(0,0,0,0.55); backdrop-filter:blur(4px);
+    `;
+    overlay.innerHTML = `
+        <div style="background:white; border-radius:20px; padding:22px; width:85%; max-width:340px;
+                    box-shadow:0 10px 30px rgba(0,0,0,0.25); direction:rtl; text-align:center;">
+            <div style="font-size:2rem; margin-bottom:8px;">🗑️</div>
+            <div style="font-weight:800; font-size:1rem; color:#1e1b4b; margin-bottom:6px;">מחיקת רשימה</div>
+            <div style="font-size:0.85rem; color:#6b7280; margin-bottom:18px;">
+                האם אתה בטוח שברצונך למחוק את<br>
+                <strong style="color:#ef4444;">"${entry.name}"</strong>?<br>
+                <span style="font-size:0.75rem;">תהיה לך אפשרות ביטול למשך 5 שניות</span>
+            </div>
+            <div style="display:flex; gap:10px;">
+                <button onclick="executeDeleteHistory(${idx}, '${source}')"
+                    style="flex:1; padding:12px; background:#ef4444; color:white; border:none;
+                           border-radius:12px; font-weight:800; font-size:0.95rem; cursor:pointer;">
+                    מחק
+                </button>
+                <button onclick="document.getElementById('confirmDeleteHistoryOverlay').remove()"
+                    style="flex:1; padding:12px; background:#f3f4f6; color:#6b7280; border:none;
+                           border-radius:12px; font-weight:800; font-size:0.95rem; cursor:pointer;">
+                    ביטול
+                </button>
+            </div>
+        </div>
+    `;
+    overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
+    document.body.appendChild(overlay);
+}
+
+function executeDeleteHistory(idx, source) {
+    // Remove confirm overlay
+    const overlay = document.getElementById('confirmDeleteHistoryOverlay');
+    if (overlay) overlay.remove();
+
+    // Cancel previous pending delete if any
+    if (_deleteHistoryTimeout) { clearTimeout(_deleteHistoryTimeout); _deleteHistoryTimeout = null; }
+
+    // Save backup for undo
+    _deletedHistoryEntry = JSON.parse(JSON.stringify(db.history[idx]));
+    _deletedHistoryIdx = idx;
+
+    // Delete
+    db.history.splice(idx, 1);
+    save();
+
+    // Refresh whichever modal is open
+    if (source === 'completed') renderCompletedLists();
+    else renderHistory();
+
+    // Show toast with undo
+    _showToast({
+        message: `🗑️ "${_deletedHistoryEntry.name}" נמחקה`,
+        type: 'delete',
+        undoCallback: undoDeleteHistory,
+        duration: 5000
+    });
+
+    // Finalize after 5s
+    _deleteHistoryTimeout = setTimeout(() => {
+        _deletedHistoryEntry = null;
+        _deletedHistoryIdx = null;
+        _deleteHistoryTimeout = null;
+    }, 5000);
+}
+
+function undoDeleteHistory() {
+    if (_deletedHistoryEntry === null || _deletedHistoryIdx === null) return;
+    if (_deleteHistoryTimeout) { clearTimeout(_deleteHistoryTimeout); _deleteHistoryTimeout = null; }
+
+    // Re-insert at original index
+    db.history.splice(_deletedHistoryIdx, 0, _deletedHistoryEntry);
+    _deletedHistoryEntry = null;
+    _deletedHistoryIdx = null;
+
+    save();
+    // Refresh both (in case either is open)
+    renderCompletedLists();
+    renderHistory();
+    showNotification('✅ הפעולה בוטלה');
+}
 let _restoreItemHistIdx = null;
 let _restoreItemItemIdx = null;
 
