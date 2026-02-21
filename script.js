@@ -1473,6 +1473,9 @@ function openModal(id) {
         document.getElementById('itemQty').value = '1';
         document.getElementById('itemCategory').value = '';
 
+        // Init context bar (which list to add to)
+        initContextBar();
+
         // Restore continuous mode state
         const continuous = localStorage.getItem('continuousAdd') === 'true';
         const toggle = document.getElementById('continuousToggle');
@@ -2847,6 +2850,88 @@ async function shareNative(type) {
     }
 }
 
+// ===== CONTEXT BAR: LIST SELECTOR =====
+let _targetListId = null; // the list item will be added to
+
+function initContextBar() {
+    _targetListId = db.currentId;
+    updateContextBarDisplay();
+}
+
+function updateContextBarDisplay() {
+    const nameEl = document.getElementById('contextListName');
+    if (!nameEl) return;
+    const list = db.lists[_targetListId];
+    nameEl.textContent = list ? list.name : '—';
+}
+
+function toggleListDropdown() {
+    const dropdown = document.getElementById('listDropdown');
+    const btn = document.getElementById('contextListBtn');
+    if (!dropdown) return;
+    const isOpen = dropdown.classList.toggle('open');
+    btn.classList.toggle('open', isOpen);
+    if (isOpen) {
+        renderListDropdown();
+        // close when clicking outside
+        setTimeout(() => document.addEventListener('click', closeListDropdownOutside), 10);
+    } else {
+        document.removeEventListener('click', closeListDropdownOutside);
+    }
+}
+
+function closeListDropdownOutside(e) {
+    const dropdown = document.getElementById('listDropdown');
+    const bar = document.getElementById('contextBar');
+    if (bar && !bar.contains(e.target)) {
+        closeListDropdown();
+    }
+}
+
+function closeListDropdown() {
+    const dropdown = document.getElementById('listDropdown');
+    const btn = document.getElementById('contextListBtn');
+    if (dropdown) dropdown.classList.remove('open');
+    if (btn) btn.classList.remove('open');
+    document.removeEventListener('click', closeListDropdownOutside);
+}
+
+function renderListDropdown() {
+    const scroll = document.getElementById('listDropdownScroll');
+    if (!scroll) return;
+    // Show only non-template lists
+    const lists = Object.entries(db.lists).filter(([_, l]) => !l.isTemplate);
+    scroll.innerHTML = lists.map(([id, l]) => `
+        <div class="list-dropdown-item ${id === _targetListId ? 'active' : ''}"
+            onclick="event.stopPropagation(); selectTargetList('${id}')">
+            ${l.name}
+        </div>
+    `).join('');
+    // clear new list input
+    const inp = document.getElementById('newListFromDropdown');
+    if (inp) inp.value = '';
+}
+
+function selectTargetList(id) {
+    _targetListId = id;
+    updateContextBarDisplay();
+    closeListDropdown();
+}
+
+function createListFromDropdown() {
+    const inp = document.getElementById('newListFromDropdown');
+    if (!inp) return;
+    const name = inp.value.trim();
+    if (!name) { inp.focus(); return; }
+    const id = 'L' + Date.now();
+    db.lists[id] = { name, url: '', budget: 0, isTemplate: false, items: [] };
+    save();
+    _targetListId = id;
+    updateContextBarDisplay();
+    closeListDropdown();
+    showNotification('✅ רשימה "' + name + '" נוצרה!');
+}
+
 // ===== QUICK ADD: CONTINUOUS MODE =====
 function toggleContinuousMode() {
     const toggle = document.getElementById('continuousToggle');
@@ -2913,7 +2998,9 @@ function addItemToList(event) {
             updatePriceInHistory(n, p);
         }
 
-        db.lists[db.currentId].items.push({
+        // Use the selected target list (from context bar)
+        const targetId = (_targetListId && db.lists[_targetListId]) ? _targetListId : db.currentId;
+        db.lists[targetId].items.push({
             name: n,
             price: p,
             qty: q,
@@ -2929,6 +3016,8 @@ function addItemToList(event) {
             lastUpdated: Date.now(),
             cloudId: 'item_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9)
         });
+        // Switch to that list so user sees the item they just added
+        db.currentId = targetId;
 
         // איפוס טופס
         if (document.getElementById('itemName')) document.getElementById('itemName').value = '';
