@@ -2355,19 +2355,43 @@ function renderCompletedLists() {
     }
 
     db.history.slice().reverse().forEach((entry, idx) => {
+        const realIdx = db.history.length - 1 - idx;
         const div = document.createElement('div');
-        div.className = 'mb-3 p-4 bg-green-50 rounded-xl border border-green-200';
+        div.className = 'mb-4 p-4 bg-green-50 rounded-xl border border-green-200';
         const date = new Date(entry.completedAt);
+
+        let productsList = '<div class="mt-3 mb-3 space-y-1">';
+        entry.items.forEach((item, i) => {
+            const itemTotal = (item.price * item.qty).toFixed(2);
+            productsList += `
+                <div class="flex justify-between items-center text-sm py-1 border-b border-green-200">
+                    <div class="flex items-center gap-2 flex-1 min-w-0">
+                        <span class="text-gray-700 truncate">${i + 1}. ${item.name}</span>
+                        <span class="text-gray-400 text-xs flex-shrink-0">x${item.qty}</span>
+                        <span class="text-indigo-600 font-bold flex-shrink-0">₪${itemTotal}</span>
+                    </div>
+                    <button onclick="openRestoreItemPicker(${realIdx}, ${i}, 'completed')"
+                        class="flex-shrink-0 mr-1 text-[10px] font-bold bg-white border border-indigo-300 text-indigo-600 rounded-lg px-2 py-1 whitespace-nowrap">
+                        + הוסף לרשימה
+                    </button>
+                </div>`;
+        });
+        productsList += '</div>';
 
         div.innerHTML = `
             <div class="flex justify-between items-center mb-2">
-                <span class="font-bold text-green-800">✅ ${entry.name}</span>
+                <span class="font-bold text-green-800 text-base">✅ ${entry.name}</span>
                 <span class="text-xs text-green-600">${date.toLocaleDateString('he-IL')}</span>
             </div>
-            <div class="flex justify-between items-center">
+            <div class="flex justify-between items-center mb-2">
                 <span class="text-sm text-green-700">${entry.items.length} מוצרים</span>
-                <span class="text-green-600 font-black text-lg">₪${entry.total.toFixed(2)}</span>
+                <span class="text-green-700 font-black text-lg">₪${entry.total.toFixed(2)}</span>
             </div>
+            ${productsList}
+            <button onclick="restoreFromHistory(${realIdx}, 'completed')"
+                class="mt-2 w-full bg-indigo-600 text-white py-2 rounded-lg text-sm font-bold">
+                📋 שחזר רשימה שלמה
+            </button>
         `;
         container.appendChild(div);
     });
@@ -2635,23 +2659,26 @@ function renderHistory() {
     }
 
     db.history.slice().reverse().forEach((entry, idx) => {
+        const realIdx = db.history.length - 1 - idx;
         const div = document.createElement('div');
         div.className = 'mb-4 p-4 bg-gray-50 rounded-xl border border-gray-200';
         const date = new Date(entry.completedAt);
 
-        // Product list
         let productsList = '<div class="mt-3 mb-3 space-y-1">';
         entry.items.forEach((item, i) => {
             const itemTotal = (item.price * item.qty).toFixed(2);
             productsList += `
                 <div class="flex justify-between items-center text-sm py-1 border-b border-gray-200">
-                    <span class="text-gray-700">${i + 1}. ${item.name} ${item.category ? '(' + item.category + ')' : ''}</span>
-                    <div class="flex gap-2 items-center">
-                        <span class="text-gray-500">x${item.qty}</span>
-                        <span class="text-indigo-600 font-bold">₪${itemTotal}</span>
+                    <div class="flex items-center gap-2 flex-1 min-w-0">
+                        <span class="text-gray-700 truncate">${i + 1}. ${item.name} ${item.category ? '(' + item.category + ')' : ''}</span>
+                        <span class="text-gray-500 flex-shrink-0">x${item.qty}</span>
+                        <span class="text-indigo-600 font-bold flex-shrink-0">₪${itemTotal}</span>
                     </div>
-                </div>
-            `;
+                    <button onclick="openRestoreItemPicker(${realIdx}, ${i}, 'history')"
+                        class="flex-shrink-0 mr-1 text-[10px] font-bold bg-white border border-indigo-300 text-indigo-600 rounded-lg px-2 py-1 whitespace-nowrap">
+                        + הוסף לרשימה
+                    </button>
+                </div>`;
         });
         productsList += '</div>';
 
@@ -2665,7 +2692,8 @@ function renderHistory() {
                 <span class="text-indigo-600 font-black text-xl">₪${entry.total.toFixed(2)}</span>
             </div>
             ${productsList}
-            <button onclick="restoreFromHistory(${db.history.length - 1 - idx})" class="mt-2 w-full bg-indigo-600 text-white py-2 rounded-lg text-sm font-bold hover:bg-indigo-700 transition">
+            <button onclick="restoreFromHistory(${realIdx}, 'history')"
+                class="mt-2 w-full bg-indigo-600 text-white py-2 rounded-lg text-sm font-bold">
                 📋 שחזר רשימה זו
             </button>
         `;
@@ -2726,28 +2754,198 @@ function createFromTemplate(templateId) {
     showNotification('✅ רשימה נוצרה מתבנית!');
 }
 
-function restoreFromHistory(idx) {
+function restoreFromHistory(idx, source) {
     const entry = db.history[idx];
     if (!entry) return;
 
-    const newId = 'L' + Date.now();
-    db.lists[newId] = {
-        name: entry.name + ' (משוחזר)',
-        url: entry.url || '',
-        budget: 0,
-        isTemplate: false,
-        items: JSON.parse(JSON.stringify(entry.items.map(item => ({
-            ...item,
-            checked: false,
-            cloudId: 'item_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9)
-        }))))
+    // Build list of existing non-template lists
+    const lists = Object.entries(db.lists).filter(([_, l]) => !l.isTemplate);
+    const listsHtml = lists.map(([id, l]) => `
+        <div class="list-dropdown-item" onclick="executeRestoreList('${id}', ${idx}, '${source}')">
+            📋 ${l.name}
+        </div>`).join('');
+
+    // Remove existing picker if any
+    const existing = document.getElementById('restoreListPickerOverlay');
+    if (existing) existing.remove();
+
+    const overlay = document.createElement('div');
+    overlay.id = 'restoreListPickerOverlay';
+    overlay.style.cssText = `
+        position:fixed; inset:0; z-index:9999;
+        display:flex; align-items:center; justify-content:center;
+        background:rgba(0,0,0,0.55); backdrop-filter:blur(4px);
+    `;
+    overlay.innerHTML = `
+        <div style="background:white; border-radius:20px; padding:20px; width:88%; max-width:360px;
+                    box-shadow:0 10px 30px rgba(0,0,0,0.25); direction:rtl;">
+            <div style="font-weight:800; font-size:1rem; color:#1e1b4b; margin-bottom:4px;">
+                📋 שחזור רשימה
+            </div>
+            <div style="font-size:0.8rem; color:#6b7280; margin-bottom:14px;">
+                לאן תרצה לשחזר את "<b>${entry.name}</b>"?
+            </div>
+
+            <!-- Option: new list -->
+            <div style="margin-bottom:10px; padding:10px; background:#f0eeff; border-radius:12px; border:1.5px solid #c4b5fd;">
+                <div style="font-size:0.8rem; font-weight:700; color:#7367f0; margin-bottom:8px;">✨ רשימה חדשה</div>
+                <div style="display:flex; gap:6px;">
+                    <input id="restoreNewListName" 
+                        style="flex:1; border:1.5px solid #c4b5fd; border-radius:8px; padding:7px 10px;
+                               font-size:0.82rem; font-weight:700; outline:none; color:#1e1b4b; background:white;"
+                        placeholder="שם הרשימה החדשה..."
+                        value="${entry.name} (משוחזר)"
+                        onclick="event.stopPropagation()"
+                        onkeydown="if(event.key==='Enter'){event.stopPropagation();executeRestoreList('__new__', ${idx}, '${source}');}">
+                    <button onclick="executeRestoreList('__new__', ${idx}, '${source}')"
+                        style="background:linear-gradient(135deg,#7367f0,#9055ff); color:white; border:none;
+                               border-radius:8px; padding:7px 14px; font-size:0.82rem; font-weight:800; cursor:pointer; white-space:nowrap;">
+                        צור ✓
+                    </button>
+                </div>
+            </div>
+
+            <!-- Option: existing list -->
+            ${lists.length > 0 ? `
+            <div style="font-size:0.78rem; font-weight:700; color:#9ca3af; margin-bottom:6px;">
+                או הוסף לרשימה קיימת:
+            </div>
+            <div style="max-height:180px; overflow-y:auto; border-radius:12px; border:1.5px solid #e0e7ff;">
+                ${listsHtml}
+            </div>` : ''}
+
+            <button onclick="document.getElementById('restoreListPickerOverlay').remove()"
+                style="margin-top:12px; width:100%; padding:10px; border-radius:12px;
+                       background:#f3f4f6; border:none; font-weight:700; color:#6b7280; cursor:pointer;">
+                ביטול
+            </button>
+        </div>
+    `;
+    overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
+    document.body.appendChild(overlay);
+}
+
+function executeRestoreList(targetId, histIdx, source) {
+    const overlay = document.getElementById('restoreListPickerOverlay');
+    const entry = db.history[histIdx];
+    if (!entry) return;
+
+    const restoredItems = JSON.parse(JSON.stringify(entry.items.map(item => ({
+        ...item,
+        checked: false,
+        cloudId: 'item_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9)
+    }))));
+
+    let finalId;
+    if (targetId === '__new__') {
+        // Create new list
+        const nameInput = document.getElementById('restoreNewListName');
+        const name = (nameInput && nameInput.value.trim()) ? nameInput.value.trim() : entry.name + ' (משוחזר)';
+        finalId = 'L' + Date.now();
+        db.lists[finalId] = {
+            name,
+            url: entry.url || '',
+            budget: 0,
+            isTemplate: false,
+            items: restoredItems
+        };
+    } else {
+        // Add items to existing list — insert each before first checked item
+        finalId = targetId;
+        restoredItems.forEach(newItem => {
+            const items = db.lists[finalId].items;
+            const firstChecked = items.findIndex(i => i.checked);
+            if (firstChecked === -1) items.push(newItem);
+            else items.splice(firstChecked, 0, newItem);
+        });
+    }
+
+    db.currentId = finalId;
+    activePage = 'lists';
+    if (overlay) overlay.remove();
+    if (source === 'completed') closeModal('completedListsModal');
+    else closeModal('historyModal');
+    save();
+    render();
+    showNotification('✅ רשימה שוחזרה!');
+}
+
+// ===== RESTORE SINGLE ITEM FROM HISTORY =====
+let _restoreItemHistIdx = null;
+let _restoreItemItemIdx = null;
+
+function openRestoreItemPicker(histIdx, itemIdx, source) {
+    _restoreItemHistIdx = histIdx;
+    _restoreItemItemIdx = itemIdx;
+
+    const entry = db.history[histIdx];
+    if (!entry) return;
+    const item = entry.items[itemIdx];
+    if (!item) return;
+
+    // Build list options (non-templates)
+    const lists = Object.entries(db.lists).filter(([_, l]) => !l.isTemplate);
+    let optionsHtml = lists.map(([id, l]) =>
+        `<div class="list-dropdown-item" onclick="restoreSingleItem('${id}')">${l.name}</div>`
+    ).join('');
+
+    // Show a small inline picker via notification-style overlay
+    const existing = document.getElementById('restoreItemPickerOverlay');
+    if (existing) existing.remove();
+
+    const overlay = document.createElement('div');
+    overlay.id = 'restoreItemPickerOverlay';
+    overlay.style.cssText = `
+        position:fixed; inset:0; z-index:9999;
+        display:flex; align-items:center; justify-content:center;
+        background:rgba(0,0,0,0.5); backdrop-filter:blur(4px);
+    `;
+    overlay.innerHTML = `
+        <div style="background:white; border-radius:20px; padding:20px; width:85%; max-width:340px;
+                    box-shadow:0 10px 30px rgba(0,0,0,0.25);">
+            <div style="font-weight:800; font-size:1rem; color:#1e1b4b; margin-bottom:4px; text-align:right;">
+                ➕ הוסף מוצר לרשימה
+            </div>
+            <div style="font-size:0.82rem; color:#7367f0; font-weight:700; margin-bottom:12px; text-align:right;">
+                "${item.name}"
+            </div>
+            <div style="max-height:220px; overflow-y:auto; border-radius:12px; border:1.5px solid #e0e7ff;">
+                ${optionsHtml}
+            </div>
+            <button onclick="document.getElementById('restoreItemPickerOverlay').remove()"
+                style="margin-top:12px; width:100%; padding:10px; border-radius:12px;
+                       background:#f3f4f6; border:none; font-weight:700; color:#6b7280; cursor:pointer;">
+                ביטול
+            </button>
+        </div>
+    `;
+    overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
+    document.body.appendChild(overlay);
+}
+
+function restoreSingleItem(targetListId) {
+    const overlay = document.getElementById('restoreItemPickerOverlay');
+    if (overlay) overlay.remove();
+
+    const entry = db.history[_restoreItemHistIdx];
+    if (!entry) return;
+    const item = entry.items[_restoreItemItemIdx];
+    if (!item) return;
+
+    const newItem = {
+        ...JSON.parse(JSON.stringify(item)),
+        checked: false,
+        cloudId: 'item_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9)
     };
 
-    db.currentId = newId;
-    activePage = 'lists';
-    closeModal('historyModal');
+    const items = db.lists[targetListId].items;
+    const firstCheckedIdx = items.findIndex(i => i.checked);
+    if (firstCheckedIdx === -1) items.push(newItem);
+    else items.splice(firstCheckedIdx, 0, newItem);
+
     save();
-    showNotification('✅ רשימה שוחזרה!');
+    render();
+    showNotification(`✅ "${item.name}" נוסף לרשימה!`);
 }
 
 // תיקון פונקציית סיום רשימה
