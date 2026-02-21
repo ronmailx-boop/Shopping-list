@@ -153,18 +153,18 @@ self.addEventListener('notificationclick', event => {
         for (let client of clientList) {
           if (client.url.includes(self.registration.scope) && 'focus' in client) {
             return client.focus().then(() => {
-              // Try immediately and again after a short delay (in case focus takes time)
+              // שולח מיד + retry — למקרה שה-focus לוקח זמן
               sendShowAlert(client);
-              setTimeout(() => sendShowAlert(client), 500);
+              setTimeout(() => sendShowAlert(client), 600);
+              setTimeout(() => sendShowAlert(client), 1500);
               return client;
             });
           }
         }
         if (clients.openWindow) {
-          // Pass ?notif=1 in the URL so the app knows to show the modal on cold start
+          // ?notif=1 — האפליקציה קוראת זאת בטעינה ומציגה את המודל גם אם postMessage מפוספס
           return clients.openWindow('/?notif=1').then(newClient => {
             if (newClient) {
-              // Retry multiple times to handle slow page loads
               setTimeout(() => sendShowAlert(newClient), 1500);
               setTimeout(() => sendShowAlert(newClient), 3000);
               setTimeout(() => sendShowAlert(newClient), 5000);
