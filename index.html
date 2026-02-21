@@ -2489,12 +2489,26 @@ ${error.message}
                 <!-- Urgent items will be inserted here -->
             </div>
             <div class="urgent-buttons">
-                <button class="urgent-btn urgent-btn-snooze" onclick="snoozeUrgentAlert(4)">
-                    ⏰ הזכר לי בעוד 4 שעות
-                </button>
-                <button class="urgent-btn urgent-btn-tomorrow" onclick="snoozeUrgentAlert(24)">
-                    📅 הזכר לי מחר
-                </button>
+                <!-- Hours chips -->
+                <div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:8px;">
+                    <button class="urgent-btn urgent-btn-snooze" style="flex:1; font-size:0.82rem; padding:10px 6px;"
+                        onclick="snoozeUrgentAlert(1*60*60*1000)">⏰ שעה</button>
+                    <button class="urgent-btn urgent-btn-snooze" style="flex:1; font-size:0.82rem; padding:10px 6px;"
+                        onclick="snoozeUrgentAlert(2*60*60*1000)">⏰ 2 שעות</button>
+                    <button class="urgent-btn urgent-btn-snooze" style="flex:1; font-size:0.82rem; padding:10px 6px;"
+                        onclick="snoozeUrgentAlert(4*60*60*1000)">⏰ 4 שעות</button>
+                    <button class="urgent-btn urgent-btn-snooze" style="flex:1; font-size:0.82rem; padding:10px 6px;"
+                        onclick="snoozeUrgentAlert(8*60*60*1000)">⏰ 8 שעות</button>
+                </div>
+                <!-- Days chips -->
+                <div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:8px;">
+                    <button class="urgent-btn urgent-btn-tomorrow" style="flex:1; font-size:0.82rem; padding:10px 6px;"
+                        onclick="snoozeUrgentAlert(1*24*60*60*1000)">📅 יום</button>
+                    <button class="urgent-btn urgent-btn-tomorrow" style="flex:1; font-size:0.82rem; padding:10px 6px;"
+                        onclick="snoozeUrgentAlert(2*24*60*60*1000)">📅 2 ימים</button>
+                    <button class="urgent-btn urgent-btn-tomorrow" style="flex:1; font-size:0.82rem; padding:10px 6px;"
+                        onclick="snoozeUrgentAlert(3*24*60*60*1000)">📅 3 ימים</button>
+                </div>
                 <button class="urgent-btn urgent-btn-custom" onclick="openCustomSnooze()" style="background: #8b5cf6;">
                     ⚙️ מותאם אישית
                 </button>
