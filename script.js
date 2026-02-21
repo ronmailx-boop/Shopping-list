@@ -1473,15 +1473,6 @@ function openModal(id) {
         document.getElementById('itemQty').value = '1';
         document.getElementById('itemCategory').value = '';
 
-        // Restore continuous mode state
-        const continuous = localStorage.getItem('continuousAdd') === 'true';
-        const toggle = document.getElementById('continuousToggle');
-        const wrap = document.getElementById('continuousToggleWrap');
-        const btn = document.getElementById('addItemBtn');
-        if (toggle) toggle.checked = continuous;
-        if (wrap) wrap.classList.toggle('active', continuous);
-        if (btn) btn.textContent = continuous ? 'הוסף + המשך ➜' : 'הוסף ✓';
-
         // Update category dropdown with latest custom categories
         updateCategoryDropdown();
 
@@ -2847,30 +2838,6 @@ async function shareNative(type) {
     }
 }
 
-// ===== QUICK ADD: CONTINUOUS MODE =====
-function toggleContinuousMode() {
-    const toggle = document.getElementById('continuousToggle');
-    if (!toggle) return;
-    // sync checkbox state (called from both the label wrapper and the input onchange)
-    const isOn = toggle.checked;
-    localStorage.setItem('continuousAdd', isOn);
-
-    const wrap = document.getElementById('continuousToggleWrap');
-    const btn = document.getElementById('addItemBtn');
-    if (wrap) wrap.classList.toggle('active', isOn);
-    if (btn) btn.textContent = isOn ? 'הוסף + המשך ➜' : 'הוסף ✓';
-}
-
-// ===== QUICK ADD: ADVANCED DRAWER =====
-function toggleAdvancedDrawer() {
-    const drawer = document.getElementById('advancedDrawer');
-    const toggleBtn = document.getElementById('advancedToggleBtn');
-    if (!drawer || !toggleBtn) return;
-    const isOpen = drawer.classList.toggle('open');
-    toggleBtn.classList.toggle('open', isOpen);
-    toggleBtn.querySelector('span:first-child').textContent = isOpen ? '⚙️ הסתר פרטים' : '⚙️ פרטים נוספים';
-}
-
 function addItemToList(event) {
     if (event) event.preventDefault();
     
@@ -2944,17 +2911,7 @@ function addItemToList(event) {
         if (document.getElementById('itemReminderValue')) document.getElementById('itemReminderValue').value = '';
         if (document.getElementById('itemReminderUnit')) document.getElementById('itemReminderUnit').value = '';
 
-        // continuous mode: stay open or close
-        const continuous = localStorage.getItem('continuousAdd') === 'true';
-        if (continuous) {
-            // Stay open — refocus name field, flash button green
-            setTimeout(() => {
-                const nameEl = document.getElementById('itemName');
-                if (nameEl) nameEl.focus();
-            }, 80);
-        } else {
-            closeModal('inputForm');
-        }
+        closeModal('inputForm');
         save();
         showNotification('✅ מוצר נוסף!');
         if (typeof checkUrgentPayments === 'function') {
@@ -6700,6 +6657,12 @@ function exportToExcel() {
 // Check clipboard on app open/resume
 async function checkClipboardOnStartup() {
     try {
+        // Check if auto-open is disabled by user
+        if (localStorage.getItem('clipboardAutoOpen') === 'false') {
+            console.log('Clipboard auto-open disabled by user');
+            return;
+        }
+
         // Check if Clipboard API is available
         if (!navigator.clipboard || !navigator.clipboard.readText) {
             console.log('Clipboard API not available in this browser');
@@ -6751,12 +6714,30 @@ async function checkClipboardOnStartup() {
     }
 }
 
+// ===== CLIPBOARD AUTO-OPEN TOGGLE =====
+function toggleClipboardAutoOpen() {
+    const toggle = document.getElementById('clipboardAutoOpenToggle');
+    const label = document.getElementById('clipboardAutoOpenLabel');
+    if (!toggle) return;
+    const isOn = toggle.checked;
+    localStorage.setItem('clipboardAutoOpen', isOn ? 'true' : 'false');
+    if (label) label.textContent = isOn ? 'מופעל' : 'מושבת';
+    if (label) label.style.color = isOn ? '#7367f0' : '#94a3b8';
+}
+
 // Show clipboard import modal
 function showClipboardImportModal(text) {
     const modal = document.getElementById('clipboardImportModal');
     const textarea = document.getElementById('clipboardImportText');
     const detectedTypeDiv = document.getElementById('clipboardDetectedType');
     const detectedTypeName = document.getElementById('detectedTypeName');
+
+    // Init auto-open toggle state
+    const autoOpen = localStorage.getItem('clipboardAutoOpen') !== 'false';
+    const toggle = document.getElementById('clipboardAutoOpenToggle');
+    const label = document.getElementById('clipboardAutoOpenLabel');
+    if (toggle) toggle.checked = autoOpen;
+    if (label) { label.textContent = autoOpen ? 'מופעל' : 'מושבת'; label.style.color = autoOpen ? '#7367f0' : '#94a3b8'; }
 
     // Set the text
     textarea.value = text;
