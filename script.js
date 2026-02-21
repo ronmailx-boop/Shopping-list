@@ -52,7 +52,7 @@ function computeNextAlertTime(item) {
     if (!item.dueDate) return null;
     if (!item.reminderValue || !item.reminderUnit) return null;
 
-    const timeStr = item.dueTime ? item.dueTime : '00:00';
+    const timeStr = item.dueTime ? item.dueTime : '09:00';
     const dueDateMs = new Date(item.dueDate + 'T' + timeStr + ':00').getTime();
     const reminderMs = getReminderMilliseconds(item.reminderValue, item.reminderUnit);
     return dueDateMs - reminderMs;
@@ -6506,31 +6506,32 @@ if (typeof updateCategoryDropdown === 'function') {
 // Check for urgent payments on page load and display alerts
 function checkUrgentPayments() {
     const now = Date.now();
-
-    // Collect items whose nextAlertTime has arrived
     const alertItems = [];
+
     Object.keys(db.lists).forEach(listId => {
         const list = db.lists[listId];
         list.items.forEach((item, idx) => {
             if (item.checked || item.isPaid) return;
             if (!item.dueDate) return;
 
-            // Compute natural alert time for items missing nextAlertTime
+            // Get the scheduled alert time
             let alertTime = item.nextAlertTime;
             if (!alertTime && item.reminderValue && item.reminderUnit) {
                 alertTime = computeNextAlertTime(item);
+                item.nextAlertTime = alertTime; // sync it
             }
+            if (!alertTime) return;
+            if (now < alertTime) return; // not yet
 
-            if (alertTime && now >= alertTime) {
-                alertItems.push({ item, idx, listId });
-            }
+            // Skip if user dismissed this alert (and nextAlertTime hasn't changed since)
+            if (item.alertDismissedAt && item.alertDismissedAt >= alertTime) return;
+
+            alertItems.push({ item, idx, listId });
         });
     });
 
-    // Update notification center badge
     updateNotificationBadge();
 
-    // Show popup only if there are items to alert
     if (alertItems.length > 0) {
         showUrgentAlertModal(alertItems.map(a => a.item));
     }
@@ -6624,7 +6625,7 @@ function showUrgentAlertModal(urgentItems) {
     modal.classList.add('active');
 }
 
-// Snooze all currently-alerting items by setting their nextAlertTime
+// Snooze all currently-alerting items
 function snoozeUrgentAlert(ms) {
     const now = Date.now();
     const snoozeUntil = now + ms;
@@ -6632,26 +6633,40 @@ function snoozeUrgentAlert(ms) {
     Object.keys(db.lists).forEach(listId => {
         db.lists[listId].items.forEach(item => {
             if (item.checked || item.isPaid) return;
-            if (item.nextAlertTime && now >= item.nextAlertTime) {
-                item.nextAlertTime = snoozeUntil;
-            }
+            if (!item.dueDate) return;
+
+            const alertTime = item.nextAlertTime || computeNextAlertTime(item);
+            if (!alertTime) return;
+            // Only snooze items that are currently alerting (not yet dismissed)
+            if (now < alertTime) return;
+            if (item.alertDismissedAt && item.alertDismissedAt >= alertTime) return;
+
+            item.nextAlertTime = snoozeUntil;
+            item.alertDismissedAt = null; // clear dismiss so it fires again
         });
     });
 
     save();
     closeModal('urgentAlertModal');
     showNotification('⏰ תוזכר שוב בקרוב');
+    // Re-schedule timers so the snoozed time is picked up
+    checkAndScheduleNotifications();
 }
 
-// Close urgent alert — clear nextAlertTime (won't auto-popup again, still in center)
+// Close/dismiss urgent alert — mark as dismissed so it won't auto-popup again
 function closeUrgentAlert() {
     const now = Date.now();
     Object.keys(db.lists).forEach(listId => {
         db.lists[listId].items.forEach(item => {
             if (item.checked || item.isPaid) return;
-            if (item.nextAlertTime && now >= item.nextAlertTime) {
-                item.nextAlertTime = null; // dismiss — won't auto-popup, stays in center
-            }
+            if (!item.dueDate) return;
+
+            const alertTime = item.nextAlertTime || computeNextAlertTime(item);
+            if (!alertTime) return;
+            if (now < alertTime) return;
+            if (item.alertDismissedAt && item.alertDismissedAt >= alertTime) return;
+
+            item.alertDismissedAt = now; // mark dismissed — stays in notification center
         });
     });
     save();
@@ -7852,17 +7867,18 @@ let scheduledNotifications = new Map();
 
 // Check and schedule notifications for items with due dates
 function checkAndScheduleNotifications() {
-    const currentList = db.lists[db.currentId];
-    if (!currentList || !currentList.items) return;
-    
     // Clear existing timers
     scheduledNotifications.forEach(timer => clearTimeout(timer));
     scheduledNotifications.clear();
-    
-    currentList.items.forEach((item, index) => {
-        if (!item.checked && item.dueDate && item.reminderValue && item.reminderUnit) {
-            scheduleItemNotification(item, index);
-        }
+
+    // Scan ALL lists (not just current)
+    Object.keys(db.lists).forEach(listId => {
+        const list = db.lists[listId];
+        list.items.forEach((item, index) => {
+            if (!item.checked && !item.isPaid && item.dueDate && item.reminderValue && item.reminderUnit) {
+                scheduleItemNotification(item, index);
+            }
+        });
     });
 }
 
@@ -7871,7 +7887,7 @@ function scheduleItemNotification(item, index) {
     try {
         const now = Date.now();
 
-        // Calculate the "natural" alert time from dueDate + reminder
+        // Calculate natural alert time
         const dueDateObj = new Date(item.dueDate);
         if (item.dueTime) {
             const [h, m] = item.dueTime.split(':');
@@ -7882,32 +7898,31 @@ function scheduleItemNotification(item, index) {
         const reminderMs = getReminderMilliseconds(item.reminderValue, item.reminderUnit);
         const naturalAlertTime = dueDateObj.getTime() - reminderMs;
 
-        // Decide the actual fire time:
-        // - If nextAlertTime is in the future (snoozed) → use it
-        // - Otherwise → use naturalAlertTime
+        // Decide fire time: snoozed time takes priority
         let notificationTime;
         if (item.nextAlertTime && item.nextAlertTime > now) {
-            notificationTime = item.nextAlertTime; // snoozed — respect it
+            notificationTime = item.nextAlertTime; // snoozed
         } else {
             notificationTime = naturalAlertTime;
-            // Sync nextAlertTime so checkUrgentPayments knows about it
             if (!item.nextAlertTime) {
-                item.nextAlertTime = naturalAlertTime;
+                item.nextAlertTime = naturalAlertTime; // sync
             }
         }
 
+        // If already dismissed for this alert cycle — skip
+        if (item.alertDismissedAt && item.alertDismissedAt >= notificationTime && notificationTime <= now) {
+            return;
+        }
+
         if (notificationTime > now) {
-            // Future — schedule timer
             const delay = notificationTime - now;
             const timerId = setTimeout(() => {
-                showItemNotification(item, index);
-                checkUrgentPayments();
+                checkUrgentPayments(); // let checkUrgentPayments handle showing
             }, delay);
             scheduledNotifications.set(`${item.cloudId || index}`, timerId);
             console.log(`📅 Scheduled: "${item.name}" in ${Math.round(delay/1000)}s`);
-        } else if (now >= notificationTime && now <= dueDateObj.getTime() + 24*60*60*1000) {
-            // Past alert time but item still relevant — show immediately
-            // (checkUrgentPayments will pick it up since nextAlertTime <= now)
+        } else if (now >= notificationTime) {
+            // Past — checkUrgentPayments will handle on next tick
             checkUrgentPayments();
         }
     } catch (error) {
