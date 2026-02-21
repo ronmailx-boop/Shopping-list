@@ -81,12 +81,12 @@ exports.sendScheduledReminders = functions.https.onRequest(async (req, res) => {
               const diff = Math.abs(alertTimeMs - nowMs);
               if (diff < 60000) {
                 // הגיע הזמן — אבל בדוק שלא כבר נשלחה
-                if (item.alertDismissedAt && item.alertDismissedAt >= alertTimeMs) return;
+                if (item.notificationSentAt && item.notificationSentAt >= alertTimeMs) return; // prevent duplicate sends
                 shouldFire = true;
                 console.log(`🔔 [nextAlertTime] תזכורת! פריט: "${item.name}" | זמן: ${new Date(alertTimeMs).toISOString()}`);
                 // סמן כ-dismissed (הושלח) — לא מאפסים nextAlertTime
                 // כך הקליינט ידע שזה נשלח ויוכל לאפשר snooze נוסף
-                updatedLists[listId].items[itemIdx].alertDismissedAt = nowMs;
+                updatedLists[listId].items[itemIdx].notificationSentAt = nowMs; // only marks sent, NOT dismissed - client modal still shows
                 docNeedsUpdate = true;
               }
             } else {
