@@ -1552,6 +1552,19 @@
                         console.log('SW registration failed:', error);
                     });
             });
+
+            // האזנה להודעות מה-Service Worker (למשל כשמשתמש לוחץ על התראה)
+            navigator.serviceWorker.addEventListener('message', event => {
+                console.log('[App] Message from SW:', event.data);
+                if (event.data?.type === 'SHOW_URGENT_ALERT') {
+                    // המתן קצת שה-script.js יהיה מוכן
+                    setTimeout(() => {
+                        if (typeof checkUrgentPayments === 'function') {
+                            checkUrgentPayments();
+                        }
+                    }, 500);
+                }
+            });
         }
     </script>
 
