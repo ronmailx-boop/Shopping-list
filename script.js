@@ -1473,6 +1473,15 @@ function openModal(id) {
         document.getElementById('itemQty').value = '1';
         document.getElementById('itemCategory').value = '';
 
+        // Restore continuous mode state
+        const continuous = localStorage.getItem('continuousAdd') === 'true';
+        const toggle = document.getElementById('continuousToggle');
+        const wrap = document.getElementById('continuousToggleWrap');
+        const btn = document.getElementById('addItemBtn');
+        if (toggle) toggle.checked = continuous;
+        if (wrap) wrap.classList.toggle('active', continuous);
+        if (btn) btn.textContent = continuous ? 'הוסף + המשך ➜' : 'הוסף ✓';
+
         // Update category dropdown with latest custom categories
         updateCategoryDropdown();
 
@@ -2838,6 +2847,30 @@ async function shareNative(type) {
     }
 }
 
+// ===== QUICK ADD: CONTINUOUS MODE =====
+function toggleContinuousMode() {
+    const toggle = document.getElementById('continuousToggle');
+    if (!toggle) return;
+    // sync checkbox state (called from both the label wrapper and the input onchange)
+    const isOn = toggle.checked;
+    localStorage.setItem('continuousAdd', isOn);
+
+    const wrap = document.getElementById('continuousToggleWrap');
+    const btn = document.getElementById('addItemBtn');
+    if (wrap) wrap.classList.toggle('active', isOn);
+    if (btn) btn.textContent = isOn ? 'הוסף + המשך ➜' : 'הוסף ✓';
+}
+
+// ===== QUICK ADD: ADVANCED DRAWER =====
+function toggleAdvancedDrawer() {
+    const drawer = document.getElementById('advancedDrawer');
+    const toggleBtn = document.getElementById('advancedToggleBtn');
+    if (!drawer || !toggleBtn) return;
+    const isOpen = drawer.classList.toggle('open');
+    toggleBtn.classList.toggle('open', isOpen);
+    toggleBtn.querySelector('span:first-child').textContent = isOpen ? '⚙️ הסתר פרטים' : '⚙️ פרטים נוספים';
+}
+
 function addItemToList(event) {
     if (event) event.preventDefault();
     
@@ -2911,7 +2944,17 @@ function addItemToList(event) {
         if (document.getElementById('itemReminderValue')) document.getElementById('itemReminderValue').value = '';
         if (document.getElementById('itemReminderUnit')) document.getElementById('itemReminderUnit').value = '';
 
-        closeModal('inputForm');
+        // continuous mode: stay open or close
+        const continuous = localStorage.getItem('continuousAdd') === 'true';
+        if (continuous) {
+            // Stay open — refocus name field, flash button green
+            setTimeout(() => {
+                const nameEl = document.getElementById('itemName');
+                if (nameEl) nameEl.focus();
+            }, 80);
+        } else {
+            closeModal('inputForm');
+        }
         save();
         showNotification('✅ מוצר נוסף!');
         if (typeof checkUrgentPayments === 'function') {
