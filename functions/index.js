@@ -2,6 +2,7 @@
  * Firebase Cloud Functions for VPlus Push Notifications
  * שולח התראות push כשיש שינויים ברשימת קניות
  * + שולח תזכורות מתוזמנות לפי dueDate/dueTime
+ * + תומך ב-nextAlertTime לדחיית התראות (snooze)
  */
 
 const functions = require('firebase-functions');
@@ -16,7 +17,9 @@ exports.sendScheduledReminders = functions.https.onRequest(async (req, res) => {
     console.log('⏰ בודק תזכורות מתוזמנות...');
     
     const now = new Date();
-    // עיגול לדקה הנוכחית
+    const nowMs = now.getTime();
+    
+    // עיגול לדקה הנוכחית (לבדיקת זמן טבעי)
     const nowMinute = new Date(now);
     nowMinute.setSeconds(0, 0);
     
@@ -46,46 +49,72 @@ exports.sendScheduledReminders = functions.https.onRequest(async (req, res) => {
         .get();
       
       const reminderPromises = [];
+      // מעקב אחר פריטים שצריך לאפס את nextAlertTime שלהם לאחר שליחה
+      const firestoreUpdates = [];
       
       shoppingListsSnapshot.forEach(doc => {
         const userId = doc.id;
         const token = userTokens[userId];
         
-        if (!token) return; // אין token למשתמש הזה
+        if (!token) return;
         
         const data = doc.data();
         if (!data.lists) return;
         
-        // עבור על כל הרשימות
-        Object.values(data.lists).forEach(list => {
+        let docNeedsUpdate = false;
+        const updatedLists = JSON.parse(JSON.stringify(data.lists)); // deep copy
+
+        Object.entries(updatedLists).forEach(([listId, list]) => {
           if (!list.items || !Array.isArray(list.items)) return;
           
-          list.items.forEach(item => {
-            if (item.checked) return; // דלג על פריטים שהושלמו
+          list.items.forEach((item, itemIdx) => {
+            if (item.checked) return;
             if (!item.dueDate || !item.reminderValue || !item.reminderUnit) return;
-            
-            // חשב את זמן היעד - עם timezone ישראל (UTC+2)
-            // dueDate נשמר כ-"YYYY-MM-DD" ו-dueTime כ-"HH:MM" בשעון ישראל
-            const timeStr = item.dueTime || '09:00';
-            const dueDateObj = new Date(item.dueDate + 'T' + timeStr + ':00+02:00');
-            
-            console.log(`📋 פריט: "${item.name}" | יעד: ${dueDateObj.toISOString()} | תזכורת: ${item.reminderValue} ${item.reminderUnit} לפני`);
-            
-            const reminderMs = getReminderMilliseconds(
-              parseInt(item.reminderValue),
-              item.reminderUnit
-            );
-            
-            const reminderTime = new Date(dueDateObj.getTime() - reminderMs);
-            reminderTime.setSeconds(0, 0); // עיגול לדקה
-            
-            console.log(`⏱️ זמן תזכורת: ${reminderTime.toISOString()} | עכשיו: ${nowMinute.toISOString()}`);
-            
-            // בדוק אם זמן התזכורת הוא עכשיו - טווח סבלנות של 60 שניות
-            const diff = Math.abs(reminderTime.getTime() - nowMinute.getTime());
-            if (diff < 60000) {
-              console.log(`🔔 תזכורת! פריט: "${item.name}" למשתמש: ${userId}`);
+
+            // ─── קביעת זמן ההתראה ───
+            let shouldFire = false;
+            let alertTimeMs = null;
+
+            if (item.nextAlertTime) {
+              // יש nextAlertTime — זה snooze או זמן מתוזמן מהאפליקציה
+              alertTimeMs = item.nextAlertTime;
+              const diff = Math.abs(alertTimeMs - nowMs);
+              if (diff < 60000) {
+                // הגיע הזמן
+                shouldFire = true;
+                console.log(`🔔 [nextAlertTime] תזכורת! פריט: "${item.name}" | זמן: ${new Date(alertTimeMs).toISOString()}`);
+                // אפס nextAlertTime לאחר שליחה
+                updatedLists[listId].items[itemIdx].nextAlertTime = null;
+                updatedLists[listId].items[itemIdx].alertDismissedAt = null;
+                docNeedsUpdate = true;
+              }
+            } else {
+              // אין nextAlertTime — חשב מ-dueDate כרגיל
+              const timeStr = item.dueTime || '09:00';
+              const dueDateObj = new Date(item.dueDate + 'T' + timeStr + ':00+02:00');
               
+              const reminderMs = getReminderMilliseconds(
+                parseInt(item.reminderValue),
+                item.reminderUnit
+              );
+              
+              const reminderTime = new Date(dueDateObj.getTime() - reminderMs);
+              reminderTime.setSeconds(0, 0);
+              
+              console.log(`📋 [natural] פריט: "${item.name}" | זמן תזכורת: ${reminderTime.toISOString()}`);
+              
+              const diff = Math.abs(reminderTime.getTime() - nowMinute.getTime());
+              if (diff < 60000) {
+                shouldFire = true;
+                alertTimeMs = reminderTime.getTime();
+                console.log(`🔔 [natural] תזכורת! פריט: "${item.name}"`);
+                // סנכרן nextAlertTime כדי שהאפליקציה תדע שהתראה נשלחה
+                updatedLists[listId].items[itemIdx].nextAlertTime = alertTimeMs;
+                docNeedsUpdate = true;
+              }
+            }
+
+            if (shouldFire) {
               const timeText = item.dueTime || '09:00';
               const dateText = new Date(item.dueDate).toLocaleDateString('he-IL');
               
@@ -105,13 +134,26 @@ exports.sendScheduledReminders = functions.https.onRequest(async (req, res) => {
             }
           });
         });
+
+        // שמור שינויים ב-Firestore אם יש
+        if (docNeedsUpdate) {
+          firestoreUpdates.push(
+            doc.ref.update({ lists: updatedLists })
+              .then(() => console.log(`✅ עודכן nextAlertTime עבור משתמש: ${userId}`))
+              .catch(err => console.error(`❌ שגיאה בעדכון Firestore:`, err))
+          );
+        }
       });
       
       if (reminderPromises.length === 0) {
         console.log('✅ אין תזכורות לשלוח כרגע');
       } else {
-        await Promise.all(reminderPromises);
+        await Promise.all([...reminderPromises, ...firestoreUpdates]);
         console.log(`✅ נשלחו ${reminderPromises.length} תזכורות`);
+      }
+
+      if (firestoreUpdates.length > 0 && reminderPromises.length === 0) {
+        await Promise.all(firestoreUpdates);
       }
       
     } catch (error) {
