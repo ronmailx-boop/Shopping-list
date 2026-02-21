@@ -7861,37 +7861,45 @@ function checkAndScheduleNotifications() {
 // Schedule a single notification for an item
 function scheduleItemNotification(item, index) {
     try {
-        // Parse due date and time
-        const dueDateObj = new Date(item.dueDate);
-        
-        // If time is specified, set it
-        if (item.dueTime) {
-            const [hours, minutes] = item.dueTime.split(':');
-            dueDateObj.setHours(parseInt(hours), parseInt(minutes), 0, 0);
-        } else {
-            // Default to 9:00 AM if no time specified
-            dueDateObj.setHours(9, 0, 0, 0);
-        }
-        
-        // Calculate reminder time
-        const reminderMs = getReminderMilliseconds(item.reminderValue, item.reminderUnit);
-        const notificationTime = dueDateObj.getTime() - reminderMs;
         const now = Date.now();
-        
-        // Only schedule if notification time is in the future
+
+        // Determine when to fire:
+        // If nextAlertTime is set and in the future — use it (respects snooze)
+        // If nextAlertTime is null or in the past — calculate from dueDate
+        let notificationTime;
+
+        if (item.nextAlertTime && item.nextAlertTime > now) {
+            // Snoozed — fire at the snoozed time
+            notificationTime = item.nextAlertTime;
+        } else if (item.nextAlertTime && item.nextAlertTime <= now) {
+            // Already fired and not yet dismissed — don't re-fire automatically
+            // checkUrgentPayments handles the popup for these
+            return;
+        } else {
+            // No nextAlertTime — calculate from dueDate + reminder
+            const dueDateObj = new Date(item.dueDate);
+            if (item.dueTime) {
+                const [h, m] = item.dueTime.split(':');
+                dueDateObj.setHours(parseInt(h), parseInt(m), 0, 0);
+            } else {
+                dueDateObj.setHours(9, 0, 0, 0);
+            }
+            const reminderMs = getReminderMilliseconds(item.reminderValue, item.reminderUnit);
+            notificationTime = dueDateObj.getTime() - reminderMs;
+        }
+
         if (notificationTime > now) {
+            // Schedule for future
             const delay = notificationTime - now;
-            
             const timerId = setTimeout(() => {
+                // When timer fires, update nextAlertTime on the item and show
+                item.nextAlertTime = notificationTime;
+                save();
                 showItemNotification(item, index);
+                checkUrgentPayments();
             }, delay);
-            
             scheduledNotifications.set(`${item.cloudId || index}`, timerId);
-            
-            console.log(`📅 Scheduled notification for "${item.name}" at ${new Date(notificationTime).toLocaleString()}`);
-        } else if (now >= notificationTime && now <= dueDateObj.getTime()) {
-            // If we're past the reminder time but before the due time, show now
-            showItemNotification(item, index);
+            console.log(`📅 Scheduled: "${item.name}" at ${new Date(notificationTime).toLocaleString()}`);
         }
     } catch (error) {
         console.error('Error scheduling notification:', error);
