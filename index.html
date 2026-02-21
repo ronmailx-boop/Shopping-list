@@ -298,6 +298,136 @@
         .add-item-btn { transition: background 0.2s, transform 0.15s; }
         .add-item-btn:active { transform: scale(0.97); }
 
+        /* ===== CONTEXT BAR - list selector ===== */
+        .context-bar {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            margin-bottom: 8px;
+            padding: 6px 10px;
+            background: #f0eeff;
+            border-radius: 12px;
+            border: 1.5px solid #ddd6fe;
+            position: relative;
+        }
+        .context-bar-label {
+            font-size: 0.7rem;
+            font-weight: 700;
+            color: #9ca3af;
+            white-space: nowrap;
+            flex-shrink: 0;
+        }
+        .context-list-btn {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 4px;
+            background: white;
+            border: 1.5px solid #c4b5fd;
+            border-radius: 8px;
+            padding: 4px 10px;
+            cursor: pointer;
+            transition: background 0.15s, border-color 0.15s;
+            min-width: 0;
+        }
+        .context-list-btn:active { background: #f5f3ff; }
+        .context-list-name {
+            font-size: 0.82rem;
+            font-weight: 800;
+            color: #7367f0;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 140px;
+        }
+        .context-list-arrow {
+            font-size: 0.65rem;
+            color: #a78bfa;
+            flex-shrink: 0;
+            transition: transform 0.2s;
+        }
+        .context-list-btn.open .context-list-arrow {
+            transform: rotate(180deg);
+        }
+        /* Dropdown */
+        .list-dropdown {
+            position: absolute;
+            top: calc(100% + 4px);
+            left: 0;
+            right: 0;
+            background: white;
+            border-radius: 14px;
+            border: 1.5px solid #e0e7ff;
+            box-shadow: 0 8px 24px rgba(115,103,240,0.15);
+            z-index: 9999;
+            overflow: hidden;
+            max-height: 0;
+            opacity: 0;
+            transition: max-height 0.28s cubic-bezier(0.4,0,0.2,1), opacity 0.2s ease;
+        }
+        .list-dropdown.open {
+            max-height: 280px;
+            opacity: 1;
+        }
+        .list-dropdown-scroll {
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        .list-dropdown-item {
+            padding: 10px 14px;
+            font-size: 0.85rem;
+            font-weight: 700;
+            color: #374151;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            border-bottom: 1px solid #f3f4f6;
+            transition: background 0.12s;
+        }
+        .list-dropdown-item:last-child { border-bottom: none; }
+        .list-dropdown-item:active { background: #f5f3ff; }
+        .list-dropdown-item.active {
+            background: #f0eeff;
+            color: #7367f0;
+        }
+        .list-dropdown-item.active::before { content: '✓'; font-size: 0.75rem; }
+        .list-dropdown-item:not(.active)::before { content: ''; width: 12px; display: inline-block; }
+        .list-dropdown-new {
+            padding: 8px 10px;
+            border-top: 2px solid #e0e7ff;
+            background: #f8f7ff;
+        }
+        .list-dropdown-new-row {
+            display: flex;
+            gap: 6px;
+            align-items: center;
+        }
+        .list-dropdown-new-input {
+            flex: 1;
+            border: 1.5px solid #c4b5fd;
+            border-radius: 8px;
+            padding: 6px 10px;
+            font-size: 0.82rem;
+            font-weight: 700;
+            outline: none;
+            background: white;
+            color: #1e1b4b;
+        }
+        .list-dropdown-new-input:focus { border-color: #7367f0; }
+        .list-dropdown-new-btn {
+            background: linear-gradient(135deg, #7367f0, #9055ff);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            padding: 6px 12px;
+            font-size: 0.8rem;
+            font-weight: 800;
+            cursor: pointer;
+            white-space: nowrap;
+        }
+
         .app-header {
             background: white;
             padding: 10px 20px;
@@ -1932,6 +2062,28 @@ ${error.message}
                     </label>
                 </label>
                 <h2 class="quick-add-title" id="addItemModalTitle">הוספת מוצר</h2>
+            </div>
+
+            <!-- Context bar: which list -->
+            <div class="context-bar" id="contextBar">
+                <span class="context-bar-label">➕ מתווסף אל:</span>
+                <button class="context-list-btn" id="contextListBtn" onclick="event.stopPropagation(); toggleListDropdown()">
+                    <span class="context-list-name" id="contextListName">...</span>
+                    <span class="context-list-arrow">▾</span>
+                </button>
+                <!-- Dropdown -->
+                <div class="list-dropdown" id="listDropdown">
+                    <div class="list-dropdown-scroll" id="listDropdownScroll"></div>
+                    <div class="list-dropdown-new">
+                        <div class="list-dropdown-new-row">
+                            <input class="list-dropdown-new-input" id="newListFromDropdown"
+                                placeholder="+ שם רשימה חדשה"
+                                onclick="event.stopPropagation()"
+                                onkeydown="if(event.key==='Enter'){event.stopPropagation();createListFromDropdown();}">
+                            <button class="list-dropdown-new-btn" onclick="event.stopPropagation(); createListFromDropdown()">צור ✓</button>
+                        </div>
+                    </div>
+                </div>
             </div>
 
             <!-- Name field with embedded mic button -->
