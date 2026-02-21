@@ -184,122 +184,6 @@
             font-size: 1.15rem;
         }
 
-        /* ===== QUICK ADD MODAL ===== */
-        .quick-add-header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            margin-bottom: 10px;
-            padding: 0 2px;
-        }
-        .quick-add-title {
-            font-size: 1.1rem;
-            font-weight: 800;
-            color: #1e1b4b;
-            margin: 0;
-        }
-        .continuous-toggle-wrap {
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            cursor: pointer;
-            user-select: none;
-        }
-        .continuous-toggle-label {
-            font-size: 0.7rem;
-            font-weight: 700;
-            color: #94a3b8;
-            transition: color 0.2s;
-            white-space: nowrap;
-        }
-        .continuous-toggle-wrap.active .continuous-toggle-label {
-            color: #7367f0;
-        }
-        .toggle-switch {
-            position: relative;
-            width: 38px;
-            height: 22px;
-            flex-shrink: 0;
-        }
-        .toggle-switch input {
-            opacity: 0;
-            width: 0;
-            height: 0;
-            position: absolute;
-        }
-        .toggle-track {
-            position: absolute;
-            inset: 0;
-            background: #e2e8f0;
-            border-radius: 999px;
-            transition: background 0.25s;
-            cursor: pointer;
-        }
-        .toggle-track::after {
-            content: '';
-            position: absolute;
-            top: 3px;
-            right: 3px;
-            width: 16px;
-            height: 16px;
-            background: white;
-            border-radius: 50%;
-            transition: transform 0.25s, box-shadow 0.25s;
-            box-shadow: 0 1px 4px rgba(0,0,0,0.2);
-        }
-        .toggle-switch input:checked + .toggle-track {
-            background: linear-gradient(135deg, #7367f0, #9055ff);
-        }
-        .toggle-switch input:checked + .toggle-track::after {
-            transform: translateX(-16px);
-        }
-        .price-qty-row {
-            display: flex;
-            gap: 8px;
-        }
-        .price-qty-row .modal-input {
-            flex: 1;
-        }
-        .advanced-drawer {
-            overflow: hidden;
-            max-height: 0;
-            transition: max-height 0.35s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s ease;
-            opacity: 0;
-        }
-        .advanced-drawer.open {
-            max-height: 600px;
-            opacity: 1;
-        }
-        .advanced-toggle-btn {
-            width: 100%;
-            background: #f8f7ff;
-            border: 2px solid #e0e7ff;
-            border-radius: 14px;
-            padding: 9px 14px;
-            font-size: 0.8rem;
-            font-weight: 700;
-            color: #7367f0;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 6px;
-            margin-bottom: 8px;
-            transition: background 0.2s;
-        }
-        .advanced-toggle-btn:active { background: #ede9fe; }
-        .advanced-toggle-btn .adv-arrow {
-            transition: transform 0.3s;
-            display: inline-block;
-        }
-        .advanced-toggle-btn.open .adv-arrow {
-            transform: rotate(180deg);
-        }
-        .add-item-btn {
-            transition: background 0.2s, transform 0.15s;
-        }
-        .add-item-btn:active { transform: scale(0.97); }
-
         .app-header {
             background: white;
             padding: 10px 20px;
@@ -1923,88 +1807,65 @@ ${error.message}
     <!-- Modals -->
     <div id="inputForm" class="modal-overlay no-print">
         <div class="edit-modal" style="position: relative;">
+            <h2 id="addItemModalTitle">הוספת מוצר</h2>
 
-            <!-- Header: title + continuous toggle -->
-            <div class="quick-add-header">
-                <label class="continuous-toggle-wrap" id="continuousToggleWrap" onclick="event.stopPropagation(); toggleContinuousMode()">
-                    <span class="continuous-toggle-label" id="continuousLabel">⚡ הוספה רציפה</span>
-                    <label class="toggle-switch" onclick="event.stopPropagation()">
-                        <input type="checkbox" id="continuousToggle" onchange="toggleContinuousMode()">
-                        <span class="toggle-track"></span>
-                    </label>
-                </label>
-                <h2 class="quick-add-title" id="addItemModalTitle">הוספת מוצר</h2>
-            </div>
-
-            <!-- Voice button -->
-            <button onclick="startVoiceInput()" id="voiceBtn"
-                class="absolute top-4 left-4 w-11 h-11 bg-purple-500 rounded-full flex items-center justify-center shadow-lg border-2 border-white/30 text-white"
-                style="z-index: 10;" title="הקלט קולי">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                        d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z">
-                    </path>
-                </svg>
-            </button>
-
-            <!-- Core fields: name, price, qty -->
+            <!-- Voice button embedded in name field -->
             <div style="position: relative;">
-                <input type="text" id="itemName" placeholder="שם המוצר" class="modal-input" autocomplete="off">
+                <input type="text" id="itemName" placeholder="שם המוצר" class="modal-input" autocomplete="off"
+                    style="padding-left: 48px;">
+                <button onclick="event.stopPropagation(); startVoiceInput()" id="voiceBtn"
+                    title="הקלט קולי"
+                    style="position:absolute; left:6px; top:50%; transform:translateY(-50%);
+                           width:36px; height:36px; border-radius:50%; border:none;
+                           background:linear-gradient(135deg,#9055ff,#7367f0);
+                           color:white; display:flex; align-items:center; justify-content:center;
+                           cursor:pointer; box-shadow:0 2px 8px rgba(115,103,240,0.4);
+                           transition:transform 0.2s, box-shadow 0.2s; flex-shrink:0;">
+                    <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z"/>
+                    </svg>
+                </button>
                 <div id="autocompleteContainer" class="autocomplete-container"></div>
             </div>
-            <div class="price-qty-row">
-                <input type="number" id="itemPrice" inputmode="decimal" placeholder="💰 מחיר" class="modal-input">
-                <input type="number" id="itemQty" placeholder="🔢 כמות" class="modal-input" value="1" min="1">
-            </div>
-
-            <!-- Advanced drawer toggle -->
-            <button class="advanced-toggle-btn" id="advancedToggleBtn" onclick="event.stopPropagation(); toggleAdvancedDrawer()">
-                <span>⚙️ פרטים נוספים</span>
-                <span class="adv-arrow">▾</span>
-            </button>
-
-            <!-- Advanced drawer content -->
-            <div class="advanced-drawer" id="advancedDrawer">
-                <label class="text-sm font-bold text-gray-600 block text-center mb-1">📅 תאריך ושעת יעד</label>
-                <input type="date" id="itemDueDate" class="modal-input">
-                <input type="time" id="itemDueTime" class="modal-input">
-                <input type="url" id="itemPaymentUrl" placeholder="🔗 קישור לתשלום (אופציונלי)" class="modal-input">
-                <input type="text" id="itemNotes" placeholder="📝 הערות (אופציונלי)" class="modal-input">
-                <select id="itemCategory" class="modal-input">
-                    <option value="">בחר קטגוריה (אופציונלי)</option>
-                    <option value="פירות וירקות">🥬 פירות וירקות</option>
-                    <option value="בשר ודגים">🥩 בשר ודגים</option>
-                    <option value="חלב וביצים">🥛 חלב וביצים</option>
-                    <option value="לחם ומאפים">🍞 לחם ומאפים</option>
-                    <option value="שימורים">🥫 שימורים</option>
-                    <option value="חטיפים">🍪 חטיפים</option>
-                    <option value="משקאות">🥤 משקאות</option>
-                    <option value="ניקיון">🧹 ניקיון</option>
-                    <option value="היגיינה">🧴 היגיינה</option>
-                    <option value="אחר">📦 אחר</option>
-                </select>
-                <div style="margin-bottom: 8px;">
-                    <label class="text-sm font-bold text-gray-600 block text-center mb-1">🔔 התראה מראש</label>
-                    <div class="flex gap-2">
-                        <input type="number" id="itemReminderValue" placeholder="מספר" class="modal-input" min="0" style="flex: 1;">
-                        <select id="itemReminderUnit" class="modal-input" style="flex: 1;">
-                            <option value="">בחר יחידה</option>
-                            <option value="minutes">דקות</option>
-                            <option value="hours">שעות</option>
-                            <option value="days">ימים</option>
-                            <option value="weeks">שבועות</option>
-                        </select>
-                    </div>
+            <input type="number" id="itemPrice" inputmode="decimal" placeholder="מחיר" class="modal-input">
+            <input type="number" id="itemQty" placeholder="כמות" class="modal-input" value="1" min="1">
+            <label class="text-sm font-bold text-gray-600 block text-center mb-1">📅 תאריך ושעת יעד</label>
+            <input type="date" id="itemDueDate" placeholder="תאריך יעד (אופציונלי)" class="modal-input">
+            <input type="time" id="itemDueTime" placeholder="שעת יעד (אופציונלי)" class="modal-input">
+            <input type="url" id="itemPaymentUrl" placeholder="🔗 קישור לתשלום (אופציונלי)" class="modal-input">
+            <input type="text" id="itemNotes" placeholder="📝 הערות (אופציונלי)" class="modal-input">
+            <select id="itemCategory" class="modal-input">
+                <option value="">בחר קטגוריה (אופציונלי)</option>
+                <option value="פירות וירקות">🥬 פירות וירקות</option>
+                <option value="בשר ודגים">🥩 בשר ודגים</option>
+                <option value="חלב וביצים">🥛 חלב וביצים</option>
+                <option value="לחם ומאפים">🍞 לחם ומאפים</option>
+                <option value="שימורים">🥫 שימורים</option>
+                <option value="חטיפים">🍪 חטיפים</option>
+                <option value="משקאות">🥤 משקאות</option>
+                <option value="ניקיון">🧹 ניקיון</option>
+                <option value="היגיינה">🧴 היגיינה</option>
+                <option value="אחר">📦 אחר</option>
+            </select>
+            <div style="margin-bottom: 5px;">
+                <label class="text-sm font-bold text-gray-600 block text-center mb-1">🔔 התראה מראש</label>
+                <div class="flex gap-2">
+                    <input type="number" id="itemReminderValue" placeholder="מספר" class="modal-input" min="0" style="flex: 1;">
+                    <select id="itemReminderUnit" class="modal-input" style="flex: 1;">
+                        <option value="">בחר יחידה</option>
+                        <option value="minutes">דקות</option>
+                        <option value="hours">שעות</option>
+                        <option value="days">ימים</option>
+                        <option value="weeks">שבועות</option>
+                    </select>
                 </div>
             </div>
-
-            <!-- Action buttons -->
-            <div class="flex gap-3" style="margin-top: 4px;">
-                <button class="bg-green-500 text-white flex-1 py-4 rounded-xl font-bold shadow-md add-item-btn"
-                    id="addItemBtn"
-                    onclick="event.stopPropagation(); addItemToList(event);">הוסף ✓</button>
-                <button class="bg-gray-100 text-gray-500 py-4 px-6 rounded-xl font-bold"
-                    onclick="event.stopPropagation(); closeModal('inputForm');">סגור</button>
+            <div class="flex gap-3">
+                <button class="bg-green-500 text-white flex-1 py-4 rounded-xl font-bold shadow-md"
+                    onclick="event.stopPropagation(); addItemToList(event);">הוסף</button>
+                <button class="bg-gray-100 text-gray-500 flex-1 py-4 rounded-xl font-bold"
+                    onclick="event.stopPropagation(); closeModal('inputForm');">ביטול</button>
             </div>
         </div>
     </div>
@@ -2336,6 +2197,17 @@ ${error.message}
             <h2>ייבוא רשימה מטקסט</h2>
             <p class="text-sm text-gray-600 mb-2">הדבק טקסט מואוטסאפ או כל רשימה</p>
             
+            <!-- Auto-open toggle -->
+            <div style="display:flex; align-items:center; justify-content:center; gap:8px; margin-bottom:12px;
+                        background:#f8f7ff; border-radius:12px; padding:8px 14px; border:1.5px solid #e0e7ff;">
+                <span style="font-size:0.75rem; font-weight:700; color:#7367f0;">פתיחה אוטומטית</span>
+                <label class="toggle-switch" onclick="event.stopPropagation()">
+                    <input type="checkbox" id="clipboardAutoOpenToggle" checked onchange="toggleClipboardAutoOpen()">
+                    <span class="toggle-track"></span>
+                </label>
+                <span id="clipboardAutoOpenLabel" style="font-size:0.72rem; font-weight:600; color:#94a3b8; min-width:60px;">מופעל</span>
+            </div>
+
             <div id="clipboardDetectedType" class="mb-3 p-3 bg-indigo-50 rounded-xl text-center">
                 <p class="text-sm text-gray-600 mb-1">סוג רשימה מזוהה:</p>
                 <p id="detectedTypeName" class="font-bold text-indigo-600">🛒 רשימת קניות</p>
