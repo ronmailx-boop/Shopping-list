@@ -80,12 +80,13 @@ exports.sendScheduledReminders = functions.https.onRequest(async (req, res) => {
               alertTimeMs = item.nextAlertTime;
               const diff = Math.abs(alertTimeMs - nowMs);
               if (diff < 60000) {
-                // הגיע הזמן
+                // הגיע הזמן — אבל בדוק שלא כבר נשלחה
+                if (item.alertDismissedAt && item.alertDismissedAt >= alertTimeMs) return;
                 shouldFire = true;
                 console.log(`🔔 [nextAlertTime] תזכורת! פריט: "${item.name}" | זמן: ${new Date(alertTimeMs).toISOString()}`);
-                // אפס nextAlertTime לאחר שליחה
-                updatedLists[listId].items[itemIdx].nextAlertTime = null;
-                updatedLists[listId].items[itemIdx].alertDismissedAt = null;
+                // סמן כ-dismissed (הושלח) — לא מאפסים nextAlertTime
+                // כך הקליינט ידע שזה נשלח ויוכל לאפשר snooze נוסף
+                updatedLists[listId].items[itemIdx].alertDismissedAt = nowMs;
                 docNeedsUpdate = true;
               }
             } else {
