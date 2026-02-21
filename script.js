@@ -4477,6 +4477,11 @@ function setupFirestoreListener(user) {
                 localStorage.setItem('BUDGET_FINAL_V28', JSON.stringify(db));
                 render();
                 showNotification('☁️ סונכרן מהענן!', 'success');
+                // בדוק התראות דחופות לאחר סנכרון מהענן
+                // זה חשוב כשהאפליקציה נפתחת לאחר לחיצה על התראה
+                if (typeof checkUrgentPayments === 'function') {
+                    checkUrgentPayments();
+                }
             }
         } else {
             console.log('📝 מסמך לא קיים בענן, יוצר חדש...');
@@ -6547,6 +6552,8 @@ function checkUrgentPayments() {
 
             // Skip if user dismissed this alert — אלא אם כן הגענו מלחיצה על התראה
             if (!forceShow && item.alertDismissedAt && item.alertDismissedAt >= alertTime) return;
+            // הצג גם אם notificationSentAt קיים (השרת שלח התראה) ו-alertDismissedAt לא קיים (המשתמש לא סגר)
+            // זה מאפשר לאפליקציה להציג את המודל כשנפתחת לאחר לחיצה על התראה
 
             alertItems.push({ item, idx, listId });
         });
