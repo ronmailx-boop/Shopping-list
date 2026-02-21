@@ -7901,7 +7901,11 @@ function scheduleItemNotification(item, index) {
         // Decide fire time: snoozed time takes priority
         let notificationTime;
         if (item.nextAlertTime && item.nextAlertTime > now) {
-            notificationTime = item.nextAlertTime; // snoozed
+            // Still in the future — use snooze time
+            notificationTime = item.nextAlertTime;
+        } else if (item.nextAlertTime && item.nextAlertTime > naturalAlertTime) {
+            // nextAlertTime is a snooze that already passed (not the original) — use it
+            notificationTime = item.nextAlertTime;
         } else {
             notificationTime = naturalAlertTime;
             if (!item.nextAlertTime) {
@@ -7910,6 +7914,7 @@ function scheduleItemNotification(item, index) {
         }
 
         // If already dismissed for this alert cycle — skip
+        // IMPORTANT: compare alertDismissedAt against the actual notificationTime used
         if (item.alertDismissedAt && item.alertDismissedAt >= notificationTime && notificationTime <= now) {
             return;
         }
