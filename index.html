@@ -1557,17 +1557,36 @@
             navigator.serviceWorker.addEventListener('message', event => {
                 console.log('[App] Message from SW:', event.data);
                 if (event.data?.type === 'SHOW_URGENT_ALERT') {
-                    setTimeout(() => {
+                    function tryShowAlert(attemptsLeft) {
                         if (typeof checkUrgentPayments === 'function') {
-                            // הגדר flag: הגענו מלחיצה על התראה — הצג גם אם dismissed
                             if (typeof _forceShowAfterNotificationClick !== 'undefined') {
                                 _forceShowAfterNotificationClick = true;
                             }
                             checkUrgentPayments();
+                        } else if (attemptsLeft > 0) {
+                            // האפליקציה עדיין לא נטענה — נסה שוב בעוד 500ms
+                            setTimeout(() => tryShowAlert(attemptsLeft - 1), 500);
                         }
-                    }, 500);
+                    }
+                    tryShowAlert(10);
                 }
             });
+
+            // בדיקה: האם הגענו מלחיצה על התראה (cold start עם ?notif=1 בURL)
+            if (window.location.search.includes('notif=1')) {
+                console.log('[App] Opened from notification click, will show alert when ready');
+                function tryShowAlertFromURL(attemptsLeft) {
+                    if (typeof checkUrgentPayments === 'function' && typeof _forceShowAfterNotificationClick !== 'undefined') {
+                        _forceShowAfterNotificationClick = true;
+                        checkUrgentPayments();
+                        // נקה את הפרמטר מה-URL בלי לרענן את הדף
+                        history.replaceState(null, '', window.location.pathname);
+                    } else if (attemptsLeft > 0) {
+                        setTimeout(() => tryShowAlertFromURL(attemptsLeft - 1), 500);
+                    }
+                }
+                setTimeout(() => tryShowAlertFromURL(20), 500);
+            }
         }
     </script>
 
