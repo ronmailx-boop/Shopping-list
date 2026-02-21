@@ -2311,21 +2311,76 @@ function render() {
 }
 
 // ========== Stats Functions ==========
-function renderStats() {
-    const now = new Date();
-    const monthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+let _statsMonthOffset = 0; // 0 = current month, -1 = last month, etc.
 
-    if (!db.stats.monthlyData[monthKey]) {
-        db.stats.monthlyData[monthKey] = 0;
+function navigateMonth(dir) {
+    const now = new Date();
+    const targetDate = new Date(now.getFullYear(), now.getMonth() + _statsMonthOffset + dir, 1);
+    // Don't go into the future
+    if (targetDate > now) return;
+    _statsMonthOffset += dir;
+    renderStats();
+}
+
+function getSelectedMonthKey() {
+    const now = new Date();
+    const d = new Date(now.getFullYear(), now.getMonth() + _statsMonthOffset, 1);
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+}
+
+function getMonthLabel(key) {
+    const [year, month] = key.split('-');
+    const months = ['ינואר','פברואר','מרץ','אפריל','מאי','יוני','יולי','אוגוסט','ספטמבר','אוקטובר','נובמבר','דצמבר'];
+    return `${months[parseInt(month) - 1]} ${year}`;
+}
+
+function renderStats() {
+    const monthKey = getSelectedMonthKey();
+    const monthlyData = db.stats.monthlyData || {};
+    const monthlyTotal = monthlyData[monthKey] || 0;
+
+    // Month navigator label
+    const labelEl = document.getElementById('currentMonthLabel');
+    if (labelEl) labelEl.textContent = getMonthLabel(monthKey);
+
+    // Comparison vs previous month
+    const now = new Date();
+    const prevDate = new Date(now.getFullYear(), now.getMonth() + _statsMonthOffset - 1, 1);
+    const prevKey = `${prevDate.getFullYear()}-${String(prevDate.getMonth() + 1).padStart(2, '0')}`;
+    const prevTotal = monthlyData[prevKey] || 0;
+    const vsEl = document.getElementById('currentMonthVsPrev');
+    if (vsEl) {
+        if (prevTotal > 0) {
+            const diff = monthlyTotal - prevTotal;
+            const pct = Math.abs(Math.round((diff / prevTotal) * 100));
+            const arrow = diff >= 0 ? '▲' : '▼';
+            const color = diff >= 0 ? '#ef4444' : '#22c55e';
+            vsEl.innerHTML = `<span style="color:${color};">${arrow} ${pct}% לעומת ${getMonthLabel(prevKey)}</span>`;
+        } else {
+            vsEl.textContent = '';
+        }
     }
 
-    const monthlyTotal = db.stats.monthlyData[monthKey] || 0;
-    document.getElementById('monthlyTotal').innerText = `₪${monthlyTotal.toFixed(2)}`;
-    document.getElementById('completedLists').innerText = db.stats.listsCompleted || 0;
+    // Disable next button if at current month
+    const nextBtn = document.getElementById('nextMonthBtn');
+    if (nextBtn) nextBtn.style.opacity = _statsMonthOffset >= 0 ? '0.3' : '1';
 
-    const avgPerList = db.stats.listsCompleted > 0 ? db.stats.totalSpent / db.stats.listsCompleted : 0;
+    // Monthly total
+    document.getElementById('monthlyTotal').innerText = `₪${monthlyTotal.toFixed(2)}`;
+
+    // Completed lists THIS selected month (from history)
+    const completedThisMonth = (db.history || []).filter(e => {
+        const d = new Date(e.completedAt);
+        const k = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+        return k === monthKey;
+    }).length;
+    document.getElementById('completedLists').innerText = completedThisMonth;
+
+    // Average per list this month
+    const avgPerList = completedThisMonth > 0 ? monthlyTotal / completedThisMonth : 0;
     document.getElementById('avgPerList').innerText = `₪${avgPerList.toFixed(0)}`;
 
+    // Progress bar (target 5000)
     const monthlyProgress = Math.min((monthlyTotal / 5000) * 100, 100);
     document.getElementById('monthlyProgress').style.width = `${monthlyProgress}%`;
 
@@ -2335,27 +2390,45 @@ function renderStats() {
 }
 
 function showCompletedListsModal() {
-    if (db.history.length === 0) {
-        showNotification('אין רשימות שהושלמו', 'warning');
+    const monthKey = getSelectedMonthKey();
+    const filtered = (db.history || []).filter(e => {
+        const d = new Date(e.completedAt);
+        const k = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+        return k === monthKey;
+    });
+    if (filtered.length === 0) {
+        showNotification(`אין רשימות שהושלמו ב${getMonthLabel(monthKey)}`, 'warning');
         return;
     }
     openModal('completedListsModal');
+    // Update title to show month
+    const titleEl = document.querySelector('#completedListsModal h2');
+    if (titleEl) titleEl.textContent = `✅ רשימות שהושלמו — ${getMonthLabel(monthKey)}`;
     renderCompletedLists();
 }
 
 function renderCompletedLists() {
     const container = document.getElementById('completedListsContent');
     if (!container) return;
-
     container.innerHTML = '';
 
-    if (db.history.length === 0) {
-        container.innerHTML = '<p class="text-gray-400 text-center py-8">אין רשימות שהושלמו</p>';
+    const monthKey = getSelectedMonthKey();
+    const allEntries = db.history.slice().reverse();
+    // Filter to selected month only
+    const entries = allEntries.filter(e => {
+        const d = new Date(e.completedAt);
+        const k = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+        return k === monthKey;
+    });
+
+    if (entries.length === 0) {
+        container.innerHTML = `<p class="text-gray-400 text-center py-8">אין רשימות שהושלמו ב${getMonthLabel(monthKey)}</p>`;
         return;
     }
 
-    db.history.slice().reverse().forEach((entry, idx) => {
-        const realIdx = db.history.length - 1 - idx;
+    entries.forEach((entry) => {
+        // Find real index in db.history for delete/restore
+        const realIdx = db.history.indexOf(entry);
         const div = document.createElement('div');
         div.className = 'mb-4 p-4 bg-green-50 rounded-xl border border-green-200';
         const date = new Date(entry.completedAt);
@@ -2409,49 +2482,58 @@ function renderMonthlyChart() {
     if (!ctx) return;
 
     const monthlyData = db.stats.monthlyData || {};
-    const sortedKeys = Object.keys(monthlyData).sort();
-    const last6Months = sortedKeys.slice(-6);
+    const selectedKey = getSelectedMonthKey();
 
-    const labels = last6Months.map(key => {
-        const [year, month] = key.split('-');
-        return `${month}/${year.slice(2)}`;
-    });
+    // Show up to 6 months ending at selected month
+    const allKeys = Object.keys(monthlyData).sort();
+    const selectedIdx = allKeys.indexOf(selectedKey);
+    // Take up to 6 months up to and including selected
+    const endIdx = selectedIdx >= 0 ? selectedIdx : allKeys.length - 1;
+    const startIdx = Math.max(0, endIdx - 5);
+    const displayKeys = allKeys.slice(startIdx, endIdx + 1);
 
-    const data = last6Months.map(key => monthlyData[key] || 0);
+    // Also include selected month even if no data yet
+    if (!displayKeys.includes(selectedKey)) displayKeys.push(selectedKey);
 
-    if (monthlyChart) {
-        monthlyChart.destroy();
-    }
+    const labels = displayKeys.map(k => getMonthLabel(k).split(' ')[0] + ' ' + k.split('-')[0].slice(2));
+    const data = displayKeys.map(k => monthlyData[k] || 0);
+    const bgColors = displayKeys.map(k =>
+        k === selectedKey ? 'rgba(115, 103, 240, 0.35)' : 'rgba(115, 103, 240, 0.08)'
+    );
+    const borderColors = displayKeys.map(k =>
+        k === selectedKey ? '#7367f0' : '#c4b5fd'
+    );
+
+    if (monthlyChart) monthlyChart.destroy();
 
     monthlyChart = new Chart(ctx, {
-        type: 'line',
+        type: 'bar',
         data: {
-            labels: labels,
+            labels,
             datasets: [{
-                label: 'הוצאות חודשיות',
-                data: data,
-                borderColor: '#7367f0',
-                backgroundColor: 'rgba(115, 103, 240, 0.1)',
-                tension: 0.4,
-                fill: true
+                label: 'הוצאות',
+                data,
+                backgroundColor: bgColors,
+                borderColor: borderColors,
+                borderWidth: 2,
+                borderRadius: 8,
             }]
         },
         options: {
             responsive: true,
             maintainAspectRatio: true,
             plugins: {
-                legend: {
-                    display: false
+                legend: { display: false },
+                tooltip: {
+                    callbacks: {
+                        label: ctx => `₪${ctx.parsed.y.toFixed(0)}`
+                    }
                 }
             },
             scales: {
                 y: {
                     beginAtZero: true,
-                    ticks: {
-                        callback: function (value) {
-                            return '₪' + value;
-                        }
-                    }
+                    ticks: { callback: v => '₪' + v }
                 }
             }
         }
