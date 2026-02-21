@@ -1954,7 +1954,27 @@ ${error.message}
 
         <div id="pageStats" class="hidden">
             <div class="stat-card">
-                <h3 class="text-xl font-bold mb-4" id="monthlyStatsTitle">📊 סטטיסטיקות חודשיות</h3>
+                <h3 class="text-xl font-bold mb-3" id="monthlyStatsTitle">📊 סטטיסטיקות חודשיות</h3>
+
+                <!-- Month Navigator -->
+                <div style="display:flex; align-items:center; justify-content:space-between;
+                            background:#f0eeff; border-radius:14px; padding:8px 12px; margin-bottom:14px;">
+                    <button onclick="navigateMonth(-1)"
+                        style="background:white; border:1.5px solid #c4b5fd; border-radius:10px;
+                               width:36px; height:36px; font-size:1.1rem; cursor:pointer; color:#7367f0; font-weight:900;">
+                        &#8250;
+                    </button>
+                    <div style="text-align:center;">
+                        <div id="currentMonthLabel" style="font-weight:800; font-size:1rem; color:#1e1b4b;"></div>
+                        <div id="currentMonthVsPrev" style="font-size:0.7rem; color:#9ca3af; margin-top:1px;"></div>
+                    </div>
+                    <button onclick="navigateMonth(1)" id="nextMonthBtn"
+                        style="background:white; border:1.5px solid #c4b5fd; border-radius:10px;
+                               width:36px; height:36px; font-size:1.1rem; cursor:pointer; color:#7367f0; font-weight:900;">
+                        &#8249;
+                    </button>
+                </div>
+
                 <div class="mb-4">
                     <div class="flex justify-between mb-2">
                         <span class="font-bold" id="monthlyExpensesLabel">הוצאות החודש</span>
