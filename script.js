@@ -3000,7 +3000,8 @@ function addItemToList(event) {
 
         // Use the selected target list (from context bar)
         const targetId = (_targetListId && db.lists[_targetListId]) ? _targetListId : db.currentId;
-        db.lists[targetId].items.push({
+        
+        const newItem = {
             name: n,
             price: p,
             qty: q,
@@ -3015,7 +3016,17 @@ function addItemToList(event) {
             reminderUnit: reminderUnit || '',
             lastUpdated: Date.now(),
             cloudId: 'item_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9)
-        });
+        };
+
+        // Insert before the first checked item (so new item is last among unchecked)
+        const items = db.lists[targetId].items;
+        const firstCheckedIdx = items.findIndex(i => i.checked);
+        if (firstCheckedIdx === -1) {
+            items.push(newItem); // no checked items — add at end
+        } else {
+            items.splice(firstCheckedIdx, 0, newItem); // insert before first checked
+        }
+
         // Switch to that list so user sees the item they just added
         db.currentId = targetId;
 
