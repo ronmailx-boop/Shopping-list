@@ -153,21 +153,15 @@ self.addEventListener('notificationclick', event => {
         for (let client of clientList) {
           if (client.url.includes(self.registration.scope) && 'focus' in client) {
             return client.focus().then(() => {
-              sendShowAlert(client);
-              setTimeout(() => sendShowAlert(client), 600);
-              setTimeout(() => sendShowAlert(client), 1500);
+              setTimeout(() => sendShowAlert(client), 300);
               return client;
             });
           }
         }
         if (clients.openWindow) {
-          // ?notif=1 + item name בURL — לטיפול ב-cold start
-          const itemParam = notifData.itemName ? '&item=' + encodeURIComponent(notifData.itemName) : '';
-          return clients.openWindow('/?notif=1' + itemParam).then(newClient => {
+          return clients.openWindow('/').then(newClient => {
             if (newClient) {
               setTimeout(() => sendShowAlert(newClient), 1500);
-              setTimeout(() => sendShowAlert(newClient), 3000);
-              setTimeout(() => sendShowAlert(newClient), 5000);
             }
           });
         }
