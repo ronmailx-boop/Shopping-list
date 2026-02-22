@@ -153,7 +153,6 @@ self.addEventListener('notificationclick', event => {
         for (let client of clientList) {
           if (client.url.includes(self.registration.scope) && 'focus' in client) {
             return client.focus().then(() => {
-              // שולח מיד + retry — למקרה שה-focus לוקח זמן
               sendShowAlert(client);
               setTimeout(() => sendShowAlert(client), 600);
               setTimeout(() => sendShowAlert(client), 1500);
@@ -162,8 +161,9 @@ self.addEventListener('notificationclick', event => {
           }
         }
         if (clients.openWindow) {
-          // ?notif=1 — האפליקציה קוראת זאת בטעינה ומציגה את המודל גם אם postMessage מפוספס
-          return clients.openWindow('/?notif=1').then(newClient => {
+          // ?notif=1 + item name בURL — לטיפול ב-cold start
+          const itemParam = notifData.itemName ? '&item=' + encodeURIComponent(notifData.itemName) : '';
+          return clients.openWindow('/?notif=1' + itemParam).then(newClient => {
             if (newClient) {
               setTimeout(() => sendShowAlert(newClient), 1500);
               setTimeout(() => sendShowAlert(newClient), 3000);
