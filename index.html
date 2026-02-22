@@ -1542,6 +1542,29 @@
     </style>
 
     <script>
+        // ─── Helper: trigger urgent alert modal safely (waits for app to be ready) ───
+        function _triggerUrgentAlertWhenReady(notifData) {
+            // Store in sessionStorage so the app can read it once fully loaded
+            try {
+                sessionStorage.setItem('vplus_pending_notif', JSON.stringify(notifData || {}));
+            } catch(e) {}
+
+            // Also attempt to call directly if functions already loaded
+            function tryShow() {
+                if (typeof _forceShowAfterNotificationClick !== 'undefined' && typeof checkUrgentPayments === 'function') {
+                    _forceShowAfterNotificationClick = true;
+                    // If notifData has an itemName, pass it along
+                    if (notifData && notifData.itemName) {
+                        window._notifClickItemName = notifData.itemName;
+                    }
+                    checkUrgentPayments();
+                } else {
+                    setTimeout(tryShow, 300);
+                }
+            }
+            setTimeout(tryShow, 600);
+        }
+
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
                 navigator.serviceWorker.register('sw.js')
@@ -1551,21 +1574,28 @@
                     .catch(error => {
                         console.log('SW registration failed:', error);
                     });
+
+                // ── בדוק URL param — מגיע כשנפתח חלון חדש מלחיצה על התראה ──
+                const urlParams = new URLSearchParams(window.location.search);
+                const notifParam = urlParams.get('vplus_notif');
+                if (notifParam) {
+                    try {
+                        const notifData = JSON.parse(decodeURIComponent(notifParam));
+                        console.log('[App] Opened from notification click:', notifData);
+                        _triggerUrgentAlertWhenReady(notifData);
+                    } catch(e) {
+                        console.error('[App] Error parsing notif param:', e);
+                    }
+                    // נקה את ה-URL בלי לטעון מחדש
+                    history.replaceState({}, '', '/');
+                }
             });
 
-            // האזנה להודעות מה-Service Worker (למשל כשמשתמש לוחץ על התראה)
+            // ── האזנה להודעות מ-SW (כשהאפליקציה פתוחה ומיוקדת) ──
             navigator.serviceWorker.addEventListener('message', event => {
                 console.log('[App] Message from SW:', event.data);
                 if (event.data?.type === 'SHOW_URGENT_ALERT') {
-                    setTimeout(() => {
-                        if (typeof checkUrgentPayments === 'function') {
-                            // הגדר flag: הגענו מלחיצה על התראה — הצג גם אם dismissed
-                            if (typeof _forceShowAfterNotificationClick !== 'undefined') {
-                                _forceShowAfterNotificationClick = true;
-                            }
-                            checkUrgentPayments();
-                        }
-                    }, 500);
+                    _triggerUrgentAlertWhenReady(event.data?.data || {});
                 }
             });
         }
