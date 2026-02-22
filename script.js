@@ -7969,7 +7969,7 @@ window.addEventListener('focus', function() {
 // ─────────────────────────────────────────────────────────────────
 
 let _reminderTimers = new Map();
-let _forceShowAfterNotificationClick = false;
+// _forceShowAfterNotificationClick declared above (line 6500)
 
 // ── חישוב זמן ההתראה הטבעי ────────────────────────────────────────
 function computeNextAlertTime(item) {
