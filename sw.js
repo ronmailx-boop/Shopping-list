@@ -124,34 +124,36 @@ async function updateBadge(count) {
 
 
 // ========== Push Notification Handler ==========
-// מטפל בהודעות push ישירות (כגיבוי למקרה ש-FCM לא תופס)
+// FCM SDK (onBackgroundMessage) מטפל בהודעות FCM — ה-push event הוא fallback בלבד
+// למניעת כפילות: אם ה-event מגיע מ-FCM (יש notification field), נדלג עליו
 self.addEventListener('push', event => {
   console.log('[SW] Push event received:', event);
 
-  let notificationData = {
-    title: '🔔 התראה - VPlus',
-    body: 'יש לך פריט הדורש תשומת לב',
-    icon: '/icon-96.png',
-    badge: '/icon-96.png',
-    tag: 'vplus-reminder',
-    data: {}
-  };
+  if (!event.data) return; // אין מידע — נדלג
 
-  if (event.data) {
-    try {
-      const data = event.data.json();
-      notificationData = {
-        title: data.title || notificationData.title,
-        body: data.body || notificationData.body,
-        icon: data.icon || notificationData.icon,
-        badge: data.badge || notificationData.badge,
-        tag: data.tag || notificationData.tag,
-        data: data.data || {}
-      };
-    } catch (e) {
-      notificationData.body = event.data.text();
-    }
+  let rawData;
+  try {
+    rawData = event.data.json();
+  } catch (e) {
+    rawData = null;
   }
+
+  // אם יש notification field — זה FCM שכבר מטופל על ידי onBackgroundMessage
+  // נדלג למניעת התראה כפולה
+  if (rawData && (rawData.notification || rawData.fcmMessageId)) {
+    console.log('[SW] Push event from FCM — handled by onBackgroundMessage, skipping');
+    return;
+  }
+
+  // Fallback: push ישיר (לא FCM) — נציג התראה
+  const notificationData = {
+    title: rawData?.title || '🔔 התראה - VPlus',
+    body: rawData?.body || 'יש לך פריט הדורש תשומת לב',
+    icon: rawData?.icon || '/icon-96.png',
+    badge: rawData?.badge || '/icon-96.png',
+    tag: rawData?.tag || 'vplus-reminder',
+    data: rawData?.data || {}
+  };
 
   badgeCount++;
 
@@ -184,13 +186,29 @@ self.addEventListener('notificationclick', event => {
   event.waitUntil(
     clients.matchAll({ type: 'window', includeUncontrolled: true })
       .then(clientList => {
+        const notifData = event.notification.data || {};
+
+        function sendShowAlert(client) {
+          client.postMessage({
+            type: 'SHOW_URGENT_ALERT',
+            data: notifData
+          });
+        }
+
         for (let client of clientList) {
           if (client.url.includes(self.registration.scope) && 'focus' in client) {
-            return client.focus();
+            return client.focus().then(() => {
+              setTimeout(() => sendShowAlert(client), 300);
+              return client;
+            });
           }
         }
         if (clients.openWindow) {
-          return clients.openWindow('/');
+          return clients.openWindow('/').then(newClient => {
+            if (newClient) {
+              setTimeout(() => sendShowAlert(newClient), 1500);
+            }
+          });
         }
       })
   );
