@@ -6960,11 +6960,24 @@ function enhanceItemHTML(item, idx, originalHTML) {
 }
 
 // ========== Notification Center Functions ==========
+// ── dismissed notifications stored in localStorage ────────────────
+function getDismissedNotifications() {
+    try { return JSON.parse(localStorage.getItem('vplus_dismissed_notifs') || '[]'); }
+    catch(e) { return []; }
+}
+function saveDismissedNotifications(arr) {
+    localStorage.setItem('vplus_dismissed_notifs', JSON.stringify(arr));
+}
+function makeNotifKey(listId, itemIdx, dueDateMs) {
+    return `${listId}__${itemIdx}__${dueDateMs}`;
+}
+
 function getNotificationItems() {
     const notificationItems = [];
     const now = Date.now();
     const today = new Date();
     today.setHours(0, 0, 0, 0);
+    const dismissed = getDismissedNotifications();
     
     const threeDaysFromNow = new Date(today);
     threeDaysFromNow.setDate(threeDaysFromNow.getDate() + 3);
@@ -6976,7 +6989,6 @@ function getNotificationItems() {
                 const dueDate = new Date(item.dueDate);
                 dueDate.setHours(0, 0, 0, 0);
                 
-                // חישוב זמן ההתראה לפי reminderValue ו-reminderUnit
                 let reminderTimeMs = 0;
                 if (item.reminderValue && item.reminderUnit) {
                     reminderTimeMs = getReminderMilliseconds(item.reminderValue, item.reminderUnit);
@@ -6988,6 +7000,10 @@ function getNotificationItems() {
                 const isOverdue = dueDate < today;
                 const isReminderTime = reminderTimeMs > 0 && now >= reminderDate.getTime() && now <= dueDateMs + (24 * 60 * 60 * 1000);
                 const shouldNotify = isOverdue || isReminderTime;
+
+                // בדוק אם נמחקה ידנית ממרכז ההתראות
+                const notifKey = makeNotifKey(listId, idx, dueDateMs);
+                if (dismissed.includes(notifKey)) return;
                 
                 if (shouldNotify || dueDate <= threeDaysFromNow) {
                     const isToday = dueDate.getTime() === today.getTime();
@@ -7005,6 +7021,7 @@ function getNotificationItems() {
                         listId,
                         listName: list.name,
                         dueDate,
+                        dueDateMs,
                         urgency,
                         isOverdue,
                         isToday,
@@ -7029,37 +7046,77 @@ function getNotificationItems() {
 function updateNotificationBadge() {
     const notificationItems = getNotificationItems();
     const badge = document.getElementById('notificationBadge');
-    
-    if (notificationItems.length > 0) {
-        badge.textContent = notificationItems.length;
+    if (!badge) return;
+    const count = notificationItems.length;
+    if (count > 0) {
+        badge.textContent = count > 99 ? '99+' : count;
         badge.style.display = 'flex';
     } else {
         badge.style.display = 'none';
     }
 }
 
+function dismissNotification(listId, itemIdx, dueDateMs, e) {
+    if (e) e.stopPropagation();
+    const key = makeNotifKey(listId, itemIdx, dueDateMs);
+    const dismissed = getDismissedNotifications();
+    if (!dismissed.includes(key)) dismissed.push(key);
+    saveDismissedNotifications(dismissed);
+    updateNotificationBadge();
+    openNotificationCenter(); // רענן את הרשימה
+}
+
+function dismissAllNotifications() {
+    const items = getNotificationItems();
+    const dismissed = getDismissedNotifications();
+    items.forEach(n => {
+        const key = makeNotifKey(n.listId, n.itemIdx, n.dueDateMs);
+        if (!dismissed.includes(key)) dismissed.push(key);
+    });
+    saveDismissedNotifications(dismissed);
+    updateNotificationBadge();
+    openNotificationCenter(); // רענן
+}
+
 function openNotificationCenter() {
     const notificationItems = getNotificationItems();
     const container = document.getElementById('notificationsList');
+
+    // כפתור מחק הכל — מוסיפים לכותרת המודל
+    const modalEl = document.getElementById('notificationCenterModal');
+    if (modalEl) {
+        let clearAllBtn = modalEl.querySelector('#clearAllNotifsBtn');
+        if (!clearAllBtn) {
+            const h2 = modalEl.querySelector('h2');
+            if (h2) {
+                clearAllBtn = document.createElement('button');
+                clearAllBtn.id = 'clearAllNotifsBtn';
+                clearAllBtn.style.cssText = 'font-size:0.75rem;background:#fee2e2;color:#ef4444;border:none;border-radius:10px;padding:4px 12px;font-weight:bold;cursor:pointer;margin-right:8px;float:left;';
+                clearAllBtn.textContent = '🗑️ נקה הכל';
+                clearAllBtn.onclick = dismissAllNotifications;
+                h2.appendChild(clearAllBtn);
+            }
+        }
+        // הסתר/הצג לפי כמות
+        if (clearAllBtn) {
+            clearAllBtn.style.display = notificationItems.length > 0 ? 'inline-block' : 'none';
+        }
+    }
     
     if (notificationItems.length === 0) {
-        container.innerHTML = '<p class="text-gray-400 text-center py-8">אין התראות כרגע 🎉</p>';
+        container.innerHTML = '<p style="color:#9ca3af;text-align:center;padding:32px 0;">אין התראות כרגע 🎉</p>';
     } else {
         container.innerHTML = '';
         notificationItems.forEach(notif => {
             const div = document.createElement('div');
             
-            // קביעת סוג ההתראה וצבע
             let notifClass = 'soon';
-            if (notif.isOverdue) {
-                notifClass = 'overdue';
-            } else if (notif.isUpcoming && !notif.isToday) {
-                notifClass = 'upcoming';
-            }
+            if (notif.isOverdue) notifClass = 'overdue';
+            else if (notif.isUpcoming && !notif.isToday) notifClass = 'upcoming';
             
             div.className = `notification-item ${notifClass}`;
-            div.onclick = () => jumpToItem(notif.listId, notif.itemIdx);
-            
+            div.style.position = 'relative';
+
             let dateText = '';
             if (notif.isOverdue) {
                 const daysOverdue = Math.floor((new Date().setHours(0,0,0,0) - notif.dueDate) / 86400000);
@@ -7079,10 +7136,14 @@ function openNotificationCenter() {
             }
             
             div.innerHTML = `
-                <div class="notification-item-title">${notif.item.name}</div>
+                <button onclick="dismissNotification('${notif.listId}', ${notif.itemIdx}, ${notif.dueDateMs}, event)"
+                    style="position:absolute;top:8px;left:8px;background:#fee2e2;color:#ef4444;border:none;border-radius:8px;width:26px;height:26px;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-weight:bold;line-height:1;"
+                    title="מחק התראה">✕</button>
+                <div class="notification-item-title" style="padding-left:34px;">${notif.item.name}</div>
                 <div class="notification-item-date">${dateText}</div>
                 <div class="notification-item-list">רשימה: ${notif.listName}</div>
             `;
+            div.onclick = () => jumpToItem(notif.listId, notif.itemIdx);
             container.appendChild(div);
         });
     }
@@ -8077,21 +8138,7 @@ function checkUrgentPayments() {
     if (alertItems.length > 0) showUrgentAlertModal(alertItems);
 }
 
-// ── updateNotificationBadge ───────────────────────────────────────
-function updateNotificationBadge() {
-    const now = Date.now();
-    let count = 0;
-    if (db && db.lists) {
-        Object.values(db.lists).forEach(list => {
-            (list.items || []).forEach(item => {
-                if (item.checked || item.isPaid || !item.dueDate) return;
-                const t = item.nextAlertTime;
-                if (t && t <= now && !(item.alertDismissedAt && item.alertDismissedAt >= t)) count++;
-            });
-        });
-    }
-    if (typeof updateAppBadge === 'function') updateAppBadge(count);
-}
+// updateNotificationBadge defined above (single implementation)
 
 // ── showUrgentAlertModal ──────────────────────────────────────────
 function showUrgentAlertModal(urgentItems) {
