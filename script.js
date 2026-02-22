@@ -3438,7 +3438,7 @@ function addItemToList(event) {
             lastUpdated: Date.now(),
             cloudId: 'item_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9)
         };
-        newItem.nextAlertTime = computeNextAlertTime(newItem);
+        initItemAlertTime(newItem);
 
         // Insert before the first checked item (so new item is last among unchecked)
         const items = db.lists[targetId].items;
@@ -3812,7 +3812,7 @@ function saveItemEdit() {
         item.reminderUnit = newReminderUnit;
         item.lastUpdated = Date.now();
         // Recompute nextAlertTime whenever item is edited
-        item.nextAlertTime = computeNextAlertTime(item);
+        initItemAlertTime(item);
         
         // שמירה מקומית תחילה
         db.lastActivePage = activePage;
@@ -4491,6 +4491,31 @@ function setupFirestoreListener(user) {
     });
 }
 
+
+// ─── normalizeItem: שומר את כל שדות הפריט כולל תזכורות ─────────────────────
+function normalizeItem(item) {
+    return {
+        name: item.name || '',
+        price: item.price || 0,
+        qty: item.qty || 1,
+        checked: item.checked || false,
+        category: item.category || 'אחר',
+        note: item.note || '',
+        dueDate: item.dueDate || '',
+        dueTime: item.dueTime || '',
+        paymentUrl: item.paymentUrl || '',
+        isPaid: item.isPaid || false,
+        lastUpdated: item.lastUpdated || Date.now(),
+        cloudId: item.cloudId || ('item_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9)),
+        // ─ שדות תזכורת — חייבים להישמר! ─
+        reminderValue: item.reminderValue || '',
+        reminderUnit: item.reminderUnit || '',
+        nextAlertTime: item.nextAlertTime || null,
+        alertDismissedAt: item.alertDismissedAt || null,
+        isGeneralNote: item.isGeneralNote || false
+    };
+}
+
 function mergeCloudWithLocal(cloudData, localData) {
     console.log('🔄 מבצע מיזוג חכם בין ענן למקומי...');
 
@@ -4500,19 +4525,7 @@ function mergeCloudWithLocal(cloudData, localData) {
     Object.keys(merged.lists || {}).forEach(listId => {
         if (merged.lists[listId].items) {
             merged.lists[listId].items = merged.lists[listId].items.map(item => {
-                return {
-                    name: item.name || '',
-                    price: item.price || 0,
-                    qty: item.qty || 1,
-                    checked: item.checked || false,
-                    category: item.category || 'אחר',
-                    note: item.note || '',
-                    dueDate: item.dueDate || '',
-                    paymentUrl: item.paymentUrl || '', // Ensure paymentUrl always exists
-                    isPaid: item.isPaid || false,
-                    lastUpdated: item.lastUpdated || Date.now(),
-                    cloudId: item.cloudId || 'item_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9)
-                };
+                return normalizeItem(item);
             });
         }
     });
@@ -4542,37 +4555,11 @@ function mergeCloudWithLocal(cloudData, localData) {
                 // נוסיף לו cloudId ונוסיף אותו
                 localItem.cloudId = 'item_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
                 // Normalize local item as well
-                const normalizedItem = {
-                    name: localItem.name || '',
-                    price: localItem.price || 0,
-                    qty: localItem.qty || 1,
-                    checked: localItem.checked || false,
-                    category: localItem.category || 'אחר',
-                    note: localItem.note || '',
-                    dueDate: localItem.dueDate || '',
-                    paymentUrl: localItem.paymentUrl || '',
-                    isPaid: localItem.isPaid || false,
-                    lastUpdated: localItem.lastUpdated || Date.now(),
-                    cloudId: localItem.cloudId
-                };
-                merged.lists[listId].items.push(normalizedItem);
+                merged.lists[listId].items.push(normalizeItem(localItem));
                 console.log('➕ מוסיף פריט חדש מקומי ללא cloudId:', localItem.name);
             } else if (!cloudItemsMap[localItem.cloudId]) {
                 // פריט עם cloudId שלא קיים בענן - זה פריט חדש שנוסף באופליין
-                const normalizedItem = {
-                    name: localItem.name || '',
-                    price: localItem.price || 0,
-                    qty: localItem.qty || 1,
-                    checked: localItem.checked || false,
-                    category: localItem.category || 'אחר',
-                    note: localItem.note || '',
-                    dueDate: localItem.dueDate || '',
-                    paymentUrl: localItem.paymentUrl || '',
-                    isPaid: localItem.isPaid || false,
-                    lastUpdated: localItem.lastUpdated || Date.now(),
-                    cloudId: localItem.cloudId
-                };
-                merged.lists[listId].items.push(normalizedItem);
+                merged.lists[listId].items.push(normalizeItem(localItem));
                 console.log('➕ מוסיף פריט חדש מאופליין:', localItem.name);
             } else {
                 // פריט קיים גם בענן - עדכן אותו מהענן (הענן מנצח)
@@ -4588,19 +4575,7 @@ function mergeCloudWithLocal(cloudData, localData) {
             merged.lists[listId] = localData.lists[listId];
             // Normalize items in new local list
             if (merged.lists[listId].items) {
-                merged.lists[listId].items = merged.lists[listId].items.map(item => ({
-                    name: item.name || '',
-                    price: item.price || 0,
-                    qty: item.qty || 1,
-                    checked: item.checked || false,
-                    category: item.category || 'אחר',
-                    note: item.note || '',
-                    dueDate: item.dueDate || '',
-                    paymentUrl: item.paymentUrl || '',
-                    isPaid: item.isPaid || false,
-                    lastUpdated: item.lastUpdated || Date.now(),
-                    cloudId: item.cloudId || 'item_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9)
-                }));
+                merged.lists[listId].items = merged.lists[listId].items.map(normalizeItem);
             }
         }
     });
@@ -7984,790 +7959,335 @@ window.addEventListener('focus', function() {
 
 
 
-// ========== Notification System for Due Items ==========
-let scheduledNotifications = new Map();
+// ========== מערכת תזכורות — נבנתה מחדש ==========
+//
+// ארכיטקטורה נקייה:
+//   nextAlertTime  — מתי תירה ההתראה (ms epoch). snooze = עדכון לעתיד.
+//   alertDismissedAt — מתי סגר המשתמש (= nextAlertTime של אותה פעם).
+//   dismiss לא משנה nextAlertTime — רק מונע popup אוטומטי.
+//   snooze מוחק alertDismissedAt ומגדיר nextAlertTime חדש.
+// ─────────────────────────────────────────────────────────────────
 
-// Check and schedule notifications for items with due dates
-function checkAndScheduleNotifications() {
-    // Clear existing timers
-    scheduledNotifications.forEach(timer => clearTimeout(timer));
-    scheduledNotifications.clear();
+let _reminderTimers = new Map();
+let _forceShowAfterNotificationClick = false;
 
-    // Scan ALL lists (not just current)
-    Object.keys(db.lists).forEach(listId => {
-        const list = db.lists[listId];
-        list.items.forEach((item, index) => {
-            if (!item.checked && !item.isPaid && item.dueDate && item.reminderValue && item.reminderUnit) {
-                scheduleItemNotification(item, index);
-            }
+// ── חישוב זמן ההתראה הטבעי ────────────────────────────────────────
+function computeNextAlertTime(item) {
+    if (!item.dueDate || !item.reminderValue || !item.reminderUnit) return null;
+    const timeStr = item.dueTime || '09:00';
+    const [h, m] = timeStr.split(':');
+    const due = new Date(item.dueDate);
+    due.setHours(parseInt(h), parseInt(m), 0, 0);
+    const reminderMs = getReminderMilliseconds(item.reminderValue, item.reminderUnit);
+    return due.getTime() - reminderMs;
+}
+
+// ── initItemAlertTime: קרא בעת יצירה/עריכה של פריט ───────────────
+function initItemAlertTime(item) {
+    const natural = computeNextAlertTime(item);
+    if (!natural) {
+        item.nextAlertTime = null;
+        return;
+    }
+    const now = Date.now();
+    // אם אין nextAlertTime, או אם שינו את התאריך/תזכורת — אפס
+    if (!item.nextAlertTime || item.nextAlertTime <= now) {
+        item.nextAlertTime = natural;
+        item.alertDismissedAt = null;
+    }
+    // אם יש nextAlertTime בעתיד (snooze) — שמור אותו
+}
+
+// ── snoozeUrgentAlert: דחה את ההתראה ─────────────────────────────
+function snoozeUrgentAlert(ms) {
+    const now = Date.now();
+    const snoozeUntil = now + ms;
+    let count = 0;
+
+    Object.values(db.lists).forEach(list => {
+        (list.items || []).forEach(item => {
+            if (item.checked || item.isPaid || !item.dueDate) return;
+            if (!item.nextAlertTime) return;
+            // snooze פריטים שהתראה שלהם הגיעה (בעבר) — אלה הנוכחיים
+            // גם אם dismissed — snooze מנצח (המשתמש בחר מפורשות)
+            if (item.nextAlertTime > now && !item.alertDismissedAt) return;
+            item.nextAlertTime = snoozeUntil;
+            item.alertDismissedAt = null; // נקה dismiss
+            count++;
         });
     });
-}
 
-// Schedule a single notification for an item
-function scheduleItemNotification(item, index) {
-    try {
-        const now = Date.now();
-
-        // Calculate natural alert time
-        const dueDateObj = new Date(item.dueDate);
-        if (item.dueTime) {
-            const [h, m] = item.dueTime.split(':');
-            dueDateObj.setHours(parseInt(h), parseInt(m), 0, 0);
-        } else {
-            dueDateObj.setHours(9, 0, 0, 0);
-        }
-        const reminderMs = getReminderMilliseconds(item.reminderValue, item.reminderUnit);
-        const naturalAlertTime = dueDateObj.getTime() - reminderMs;
-
-        // Decide fire time: snoozed time takes priority
-        let notificationTime;
-        if (item.nextAlertTime && item.nextAlertTime > now) {
-            // Still in the future — use snooze time
-            notificationTime = item.nextAlertTime;
-        } else if (item.nextAlertTime && item.nextAlertTime > naturalAlertTime) {
-            // nextAlertTime is a snooze that already passed (not the original) — use it
-            notificationTime = item.nextAlertTime;
-        } else {
-            notificationTime = naturalAlertTime;
-            if (!item.nextAlertTime) {
-                item.nextAlertTime = naturalAlertTime; // sync
-            }
-        }
-
-        // If already dismissed for this alert cycle — skip
-        // IMPORTANT: compare alertDismissedAt against the actual notificationTime used
-        if (item.alertDismissedAt && item.alertDismissedAt >= notificationTime && notificationTime <= now) {
-            return;
-        }
-
-        if (notificationTime > now) {
-            const delay = notificationTime - now;
-            const timerId = setTimeout(() => {
-                checkUrgentPayments(); // let checkUrgentPayments handle showing
-            }, delay);
-            scheduledNotifications.set(`${item.cloudId || index}`, timerId);
-            console.log(`📅 Scheduled: "${item.name}" in ${Math.round(delay/1000)}s`);
-        } else if (now >= notificationTime) {
-            // Past — checkUrgentPayments will handle on next tick
-            checkUrgentPayments();
-        }
-    } catch (error) {
-        console.error('Error scheduling notification:', error);
-    }
-}
-
-// Show notification for an item
-function showItemNotification(item, index) {
-    const title = `⏰ תזכורת: ${item.name}`;
-    let body = '';
-    
-    if (item.dueDate) {
-        const dueDate = new Date(item.dueDate);
-        let dateStr = dueDate.toLocaleDateString('he-IL');
-        
-        if (item.dueTime) {
-            dateStr += ` בשעה ${item.dueTime}`;
-        }
-        
-        body = `יעד: ${dateStr}`;
-        
-        if (item.price) {
-            body += `\nמחיר: ₪${item.price.toFixed(2)}`;
-        }
-    }
-    
-    // Show system notification via Service Worker
-    if (typeof showSystemNotification === 'function') {
-        showSystemNotification(title, body, `item-${item.cloudId || index}`, {
-            itemIndex: index,
-            listId: db.currentId
-        });
-    } else {
-        // Fallback: browser notification
-        if ('Notification' in window && Notification.permission === 'granted') {
-            const notification = new Notification(title, {
-                body: body,
-                icon: '/icon-96.png',
-                badge: '/icon-96.png',
-                tag: `item-${item.cloudId || index}`,
-                requireInteraction: true,
-                vibrate: [200, 100, 200],
-                data: {
-                    itemIndex: index,
-                    listId: db.currentId
-                }
+    if (count === 0) {
+        // fallback: snooze כל פריט עם תזכורת
+        Object.values(db.lists).forEach(list => {
+            (list.items || []).forEach(item => {
+                if (item.checked || item.isPaid || !item.dueDate || !item.reminderValue) return;
+                item.nextAlertTime = snoozeUntil;
+                item.alertDismissedAt = null;
             });
-            
-            notification.onclick = function() {
-                window.focus();
-                switchPage('pageItems');
-                this.close();
-            };
-        }
+        });
     }
-    
-    // Also show in-app notification
-    showInAppNotification(item);
-    
-    // Play sound
-    playNotificationSound();
+
+    save();
+    closeModal('urgentAlertModal');
+    _scheduleAllReminders(); // רשום timers חדשים מיד
+
+    const label = ms < 3600000
+        ? Math.round(ms / 60000) + ' דקות'
+        : ms < 86400000 ? Math.round(ms / 3600000) + ' שעות'
+        : Math.round(ms / 86400000) + ' ימים';
+    showNotification('⏰ תוזכר בעוד ' + label, 'info');
 }
 
-// Show in-app notification modal
-function showInAppNotification(item) {
-    const modal = document.getElementById('urgentAlertModal');
-    if (!modal) return;
-    
-    const itemsList = document.getElementById('urgentItemsList');
-    if (!itemsList) return;
-    
-    let dateTimeStr = '';
-    if (item.dueDate) {
-        const dueDate = new Date(item.dueDate);
-        dateTimeStr = dueDate.toLocaleDateString('he-IL');
-        if (item.dueTime) {
-            dateTimeStr += ` בשעה ${item.dueTime}`;
-        }
+// ── closeUrgentAlert: dismiss ─────────────────────────────────────
+function closeUrgentAlert() {
+    const now = Date.now();
+    Object.values(db.lists).forEach(list => {
+        (list.items || []).forEach(item => {
+            if (item.checked || item.isPaid || !item.dueDate) return;
+            const t = item.nextAlertTime;
+            if (!t || t > now) return;
+            if (item.alertDismissedAt && item.alertDismissedAt >= t) return;
+            item.alertDismissedAt = t; // סמן dismissed עבור זמן זה בלבד
+        });
+    });
+    save();
+    closeModal('urgentAlertModal');
+}
+
+// ── checkUrgentPayments: בדוק והצג התראות שהגיעו ─────────────────
+function checkUrgentPayments() {
+    if (!db || !db.lists) return;
+    const now = Date.now();
+    const forceShow = _forceShowAfterNotificationClick;
+    _forceShowAfterNotificationClick = false;
+
+    const alertItems = [];
+    Object.values(db.lists).forEach(list => {
+        (list.items || []).forEach(item => {
+            if (item.checked || item.isPaid || !item.dueDate) return;
+            const t = item.nextAlertTime;
+            if (!t || t > now) return;
+            if (!forceShow && item.alertDismissedAt && item.alertDismissedAt >= t) return;
+            alertItems.push(item);
+        });
+    });
+
+    updateNotificationBadge();
+    if (alertItems.length > 0) showUrgentAlertModal(alertItems);
+}
+
+// ── updateNotificationBadge ───────────────────────────────────────
+function updateNotificationBadge() {
+    const now = Date.now();
+    let count = 0;
+    if (db && db.lists) {
+        Object.values(db.lists).forEach(list => {
+            (list.items || []).forEach(item => {
+                if (item.checked || item.isPaid || !item.dueDate) return;
+                const t = item.nextAlertTime;
+                if (t && t <= now && !(item.alertDismissedAt && item.alertDismissedAt >= t)) count++;
+            });
+        });
     }
-    
-    itemsList.innerHTML = `
-        <div class="urgent-item">
-            <div class="urgent-item-name">${item.name}</div>
-            ${dateTimeStr ? `<div class="urgent-item-time">יעד: ${dateTimeStr}</div>` : ''}
-            ${item.price ? `<div class="urgent-item-time">מחיר: ₪${item.price.toFixed(2)}</div>` : ''}
-            ${item.note ? `<div class="urgent-item-time">הערה: ${item.note}</div>` : ''}
-        </div>
-    `;
-    
+    if (typeof updateAppBadge === 'function') updateAppBadge(count);
+}
+
+// ── showUrgentAlertModal ──────────────────────────────────────────
+function showUrgentAlertModal(urgentItems) {
+    const modal = document.getElementById('urgentAlertModal');
+    const itemsList = document.getElementById('urgentItemsList');
+    if (!modal || !itemsList) return;
+
+    const today = new Date(); today.setHours(0, 0, 0, 0);
+    const overdue  = urgentItems.filter(i => { const d = new Date(i.dueDate); d.setHours(0,0,0,0); return d < today; });
+    const upcoming = urgentItems.filter(i => { const d = new Date(i.dueDate); d.setHours(0,0,0,0); return d >= today; });
+
+    let html = '';
+
+    if (overdue.length > 0) {
+        html += '<div style="font-weight:bold;color:#ef4444;margin-bottom:10px;">⚠️ באיחור:</div>';
+        overdue.forEach(item => {
+            const esc = (item.name || '').replace(/'/g, "\'");
+            html += `<div class="urgent-item" style="border-right:3px solid #ef4444;cursor:pointer;" onclick="goToItemFromAlert('${esc}')">
+                <div class="urgent-item-name">${item.name}</div>
+                <div class="urgent-item-date">📅 תאריך יעד: ${formatDate(item.dueDate)}</div>
+                <div style="font-size:0.72rem;color:#7367f0;margin-top:4px;">לחץ לצפייה במוצר ←</div>
+            </div>`;
+        });
+    }
+
+    if (upcoming.length > 0) {
+        if (overdue.length > 0) html += '<div style="margin-top:15px;"></div>';
+        html += '<div style="font-weight:bold;color:#3b82f6;margin-bottom:10px;">🔔 תזכורות:</div>';
+        upcoming.forEach(item => {
+            const d = new Date(item.dueDate); d.setHours(0,0,0,0);
+            const days = Math.floor((d - today) / 86400000);
+            const daysText = days === 0 ? 'היום' : days === 1 ? 'מחר' : `בעוד ${days} ימים`;
+            const reminderText = item.reminderValue && item.reminderUnit
+                ? ` (התראה: ${formatReminderText(item.reminderValue, item.reminderUnit)} לפני)` : '';
+            const esc = (item.name || '').replace(/'/g, "\'");
+            html += `<div class="urgent-item" style="border-right:3px solid #3b82f6;cursor:pointer;" onclick="goToItemFromAlert('${esc}')">
+                <div class="urgent-item-name">${item.name}</div>
+                <div class="urgent-item-date">📅 ${formatDate(item.dueDate)} (${daysText})${reminderText}</div>
+                <div style="font-size:0.72rem;color:#7367f0;margin-top:4px;">לחץ לצפייה במוצר ←</div>
+            </div>`;
+        });
+    }
+
+    itemsList.innerHTML = html;
     modal.classList.add('active');
 }
 
-// Play notification sound
-function playNotificationSound() {
-    try {
-        const audio = new Audio('data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuBzvLaiTYIF2m98OScTgwOUKni8LVjHAU2kdby');
-        audio.volume = 0.3;
-        audio.play().catch(e => console.log('Could not play sound:', e));
-    } catch (error) {
-        console.log('Audio playback failed:', error);
+// ── _scheduleAllReminders: הגדר timers לכל הפריטים ─────────────────
+function _scheduleAllReminders() {
+    _reminderTimers.forEach(id => clearTimeout(id));
+    _reminderTimers.clear();
+
+    if (!db || !db.lists) return;
+    const now = Date.now();
+
+    Object.values(db.lists).forEach(list => {
+        (list.items || []).forEach(item => {
+            if (item.checked || item.isPaid || !item.dueDate || !item.reminderValue) return;
+            if (!item.nextAlertTime) {
+                initItemAlertTime(item);
+                if (!item.nextAlertTime) return;
+            }
+            const t = item.nextAlertTime;
+            if (item.alertDismissedAt && item.alertDismissedAt >= t && t <= now) return; // dismissed
+            const delay = t - now;
+            const key = item.cloudId || item.name;
+            if (delay > 0) {
+                const timerId = setTimeout(() => {
+                    console.log('[Reminder] fired:', item.name);
+                    _firePushNotification(item);
+                    checkUrgentPayments();
+                }, Math.min(delay, 2147483647));
+                _reminderTimers.set(key, timerId);
+                console.log(`[Reminder] scheduled "${item.name}" in ${Math.round(delay/1000)}s`);
+            } else {
+                // הגיע כבר — הצג
+                checkUrgentPayments();
+            }
+        });
+    });
+}
+
+// ── _firePushNotification: שלח push דרך SW ──────────────────────────
+function _firePushNotification(item) {
+    const title = `⏰ תזכורת: ${item.name}`;
+    const dateStr = item.dueDate ? new Date(item.dueDate).toLocaleDateString('he-IL') : '';
+    const timeStr = item.dueTime ? ' בשעה ' + item.dueTime : '';
+    const body = dateStr ? `יעד: ${dateStr}${timeStr}` : 'יש לך תזכורת';
+    const data = { type: 'reminder', itemName: item.name, dueDate: item.dueDate || '', dueTime: item.dueTime || '' };
+
+    if (navigator.serviceWorker && navigator.serviceWorker.controller) {
+        navigator.serviceWorker.controller.postMessage({
+            type: 'SHOW_NOTIFICATION', title, body,
+            tag: 'reminder-' + (item.cloudId || item.name), data
+        });
     }
 }
 
-// Request notification permission
-async function requestNotificationPermission() {
-    if (!('Notification' in window)) {
-        console.log('This browser does not support notifications');
-        return false;
+// ── initNotificationSystem ───────────────────────────────────────────
+async function initNotificationSystem() {
+    if ('Notification' in window && Notification.permission !== 'denied') {
+        Notification.requestPermission();
     }
-    
-    if (Notification.permission === 'granted') {
-        return true;
-    }
-    
-    if (Notification.permission !== 'denied') {
-        const permission = await Notification.requestPermission();
-        return permission === 'granted';
-    }
-    
-    return false;
+    _scheduleAllReminders();
+    checkUrgentPayments();
+    // heartbeat — גיבוי לmissed timers
+    setInterval(checkUrgentPayments, 30000);
 }
 
-// Initialize notification system
-function initNotificationSystem() {
-    // Request permission
-    requestNotificationPermission();
-    
-    // Schedule notifications for current list
-    checkAndScheduleNotifications();
+window.addEventListener('load', () => { setTimeout(initNotificationSystem, 2000); });
 
-    // בדוק sessionStorage — מגיע כשפתחנו מהתראה
-    try {
-        const pending = sessionStorage.getItem('vplus_pending_notif');
-        if (pending) {
-            // checkUrgentPayments תטפל בזה ותקרא לה-sessionStorage
-            setTimeout(() => checkUrgentPayments(), 800);
-        }
-    } catch(e) {}
-    
-    // Re-check every 30 seconds — catches short snoozes (2 min etc.)
-    setInterval(() => {
-        checkAndScheduleNotifications();
-        checkUrgentPayments();
-    }, 30000);
-}
-
-// Call on page load
-window.addEventListener('load', () => {
-    setTimeout(() => {
-        initNotificationSystem();
-    }, 2000);
-});
-
-// Re-schedule when switching lists or adding items
-const originalSave = save;
+// כשנשמר — רשום מחדש
+const _origSave = save;
 save = function() {
-    originalSave.apply(this, arguments);
-    setTimeout(checkAndScheduleNotifications, 100);
+    _origSave.apply(this, arguments);
+    setTimeout(_scheduleAllReminders, 150);
 };
 
-// ========== Custom Snooze Functions ==========
-let currentSnoozeItemData = null;
-
+// ── Custom Snooze ─────────────────────────────────────────────────
 function openCustomSnooze() {
-    // Get current urgent item data
-    const modal = document.getElementById('urgentAlertModal');
-    if (modal && modal.classList.contains('active')) {
-        closeModal('urgentAlertModal');
-        openModal('customSnoozeModal');
-    }
+    closeModal('urgentAlertModal');
+    openModal('customSnoozeModal');
 }
 
 function applyCustomSnooze() {
-    const value = document.getElementById('customSnoozeValue').value;
-    const unit = document.getElementById('customSnoozeUnit').value;
-    
-    if (!value || value <= 0) {
-        showNotification('⚠️ נא להזין מספר חיובי', 'warning');
-        return;
-    }
-    
-    let ms = parseFloat(value);
-    if (unit === 'minutes') ms = ms * 60 * 1000;
-    else if (unit === 'hours') ms = ms * 60 * 60 * 1000;
-    else if (unit === 'days') ms = ms * 24 * 60 * 60 * 1000;
-    
+    const value = parseFloat(document.getElementById('customSnoozeValue').value);
+    const unit  = document.getElementById('customSnoozeUnit').value;
+    if (!value || value <= 0) { showNotification('⚠️ נא להזין מספר חיובי', 'warning'); return; }
+    const ms = unit === 'minutes' ? value * 60000
+             : unit === 'hours'   ? value * 3600000
+             : value * 86400000;
     snoozeUrgentAlert(ms);
     closeModal('customSnoozeModal');
-    
     document.getElementById('customSnoozeValue').value = '1';
-    document.getElementById('customSnoozeUnit').value = 'hours';
+    document.getElementById('customSnoozeUnit').value  = 'hours';
 }
 
-// ========== Edit Reminder Functions ==========
-let currentEditReminderIndex = null;
+// ── Legacy stubs ──────────────────────────────────────────────────
+function checkAndScheduleNotifications() { _scheduleAllReminders(); }
+function scheduleItemNotification() {}
+function showInAppNotification() {}
+function playNotificationSound() {}
+function showItemNotification() {}
+function checkSnoozeStatus() { return true; }
+function updateAppBadge(count) {
+    if ('setAppBadge' in navigator) {
+        count > 0 ? navigator.setAppBadge(count).catch(()=>{}) : navigator.clearAppBadge().catch(()=>{});
+    }
+}
 
-function openEditReminder(itemIndex) {
-    const item = db.lists[db.currentId].items[itemIndex];
-    if (!item) return;
-    
-    currentEditReminderIndex = itemIndex;
-    
-    // Fill in current values
-    document.getElementById('editItemName').value = item.name || '';
-    document.getElementById('editItemDueDate').value = item.dueDate || '';
-    document.getElementById('editItemDueTime').value = item.dueTime || '';
-    document.getElementById('editItemReminderValue').value = item.reminderValue || '';
-    document.getElementById('editItemReminderUnit').value = item.reminderUnit || '';
-    
-    // הצג שעת התראה בפועל
-    const infoEl = document.getElementById('currentReminderInfo');
-    if (infoEl) {
-        if (item.dueDate && item.dueTime && item.reminderValue && item.reminderUnit) {
-            const dueDateObj = new Date(item.dueDate + 'T' + item.dueTime + ':00');
-            const reminderMs = getReminderMilliseconds(item.reminderValue, item.reminderUnit);
-            const reminderTime = new Date(dueDateObj.getTime() - reminderMs);
-            const rh = reminderTime.getHours().toString().padStart(2, '0');
-            const rm = reminderTime.getMinutes().toString().padStart(2, '0');
-            infoEl.textContent = `⏰ שעת יעד: ${item.dueTime} | 🔔 התראה תישלח ב-${rh}:${rm}`;
-            infoEl.style.display = 'block';
-        } else {
-            infoEl.style.display = 'none';
+// ── SW Message Listener ───────────────────────────────────────────
+if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.addEventListener('message', function(event) {
+        const msg = event.data;
+        if (!msg) return;
+
+        if (msg.type === 'NOTIFICATION_ACTION' || msg.type === 'SHOW_URGENT_ALERT') {
+            const action = msg.action || 'show';
+            if (action === 'snooze-10')  { snoozeUrgentAlert(10 * 60 * 1000); return; }
+            if (action === 'snooze-60')  { snoozeUrgentAlert(60 * 60 * 1000); return; }
+            _forceShowAfterNotificationClick = true;
+            checkUrgentPayments();
         }
-    }
-    
-    openModal('editReminderModal');
-}
 
-function saveReminderEdit() {
-    if (currentEditReminderIndex === null) return;
-    
-    const item = db.lists[db.currentId].items[currentEditReminderIndex];
-    if (!item) return;
-    
-    // Update item
-    item.dueDate = document.getElementById('editItemDueDate').value || '';
-    item.dueTime = document.getElementById('editItemDueTime').value || '';
-    item.reminderValue = document.getElementById('editItemReminderValue').value || '';
-    item.reminderUnit = document.getElementById('editItemReminderUnit').value || '';
-    item.lastUpdated = Date.now();
-
-    // Recompute nextAlertTime based on new values
-    item.nextAlertTime = computeNextAlertTime(item);
-    
-    save();
-    
-    closeModal('editReminderModal');
-    showNotification('✅ ההתראה עודכנה בהצלחה');
-    
-    currentEditReminderIndex = null;
-}
-
-
-// ========== WIZARD MODE ==========
-var wizardMode = false;
-var wizardState = {};
-var wizardVoiceRecog = null;
-var wizardVoiceActive = false;
-
-function toggleWizardMode() {
-    wizardMode = !wizardMode;
-    const btn = document.getElementById('wizardModeBtn');
-    const txt = document.getElementById('wizardBtnText');
-    if (wizardMode) {
-        btn.classList.add('wizard-active');
-        txt.textContent = 'פעיל';
-        showNotification('✨ Wizard Mode הופעל! לחץ + להוספת מוצר');
-    } else {
-        btn.classList.remove('wizard-active');
-        txt.textContent = 'Wizard';
-        showNotification('Wizard Mode כובה');
-    }
-    localStorage.setItem('wizardMode', wizardMode);
-}
-
-function openWizard(type) {
-    wizardState = { type, step: 0, data: {} };
-    document.getElementById('wizardOverlay').classList.add('active');
-    document.body.style.overflow = 'hidden';
-
-    if (type === 'addItem') wizardStepAddItem(0);
-    else if (type === 'newList') wizardStepNewList(0);
-    else if (type === 'completeList') wizardStepComplete(0);
-}
-
-function closeWizard() {
-    document.getElementById('wizardOverlay').classList.remove('active');
-    document.body.style.overflow = '';
-    stopWizardVoice();
-    wizardState = {};
-}
-
-function wizardOverlayClick(e) {
-    if (e.target === document.getElementById('wizardOverlay')) closeWizard();
-}
-
-function renderWizardStep({ title, emoji, question, hint, body, dots, step, totalSteps }) {
-    document.getElementById('wizardTitle').textContent = title;
-
-    // dots
-    let dotsHtml = '';
-    for (let i = 0; i < totalSteps; i++) {
-        const cls = i < step ? 'wizard-dot done' : i === step ? 'wizard-dot active' : 'wizard-dot';
-        dotsHtml += `<div class="${cls}"></div>`;
-    }
-    document.getElementById('wizardDots').innerHTML = dotsHtml;
-
-    document.getElementById('wizardBody').innerHTML = `
-        <div class="wizard-emoji">${emoji}</div>
-        <div class="wizard-question">${question}</div>
-        ${hint ? `<div class="wizard-hint">${hint}</div>` : ''}
-        ${body}
-    `;
-}
-
-// ===== WIZARD: ADD ITEM =====
-function wizardStepAddItem(step) {
-    wizardState.step = step;
-    const totalSteps = 4;
-
-    if (step === 0) {
-        // שם מוצר
-        renderWizardStep({
-            title: '✨ הוספת מוצר',
-            emoji: '🛒',
-            question: 'מה תרצה להוסיף?',
-            hint: 'הקלד שם מוצר או השתמש בקול',
-            totalSteps, step,
-            body: `
-                <div class="wizard-input-row">
-                    <input class="wizard-input" id="wItemName" type="text"
-                        placeholder="שם המוצר..."
-                        onkeydown="if(event.key==='Enter') wizardNextAddItem(0)"
-                        oninput="wizardAutocompleteItem(this.value)" />
-                    <button class="wizard-voice-btn" id="wVoiceBtn" onclick="startWizardVoice()">🎙️</button>
-                </div>
-                <div id="wAutocomplete" style="display:none; background:#f8f7ff; border-radius:14px; overflow:hidden; margin-bottom:10px; border:2px solid #e0e7ff;"></div>
-                <div class="wizard-actions">
-                    <button class="wizard-next-btn" onclick="wizardNextAddItem(0)">המשך ➜</button>
-                    <button class="wizard-skip-btn" onclick="closeWizard()">ביטול</button>
-                </div>
-            `
-        });
-        setTimeout(() => document.getElementById('wItemName')?.focus(), 300);
-
-    } else if (step === 1) {
-        // מחיר
-        const name = wizardState.data.name || '';
-        // try load last price from history
-        const hist = getProductHistory();
-        const suggested = hist[name] ? hist[name].price : '';
-        renderWizardStep({
-            title: '✨ הוספת מוצר',
-            emoji: '💰',
-            question: `כמה עולה "${name}"?`,
-            hint: 'דלג אם לא יודע את המחיר',
-            totalSteps, step,
-            body: `
-                <input class="wizard-input" id="wItemPrice" type="number" inputmode="decimal"
-                    placeholder="0.00 ₪"
-                    value="${suggested}"
-                    onkeydown="if(event.key==='Enter') wizardNextAddItem(1)" />
-                <div class="wizard-actions">
-                    <button class="wizard-next-btn" onclick="wizardNextAddItem(1)">המשך ➜</button>
-                    <button class="wizard-skip-btn" onclick="wizardNextAddItem(1, true)">דלג</button>
-                </div>
-            `
-        });
-        setTimeout(() => { const el = document.getElementById('wItemPrice'); if(el){el.focus(); el.select();} }, 300);
-
-    } else if (step === 2) {
-        // כמות
-        renderWizardStep({
-            title: '✨ הוספת מוצר',
-            emoji: '🔢',
-            question: 'כמה יחידות?',
-            hint: 'ברירת מחדל: 1',
-            totalSteps, step,
-            body: `
-                <div style="display:flex;align-items:center;justify-content:center;gap:20px;margin-bottom:14px;">
-                    <button onclick="wChangeQty(-1)" style="width:52px;height:52px;border-radius:50%;border:2px solid #e0e7ff;background:#f8f7ff;font-size:1.5rem;cursor:pointer;font-weight:800;color:#7367f0;">−</button>
-                    <span id="wQtyDisplay" style="font-size:2.5rem;font-weight:900;color:#1e1b4b;min-width:60px;text-align:center;">${wizardState.data.qty||1}</span>
-                    <button onclick="wChangeQty(1)" style="width:52px;height:52px;border-radius:50%;border:2px solid #e0e7ff;background:#f8f7ff;font-size:1.5rem;cursor:pointer;font-weight:800;color:#7367f0;">+</button>
-                </div>
-                <div class="wizard-actions">
-                    <button class="wizard-next-btn" onclick="wizardNextAddItem(2)">המשך ➜</button>
-                    <button class="wizard-skip-btn" onclick="wizardNextAddItem(2, true)">דלג</button>
-                </div>
-            `
-        });
-        if (!wizardState.data.qty) wizardState.data.qty = 1;
-
-    } else if (step === 3) {
-        // תזכורת
-        renderWizardStep({
-            title: '✨ הוספת מוצר',
-            emoji: '⏰',
-            question: 'קבע תזכורת?',
-            hint: 'אופציונלי — דלג אם לא צריך',
-            totalSteps, step,
-            body: `
-                <div class="wizard-date-row">
-                    <input id="wDueDate" type="date" placeholder="תאריך" />
-                    <input id="wDueTime" type="time" placeholder="שעה" />
-                </div>
-                <div class="wizard-actions">
-                    <button class="wizard-next-btn" onclick="wizardNextAddItem(3)">הוסף מוצר ✅</button>
-                    <button class="wizard-skip-btn" onclick="wizardNextAddItem(3, true)">דלג</button>
-                </div>
-            `
-        });
-
-    } else if (step === 4) {
-        // סיכום + שמירה
-        wizardSaveItem();
-    }
-}
-
-function wChangeQty(delta) {
-    wizardState.data.qty = Math.max(1, (wizardState.data.qty || 1) + delta);
-    const el = document.getElementById('wQtyDisplay');
-    if (el) el.textContent = wizardState.data.qty;
-}
-
-function wizardNextAddItem(currentStep, skip = false) {
-    if (currentStep === 0) {
-        const name = document.getElementById('wItemName')?.value.trim();
-        if (!name) { document.getElementById('wItemName')?.focus(); return; }
-        wizardState.data.name = name;
-    } else if (currentStep === 1) {
-        if (!skip) wizardState.data.price = parseFloat(document.getElementById('wItemPrice')?.value) || 0;
-    } else if (currentStep === 2) {
-        // qty already in wizardState.data.qty
-    } else if (currentStep === 3) {
-        if (!skip) {
-            wizardState.data.dueDate = document.getElementById('wDueDate')?.value || '';
-            wizardState.data.dueTime = document.getElementById('wDueTime')?.value || '';
+        if (msg.type === 'ALERT_DATA_RESPONSE') {
+            if (msg.data && msg.data.action) {
+                const action = msg.data.action;
+                if (action === 'snooze-10') { snoozeUrgentAlert(10 * 60 * 1000); return; }
+                if (action === 'snooze-60') { snoozeUrgentAlert(60 * 60 * 1000); return; }
+                _forceShowAfterNotificationClick = true;
+                checkUrgentPayments();
+                if (navigator.serviceWorker.controller) {
+                    navigator.serviceWorker.controller.postMessage({ type: 'CLEAR_BADGE' });
+                }
+            }
         }
-    }
-    wizardStepAddItem(currentStep + 1);
-}
-
-function wizardSaveItem() {
-    const d = wizardState.data;
-    if (!d.name) { closeWizard(); return; }
-
-    const learnedCat = getLearnedCategory(d.name);
-    const category = learnedCat || detectCategory(d.name) || 'אחר';
-    if (!db.categoryMemory) db.categoryMemory = {};
-    db.categoryMemory[d.name.toLowerCase().trim()] = category;
-    if (d.price > 0) updatePriceInHistory(d.name, d.price);
-
-    db.lists[db.currentId].items.push({
-        name: d.name,
-        price: d.price || 0,
-        qty: d.qty || 1,
-        checked: false,
-        category,
-        note: '',
-        dueDate: d.dueDate || '',
-        dueTime: d.dueTime || '',
-        paymentUrl: '',
-        isPaid: false,
-        reminderValue: '',
-        reminderUnit: '',
-        lastUpdated: Date.now(),
-        cloudId: 'item_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9)
-    });
-
-    save();
-    closeWizard();
-
-    const priceStr = d.price ? ` · ₪${d.price}` : '';
-    const qtyStr = d.qty > 1 ? ` · x${d.qty}` : '';
-    showNotification(`✅ "${d.name}" נוסף${priceStr}${qtyStr}`);
-    if (typeof checkUrgentPayments === 'function') checkUrgentPayments();
-}
-
-// ===== WIZARD AUTOCOMPLETE =====
-function wizardAutocompleteItem(val) {
-    const container = document.getElementById('wAutocomplete');
-    if (!container) return;
-    if (!val || val.length < 2) { container.style.display = 'none'; return; }
-
-    const hist = getProductHistory();
-    const matches = Object.keys(hist).filter(k => k.includes(val.toLowerCase())).slice(0, 4);
-
-    if (matches.length === 0) { container.style.display = 'none'; return; }
-
-    container.style.display = 'block';
-    container.innerHTML = matches.map(m => `
-        <div onclick="wizardSelectAutocomplete('${m.replace(/'/g,"\\'")}');"
-            style="padding:11px 16px;cursor:pointer;font-weight:700;color:#1e1b4b;border-bottom:1px solid #f1f5f9;font-size:0.95rem;">
-            ${m} ${hist[m].price ? `<span style="color:#7367f0;font-size:0.8rem;">· ₪${hist[m].price}</span>` : ''}
-        </div>
-    `).join('');
-}
-
-function wizardSelectAutocomplete(name) {
-    const input = document.getElementById('wItemName');
-    if (input) input.value = name;
-    const container = document.getElementById('wAutocomplete');
-    if (container) container.style.display = 'none';
-    // auto-fill price
-    const hist = getProductHistory();
-    if (hist[name.toLowerCase()]) wizardState.data._suggestedPrice = hist[name.toLowerCase()].price;
-}
-
-// ===== WIZARD VOICE =====
-function startWizardVoice() {
-    const btn = document.getElementById('wVoiceBtn');
-
-    if (wizardVoiceActive) {
-        stopWizardVoice();
-        return;
-    }
-
-    if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
-        showNotification('הדפדפן לא תומך בזיהוי קול', 'warning');
-        return;
-    }
-
-    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-    wizardVoiceRecog = new SR();
-    wizardVoiceRecog.lang = 'he-IL';
-    wizardVoiceRecog.continuous = false;
-    wizardVoiceRecog.interimResults = false;
-
-    wizardVoiceRecog.onresult = (e) => {
-        const text = e.results[0][0].transcript;
-        const input = document.getElementById('wItemName');
-        if (input) {
-            input.value = text;
-            wizardAutocompleteItem(text);
-        }
-        stopWizardVoice();
-    };
-
-    wizardVoiceRecog.onerror = () => stopWizardVoice();
-    wizardVoiceRecog.onend = () => stopWizardVoice();
-
-    wizardVoiceRecog.start();
-    wizardVoiceActive = true;
-    if (btn) btn.classList.add('recording');
-}
-
-function stopWizardVoice() {
-    wizardVoiceActive = false;
-    if (wizardVoiceRecog) { try { wizardVoiceRecog.stop(); } catch(e){} wizardVoiceRecog = null; }
-    const btn = document.getElementById('wVoiceBtn');
-    if (btn) btn.classList.remove('recording');
-}
-
-// ===== WIZARD: NEW LIST =====
-function wizardStepNewList(step) {
-    wizardState.step = step;
-    const totalSteps = 3;
-
-    if (step === 0) {
-        renderWizardStep({
-            title: '✨ רשימה חדשה',
-            emoji: '📋',
-            question: 'מה שם הרשימה?',
-            hint: 'למשל: קניות סופר, ציוד בית ספר...',
-            totalSteps, step,
-            body: `
-                <input class="wizard-input" id="wListName" type="text"
-                    placeholder="שם הרשימה..."
-                    onkeydown="if(event.key==='Enter') wizardNextNewList(0)" />
-                <div class="wizard-actions">
-                    <button class="wizard-next-btn" onclick="wizardNextNewList(0)">המשך ➜</button>
-                    <button class="wizard-skip-btn" onclick="closeWizard()">ביטול</button>
-                </div>
-            `
-        });
-        setTimeout(() => document.getElementById('wListName')?.focus(), 300);
-
-    } else if (step === 1) {
-        renderWizardStep({
-            title: '✨ רשימה חדשה',
-            emoji: '💰',
-            question: 'מה התקציב לרשימה?',
-            hint: 'דלג אם אין תקציב מוגדר',
-            totalSteps, step,
-            body: `
-                <input class="wizard-input" id="wListBudget" type="number" inputmode="decimal"
-                    placeholder="0.00 ₪"
-                    onkeydown="if(event.key==='Enter') wizardNextNewList(1)" />
-                <div class="wizard-actions">
-                    <button class="wizard-next-btn" onclick="wizardNextNewList(1)">המשך ➜</button>
-                    <button class="wizard-skip-btn" onclick="wizardNextNewList(1, true)">דלג</button>
-                </div>
-            `
-        });
-        setTimeout(() => document.getElementById('wListBudget')?.focus(), 300);
-
-    } else if (step === 2) {
-        renderWizardStep({
-            title: '✨ רשימה חדשה',
-            emoji: '⭐',
-            question: 'סוג הרשימה?',
-            hint: 'בחר את הסוג המתאים',
-            totalSteps, step,
-            body: `
-                <div class="wizard-list-mode-picker">
-                    <div class="wizard-list-option" onclick="wizardSelectListType('regular',this)">
-                        <span class="wizard-list-option-icon">🛒</span>
-                        <div>
-                            <div class="wizard-list-option-text">רשימת קניות רגילה</div>
-                            <div class="wizard-list-option-sub">לשימוש חד-פעמי</div>
-                        </div>
-                    </div>
-                    <div class="wizard-list-option" onclick="wizardSelectListType('template',this)">
-                        <span class="wizard-list-option-icon">⭐</span>
-                        <div>
-                            <div class="wizard-list-option-text">שמור כתבנית</div>
-                            <div class="wizard-list-option-sub">לשימוש חוזר בעתיד</div>
-                        </div>
-                    </div>
-                </div>
-                <div class="wizard-actions">
-                    <button class="wizard-next-btn" onclick="wizardSaveNewList()">צור רשימה ✅</button>
-                    <button class="wizard-skip-btn" onclick="wizardSaveNewList()">דלג</button>
-                </div>
-            `
-        });
-        wizardState.data.listType = 'regular';
-    }
-}
-
-function wizardSelectListType(type, el) {
-    document.querySelectorAll('.wizard-list-option').forEach(e => e.classList.remove('selected'));
-    el.classList.add('selected');
-    wizardState.data.listType = type;
-}
-
-function wizardNextNewList(currentStep, skip = false) {
-    if (currentStep === 0) {
-        const name = document.getElementById('wListName')?.value.trim();
-        if (!name) { document.getElementById('wListName')?.focus(); return; }
-        wizardState.data.listName = name;
-    } else if (currentStep === 1) {
-        if (!skip) wizardState.data.budget = parseFloat(document.getElementById('wListBudget')?.value) || 0;
-    }
-    wizardStepNewList(currentStep + 1);
-}
-
-function wizardSaveNewList() {
-    const d = wizardState.data;
-    if (!d.listName) { closeWizard(); return; }
-
-    const id = 'L' + Date.now();
-    db.lists[id] = {
-        name: d.listName,
-        url: '',
-        budget: d.budget || 0,
-        isTemplate: d.listType === 'template',
-        items: []
-    };
-    db.currentId = id;
-    activePage = 'lists';
-    save();
-    closeWizard();
-    showNotification(d.listType === 'template' ? '⭐ תבנית נוצרה!' : '✅ רשימה נוצרה!');
-}
-
-// ===== WIZARD: COMPLETE LIST =====
-function wizardStepComplete(step) {
-    wizardState.step = step;
-    const list = db.lists[db.currentId];
-    const checkedCount = list.items.filter(i => i.checked).length;
-    const total = list.items.length;
-    const paidSum = list.items.filter(i => i.checked).reduce((s, i) => s + i.price * i.qty, 0);
-
-    renderWizardStep({
-        title: '✨ סיום קנייה',
-        emoji: '🏁',
-        question: 'מוכן לסיים את הקנייה?',
-        hint: 'הרשימה תישמר בהיסטוריה',
-        totalSteps: 1, step: 0,
-        body: `
-            <div class="wizard-summary">
-                <div class="wizard-summary-row">
-                    <span>מוצרים שסומנו</span>
-                    <strong>${checkedCount} / ${total}</strong>
-                </div>
-                <div class="wizard-summary-row">
-                    <span>סה"כ שולם</span>
-                    <strong>₪${paidSum.toFixed(2)}</strong>
-                </div>
-                <div class="wizard-summary-row">
-                    <span>שם הרשימה</span>
-                    <strong>${list.name}</strong>
-                </div>
-            </div>
-            <div class="wizard-actions">
-                <button class="wizard-next-btn" onclick="wizardConfirmComplete()">סיים קנייה ✅</button>
-                <button class="wizard-skip-btn" onclick="closeWizard()">ביטול</button>
-            </div>
-        `
     });
 }
 
-function wizardConfirmComplete() {
-    closeWizard();
-    completeList();
-}
-
-// ===== INTERCEPT + BUTTON in wizard mode =====
-function handlePlusBtn(e) {
-    if (e) e.stopPropagation();
-    if (wizardMode) {
-        openWizard('addItem');
-    } else {
-        openModal('inputForm');
+// ── URL Param Handler (כשנפתח מהתראה) ───────────────────────────
+function checkNotificationUrlParam() {
+    const params = new URLSearchParams(window.location.search);
+    const action = params.get('vplus-action');
+    if (action) {
+        window.history.replaceState({}, '', window.location.pathname);
+        setTimeout(() => {
+            if (action === 'snooze-10') { snoozeUrgentAlert(10 * 60 * 1000); return; }
+            if (action === 'snooze-60') { snoozeUrgentAlert(60 * 60 * 1000); return; }
+            _forceShowAfterNotificationClick = true;
+            checkUrgentPayments();
+        }, 1500);
+    } else if (navigator.serviceWorker && navigator.serviceWorker.controller) {
+        navigator.serviceWorker.controller.postMessage({ type: 'GET_ALERT_DATA' });
     }
 }
+window.addEventListener('load', () => { setTimeout(checkNotificationUrlParam, 1000); });
 
 // ===== INIT WIZARD MODE from localStorage =====
 document.addEventListener('DOMContentLoaded', () => {
