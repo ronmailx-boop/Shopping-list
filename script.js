@@ -6527,8 +6527,24 @@ let _forceShowAfterNotificationClick = false;
 function checkUrgentPayments() {
     const now = Date.now();
     const alertItems = [];
-    const forceShow = _forceShowAfterNotificationClick;
+
+    // בדוק אם הגענו מלחיצה על התראה (דרך flag או sessionStorage)
+    let forceShow = _forceShowAfterNotificationClick;
     _forceShowAfterNotificationClick = false;
+
+    // קרא גם מ-sessionStorage (מקרה של פתיחת חלון חדש מהתראה)
+    let pendingNotifItemName = window._notifClickItemName || null;
+    window._notifClickItemName = null;
+
+    try {
+        const pending = sessionStorage.getItem('vplus_pending_notif');
+        if (pending) {
+            sessionStorage.removeItem('vplus_pending_notif');
+            const notifData = JSON.parse(pending);
+            forceShow = true;
+            if (notifData.itemName) pendingNotifItemName = notifData.itemName;
+        }
+    } catch(e) {}
 
     Object.keys(db.lists).forEach(listId => {
         const list = db.lists[listId];
@@ -6543,6 +6559,16 @@ function checkUrgentPayments() {
                 item.nextAlertTime = alertTime; // sync it
             }
             if (!alertTime) return;
+
+            // אם הגענו מלחיצה על התראה ספציפית — הצג רק אותה (אם ידועה), אחרת הצג כל שעבר זמנו
+            if (pendingNotifItemName) {
+                // הצג רק הפריט שנלחץ עליו — ללא תלות בזמן
+                if (item.name === pendingNotifItemName) {
+                    alertItems.push({ item, idx, listId });
+                }
+                return;
+            }
+
             if (now < alertTime) return; // not yet
 
             // Skip if user dismissed this alert — אלא אם כן הגענו מלחיצה על התראה
@@ -6607,10 +6633,12 @@ function showUrgentAlertModal(urgentItems) {
         itemsHTML += '<div style="font-weight: bold; color: #ef4444; margin-bottom: 10px;">⚠️ באיחור:</div>';
         overdueItemsFiltered.forEach(item => {
             const formattedDate = formatDate(item.dueDate);
+            const escapedName = (item.name || '').replace(/'/g, "\\'");
             itemsHTML += `
-                <div class="urgent-item" style="border-right: 3px solid #ef4444;">
+                <div class="urgent-item" style="border-right: 3px solid #ef4444; cursor:pointer;" onclick="goToItemFromAlert('${escapedName}')">
                     <div class="urgent-item-name">${item.name}</div>
                     <div class="urgent-item-date">📅 תאריך יעד: ${formattedDate}</div>
+                    <div style="font-size:0.72rem; color:#7367f0; margin-top:4px;">לחץ לצפייה במוצר ←</div>
                 </div>
             `;
         });
@@ -6634,10 +6662,12 @@ function showUrgentAlertModal(urgentItems) {
                 reminderText = ` (התראה: ${formatReminderText(item.reminderValue, item.reminderUnit)} לפני)`;
             }
             
+            const escapedName = (item.name || '').replace(/'/g, "\\'");
             itemsHTML += `
-                <div class="urgent-item" style="border-right: 3px solid #3b82f6;">
+                <div class="urgent-item" style="border-right: 3px solid #3b82f6; cursor:pointer;" onclick="goToItemFromAlert('${escapedName}')">
                     <div class="urgent-item-name">${item.name}</div>
                     <div class="urgent-item-date">📅 תאריך יעד: ${formattedDate} (${daysText})${reminderText}</div>
+                    <div style="font-size:0.72rem; color:#7367f0; margin-top:4px;">לחץ לצפייה במוצר ←</div>
                 </div>
             `;
         });
@@ -6707,6 +6737,62 @@ function closeUrgentAlert() {
     });
     save();
     closeModal('urgentAlertModal');
+}
+
+// Navigate to the specific item from the notification alert
+function goToItemFromAlert(itemName) {
+    closeModal('urgentAlertModal');
+
+    // חפש את הפריט בכל הרשימות
+    let foundListId = null;
+    let foundItemIdx = null;
+
+    Object.keys(db.lists).forEach(listId => {
+        db.lists[listId].items.forEach((item, idx) => {
+            if (item.name === itemName && !item.checked && !item.isPaid) {
+                if (!foundListId) {
+                    foundListId = listId;
+                    foundItemIdx = idx;
+                }
+            }
+        });
+    });
+
+    if (foundListId) {
+        // עבור לרשימה הנכונה
+        if (db.currentId !== foundListId) {
+            db.currentId = foundListId;
+            save();
+            render();
+        }
+
+        // גלול לפריט והדגש אותו
+        setTimeout(() => {
+            const cards = document.querySelectorAll('.item-card');
+            // מצא לפי אינדקס בתצוגה (לאחר render)
+            const currentItems = db.lists[foundListId].items;
+            // סינון לפי תצוגה נוכחית (כולל unchecked)
+            let visibleIdx = 0;
+            let targetCard = null;
+            currentItems.forEach((item, i) => {
+                if (i === foundItemIdx) {
+                    targetCard = cards[visibleIdx];
+                }
+                if (!item.checked) visibleIdx++;
+            });
+
+            if (targetCard) {
+                targetCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                targetCard.style.transition = 'box-shadow 0.3s, transform 0.3s';
+                targetCard.style.boxShadow = '0 0 0 3px #7367f0, 0 8px 30px rgba(115,103,240,0.3)';
+                targetCard.style.transform = 'scale(1.02)';
+                setTimeout(() => {
+                    targetCard.style.boxShadow = '';
+                    targetCard.style.transform = '';
+                }, 2000);
+            }
+        }, 350);
+    }
 }
 
 // Format date for display
@@ -8094,6 +8180,15 @@ function initNotificationSystem() {
     
     // Schedule notifications for current list
     checkAndScheduleNotifications();
+
+    // בדוק sessionStorage — מגיע כשפתחנו מהתראה
+    try {
+        const pending = sessionStorage.getItem('vplus_pending_notif');
+        if (pending) {
+            // checkUrgentPayments תטפל בזה ותקרא לה-sessionStorage
+            setTimeout(() => checkUrgentPayments(), 800);
+        }
+    } catch(e) {}
     
     // Re-check every 30 seconds — catches short snoozes (2 min etc.)
     setInterval(() => {
