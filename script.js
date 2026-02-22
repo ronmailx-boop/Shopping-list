@@ -8300,3 +8300,69 @@ document.addEventListener('DOMContentLoaded', () => {
         if (txt) txt.textContent = 'פעיל';
     }
 });
+// ========== WIZARD MODE & PLUS BUTTON — Missing Functions ==========
+
+let wizardMode = false;
+
+function handlePlusBtn(e) {
+    if (e) e.stopPropagation();
+    if (wizardMode) {
+        openWizard('addItem');
+    } else {
+        openModal('inputForm');
+    }
+}
+
+function toggleWizardMode() {
+    wizardMode = !wizardMode;
+    localStorage.setItem('wizardMode', wizardMode ? 'true' : 'false');
+    const btn = document.getElementById('wizardModeBtn');
+    const txt = document.getElementById('wizardBtnText');
+    if (btn) btn.classList.toggle('wizard-active', wizardMode);
+    if (txt) txt.textContent = wizardMode ? 'פעיל' : 'Wizard';
+    showNotification(wizardMode ? '✨ Wizard Mode מופעל' : '✨ Wizard Mode כבוי');
+}
+
+function openWizard(type) {
+    const overlay = document.getElementById('wizardOverlay');
+    const body    = document.getElementById('wizardBody');
+    const title   = document.getElementById('wizardTitle');
+    if (!overlay || !body) return;
+
+    if (type === 'addItem') {
+        if (title) title.textContent = '✨ הוספת מוצר';
+        body.innerHTML = '';
+        overlay.classList.add('active');
+        // Fall back to regular modal inside wizard context
+        closeWizard();
+        openModal('inputForm');
+
+    } else if (type === 'newList') {
+        if (title) title.textContent = '✨ רשימה חדשה';
+        body.innerHTML = '';
+        overlay.classList.add('active');
+        closeWizard();
+        openModal('newListModal');
+
+    } else if (type === 'completeList') {
+        if (title) title.textContent = '✨ סיום רשימה';
+        body.innerHTML = '';
+        overlay.classList.add('active');
+        closeWizard();
+        openModal('confirmModal');
+
+    } else {
+        overlay.classList.add('active');
+    }
+}
+
+function closeWizard() {
+    const overlay = document.getElementById('wizardOverlay');
+    if (overlay) overlay.classList.remove('active');
+}
+
+function wizardOverlayClick(e) {
+    if (e && e.target === document.getElementById('wizardOverlay')) {
+        closeWizard();
+    }
+}
