@@ -138,10 +138,14 @@ self.addEventListener('notificationclick', event => {
   badgeCount = Math.max(0, badgeCount - 1);
   updateBadge(badgeCount);
 
+  const notifData = event.notification.data || {};
+  // Encode notification data to pass via URL for new windows
+  const dataParam = encodeURIComponent(JSON.stringify(notifData));
+  const targetUrl = '/?vplus_notif=' + dataParam;
+
   event.waitUntil(
     clients.matchAll({ type: 'window', includeUncontrolled: true })
       .then(clientList => {
-        const notifData = event.notification.data || {};
 
         function sendShowAlert(client) {
           client.postMessage({
@@ -150,20 +154,21 @@ self.addEventListener('notificationclick', event => {
           });
         }
 
+        // Try to find and focus an existing window
         for (let client of clientList) {
           if (client.url.includes(self.registration.scope) && 'focus' in client) {
-            return client.focus().then(() => {
-              setTimeout(() => sendShowAlert(client), 300);
-              return client;
+            return client.focus().then(focusedClient => {
+              // Small delay to let app settle after focus
+              setTimeout(() => sendShowAlert(focusedClient || client), 400);
+              return focusedClient || client;
             });
           }
         }
+
+        // No existing window — open new one with notification data in URL
         if (clients.openWindow) {
-          return clients.openWindow('/').then(newClient => {
-            if (newClient) {
-              setTimeout(() => sendShowAlert(newClient), 1500);
-            }
-          });
+          return clients.openWindow(targetUrl);
+          // The new window reads ?vplus_notif from URL on load — no race condition
         }
       })
   );
