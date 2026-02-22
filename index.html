@@ -1557,9 +1557,12 @@
             navigator.serviceWorker.addEventListener('message', event => {
                 console.log('[App] Message from SW:', event.data);
                 if (event.data?.type === 'SHOW_URGENT_ALERT') {
-                    // המתן קצת שה-script.js יהיה מוכן
                     setTimeout(() => {
                         if (typeof checkUrgentPayments === 'function') {
+                            // הגדר flag: הגענו מלחיצה על התראה — הצג גם אם dismissed
+                            if (typeof _forceShowAfterNotificationClick !== 'undefined') {
+                                _forceShowAfterNotificationClick = true;
+                            }
                             checkUrgentPayments();
                         }
                     }, 500);

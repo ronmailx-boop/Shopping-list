@@ -1852,7 +1852,24 @@ function generateItemMetadataHTML(item, idx) {
         
         // Add edit button for reminder
         let reminderInfo = '';
-        if (item.reminderValue && item.reminderUnit) {
+        const now = Date.now();
+        if (item.nextAlertTime && item.nextAlertTime > now) {
+            // יש snooze פעיל — הצג את זמן ה-snooze
+            const snoozeDate = new Date(item.nextAlertTime);
+            const sh = snoozeDate.getHours().toString().padStart(2, '0');
+            const sm = snoozeDate.getMinutes().toString().padStart(2, '0');
+            const msLeft = item.nextAlertTime - now;
+            const minsLeft = Math.round(msLeft / 60000);
+            let timeLeftText = '';
+            if (minsLeft < 60) {
+                timeLeftText = `בעוד ${minsLeft} דקות`;
+            } else {
+                const hoursLeft = Math.floor(minsLeft / 60);
+                const minsRem = minsLeft % 60;
+                timeLeftText = minsRem > 0 ? `בעוד ${hoursLeft}ש' ${minsRem}ד'` : `בעוד ${hoursLeft} שעות`;
+            }
+            reminderInfo = ` ⏰ תזכורת חוזרת ${timeLeftText} (${sh}:${sm})`;
+        } else if (item.reminderValue && item.reminderUnit) {
             const timeStr = item.dueTime || '09:00';
             const dueDateObj = new Date(item.dueDate + 'T' + timeStr + ':00');
             const reminderMs = getReminderMilliseconds(item.reminderValue, item.reminderUnit);
@@ -6504,9 +6521,14 @@ if (typeof updateCategoryDropdown === 'function') {
 // ========== Peace of Mind Features ==========
 
 // Check for urgent payments on page load and display alerts
+// flag: כשמגיעים מלחיצה על התראה, נציג גם פריטים שסומנו כ-dismissed
+let _forceShowAfterNotificationClick = false;
+
 function checkUrgentPayments() {
     const now = Date.now();
     const alertItems = [];
+    const forceShow = _forceShowAfterNotificationClick;
+    _forceShowAfterNotificationClick = false;
 
     Object.keys(db.lists).forEach(listId => {
         const list = db.lists[listId];
@@ -6523,8 +6545,8 @@ function checkUrgentPayments() {
             if (!alertTime) return;
             if (now < alertTime) return; // not yet
 
-            // Skip if user dismissed this alert (and nextAlertTime hasn't changed since)
-            if (item.alertDismissedAt && item.alertDismissedAt >= alertTime) return;
+            // Skip if user dismissed this alert — אלא אם כן הגענו מלחיצה על התראה
+            if (!forceShow && item.alertDismissedAt && item.alertDismissedAt >= alertTime) return;
 
             alertItems.push({ item, idx, listId });
         });
@@ -6629,6 +6651,7 @@ function showUrgentAlertModal(urgentItems) {
 function snoozeUrgentAlert(ms) {
     const now = Date.now();
     const snoozeUntil = now + ms;
+    let snoozedAny = false;
 
     Object.keys(db.lists).forEach(listId => {
         db.lists[listId].items.forEach(item => {
@@ -6637,14 +6660,27 @@ function snoozeUrgentAlert(ms) {
 
             const alertTime = item.nextAlertTime || computeNextAlertTime(item);
             if (!alertTime) return;
-            // Only snooze items that are currently alerting (not yet dismissed)
+            // snooze פריטים שהתראה שלהם הגיעה (עבר זמנם) — כולל כאלה שסומנו כ-dismissed
+            // המשתמש לחץ בכוונה על snooze, אז זה override
             if (now < alertTime) return;
-            if (item.alertDismissedAt && item.alertDismissedAt >= alertTime) return;
 
             item.nextAlertTime = snoozeUntil;
-            item.alertDismissedAt = null; // clear dismiss so it fires again
+            item.alertDismissedAt = null; // נקה dismiss כדי שיופיע שוב
+            snoozedAny = true;
         });
     });
+
+    if (!snoozedAny) {
+        // fallback: snooze את כל הפריטים עם dueDate (גם אם alertDismissedAt קיים)
+        Object.keys(db.lists).forEach(listId => {
+            db.lists[listId].items.forEach(item => {
+                if (item.checked || item.isPaid) return;
+                if (!item.dueDate || !item.reminderValue) return;
+                item.nextAlertTime = snoozeUntil;
+                item.alertDismissedAt = null;
+            });
+        });
+    }
 
     save();
     closeModal('urgentAlertModal');

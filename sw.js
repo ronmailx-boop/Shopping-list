@@ -1,40 +1,5 @@
 // ========== Firebase Cloud Messaging Support ==========
-importScripts('https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js');
-importScripts('https://www.gstatic.com/firebasejs/10.7.1/firebase-messaging-compat.js');
-
-firebase.initializeApp({
-  apiKey: "AIzaSyBqIqxoiwwqeKkjlYJpEiqgCG09PgabwhI",
-  authDomain: "vplus-pro.firebaseapp.com",
-  projectId: "vplus-pro",
-  storageBucket: "vplus-pro.firebasestorage.app",
-  messagingSenderId: "386740827706",
-  appId: "1:386740827706:web:a3c95c895826df4bb26703"
-});
-
-const messaging = firebase.messaging();
-
-// טיפול בהודעות FCM ברקע (האפליקציה סגורה)
-messaging.onBackgroundMessage((payload) => {
-  console.log('[SW] FCM background message received:', payload);
-
-  const title = payload.notification?.title || '🔔 התראה - VPlus';
-  const options = {
-    body: payload.notification?.body || 'יש לך התראה חדשה מ-VPlus',
-    icon: '/icon-96.png',
-    badge: '/icon-96.png',
-    vibrate: [300, 100, 300, 100, 300],
-    tag: payload.data?.type === 'reminder' ? 'vplus-reminder' : 'vplus-notification',
-    requireInteraction: true,
-    renotify: true,
-    data: payload.data || {}
-  };
-
-  badgeCount++;
-  return Promise.all([
-    self.registration.showNotification(title, options),
-    updateBadge(badgeCount)
-  ]);
-});
+// onBackgroundMessage הוסר — ה-push event מטפל בהכל למניעת כפילות
 
 
 // ========== Cache & Install ==========
@@ -124,50 +89,40 @@ async function updateBadge(count) {
 
 
 // ========== Push Notification Handler ==========
-// FCM SDK (onBackgroundMessage) מטפל בהודעות FCM — ה-push event הוא fallback בלבד
-// למניעת כפילות: אם ה-event מגיע מ-FCM (יש notification field), נדלג עליו
+// מטפל בכל הודעות ה-push (כולל FCM) — מנגנון יחיד למניעת כפילות
 self.addEventListener('push', event => {
-  console.log('[SW] Push event received:', event);
+  console.log('[SW] Push event received');
 
-  if (!event.data) return; // אין מידע — נדלג
+  if (!event.data) return;
 
-  let rawData;
+  let payload;
   try {
-    rawData = event.data.json();
+    payload = event.data.json();
   } catch (e) {
-    rawData = null;
-  }
-
-  // אם יש notification field — זה FCM שכבר מטופל על ידי onBackgroundMessage
-  // נדלג למניעת התראה כפולה
-  if (rawData && (rawData.notification || rawData.fcmMessageId)) {
-    console.log('[SW] Push event from FCM — handled by onBackgroundMessage, skipping');
+    console.error('[SW] Failed to parse push data:', e);
     return;
   }
 
-  // Fallback: push ישיר (לא FCM) — נציג התראה
-  const notificationData = {
-    title: rawData?.title || '🔔 התראה - VPlus',
-    body: rawData?.body || 'יש לך פריט הדורש תשומת לב',
-    icon: rawData?.icon || '/icon-96.png',
-    badge: rawData?.badge || '/icon-96.png',
-    tag: rawData?.tag || 'vplus-reminder',
-    data: rawData?.data || {}
-  };
+  // FCM שולח את ה-notification בתוך payload.notification
+  // וה-data בתוך payload.data
+  const title = payload.notification?.title || payload.title || '🔔 התראה - VPlus';
+  const body = payload.notification?.body || payload.body || 'יש לך פריט הדורש תשומת לב';
+  const data = payload.data || {};
+  const tag = data.type === 'reminder' ? 'vplus-reminder' : 'vplus-notification';
 
   badgeCount++;
 
   event.waitUntil(
     Promise.all([
-      self.registration.showNotification(notificationData.title, {
-        body: notificationData.body,
-        icon: notificationData.icon,
-        badge: notificationData.badge,
+      self.registration.showNotification(title, {
+        body,
+        icon: '/icon-96.png',
+        badge: '/icon-96.png',
         vibrate: [300, 100, 300, 100, 300],
-        tag: notificationData.tag,
+        tag,
         requireInteraction: true,
         renotify: true,
-        data: notificationData.data
+        data
       }),
       updateBadge(badgeCount)
     ])
