@@ -1552,22 +1552,6 @@
                         console.log('SW registration failed:', error);
                     });
             });
-
-            // האזנה להודעות מה-Service Worker (למשל כשמשתמש לוחץ על התראה)
-            navigator.serviceWorker.addEventListener('message', event => {
-                console.log('[App] Message from SW:', event.data);
-                if (event.data?.type === 'SHOW_URGENT_ALERT') {
-                    setTimeout(() => {
-                        if (typeof checkUrgentPayments === 'function') {
-                            // הגדר flag: הגענו מלחיצה על התראה — הצג גם אם dismissed
-                            if (typeof _forceShowAfterNotificationClick !== 'undefined') {
-                                _forceShowAfterNotificationClick = true;
-                            }
-                            checkUrgentPayments();
-                        }
-                    }, 500);
-                }
-            });
         }
     </script>
 
@@ -2505,22 +2489,12 @@ ${error.message}
                 <!-- Urgent items will be inserted here -->
             </div>
             <div class="urgent-buttons">
-                <!-- Hours row - small chips -->
-                <div style="display:flex; gap:8px; margin-bottom:8px;">
-                    <button class="urgent-btn urgent-btn-snooze" style="flex:1; padding:10px 4px; font-size:0.8rem;"
-                        onclick="snoozeUrgentAlert(1*60*60*1000)">⏰ שעה</button>
-                    <button class="urgent-btn urgent-btn-snooze" style="flex:1; padding:10px 4px; font-size:0.8rem;"
-                        onclick="snoozeUrgentAlert(2*60*60*1000)">⏰ 2 שעות</button>
-                    <button class="urgent-btn urgent-btn-snooze" style="flex:1; padding:10px 4px; font-size:0.8rem;"
-                        onclick="snoozeUrgentAlert(4*60*60*1000)">⏰ 4 שעות</button>
-                </div>
-                <!-- Days row - small chips -->
-                <div style="display:flex; gap:8px; margin-bottom:8px;">
-                    <button class="urgent-btn urgent-btn-tomorrow" style="flex:1; padding:10px 4px; font-size:0.8rem;"
-                        onclick="snoozeUrgentAlert(1*24*60*60*1000)">📅 מחר</button>
-                    <button class="urgent-btn urgent-btn-tomorrow" style="flex:1; padding:10px 4px; font-size:0.8rem;"
-                        onclick="snoozeUrgentAlert(2*24*60*60*1000)">📅 יומיים</button>
-                </div>
+                <button class="urgent-btn urgent-btn-snooze" onclick="snoozeUrgentAlert(4)">
+                    ⏰ הזכר לי בעוד 4 שעות
+                </button>
+                <button class="urgent-btn urgent-btn-tomorrow" onclick="snoozeUrgentAlert(24)">
+                    📅 הזכר לי מחר
+                </button>
                 <button class="urgent-btn urgent-btn-custom" onclick="openCustomSnooze()" style="background: #8b5cf6;">
                     ⚙️ מותאם אישית
                 </button>

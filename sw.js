@@ -1,5 +1,40 @@
 // ========== Firebase Cloud Messaging Support ==========
-// onBackgroundMessage הוסר — ה-push event מטפל בהכל למניעת כפילות
+importScripts('https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js');
+importScripts('https://www.gstatic.com/firebasejs/10.7.1/firebase-messaging-compat.js');
+
+firebase.initializeApp({
+  apiKey: "AIzaSyBqIqxoiwwqeKkjlYJpEiqgCG09PgabwhI",
+  authDomain: "vplus-pro.firebaseapp.com",
+  projectId: "vplus-pro",
+  storageBucket: "vplus-pro.firebasestorage.app",
+  messagingSenderId: "386740827706",
+  appId: "1:386740827706:web:a3c95c895826df4bb26703"
+});
+
+const messaging = firebase.messaging();
+
+// טיפול בהודעות FCM ברקע (האפליקציה סגורה)
+messaging.onBackgroundMessage((payload) => {
+  console.log('[SW] FCM background message received:', payload);
+
+  const title = payload.notification?.title || '🔔 התראה - VPlus';
+  const options = {
+    body: payload.notification?.body || 'יש לך התראה חדשה מ-VPlus',
+    icon: '/icon-96.png',
+    badge: '/icon-96.png',
+    vibrate: [300, 100, 300, 100, 300],
+    tag: payload.data?.type === 'reminder' ? 'vplus-reminder' : 'vplus-notification',
+    requireInteraction: true,
+    renotify: true,
+    data: payload.data || {}
+  };
+
+  badgeCount++;
+  return Promise.all([
+    self.registration.showNotification(title, options),
+    updateBadge(badgeCount)
+  ]);
+});
 
 
 // ========== Cache & Install ==========
@@ -89,40 +124,48 @@ async function updateBadge(count) {
 
 
 // ========== Push Notification Handler ==========
-// מטפל בכל הודעות ה-push (כולל FCM) — מנגנון יחיד למניעת כפילות
+// מטפל בהודעות push ישירות (כגיבוי למקרה ש-FCM לא תופס)
 self.addEventListener('push', event => {
-  console.log('[SW] Push event received');
+  console.log('[SW] Push event received:', event);
 
-  if (!event.data) return;
+  let notificationData = {
+    title: '🔔 התראה - VPlus',
+    body: 'יש לך פריט הדורש תשומת לב',
+    icon: '/icon-96.png',
+    badge: '/icon-96.png',
+    tag: 'vplus-reminder',
+    data: {}
+  };
 
-  let payload;
-  try {
-    payload = event.data.json();
-  } catch (e) {
-    console.error('[SW] Failed to parse push data:', e);
-    return;
+  if (event.data) {
+    try {
+      const data = event.data.json();
+      notificationData = {
+        title: data.title || notificationData.title,
+        body: data.body || notificationData.body,
+        icon: data.icon || notificationData.icon,
+        badge: data.badge || notificationData.badge,
+        tag: data.tag || notificationData.tag,
+        data: data.data || {}
+      };
+    } catch (e) {
+      notificationData.body = event.data.text();
+    }
   }
-
-  // FCM שולח את ה-notification בתוך payload.notification
-  // וה-data בתוך payload.data
-  const title = payload.notification?.title || payload.title || '🔔 התראה - VPlus';
-  const body = payload.notification?.body || payload.body || 'יש לך פריט הדורש תשומת לב';
-  const data = payload.data || {};
-  const tag = data.type === 'reminder' ? 'vplus-reminder' : 'vplus-notification';
 
   badgeCount++;
 
   event.waitUntil(
     Promise.all([
-      self.registration.showNotification(title, {
-        body,
-        icon: '/icon-96.png',
-        badge: '/icon-96.png',
+      self.registration.showNotification(notificationData.title, {
+        body: notificationData.body,
+        icon: notificationData.icon,
+        badge: notificationData.badge,
         vibrate: [300, 100, 300, 100, 300],
-        tag,
+        tag: notificationData.tag,
         requireInteraction: true,
         renotify: true,
-        data
+        data: notificationData.data
       }),
       updateBadge(badgeCount)
     ])
@@ -141,29 +184,13 @@ self.addEventListener('notificationclick', event => {
   event.waitUntil(
     clients.matchAll({ type: 'window', includeUncontrolled: true })
       .then(clientList => {
-        const notifData = event.notification.data || {};
-
-        function sendShowAlert(client) {
-          client.postMessage({
-            type: 'SHOW_URGENT_ALERT',
-            data: notifData
-          });
-        }
-
         for (let client of clientList) {
           if (client.url.includes(self.registration.scope) && 'focus' in client) {
-            return client.focus().then(() => {
-              setTimeout(() => sendShowAlert(client), 300);
-              return client;
-            });
+            return client.focus();
           }
         }
         if (clients.openWindow) {
-          return clients.openWindow('/').then(newClient => {
-            if (newClient) {
-              setTimeout(() => sendShowAlert(newClient), 1500);
-            }
-          });
+          return clients.openWindow('/');
         }
       })
   );

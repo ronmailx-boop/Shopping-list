@@ -173,25 +173,39 @@ function initFCMTokenManagement() {
 if (messaging) {
   onMessage(messaging, (payload) => {
     console.log('📨 Foreground message received:', payload);
-
-    const type = payload.data?.type || '';
-
-    if (type === 'reminder') {
-      // התראת תזכורת — הצג את המודל הקופץ (urgentAlertModal)
-      // הקליינט כבר מנהל את הtimer, אז רק נוודא שהמודל מוצג
-      if (typeof checkUrgentPayments === 'function') {
-        checkUrgentPayments();
-      }
-      // אל תציג push notification כפולה כשהאפליקציה פתוחה
-      return;
-    }
-
-    // הודעות אחרות (לא reminder) — הצג toast בלבד
-    const notificationTitle = payload.notification?.title || 'התראה חדשה';
-    const notificationBody = payload.notification?.body || 'יש לך התראה חדשה';
     
+    const notificationTitle = payload.notification?.title || 'התראה חדשה';
+    const notificationOptions = {
+      body: payload.notification?.body || 'יש לך התראה חדשה',
+      icon: '/icon-192.png',
+      badge: '/badge-72.png',
+      tag: 'vplus-notification',
+      requireInteraction: true,
+      vibrate: [200, 100, 200],
+      data: payload.data
+    };
+    
+    // Show notification
+    if (Notification.permission === 'granted') {
+      const notification = new Notification(notificationTitle, notificationOptions);
+      
+      notification.onclick = function() {
+        window.focus();
+        this.close();
+        
+        // Handle notification click based on data
+        if (payload.data && payload.data.listId) {
+          // Switch to the relevant list
+          if (typeof switchToList === 'function') {
+            switchToList(payload.data.listId);
+          }
+        }
+      };
+    }
+    
+    // Also show in-app notification
     if (typeof showNotification === 'function') {
-      showNotification(notificationTitle + ': ' + notificationBody, 'success');
+      showNotification(notificationTitle + ': ' + notificationOptions.body, 'success');
     }
   });
 }

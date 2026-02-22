@@ -47,17 +47,6 @@ function getReminderMilliseconds(value, unit) {
     return conversions[unit] || 0;
 }
 
-// Compute the nextAlertTime for an item based on its dueDate + dueTime + reminder settings
-function computeNextAlertTime(item) {
-    if (!item.dueDate) return null;
-    if (!item.reminderValue || !item.reminderUnit) return null;
-
-    const timeStr = item.dueTime ? item.dueTime : '09:00';
-    const dueDateMs = new Date(item.dueDate + 'T' + timeStr + ':00').getTime();
-    const reminderMs = getReminderMilliseconds(item.reminderValue, item.reminderUnit);
-    return dueDateMs - reminderMs;
-}
-
 function formatReminderText(value, unit) {
     if (!value || !unit) return '';
     
@@ -1852,24 +1841,7 @@ function generateItemMetadataHTML(item, idx) {
         
         // Add edit button for reminder
         let reminderInfo = '';
-        const now = Date.now();
-        if (item.nextAlertTime && item.nextAlertTime > now) {
-            // יש snooze פעיל — הצג את זמן ה-snooze
-            const snoozeDate = new Date(item.nextAlertTime);
-            const sh = snoozeDate.getHours().toString().padStart(2, '0');
-            const sm = snoozeDate.getMinutes().toString().padStart(2, '0');
-            const msLeft = item.nextAlertTime - now;
-            const minsLeft = Math.round(msLeft / 60000);
-            let timeLeftText = '';
-            if (minsLeft < 60) {
-                timeLeftText = `בעוד ${minsLeft} דקות`;
-            } else {
-                const hoursLeft = Math.floor(minsLeft / 60);
-                const minsRem = minsLeft % 60;
-                timeLeftText = minsRem > 0 ? `בעוד ${hoursLeft}ש' ${minsRem}ד'` : `בעוד ${hoursLeft} שעות`;
-            }
-            reminderInfo = ` ⏰ תזכורת חוזרת ${timeLeftText} (${sh}:${sm})`;
-        } else if (item.reminderValue && item.reminderUnit) {
+        if (item.reminderValue && item.reminderUnit) {
             const timeStr = item.dueTime || '09:00';
             const dueDateObj = new Date(item.dueDate + 'T' + timeStr + ':00');
             const reminderMs = getReminderMilliseconds(item.reminderValue, item.reminderUnit);
@@ -3434,11 +3406,9 @@ function addItemToList(event) {
             isPaid: false,
             reminderValue: reminderValue || '',
             reminderUnit: reminderUnit || '',
-            nextAlertTime: null, // will be set below
             lastUpdated: Date.now(),
             cloudId: 'item_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9)
         };
-        newItem.nextAlertTime = computeNextAlertTime(newItem);
 
         // Insert before the first checked item (so new item is last among unchecked)
         const items = db.lists[targetId].items;
@@ -3811,8 +3781,6 @@ function saveItemEdit() {
         item.reminderValue = newReminderValue;
         item.reminderUnit = newReminderUnit;
         item.lastUpdated = Date.now();
-        // Recompute nextAlertTime whenever item is edited
-        item.nextAlertTime = computeNextAlertTime(item);
         
         // שמירה מקומית תחילה
         db.lastActivePage = activePage;
@@ -6521,41 +6489,45 @@ if (typeof updateCategoryDropdown === 'function') {
 // ========== Peace of Mind Features ==========
 
 // Check for urgent payments on page load and display alerts
-// flag: כשמגיעים מלחיצה על התראה, נציג גם פריטים שסומנו כ-dismissed
-let _forceShowAfterNotificationClick = false;
-
 function checkUrgentPayments() {
+    const list = db.lists[db.currentId];
+    if (!list || !list.items) return;
+
     const now = Date.now();
-    const alertItems = [];
-    const forceShow = _forceShowAfterNotificationClick;
-    _forceShowAfterNotificationClick = false;
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
 
-    Object.keys(db.lists).forEach(listId => {
-        const list = db.lists[listId];
-        list.items.forEach((item, idx) => {
-            if (item.checked || item.isPaid) return;
-            if (!item.dueDate) return;
-
-            // Get the scheduled alert time
-            let alertTime = item.nextAlertTime;
-            if (!alertTime && item.reminderValue && item.reminderUnit) {
-                alertTime = computeNextAlertTime(item);
-                item.nextAlertTime = alertTime; // sync it
-            }
-            if (!alertTime) return;
-            if (now < alertTime) return; // not yet
-
-            // Skip if user dismissed this alert — אלא אם כן הגענו מלחיצה על התראה
-            if (!forceShow && item.alertDismissedAt && item.alertDismissedAt >= alertTime) return;
-
-            alertItems.push({ item, idx, listId });
-        });
+    const urgentItems = list.items.filter(item => {
+        if (!item.dueDate || item.isPaid || item.checked) return false;
+        
+        const dueDate = new Date(item.dueDate);
+        dueDate.setHours(0, 0, 0, 0);
+        
+        // בדוק אם התאריך עבר
+        const isOverdue = dueDate <= today;
+        
+        // בדוק אם יש להתריע לפי reminderValue ו-reminderUnit
+        if (item.reminderValue && item.reminderUnit) {
+            const reminderTimeMs = getReminderMilliseconds(item.reminderValue, item.reminderUnit);
+            const dueDateMs = dueDate.getTime();
+            const reminderDate = new Date(dueDateMs - reminderTimeMs);
+            
+            const isReminderTime = now >= reminderDate.getTime() && now <= dueDateMs + (24 * 60 * 60 * 1000);
+            return isOverdue || isReminderTime;
+        }
+        
+        return isOverdue;
     });
 
-    updateNotificationBadge();
+    // Update app badge
+    updateAppBadge(urgentItems.length);
 
-    if (alertItems.length > 0) {
-        showUrgentAlertModal(alertItems.map(a => a.item));
+    // Check if modal should be shown
+    if (urgentItems.length > 0) {
+        const shouldShowModal = checkSnoozeStatus();
+        if (shouldShowModal) {
+            showUrgentAlertModal(urgentItems);
+        }
     }
 }
 
@@ -6574,8 +6546,29 @@ function updateAppBadge(count) {
     }
 }
 
-// Legacy - snooze is now per-item via nextAlertTime
-function checkSnoozeStatus() { return true; }
+// Check snooze status to determine if modal should show
+function checkSnoozeStatus() {
+    // Check session storage first (user clicked Close this session)
+    if (sessionStorage.getItem('urgentAlertClosed')) {
+        return false;
+    }
+
+    // Check localStorage for snooze timestamps
+    const snooze4h = localStorage.getItem('urgentSnooze4h');
+    const snoozeTomorrow = localStorage.getItem('urgentSnoozeTomorrow');
+
+    const now = Date.now();
+
+    if (snooze4h && now < parseInt(snooze4h)) {
+        return false;
+    }
+
+    if (snoozeTomorrow && now < parseInt(snoozeTomorrow)) {
+        return false;
+    }
+
+    return true;
+}
 
 // Show the urgent alert modal with overdue items
 function showUrgentAlertModal(urgentItems) {
@@ -6647,65 +6640,22 @@ function showUrgentAlertModal(urgentItems) {
     modal.classList.add('active');
 }
 
-// Snooze all currently-alerting items
-function snoozeUrgentAlert(ms) {
-    const now = Date.now();
-    const snoozeUntil = now + ms;
-    let snoozedAny = false;
-
-    Object.keys(db.lists).forEach(listId => {
-        db.lists[listId].items.forEach(item => {
-            if (item.checked || item.isPaid) return;
-            if (!item.dueDate) return;
-
-            const alertTime = item.nextAlertTime || computeNextAlertTime(item);
-            if (!alertTime) return;
-            // snooze פריטים שהתראה שלהם הגיעה (עבר זמנם) — כולל כאלה שסומנו כ-dismissed
-            // המשתמש לחץ בכוונה על snooze, אז זה override
-            if (now < alertTime) return;
-
-            item.nextAlertTime = snoozeUntil;
-            item.alertDismissedAt = null; // נקה dismiss כדי שיופיע שוב
-            snoozedAny = true;
-        });
-    });
-
-    if (!snoozedAny) {
-        // fallback: snooze את כל הפריטים עם dueDate (גם אם alertDismissedAt קיים)
-        Object.keys(db.lists).forEach(listId => {
-            db.lists[listId].items.forEach(item => {
-                if (item.checked || item.isPaid) return;
-                if (!item.dueDate || !item.reminderValue) return;
-                item.nextAlertTime = snoozeUntil;
-                item.alertDismissedAt = null;
-            });
-        });
+// Snooze urgent alert for specified hours
+function snoozeUrgentAlert(hours) {
+    const snoozeUntil = Date.now() + (hours * 60 * 60 * 1000);
+    
+    if (hours === 4) {
+        localStorage.setItem('urgentSnooze4h', snoozeUntil.toString());
+    } else if (hours === 24) {
+        localStorage.setItem('urgentSnoozeTomorrow', snoozeUntil.toString());
     }
 
-    save();
     closeModal('urgentAlertModal');
-    showNotification('⏰ תוזכר שוב בקרוב');
-    // Re-schedule timers so the snoozed time is picked up
-    checkAndScheduleNotifications();
 }
 
-// Close/dismiss urgent alert — mark as dismissed so it won't auto-popup again
+// Close urgent alert (session-based)
 function closeUrgentAlert() {
-    const now = Date.now();
-    Object.keys(db.lists).forEach(listId => {
-        db.lists[listId].items.forEach(item => {
-            if (item.checked || item.isPaid) return;
-            if (!item.dueDate) return;
-
-            const alertTime = item.nextAlertTime || computeNextAlertTime(item);
-            if (!alertTime) return;
-            if (now < alertTime) return;
-            if (item.alertDismissedAt && item.alertDismissedAt >= alertTime) return;
-
-            item.alertDismissedAt = now; // mark dismissed — stays in notification center
-        });
-    });
-    save();
+    sessionStorage.setItem('urgentAlertClosed', 'true');
     closeModal('urgentAlertModal');
 }
 
@@ -7903,68 +7853,54 @@ let scheduledNotifications = new Map();
 
 // Check and schedule notifications for items with due dates
 function checkAndScheduleNotifications() {
+    const currentList = db.lists[db.currentId];
+    if (!currentList || !currentList.items) return;
+    
     // Clear existing timers
     scheduledNotifications.forEach(timer => clearTimeout(timer));
     scheduledNotifications.clear();
-
-    // Scan ALL lists (not just current)
-    Object.keys(db.lists).forEach(listId => {
-        const list = db.lists[listId];
-        list.items.forEach((item, index) => {
-            if (!item.checked && !item.isPaid && item.dueDate && item.reminderValue && item.reminderUnit) {
-                scheduleItemNotification(item, index);
-            }
-        });
+    
+    currentList.items.forEach((item, index) => {
+        if (!item.checked && item.dueDate && item.reminderValue && item.reminderUnit) {
+            scheduleItemNotification(item, index);
+        }
     });
 }
 
 // Schedule a single notification for an item
 function scheduleItemNotification(item, index) {
     try {
-        const now = Date.now();
-
-        // Calculate natural alert time
+        // Parse due date and time
         const dueDateObj = new Date(item.dueDate);
+        
+        // If time is specified, set it
         if (item.dueTime) {
-            const [h, m] = item.dueTime.split(':');
-            dueDateObj.setHours(parseInt(h), parseInt(m), 0, 0);
+            const [hours, minutes] = item.dueTime.split(':');
+            dueDateObj.setHours(parseInt(hours), parseInt(minutes), 0, 0);
         } else {
+            // Default to 9:00 AM if no time specified
             dueDateObj.setHours(9, 0, 0, 0);
         }
+        
+        // Calculate reminder time
         const reminderMs = getReminderMilliseconds(item.reminderValue, item.reminderUnit);
-        const naturalAlertTime = dueDateObj.getTime() - reminderMs;
-
-        // Decide fire time: snoozed time takes priority
-        let notificationTime;
-        if (item.nextAlertTime && item.nextAlertTime > now) {
-            // Still in the future — use snooze time
-            notificationTime = item.nextAlertTime;
-        } else if (item.nextAlertTime && item.nextAlertTime > naturalAlertTime) {
-            // nextAlertTime is a snooze that already passed (not the original) — use it
-            notificationTime = item.nextAlertTime;
-        } else {
-            notificationTime = naturalAlertTime;
-            if (!item.nextAlertTime) {
-                item.nextAlertTime = naturalAlertTime; // sync
-            }
-        }
-
-        // If already dismissed for this alert cycle — skip
-        // IMPORTANT: compare alertDismissedAt against the actual notificationTime used
-        if (item.alertDismissedAt && item.alertDismissedAt >= notificationTime && notificationTime <= now) {
-            return;
-        }
-
+        const notificationTime = dueDateObj.getTime() - reminderMs;
+        const now = Date.now();
+        
+        // Only schedule if notification time is in the future
         if (notificationTime > now) {
             const delay = notificationTime - now;
+            
             const timerId = setTimeout(() => {
-                checkUrgentPayments(); // let checkUrgentPayments handle showing
+                showItemNotification(item, index);
             }, delay);
+            
             scheduledNotifications.set(`${item.cloudId || index}`, timerId);
-            console.log(`📅 Scheduled: "${item.name}" in ${Math.round(delay/1000)}s`);
-        } else if (now >= notificationTime) {
-            // Past — checkUrgentPayments will handle on next tick
-            checkUrgentPayments();
+            
+            console.log(`📅 Scheduled notification for "${item.name}" at ${new Date(notificationTime).toLocaleString()}`);
+        } else if (now >= notificationTime && now <= dueDateObj.getTime()) {
+            // If we're past the reminder time but before the due time, show now
+            showItemNotification(item, index);
         }
     } catch (error) {
         console.error('Error scheduling notification:', error);
@@ -8095,11 +8031,8 @@ function initNotificationSystem() {
     // Schedule notifications for current list
     checkAndScheduleNotifications();
     
-    // Re-check every 30 seconds — catches short snoozes (2 min etc.)
-    setInterval(() => {
-        checkAndScheduleNotifications();
-        checkUrgentPayments();
-    }, 30000);
+    // Re-check every minute
+    setInterval(checkAndScheduleNotifications, 60000);
 }
 
 // Call on page load
@@ -8137,14 +8070,18 @@ function applyCustomSnooze() {
         return;
     }
     
-    let ms = parseFloat(value);
-    if (unit === 'minutes') ms = ms * 60 * 1000;
-    else if (unit === 'hours') ms = ms * 60 * 60 * 1000;
-    else if (unit === 'days') ms = ms * 24 * 60 * 60 * 1000;
+    // Convert to hours
+    let hours = parseFloat(value);
+    if (unit === 'minutes') {
+        hours = hours / 60;
+    } else if (unit === 'days') {
+        hours = hours * 24;
+    }
     
-    snoozeUrgentAlert(ms);
+    snoozeUrgentAlert(hours);
     closeModal('customSnoozeModal');
     
+    // Reset form
     document.getElementById('customSnoozeValue').value = '1';
     document.getElementById('customSnoozeUnit').value = 'hours';
 }
@@ -8196,11 +8133,14 @@ function saveReminderEdit() {
     item.reminderValue = document.getElementById('editItemReminderValue').value || '';
     item.reminderUnit = document.getElementById('editItemReminderUnit').value || '';
     item.lastUpdated = Date.now();
-
-    // Recompute nextAlertTime based on new values
-    item.nextAlertTime = computeNextAlertTime(item);
     
+    // Save and re-schedule notifications
     save();
+    
+    // Re-initialize notifications
+    if (typeof checkAndScheduleNotifications === 'function') {
+        checkAndScheduleNotifications();
+    }
     
     closeModal('editReminderModal');
     showNotification('✅ ההתראה עודכנה בהצלחה');
