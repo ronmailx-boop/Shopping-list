@@ -4445,10 +4445,6 @@ function setupFirestoreListener(user) {
                 localStorage.setItem('BUDGET_FINAL_V28', JSON.stringify(db));
                 render();
                 showNotification('☁️ סונכרן מהענן!', 'success');
-                // בדוק התראות לאחר סנכרון מהענן (חשוב כשנפתח מלחיצה על התראה)
-                if (typeof checkUrgentPayments === 'function') {
-                    setTimeout(() => checkUrgentPayments(), 200);
-                }
             }
         } else {
             console.log('📝 מסמך לא קיים בענן, יוצר חדש...');
@@ -6493,7 +6489,7 @@ if (typeof updateCategoryDropdown === 'function') {
 // ========== Peace of Mind Features ==========
 
 // Check for urgent payments on page load and display alerts
-function checkUrgentPayments() {
+function checkUrgentPayments(triggerItemName) {
     const list = db.lists[db.currentId];
     if (!list || !list.items) return;
 
@@ -6503,19 +6499,19 @@ function checkUrgentPayments() {
 
     const urgentItems = list.items.filter(item => {
         if (!item.dueDate || item.isPaid || item.checked) return false;
-        
+
+        // אם הפריט נדחה (snooze) — דלג עד שהזמן יעבור
+        if (item.dismissedUntil && now < item.dismissedUntil) return false;
+
         const dueDate = new Date(item.dueDate);
         dueDate.setHours(0, 0, 0, 0);
         
-        // בדוק אם התאריך עבר
         const isOverdue = dueDate <= today;
         
-        // בדוק אם יש להתריע לפי reminderValue ו-reminderUnit
         if (item.reminderValue && item.reminderUnit) {
             const reminderTimeMs = getReminderMilliseconds(item.reminderValue, item.reminderUnit);
             const dueDateMs = dueDate.getTime();
             const reminderDate = new Date(dueDateMs - reminderTimeMs);
-            
             const isReminderTime = now >= reminderDate.getTime() && now <= dueDateMs + (24 * 60 * 60 * 1000);
             return isOverdue || isReminderTime;
         }
@@ -6526,12 +6522,21 @@ function checkUrgentPayments() {
     // Update app badge
     updateAppBadge(urgentItems.length);
 
-    // Check if modal should be shown
-    if (urgentItems.length > 0) {
-        const shouldShowModal = checkSnoozeStatus();
-        if (shouldShowModal) {
-            showUrgentAlertModal(urgentItems);
+    if (urgentItems.length === 0) return;
+
+    // אם הגענו מלחיצה על התראה ספציפית — הצג רק אותה
+    if (triggerItemName) {
+        const triggerItem = urgentItems.find(item => item.name === triggerItemName);
+        if (triggerItem) {
+            showUrgentAlertModal([triggerItem]);
+            return;
         }
+    }
+
+    // הצג רק אם לא נסגר ידנית באותו session
+    const shouldShowModal = checkSnoozeStatus();
+    if (shouldShowModal) {
+        showUrgentAlertModal(urgentItems);
     }
 }
 
@@ -6550,19 +6555,8 @@ function updateAppBadge(count) {
     }
 }
 
-// Flag: הגענו מלחיצה על התראה — מציג מודל גם אם נסגר קודם באותו session
-let _openedFromNotification = false;
-
 // Check snooze status to determine if modal should show
 function checkSnoozeStatus() {
-    // אם הגענו מלחיצה על התראה — מאפסים את הסגירה ומציגים תמיד
-    if (_openedFromNotification) {
-        _openedFromNotification = false;
-        // מנקים את sessionStorage כדי שהמודל יוצג גם אם נסגר קודם
-        sessionStorage.removeItem('urgentAlertClosed');
-        return true;
-    }
-
     // Check session storage first (user clicked Close this session)
     if (sessionStorage.getItem('urgentAlertClosed')) {
         return false;
@@ -6655,23 +6649,34 @@ function showUrgentAlertModal(urgentItems) {
     modal.classList.add('active');
 }
 
-// Snooze urgent alert for specified hours
+// Snooze urgent alert for specified hours — per-item
 function snoozeUrgentAlert(hours) {
     const snoozeUntil = Date.now() + (hours * 60 * 60 * 1000);
-    
-    if (hours === 4) {
-        localStorage.setItem('urgentSnooze4h', snoozeUntil.toString());
-    } else if (hours === 24) {
-        localStorage.setItem('urgentSnoozeTomorrow', snoozeUntil.toString());
-    }
+    const list = db.lists[db.currentId];
+    if (!list || !list.items) { closeModal('urgentAlertModal'); return; }
 
+    // מחיל snooze על כל הפריטים הדחופים הנוכחיים
+    list.items.forEach(item => {
+        if (!item.dueDate || item.isPaid || item.checked) return;
+        const now = Date.now();
+        // רק פריטים שכרגע מוצגים (לא נדחו)
+        if (item.dismissedUntil && now < item.dismissedUntil) return;
+        item.dismissedUntil = snoozeUntil;
+    });
+
+    save();
     closeModal('urgentAlertModal');
 }
 
-// Close urgent alert (session-based)
+// Close urgent alert - mark current items as dismissed for this session
 function closeUrgentAlert() {
     sessionStorage.setItem('urgentAlertClosed', 'true');
     closeModal('urgentAlertModal');
+}
+
+// מאפס את ה-session dismiss (נקרא כשמגיעים מלחיצה על התראה)
+function clearAlertDismissForNotification() {
+    sessionStorage.removeItem('urgentAlertClosed');
 }
 
 // Format date for display
