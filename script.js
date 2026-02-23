@@ -7063,7 +7063,21 @@ function dismissNotification(listId, itemIdx, dueDateMs, e) {
     if (!dismissed.includes(key)) dismissed.push(key);
     saveDismissedNotifications(dismissed);
     updateNotificationBadge();
-    openNotificationCenter(); // רענן את הרשימה
+    // רענן badge ו-clear-all בלבד, ללא re-render מלא (ה-swipe עצמו מוריד את הקלף)
+    const items = getNotificationItems();
+    const btn = document.getElementById('clearAllNotifsBtn');
+    if (btn) btn.style.display = items.length > 0 ? 'flex' : 'none';
+    const hint = document.getElementById('ncSwipeHint');
+    if (hint) hint.style.display = items.length > 0 ? 'block' : 'none';
+    if (items.length === 0) {
+        const container = document.getElementById('notificationsList');
+        if (container) container.innerHTML = `
+            <div style="text-align:center;padding:40px 20px;">
+                <div style="font-size:3rem;margin-bottom:12px;">🎉</div>
+                <div style="color:#7367f0;font-weight:700;font-size:1rem;">אין התראות כרגע</div>
+                <div style="color:#c4b5fd;font-size:0.82rem;margin-top:6px;">הכל תחת שליטה!</div>
+            </div>`;
+    }
 }
 
 function dismissAllNotifications() {
@@ -7080,75 +7094,142 @@ function dismissAllNotifications() {
 
 function openNotificationCenter() {
     const notificationItems = getNotificationItems();
-    const container = document.getElementById('notificationsList');
+    const container   = document.getElementById('notificationsList');
+    const clearAllBtn = document.getElementById('clearAllNotifsBtn');
+    const swipeHint   = document.getElementById('ncSwipeHint');
 
-    // כפתור מחק הכל — מוסיפים לכותרת המודל
-    const modalEl = document.getElementById('notificationCenterModal');
-    if (modalEl) {
-        let clearAllBtn = modalEl.querySelector('#clearAllNotifsBtn');
-        if (!clearAllBtn) {
-            const h2 = modalEl.querySelector('h2');
-            if (h2) {
-                clearAllBtn = document.createElement('button');
-                clearAllBtn.id = 'clearAllNotifsBtn';
-                clearAllBtn.style.cssText = 'font-size:0.75rem;background:#fee2e2;color:#ef4444;border:none;border-radius:10px;padding:4px 12px;font-weight:bold;cursor:pointer;margin-right:8px;float:left;';
-                clearAllBtn.textContent = '🗑️ נקה הכל';
-                clearAllBtn.onclick = dismissAllNotifications;
-                h2.appendChild(clearAllBtn);
-            }
-        }
-        // הסתר/הצג לפי כמות
-        if (clearAllBtn) {
-            clearAllBtn.style.display = notificationItems.length > 0 ? 'inline-block' : 'none';
-        }
-    }
-    
+    // Show/hide clear-all button
+    if (clearAllBtn) clearAllBtn.style.display = notificationItems.length > 0 ? 'flex' : 'none';
+
     if (notificationItems.length === 0) {
-        container.innerHTML = '<p style="color:#9ca3af;text-align:center;padding:32px 0;">אין התראות כרגע 🎉</p>';
+        if (swipeHint) swipeHint.style.display = 'none';
+        container.innerHTML = `
+            <div style="text-align:center;padding:40px 20px;">
+                <div style="font-size:3rem;margin-bottom:12px;">🎉</div>
+                <div style="color:#7367f0;font-weight:700;font-size:1rem;">אין התראות כרגע</div>
+                <div style="color:#c4b5fd;font-size:0.82rem;margin-top:6px;">הכל תחת שליטה!</div>
+            </div>`;
     } else {
+        if (swipeHint) swipeHint.style.display = 'block';
         container.innerHTML = '';
+
         notificationItems.forEach(notif => {
-            const div = document.createElement('div');
-            
+            // Wrapper for swipe
+            const wrap = document.createElement('div');
+            wrap.className = 'nc-card-wrap';
+
+            // Background layers (left & right swipe)
+            wrap.innerHTML = `
+                <div class="nc-swipe-bg left-swipe">🗑️ מחק</div>
+                <div class="nc-swipe-bg right-swipe">🗑️ מחק</div>
+            `;
+
+            // Card
             let notifClass = 'soon';
             if (notif.isOverdue) notifClass = 'overdue';
             else if (notif.isUpcoming && !notif.isToday) notifClass = 'upcoming';
-            
-            div.className = `notification-item ${notifClass}`;
-            div.style.position = 'relative';
 
             let dateText = '';
             if (notif.isOverdue) {
-                const daysOverdue = Math.floor((new Date().setHours(0,0,0,0) - notif.dueDate) / 86400000);
-                dateText = `⚠️ איחור ${daysOverdue} ${daysOverdue === 1 ? 'יום' : 'ימים'}`;
+                const d = Math.floor((new Date().setHours(0,0,0,0) - notif.dueDate) / 86400000);
+                dateText = `⚠️ איחור ${d} ${d === 1 ? 'יום' : 'ימים'}`;
             } else if (notif.isToday) {
                 dateText = '📅 היום!';
             } else if (notif.isTomorrow) {
                 dateText = '📅 מחר';
             } else {
-                const daysUntil = Math.floor((notif.dueDate - new Date().setHours(0,0,0,0)) / 86400000);
+                const d = Math.floor((notif.dueDate - new Date().setHours(0,0,0,0)) / 86400000);
                 if (notif.isUpcoming && notif.reminderValue && notif.reminderUnit) {
-                    const reminderText = formatReminderText(notif.reminderValue, notif.reminderUnit);
-                    dateText = `🔔 תזכורת ${reminderText} לפני - תאריך יעד בעוד ${daysUntil} ${daysUntil === 1 ? 'יום' : 'ימים'}`;
+                    dateText = `🔔 תזכורת ${formatReminderText(notif.reminderValue, notif.reminderUnit)} לפני — בעוד ${d} ${d === 1 ? 'יום' : 'ימים'}`;
                 } else {
-                    dateText = `📅 בעוד ${daysUntil} ${daysUntil === 1 ? 'יום' : 'ימים'}`;
+                    dateText = `📅 בעוד ${d} ${d === 1 ? 'יום' : 'ימים'}`;
                 }
             }
-            
-            div.innerHTML = `
-                <button onclick="dismissNotification('${notif.listId}', ${notif.itemIdx}, ${notif.dueDateMs}, event)"
-                    style="position:absolute;top:8px;left:8px;background:#fee2e2;color:#ef4444;border:none;border-radius:8px;width:26px;height:26px;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-weight:bold;line-height:1;"
-                    title="מחק התראה">✕</button>
-                <div class="notification-item-title" style="padding-left:34px;">${notif.item.name}</div>
+
+            const card = document.createElement('div');
+            card.className = `notification-item ${notifClass}`;
+            card.innerHTML = `
+                <div class="notification-item-title">${notif.item.name}</div>
                 <div class="notification-item-date">${dateText}</div>
-                <div class="notification-item-list">רשימה: ${notif.listName}</div>
+                <div class="notification-item-list">📋 ${notif.listName}</div>
             `;
-            div.onclick = () => jumpToItem(notif.listId, notif.itemIdx);
-            container.appendChild(div);
+            card.addEventListener('click', () => jumpToItem(notif.listId, notif.itemIdx));
+
+            wrap.appendChild(card);
+            container.appendChild(wrap);
+
+            // ── Swipe to dismiss ──
+            attachSwipeDismiss(wrap, card, notif);
         });
     }
-    
+
     openModal('notificationCenterModal');
+}
+
+function attachSwipeDismiss(wrap, card, notif) {
+    const THRESHOLD = 80; // px to trigger dismiss
+    let startX = 0, currentX = 0, dragging = false;
+    const leftBg  = wrap.querySelector('.left-swipe');
+    const rightBg = wrap.querySelector('.right-swipe');
+
+    function onStart(clientX) {
+        startX = clientX;
+        currentX = 0;
+        dragging = true;
+        card.style.transition = 'none';
+    }
+    function onMove(clientX) {
+        if (!dragging) return;
+        currentX = clientX - startX;
+        card.style.transform = `translateX(${currentX}px)`;
+        const abs = Math.abs(currentX);
+        const ratio = Math.min(abs / THRESHOLD, 1);
+        if (currentX < 0) {
+            if (leftBg)  { leftBg.classList.add('reveal');    leftBg.style.opacity  = ratio; }
+            if (rightBg) { rightBg.classList.remove('reveal'); rightBg.style.opacity = 0; }
+        } else {
+            if (rightBg) { rightBg.classList.add('reveal');   rightBg.style.opacity = ratio; }
+            if (leftBg)  { leftBg.classList.remove('reveal'); leftBg.style.opacity  = 0; }
+        }
+    }
+    function onEnd() {
+        if (!dragging) return;
+        dragging = false;
+        if (Math.abs(currentX) >= THRESHOLD) {
+            // Dismiss: slide out then remove
+            const dir = currentX < 0 ? -1 : 1;
+            card.style.transition = 'transform 0.28s ease, opacity 0.28s ease';
+            card.style.transform  = `translateX(${dir * window.innerWidth}px)`;
+            card.style.opacity    = '0';
+            wrap.style.transition = 'max-height 0.3s ease 0.22s, margin 0.3s ease 0.22s, opacity 0.3s ease 0.22s';
+            wrap.style.overflow   = 'hidden';
+            setTimeout(() => {
+                wrap.style.maxHeight = '0';
+                wrap.style.marginBottom = '0';
+                wrap.style.opacity = '0';
+            }, 50);
+            setTimeout(() => {
+                dismissNotification(notif.listId, notif.itemIdx, notif.dueDateMs, null);
+            }, 380);
+        } else {
+            // Snap back
+            card.style.transition = 'transform 0.25s cubic-bezier(0.34,1.56,0.64,1)';
+            card.style.transform  = 'translateX(0)';
+            if (leftBg)  { leftBg.style.opacity  = '0'; leftBg.classList.remove('reveal');  }
+            if (rightBg) { rightBg.style.opacity = '0'; rightBg.classList.remove('reveal'); }
+        }
+    }
+
+    // Touch
+    card.addEventListener('touchstart', e => onStart(e.touches[0].clientX),  { passive: true });
+    card.addEventListener('touchmove',  e => onMove(e.touches[0].clientX),   { passive: true });
+    card.addEventListener('touchend',   () => onEnd());
+    card.addEventListener('touchcancel',() => onEnd());
+
+    // Mouse (desktop)
+    card.addEventListener('mousedown', e => { onStart(e.clientX); e.preventDefault(); });
+    window.addEventListener('mousemove', e => { if (dragging) onMove(e.clientX); });
+    window.addEventListener('mouseup',   () => { if (dragging) onEnd(); });
 }
 
 function jumpToItem(listId, itemIdx) {
