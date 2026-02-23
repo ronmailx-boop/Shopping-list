@@ -8418,458 +8418,269 @@ function checkNotificationUrlParam() {
 window.addEventListener('load', () => { setTimeout(checkNotificationUrlParam, 1000); });
 
 
-// ╔══════════════════════════════════════════════════════════════════════╗
-// ║              🧙 VPLUS WIZARD SYSTEM — Built from Scratch            ║
-// ║  מערכת הדרכה חכמה שמסבירה כל פעולה בזמן אמת                        ║
-// ╚══════════════════════════════════════════════════════════════════════╝
+// ║    🧙 VPLUS WIZARD — Full-Screen Cinematic Experience v3        ║
+// ║    כל לחיצה = מסך הסבר מלא, מרהיב, אנימטיבי                    ║
+// ╚══════════════════════════════════════════════════════════════════╝
 
 let wizardMode = false;
-let _wizardTooltipEl = null;
-let _wizardTooltipTimer = null;
-let _wizardActiveHighlight = null;
-let _wizardStep = null;
-let _wizardListeners = []; // for cleanup
+let _wizDismissCallback = null;
+let _wizAutoTimer       = null;
 
-// ── Content library: all messages by action key ──────────────────────
-const WIZARD_TIPS = {
+// ── Content library ────────────────────────────────────────────────
+const WIZ = {
     plusBtn: {
-        icon: '➕',
-        title: 'הוספת מוצר לרשימה',
-        before: 'לחץ כדי לפתוח את חלון הוספת המוצר. תוכל להזין שם, מחיר, כמות וקטגוריה.',
-        after: 'מעולה! עכשיו מלא את פרטי המוצר ולחץ "הוסף ✓".'
+        emoji:'➕', phase:'before',
+        title:'הוספת מוצר לרשימה',
+        body:'לחץ את הכפתור הירוק כדי לפתוח את חלון הוספת המוצר.\nתוכל להזין שם, מחיר, כמות וקטגוריה.',
+        tip:'💡 טיפ: הפעל "הוספה רציפה" כדי להוסיף כמה מוצרים ברצף מהיר!',
     },
-    itemName: {
-        icon: '✏️',
-        title: 'עריכת שם מוצר',
-        before: 'לחץ על שם המוצר כדי לשנות אותו.',
-        after: 'השם עודכן! השינוי נשמר אוטומטית.'
-    },
-    itemPrice: {
-        icon: '₪',
-        title: 'עריכת מחיר',
-        before: 'לחץ על הסכום כדי לעדכן את המחיר.',
-        after: 'המחיר עודכן! הסיכום בתחתית מתעדכן אוטומטית.'
+    plusDone: {
+        emoji:'🎉', phase:'after',
+        title:'מוצר נוסף בהצלחה!',
+        body:'המוצר נוסף לרשימה שלך.\nהסכום הכולל התעדכן אוטומטית.',
+        tip:'💡 לחץ ➕ שוב להוספת מוצר נוסף, או גלול למטה לראות את הרשימה.',
     },
     checkItem: {
-        icon: '✅',
-        title: 'סימון כשולם',
-        before: 'לחץ על הכרטיס כדי לסמן את המוצר כרכישה שבוצעה.',
-        after: 'יפה! המוצר סומן ✅. תוכל לבטל את הסימון בלחיצה נוספת.'
+        emoji:'✅', phase:'before',
+        title:'סימון מוצר כרכוש',
+        body:'לחץ על הכרטיס כדי לסמן שרכשת את המוצר.\nהמוצר יועבר לרשימת "שולם".',
+        tip:'💡 שינית את דעתך? לחץ שוב כדי לבטל את הסימון.',
+    },
+    checkDone: {
+        emoji:'✅', phase:'after',
+        title:'מוצר סומן!',
+        body:'מצוין! המוצר נרשם כרכישה שבוצעה.\nניתן לבטל בלחיצה נוספת.',
+        tip:'💡 מוצרים מסומנים נספרים ב"שולם" בסרגל התחתון.',
     },
     removeItem: {
-        icon: '🗑️',
-        title: 'מחיקת מוצר',
-        before: 'לחץ כדי להסיר את המוצר מהרשימה. יהיה לך 5 שניות לבטל.',
-        after: 'המוצר הוסר. לחץ "בטל" אם טעית.'
+        emoji:'🗑️', phase:'before',
+        title:'מחיקת מוצר',
+        body:'המוצר יוסר מהרשימה.\nיש לך 5 שניות לבטל את המחיקה!',
+        tip:'⚠️ לחץ על "בטל" שיופיע למטה כדי לשחזר.',
     },
-    qtyPlus: {
-        icon: '🔢',
-        title: 'הגדלת כמות',
-        before: 'לחץ + כדי להוסיף יחידה נוספת.',
-        after: 'הכמות גדלה. המחיר הכולל מתעדכן אוטומטית.'
-    },
-    qtyMinus: {
-        icon: '🔢',
-        title: 'הפחתת כמות',
-        before: 'לחץ − כדי להפחית יחידה.',
-        after: 'הכמות הופחתה.'
+    removeDone: {
+        emoji:'🗑️', phase:'after',
+        title:'מוצר הוסר',
+        body:'המוצר הוסר מהרשימה.\nלחץ "בטל" אם טעית.',
+        tip:'💡 המוצר יכול להופיע בהיסטוריה אם השתמשת בהשלמה רשימה.',
     },
     newList: {
-        icon: '📋',
-        title: 'רשימה חדשה',
-        before: 'לחץ כדי ליצור רשימת קניות חדשה. תוכל לתת לה שם, תקציב וקישור לחנות.',
-        after: 'הרשימה נוצרה! תוכל להחליף בין רשימות מהתפריט.'
+        emoji:'📋', phase:'before',
+        title:'יצירת רשימה חדשה',
+        body:'תוכל לתת שם לרשימה, להגדיר תקציב ולהוסיף קישור לאתר החנות.',
+        tip:'💡 אפשר גם לשמור כתבנית לשימוש עתידי!',
+    },
+    newListDone: {
+        emoji:'🎊', phase:'after',
+        title:'הרשימה נוצרה!',
+        body:'הרשימה החדשה שלך מוכנה.\nעכשיו לחץ ➕ כדי להתחיל להוסיף מוצרים.',
+        tip:'💡 אפשר לעבור בין רשימות מהטאב "הרשימות שלי".',
     },
     completeList: {
-        icon: '🏁',
-        title: 'סיום רשימה',
-        before: 'לחץ כדי לסמן את כל הרשימה כהושלמה ולשמור בהיסטוריה.',
-        after: 'הרשימה הושלמה ונשמרה בהיסטוריה. עצה: בנה תבנית מהרשימה לשימוש עתידי!'
+        emoji:'🏁', phase:'before',
+        title:'סיום וסגירת רשימה',
+        body:'הרשימה תסומן כהושלמה ותישמר בהיסטוריה שלך.\nתוכל לצפות בה מאוחר יותר.',
+        tip:'💡 רוצה להשתמש בה שוב? שמור אותה כתבנית לפני הסגירה!',
+    },
+    completeDone: {
+        emoji:'🏆', phase:'after',
+        title:'כל הכבוד! הרשימה הושלמה',
+        body:'הרשימה נשמרה בהיסטוריה שלך.\nכל ההוצאות נרשמו בסטטיסטיקות.',
+        tip:'💡 כנס להיסטוריה כדי לצפות בסיכום הרכישות.',
     },
     lockBtn: {
-        icon: '🔒',
-        title: 'נעילת רשימה',
-        before: 'לחץ כדי לנעול עריכה — שימושי כשהרשימה מוכנה לקניה.',
-        after: 'הרשימה נעולה. לחץ שוב לביטול הנעילה.'
+        emoji:'🔒', phase:'before',
+        title:'נעילת הרשימה',
+        body:'הנעילה מונעת שינויים בשוגג.\nשימושי כשהרשימה מוכנה לקנייה.',
+        tip:'💡 לחץ שוב על הכפתור כדי לשחרר את הנעילה.',
+    },
+    lockDone: {
+        emoji:'🔐', phase:'after',
+        title:'הרשימה נעולה',
+        body:'הרשימה כעת מוגנת מפני עריכה בשוגג.\nלחץ שוב להסרת הנעילה.',
+        tip:'💡 בזמן נעילה אפשר עדיין לסמן מוצרים כרכושים.',
     },
     bellBtn: {
-        icon: '🔔',
-        title: 'מרכז התראות',
-        before: 'כאן תראה את כל הפריטים עם תאריכי יעד קרובים.',
-        after: 'ב-Swipe שמאלה/ימינה ניתן למחוק התראה בודדת.'
+        emoji:'🔔', phase:'before',
+        title:'מרכז התראות',
+        body:'כאן תראה את כל הפריטים עם תאריכי יעד קרובים, איחורים ותזכורות.',
+        tip:'💡 החלק התראה שמאלה/ימינה כדי למחוק אותה.',
     },
     settingsBtn: {
-        icon: '⚙️',
-        title: 'הגדרות',
-        before: 'הגדרות כוללות: שפה, מצב לילה, סנכרון ענן וניהול קטגוריות.',
-        after: ''
+        emoji:'⚙️', phase:'before',
+        title:'הגדרות האפליקציה',
+        body:'כאן תמצא: שפת ממשק, מצב לילה, סנכרון ענן, ניהול קטגוריות ועוד.',
+        tip:'💡 הפעל מצב לילה לנוחות שימוש בשעות האפלה.',
     },
     tabList: {
-        icon: '🛒',
-        title: 'טאב הרשימה',
-        before: 'הצג את הרשימה הפעילה ופריטיה.',
-        after: ''
+        emoji:'🛒', phase:'before',
+        title:'הרשימה הפעילה',
+        body:'הצג את הרשימה הפעילה עם כל הפריטים שלה.\nכאן מתבצעת הקנייה.',
+        tip:'💡 גרור פריטים לסידור מחדש של הרשימה.',
     },
     tabLists: {
-        icon: '📚',
-        title: 'טאב רשימות',
-        before: 'כאן תמצא את כל הרשימות שלך. ניתן ליצור, לערוך ולמחוק.',
-        after: ''
+        emoji:'📚', phase:'before',
+        title:'כל הרשימות שלך',
+        body:'כאן תמצא את כל הרשימות.\nניתן ליצור, לערוך, למחוק ולבחור רשימה פעילה.',
+        tip:'💡 לחץ ממושך על רשימה לאפשרויות נוספות.',
     },
     tabStats: {
-        icon: '📊',
-        title: 'טאב סטטיסטיקות',
-        before: 'צפה בגרפים של ההוצאות שלך לפי חודש וקטגוריה.',
-        after: ''
+        emoji:'📊', phase:'before',
+        title:'סטטיסטיקות הוצאות',
+        body:'גרפים ותובנות על ההוצאות שלך לפי חודש, קטגוריה וזמן.',
+        tip:'💡 השתמש בסטטיסטיקות לתכנון תקציב חכם יותר.',
     },
-    addItemBtn: {
-        icon: '✓',
-        title: 'אישור הוספת מוצר',
-        before: 'לחץ "הוסף ✓" לאחר מילוי הפרטים כדי להוסיף לרשימה.',
-        after: 'המוצר נוסף בהצלחה! תראה אותו ברשימה. לחץ ➕ שוב להוספת מוצר נוסף.'
+    editName: {
+        emoji:'✏️', phase:'before',
+        title:'עריכת שם מוצר',
+        body:'לחץ על שם המוצר כדי לשנות אותו.\nהשינוי יישמר אוטומטית.',
+        tip:'💡 שם ברור עוזר למצוא מוצרים מהר בחיפוש.',
     },
-    categoryBadge: {
-        icon: '🏷️',
-        title: 'קטגוריה',
-        before: 'לחץ על הקטגוריה כדי לשנות אותה — עוזר לסדר ולסנן את הרשימה.',
-        after: ''
+    editPrice: {
+        emoji:'₪', phase:'before',
+        title:'עריכת מחיר',
+        body:'לחץ על הסכום כדי לעדכן את המחיר.\nהסיכום הכולל מתעדכן מיידית.',
+        tip:'💡 אפשר להזין מחיר ל-0 אם המוצר חינמי.',
     },
-    noteBadge: {
-        icon: '📝',
-        title: 'הערה למוצר',
-        before: 'לחץ כדי להוסיף הערה אישית — לינק, הנחיה, או כל מידע שחשוב לך.',
-        after: 'ההערה נשמרה. תוכל לראות אותה על הכרטיס.'
+    category: {
+        emoji:'🏷️', phase:'before',
+        title:'שינוי קטגוריה',
+        body:'קטגוריות עוזרות לסדר ולסנן את הרשימה בקלות.\nהאפליקציה מנסה לזהות קטגוריה אוטומטית.',
+        tip:'💡 ניתן ליצור קטגוריות מותאמות אישית בהגדרות.',
     },
-    reminderEdit: {
-        icon: '⏰',
-        title: 'עריכת תזכורת',
-        before: 'לחץ כדי לקבוע מתי תקבל תזכורת לפני תאריך היעד.',
-        after: 'התזכורת נשמרה! תקבל התראה במועד שהגדרת.'
+    note: {
+        emoji:'📝', phase:'before',
+        title:'הוספת הערה',
+        body:'הוסף פרטים נוספים: לינק למוצר, הוראות מיוחדות, או כל מידע שחשוב לך.',
+        tip:'💡 הערות עם לינקים יהפכו ללחיצים אוטומטית.',
     },
-    saveNewList: {
-        icon: '💾',
-        title: 'שמירת הרשימה',
-        before: 'לחץ "צור רשימה" לאחר מתן שם כדי לשמור.',
-        after: 'הרשימה נוצרה ונבחרה. עכשיו הוסף אליה מוצרים ב-➕.'
-    }
+    reminder: {
+        emoji:'⏰', phase:'before',
+        title:'הגדרת תזכורת',
+        body:'קבע מתי תקבל התראה לפני תאריך היעד של הפריט.\nהתזכורות מגיעות גם כשהאפליקציה סגורה.',
+        tip:'💡 הגדר תזכורת של יומיים לפני לתכנון מראש.',
+    },
+    qtyPlus: {
+        emoji:'🔢', phase:'before',
+        title:'הגדלת כמות',
+        body:'לחץ + כדי להגדיל את מספר היחידות.\nהמחיר הכולל יתעדכן אוטומטית.',
+        tip:'💡 שנה כמות מהירה: לחץ ממושך על + לריבוי מהיר.',
+    },
+    qtyMinus: {
+        emoji:'🔢', phase:'before',
+        title:'הפחתת כמות',
+        body:'לחץ − כדי להפחית יחידה.\nכמות מינימלית היא 1.',
+        tip:'💡 לחץ 🗑️ אם ברצונך למחוק לגמרי.',
+    },
 };
 
-// ── Tooltip element builder ───────────────────────────────────────────
-function _wiz_createTooltip() {
-    const el = document.createElement('div');
-    el.id = 'wizardTooltip';
-    el.setAttribute('dir', 'rtl');
-    document.body.appendChild(el);
-    _wizardTooltipEl = el;
-    return el;
-}
-
-function _wiz_getTooltip() {
-    return document.getElementById('wizardTooltip') || _wiz_createTooltip();
-}
-
-// ── Show tooltip near a target element ───────────────────────────────
-function wizardShowTip(targetEl, tipKey, phase /* 'before'|'after' */, opts = {}) {
-    if (!wizardMode) return;
-
-    const tip = WIZARD_TIPS[tipKey];
-    if (!tip) return;
-    const msg = phase === 'after' ? tip.after : tip.before;
-    if (!msg) return;
-
-    clearTimeout(_wizardTooltipTimer);
-    _wiz_removeHighlight();
-
-    const tooltip = _wiz_getTooltip();
-
-    // Highlight target
-    if (targetEl) {
-        targetEl.classList.add('wizard-highlight');
-        _wizardActiveHighlight = targetEl;
+// ── Core: show a full-screen wizard card ───────────────────────────
+function wiz(key, phase, onDismiss) {
+    if (!wizardMode) {
+        if (onDismiss) onDismiss();
+        return;
     }
+    const data = WIZ[key];
+    if (!data) { if (onDismiss) onDismiss(); return; }
 
-    tooltip.innerHTML = `
-        <div class="wiz-tip-icon">${tip.icon}</div>
-        <div class="wiz-tip-content">
-            <div class="wiz-tip-title">${tip.title}</div>
-            <div class="wiz-tip-msg">${msg}</div>
-        </div>
-        <button class="wiz-tip-close" onclick="_wiz_hideTip()">✕</button>
-    `;
+    const overlay = document.getElementById('wizCardOverlay');
+    const card    = document.getElementById('wizCard');
+    if (!overlay || !card) { if (onDismiss) onDismiss(); return; }
 
-    // Position: prefer above target, fallback to fixed bottom
-    tooltip.className = 'wiz-tooltip';
-    if (phase === 'after') tooltip.classList.add('wiz-tip-success');
+    // Populate content
+    document.getElementById('wizEmoji').textContent  = data.emoji;
+    document.getElementById('wizTitle').textContent  = data.title;
+    document.getElementById('wizBody').innerHTML     = data.body.replace(/\n/g,'<br>');
 
-    // Position calculation
-    if (targetEl) {
-        const rect = targetEl.getBoundingClientRect();
-        const vw = window.innerWidth;
+    const phasePill  = document.getElementById('wizPhasePill');
+    const phaseLabel = document.getElementById('wizPhaseLabel');
+    const isBefore   = (data.phase === 'before' || phase === 'before');
+    phasePill.className = 'wiz-phase-pill ' + (isBefore ? 'wiz-phase-before' : 'wiz-phase-after');
+    phaseLabel.textContent = isBefore ? 'לפני הפעולה' : 'בוצע!';
 
-        // Fixed-bottom if target is in bottom bar
-        if (rect.top > window.innerHeight * 0.7) {
-            tooltip.classList.add('wiz-tip-bottom');
-            tooltip.style.cssText = `bottom:${window.innerHeight - rect.top + 12}px; left:50%; transform:translateX(-50%);`;
-        } else {
-            // Above or below
-            const spaceAbove = rect.top;
-            const spaceBelow = window.innerHeight - rect.bottom;
-            if (spaceAbove > 120 || spaceAbove > spaceBelow) {
-                tooltip.classList.add('wiz-tip-above');
-                tooltip.style.cssText = `top:${rect.top - 10}px; transform:translateY(-100%); left:${Math.min(Math.max(rect.left, 10), vw - 310)}px;`;
-            } else {
-                tooltip.classList.add('wiz-tip-below');
-                tooltip.style.cssText = `top:${rect.bottom + 10}px; left:${Math.min(Math.max(rect.left, 10), vw - 310)}px;`;
-            }
-        }
+    const tipBox  = document.getElementById('wizTipBox');
+    const tipText = document.getElementById('wizTipText');
+    if (data.tip) {
+        tipText.textContent = data.tip.slice(2).trim(); // remove emoji prefix
+        document.getElementById('wizTipIcon').textContent = data.tip[0];
+        tipBox.style.display = 'flex';
     } else {
-        tooltip.classList.add('wiz-tip-center');
-        tooltip.style.cssText = '';
+        tipBox.style.display = 'none';
     }
 
-    tooltip.classList.add('wiz-tip-visible');
+    // Btn labels
+    const okBtn   = document.getElementById('wizOkBtn');
+    const skipBtn = document.getElementById('wizSkipBtn');
+    okBtn.textContent   = isBefore ? 'הבנתי, בואו נמשיך ✓' : 'מצוין! ✓';
+    skipBtn.textContent = 'דלג';
 
-    // Auto-hide
-    const delay = phase === 'after' ? 3500 : (opts.persist ? 0 : 5000);
-    if (delay > 0) {
-        _wizardTooltipTimer = setTimeout(_wiz_hideTip, delay);
-    }
-}
+    // Store callback
+    _wizDismissCallback = onDismiss || null;
 
-function _wiz_hideTip() {
-    clearTimeout(_wizardTooltipTimer);
-    const t = document.getElementById('wizardTooltip');
-    if (t) {
-        t.classList.remove('wiz-tip-visible');
-    }
-    _wiz_removeHighlight();
-}
+    // Clear any pending auto-close
+    clearTimeout(_wizAutoTimer);
 
-function _wiz_removeHighlight() {
-    if (_wizardActiveHighlight) {
-        _wizardActiveHighlight.classList.remove('wizard-highlight');
-        _wizardActiveHighlight = null;
-    }
-    document.querySelectorAll('.wizard-highlight').forEach(el => el.classList.remove('wizard-highlight'));
-}
-
-// ── Welcome splash when wizard is turned on ───────────────────────────
-function _wiz_showWelcome() {
-    const splash = document.createElement('div');
-    splash.id = 'wizardWelcomeSplash';
-    splash.innerHTML = `
-        <div class="wiz-splash-inner">
-            <div class="wiz-splash-emoji">🧙</div>
-            <div class="wiz-splash-title">מצב מדריך הופעל!</div>
-            <div class="wiz-splash-body">
-                כל פעולה שתבצע תלווה<br>בהסבר קצר ומועיל.<br>
-                <span style="color:#a78bfa;font-size:0.85rem;">לחץ על כל דבר — נסביר!</span>
-            </div>
-            <button class="wiz-splash-btn" onclick="document.getElementById('wizardWelcomeSplash').remove()">
-                בואו נתחיל ✨
-            </button>
-        </div>
-    `;
-    document.body.appendChild(splash);
-    setTimeout(() => splash.classList.add('visible'), 30);
-    setTimeout(() => {
-        splash.classList.remove('visible');
-        setTimeout(() => splash.remove(), 400);
-    }, 3000);
-}
-
-// ── Hook all interactive elements ────────────────────────────────────
-function _wiz_attachListeners() {
-    _wiz_detachListeners(); // clean old first
-
-    function addWiz(selector, tipKey, phase, getTarget) {
-        const handler = function(e) {
-            const target = getTarget ? getTarget(this) : this;
-            wizardShowTip(target, tipKey, phase);
-        };
-        document.querySelectorAll(selector).forEach(el => {
-            el.addEventListener('mouseenter', handler);
-            el.addEventListener('focus', handler);
-            _wizardListeners.push({ el, event: 'mouseenter', handler });
-            _wizardListeners.push({ el, event: 'focus', handler });
+    // Animate card in
+    card.classList.remove('wiz-card-in', 'wiz-card-out');
+    void card.offsetWidth; // reflow
+    overlay.classList.add('wiz-active');
+    requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+            card.classList.add('wiz-card-in');
         });
+    });
+
+    // After-phase: auto-dismiss after 4 seconds
+    if (!isBefore) {
+        _wizAutoTimer = setTimeout(_wizDismiss, 4000);
     }
 
-    // Static elements (present at load)
-    const staticHooks = [
-        ['[onclick*="handlePlusBtn"]', 'plusBtn'],
-        ['[onclick*="newListModal"], [onclick*="openWizard(\'newList\')"]', 'newList'],
-        ['[onclick*="openNotificationCenter"]', 'bellBtn'],
-        ['[onclick*="settingsModal"]', 'settingsBtn'],
-        ['[onclick*="toggleLock"]', 'lockBtn'],
-        ['[onclick*="confirmModal"], [onclick*="completeList"]', 'completeList'],
-    ];
-    staticHooks.forEach(([sel, key]) => addWiz(sel, key, 'before'));
-
-    // Tab buttons
-    const tabs = document.querySelectorAll('.tab-btn');
-    const tabKeys = ['tabList', 'tabLists', 'tabStats'];
-    tabs.forEach((tab, i) => {
-        const key = tabKeys[i] || 'tabList';
-        const handler = () => wizardShowTip(tab, key, 'before');
-        tab.addEventListener('mouseenter', handler);
-        tab.addEventListener('focus', handler);
-        _wizardListeners.push({ el: tab, event: 'mouseenter', handler });
-        _wizardListeners.push({ el: tab, event: 'focus', handler });
-    });
-}
-
-function _wiz_detachListeners() {
-    _wizardListeners.forEach(({ el, event, handler }) => {
-        el.removeEventListener(event, handler);
-    });
-    _wizardListeners = [];
-}
-
-// ── Re-attach after render (dynamic elements) ────────────────────────
-function _wiz_attachDynamic() {
-    if (!wizardMode) return;
-
-    // Item cards
-    document.querySelectorAll('.item-card').forEach((card, idx) => {
-        if (card._wizardAttached) return;
-        card._wizardAttached = true;
-
-        card.addEventListener('mouseenter', () => wizardShowTip(card, 'checkItem', 'before'));
-    });
-
-    // + and - qty buttons
-    document.querySelectorAll('[onclick*="changeQty"][onclick*="1"]').forEach(btn => {
-        if (btn._wizardAttached) return;
-        btn._wizardAttached = true;
-        btn.addEventListener('mouseenter', () => wizardShowTip(btn, 'qtyPlus', 'before'));
-    });
-    document.querySelectorAll('[onclick*="changeQty"][onclick*="-1"]').forEach(btn => {
-        if (btn._wizardAttached) return;
-        btn._wizardAttached = true;
-        btn.addEventListener('mouseenter', () => wizardShowTip(btn, 'qtyMinus', 'before'));
-    });
-
-    // Delete buttons
-    document.querySelectorAll('[onclick*="removeItem"]').forEach(btn => {
-        if (btn._wizardAttached) return;
-        btn._wizardAttached = true;
-        btn.addEventListener('mouseenter', () => wizardShowTip(btn, 'removeItem', 'before'));
-    });
-
-    // Name edit
-    document.querySelectorAll('[onclick*="openEditItemNameModal"]').forEach(el => {
-        if (el._wizardAttached) return;
-        el._wizardAttached = true;
-        el.addEventListener('mouseenter', () => wizardShowTip(el, 'itemName', 'before'));
-    });
-
-    // Price edit
-    document.querySelectorAll('[onclick*="openEditTotalModal"]').forEach(el => {
-        if (el._wizardAttached) return;
-        el._wizardAttached = true;
-        el.addEventListener('mouseenter', () => wizardShowTip(el, 'itemPrice', 'before'));
-    });
-
-    // Category badge
-    document.querySelectorAll('[onclick*="openEditCategoryModal"]').forEach(el => {
-        if (el._wizardAttached) return;
-        el._wizardAttached = true;
-        el.addEventListener('mouseenter', () => wizardShowTip(el, 'categoryBadge', 'before'));
-    });
-
-    // Note icon
-    document.querySelectorAll('[onclick*="openItemNoteModal"]').forEach(el => {
-        if (el._wizardAttached) return;
-        el._wizardAttached = true;
-        el.addEventListener('mouseenter', () => wizardShowTip(el, 'noteBadge', 'before'));
-    });
-
-    // Reminder edit
-    document.querySelectorAll('[onclick*="openEditReminder"]').forEach(el => {
-        if (el._wizardAttached) return;
-        el._wizardAttached = true;
-        el.addEventListener('mouseenter', () => wizardShowTip(el, 'reminderEdit', 'before'));
-    });
-}
-
-// ── Intercept key actions to show AFTER tips ─────────────────────────
-// We wrap the core functions with wizard awareness
-
-const _origToggleItem   = typeof toggleItem   === 'function' ? toggleItem   : null;
-const _origRemoveItem   = typeof removeItem   === 'function' ? removeItem   : null;
-const _origAddItemToList= typeof addItemToList=== 'function' ? addItemToList: null;
-const _origSaveNewList  = typeof saveNewList  === 'function' ? saveNewList  : null;
-const _origCompleteList = typeof completeList === 'function' ? completeList : null;
-const _origToggleLock   = typeof toggleLock   === 'function' ? toggleLock   : null;
-
-if (_origToggleItem) {
-    window.toggleItem = function(idx) {
-        _origToggleItem(idx);
-        if (wizardMode) {
-            const cards = document.querySelectorAll('.item-card');
-            wizardShowTip(cards[idx] || null, 'checkItem', 'after');
-        }
-    };
-}
-if (_origRemoveItem) {
-    window.removeItem = function(idx) {
-        if (wizardMode) {
-            const cards = document.querySelectorAll('.item-card');
-            wizardShowTip(cards[idx] || null, 'removeItem', 'after');
-        }
-        _origRemoveItem(idx);
-    };
-}
-if (_origAddItemToList) {
-    window.addItemToList = function(e) {
-        const nameVal = document.getElementById('itemName')?.value?.trim();
-        _origAddItemToList(e);
-        if (wizardMode && nameVal) {
-            setTimeout(() => {
-                const addBtn = document.getElementById('addItemBtn');
-                wizardShowTip(addBtn, 'addItemBtn', 'after');
-            }, 300);
-        }
-    };
-}
-if (_origSaveNewList) {
-    window.saveNewList = function() {
-        _origSaveNewList();
-        if (wizardMode) {
-            setTimeout(() => wizardShowTip(null, 'saveNewList', 'after'), 400);
-        }
-    };
-}
-if (_origCompleteList) {
-    window.completeList = function() {
-        _origCompleteList();
-        if (wizardMode) {
-            setTimeout(() => wizardShowTip(null, 'completeList', 'after'), 400);
-        }
-    };
-}
-if (_origToggleLock) {
-    window.toggleLock = function() {
-        _origToggleLock();
-        if (wizardMode) {
-            const lockBtn = document.getElementById('mainLockBtn');
-            wizardShowTip(lockBtn, 'lockBtn', 'after');
+    // Tap backdrop to dismiss
+    overlay.onclick = (e) => {
+        if (e.target === overlay || e.target.classList.contains('wiz-backdrop') ||
+            e.target.classList.contains('wiz-bg') || e.target.classList.contains('wiz-blob')) {
+            _wizDismiss();
         }
     };
 }
 
-// ── handlePlusBtn (with wizard before tip) ────────────────────────────
-function handlePlusBtn(e) {
-    if (e) e.stopPropagation();
-    if (wizardMode) {
-        const btn = e?.target?.closest('button') || e?.currentTarget;
-        wizardShowTip(btn, 'plusBtn', 'after');
-    }
-    openModal('inputForm');
+function _wizDismiss() {
+    clearTimeout(_wizAutoTimer);
+    const overlay = document.getElementById('wizCardOverlay');
+    const card    = document.getElementById('wizCard');
+    if (!overlay || !card) return;
+
+    card.classList.remove('wiz-card-in');
+    card.classList.add('wiz-card-out');
+
+    setTimeout(() => {
+        overlay.classList.remove('wiz-active');
+        card.classList.remove('wiz-card-out');
+        if (_wizDismissCallback) {
+            const cb = _wizDismissCallback;
+            _wizDismissCallback = null;
+            cb();
+        }
+    }, 300);
 }
 
-// ── toggleWizardMode (main toggle) ───────────────────────────────────
+function _wizCloseWelcome() {
+    const el = document.getElementById('wizWelcomeOverlay');
+    if (!el) return;
+    el.classList.remove('wiz-welcome-visible');
+    setTimeout(() => { el.style.display = 'none'; }, 350);
+}
+
+function _wizShowWelcome() {
+    const el = document.getElementById('wizWelcomeOverlay');
+    if (!el) return;
+    el.style.display = 'flex';
+    requestAnimationFrame(() => {
+        requestAnimationFrame(() => el.classList.add('wiz-welcome-visible'));
+    });
+}
+
+// ── Toggle wizard mode ─────────────────────────────────────────────
 function toggleWizardMode() {
     wizardMode = !wizardMode;
     localStorage.setItem('wizardMode', wizardMode ? 'true' : 'false');
@@ -8878,63 +8689,264 @@ function toggleWizardMode() {
     const txt = document.getElementById('wizardBtnText');
 
     if (wizardMode) {
-        if (btn) { btn.classList.add('wizard-active'); }
+        if (btn) btn.classList.add('wizard-active');
         if (txt) txt.textContent = 'מדריך פעיל';
         document.body.classList.add('wizard-mode-active');
-        _wiz_attachListeners();
-        _wiz_attachDynamic();
-        _wiz_showWelcome();
+        _wizShowWelcome();
     } else {
-        if (btn) { btn.classList.remove('wizard-active'); }
+        if (btn) btn.classList.remove('wizard-active');
         if (txt) txt.textContent = 'Wizard';
         document.body.classList.remove('wizard-mode-active');
-        _wiz_detachListeners();
-        _wiz_hideTip();
-        _wiz_removeHighlight();
-        const t = document.getElementById('wizardTooltip');
-        if (t) t.remove();
-        _wizardTooltipEl = null;
-        showNotification('✨ מצב מדריך כובה');
+        // Close any open card
+        const overlay = document.getElementById('wizCardOverlay');
+        if (overlay) overlay.classList.remove('wiz-active');
+        _wizDismissCallback = null;
+        clearTimeout(_wizAutoTimer);
+        showNotification('מצב מדריך כובה');
     }
 }
 
-// ── Patch render to re-attach dynamic elements ────────────────────────
-const _origRender = typeof render === 'function' ? render : null;
-if (_origRender) {
-    window.render = function() {
-        _origRender();
-        if (wizardMode) setTimeout(_wiz_attachDynamic, 100);
+// ── handlePlusBtn ──────────────────────────────────────────────────
+function handlePlusBtn(e) {
+    if (e) e.stopPropagation();
+    if (wizardMode) {
+        wiz('plusBtn', 'before', () => openModal('inputForm'));
+    } else {
+        openModal('inputForm');
+    }
+}
+
+// ── Wrap core functions with wizard before/after ───────────────────
+const _orig = {};
+
+// toggleItem
+if (typeof toggleItem === 'function') {
+    _orig.toggleItem = toggleItem;
+    window.toggleItem = function(idx) {
+        if (wizardMode) {
+            wiz('checkItem', 'before', () => {
+                _orig.toggleItem(idx);
+                setTimeout(() => wiz('checkDone', 'after'), 200);
+            });
+        } else {
+            _orig.toggleItem(idx);
+        }
     };
 }
 
-// ── Stub openWizard / closeWizard / wizardOverlayClick ───────────────
+// removeItem
+if (typeof removeItem === 'function') {
+    _orig.removeItem = removeItem;
+    window.removeItem = function(idx) {
+        if (wizardMode) {
+            wiz('removeItem', 'before', () => {
+                _orig.removeItem(idx);
+                setTimeout(() => wiz('removeDone', 'after'), 200);
+            });
+        } else {
+            _orig.removeItem(idx);
+        }
+    };
+}
+
+// addItemToList
+if (typeof addItemToList === 'function') {
+    _orig.addItemToList = addItemToList;
+    window.addItemToList = function(e) {
+        const hasName = (document.getElementById('itemName')?.value || '').trim().length > 0;
+        _orig.addItemToList(e);
+        if (wizardMode && hasName) {
+            setTimeout(() => wiz('plusDone', 'after'), 350);
+        }
+    };
+}
+
+// saveNewList
+if (typeof saveNewList === 'function') {
+    _orig.saveNewList = saveNewList;
+    window.saveNewList = function() {
+        _orig.saveNewList();
+        if (wizardMode) setTimeout(() => wiz('newListDone', 'after'), 400);
+    };
+}
+
+// completeList
+if (typeof completeList === 'function') {
+    _orig.completeList = completeList;
+    window.completeList = function() {
+        _orig.completeList();
+        if (wizardMode) setTimeout(() => wiz('completeDone', 'after'), 400);
+    };
+}
+
+// toggleLock
+if (typeof toggleLock === 'function') {
+    _orig.toggleLock = toggleLock;
+    window.toggleLock = function() {
+        _orig.toggleLock();
+        if (wizardMode) setTimeout(() => wiz('lockDone', 'after'), 200);
+    };
+}
+
+// openNotificationCenter
+if (typeof openNotificationCenter === 'function') {
+    _orig.openNotificationCenter = openNotificationCenter;
+    window.openNotificationCenter = function() {
+        if (wizardMode) {
+            wiz('bellBtn', 'before', () => _orig.openNotificationCenter());
+        } else {
+            _orig.openNotificationCenter();
+        }
+    };
+}
+
+// openEditItemNameModal
+if (typeof openEditItemNameModal === 'function') {
+    _orig.openEditItemNameModal = openEditItemNameModal;
+    window.openEditItemNameModal = function(idx) {
+        if (wizardMode) {
+            wiz('editName', 'before', () => _orig.openEditItemNameModal(idx));
+        } else {
+            _orig.openEditItemNameModal(idx);
+        }
+    };
+}
+
+// openEditTotalModal
+if (typeof openEditTotalModal === 'function') {
+    _orig.openEditTotalModal = openEditTotalModal;
+    window.openEditTotalModal = function(idx) {
+        if (wizardMode) {
+            wiz('editPrice', 'before', () => _orig.openEditTotalModal(idx));
+        } else {
+            _orig.openEditTotalModal(idx);
+        }
+    };
+}
+
+// openEditCategoryModal
+if (typeof openEditCategoryModal === 'function') {
+    _orig.openEditCategoryModal = openEditCategoryModal;
+    window.openEditCategoryModal = function(idx) {
+        if (wizardMode) {
+            wiz('category', 'before', () => _orig.openEditCategoryModal(idx));
+        } else {
+            _orig.openEditCategoryModal(idx);
+        }
+    };
+}
+
+// openItemNoteModal
+if (typeof openItemNoteModal === 'function') {
+    _orig.openItemNoteModal = openItemNoteModal;
+    window.openItemNoteModal = function(idx) {
+        if (wizardMode) {
+            wiz('note', 'before', () => _orig.openItemNoteModal(idx));
+        } else {
+            _orig.openItemNoteModal(idx);
+        }
+    };
+}
+
+// openEditReminder
+if (typeof openEditReminder === 'function') {
+    _orig.openEditReminder = openEditReminder;
+    window.openEditReminder = function(idx) {
+        if (wizardMode) {
+            wiz('reminder', 'before', () => _orig.openEditReminder(idx));
+        } else {
+            _orig.openEditReminder(idx);
+        }
+    };
+}
+
+// Wrap tab/page switching
+if (typeof showPage === 'function') {
+    _orig.showPage = showPage;
+    window.showPage = function(p) {
+        if (wizardMode) {
+            const keyMap = { lists:'tabList', listsMenu:'tabLists', stats:'tabStats' };
+            const key = keyMap[p];
+            if (key) {
+                wiz(key, 'before', () => _orig.showPage(p));
+                return;
+            }
+        }
+        _orig.showPage(p);
+    };
+}
+
+// Wrap openModal for specific modals with wizard tips
+const _origOpenModal = typeof openModal === 'function' ? openModal : null;
+if (_origOpenModal) {
+    window.openModal = function(id) {
+        if (wizardMode) {
+            const modalTips = {
+                'newListModal': 'newList',
+                'confirmModal': 'completeList',
+                'settingsModal': 'settingsBtn',
+            };
+            const tipKey = modalTips[id];
+            if (tipKey) {
+                wiz(tipKey, 'before', () => _origOpenModal(id));
+                return;
+            }
+        }
+        _origOpenModal(id);
+    };
+}
+
+// changeQty — wrap for qty tips
+if (typeof changeQty === 'function') {
+    _orig.changeQty = changeQty;
+    window.changeQty = function(idx, d) {
+        if (wizardMode) {
+            wiz(d > 0 ? 'qtyPlus' : 'qtyMinus', 'before', () => _orig.changeQty(idx, d));
+        } else {
+            _orig.changeQty(idx, d);
+        }
+    };
+}
+
+// ── Patch render to keep wizard mode indicator ─────────────────────
+if (typeof render === 'function') {
+    const _origRender = render;
+    window.render = function() {
+        _origRender();
+        if (wizardMode) {
+            document.body.classList.add('wizard-mode-active');
+        }
+    };
+}
+
+// ── Stubs for legacy HTML compatibility ────────────────────────────
 function openWizard(type) {
-    // Wizard mode redirects to regular modals with tips
-    if (type === 'addItem')      { openModal('inputForm');    wizardShowTip(null, 'plusBtn', 'after'); }
-    else if (type === 'newList') { openModal('newListModal'); wizardShowTip(null, 'newList', 'after'); }
-    else if (type === 'completeList') { openModal('confirmModal'); wizardShowTip(null, 'completeList', 'before'); }
+    const map = {
+        'addItem':      () => handlePlusBtn(null),
+        'newList':      () => wizardMode ? wiz('newList','before', () => openModal('newListModal')) : openModal('newListModal'),
+        'completeList': () => wizardMode ? wiz('completeList','before', () => openModal('confirmModal')) : openModal('confirmModal'),
+    };
+    if (map[type]) map[type]();
 }
 function closeWizard() {
-    const overlay = document.getElementById('wizardOverlay');
-    if (overlay) overlay.classList.remove('active');
+    const o = document.getElementById('wizardOverlay');
+    if (o) o.classList.remove('active');
 }
 function wizardOverlayClick(e) {
     if (e && e.target === document.getElementById('wizardOverlay')) closeWizard();
 }
 
-// ── Init on page load ─────────────────────────────────────────────────
+// ── Init on DOMContentLoaded ───────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
-    const saved = localStorage.getItem('wizardMode');
-    if (saved === 'true') {
+    if (localStorage.getItem('wizardMode') === 'true') {
         wizardMode = true;
         const btn = document.getElementById('wizardModeBtn');
         const txt = document.getElementById('wizardBtnText');
         if (btn) btn.classList.add('wizard-active');
         if (txt) txt.textContent = 'מדריך פעיל';
         document.body.classList.add('wizard-mode-active');
-        setTimeout(() => {
-            _wiz_attachListeners();
-            _wiz_attachDynamic();
-        }, 800);
     }
+    // Hide welcome overlay by default (only show on toggle-on)
+    const welcome = document.getElementById('wizWelcomeOverlay');
+    if (welcome) welcome.style.display = 'none';
 });
