@@ -7439,8 +7439,9 @@ function exportToExcel() {
 async function checkClipboardOnStartup() {
     try {
         // Check if auto-open is disabled by user
-        if (localStorage.getItem('clipboardAutoOpen') === 'false') {
-            console.log('Clipboard auto-open disabled by user');
+        // Auto-open is OFF by default; only open if user explicitly enabled it
+        if (localStorage.getItem('clipboardAutoOpen') !== 'true') {
+            console.log('Clipboard auto-open not enabled by user');
             return;
         }
 
@@ -7544,6 +7545,15 @@ function showClipboardImportModal(text) {
 
 // Open manual import - same as clipboard import but allows manual paste
 async function openManualImport() {
+    if (wizardMode) {
+        wiz('pasteBtn', 'before', async () => {
+            await _origOpenManualImport();
+        });
+        return;
+    }
+    await _origOpenManualImport();
+}
+async function _origOpenManualImport() {
     const modal = document.getElementById('clipboardImportModal');
     const textarea = document.getElementById('clipboardImportText');
     const detectedTypeDiv = document.getElementById('clipboardDetectedType');
@@ -8429,7 +8439,7 @@ let _wizAutoTimer       = null;
 // ── Content library ────────────────────────────────────────────────
 const WIZ = {
     plusBtn: {
-        emoji:'➕', phase:'before',
+        emoji:'➕', phase:'before', emojiColor:'#22c55e',
         title:'הוספת מוצר לרשימה',
         body:'לחץ את הכפתור הירוק כדי לפתוח את חלון הוספת המוצר.\nתוכל להזין שם, מחיר, כמות וקטגוריה.',
         tip:'💡 טיפ: הפעל "הוספה רציפה" כדי להוסיף כמה מוצרים ברצף מהיר!',
@@ -8572,6 +8582,30 @@ const WIZ = {
         body:'לחץ − כדי להפחית יחידה.\nכמות מינימלית היא 1.',
         tip:'💡 לחץ 🗑️ אם ברצונך למחוק לגמרי.',
     },
+    pasteBtn: {
+        emoji:'📋', phase:'before',
+        title:'ייבוא רשימה מטקסט',
+        body:'הדבק טקסט מוואטסאפ, אימייל או כל מקור אחר.\nהאפליקציה תזהה אוטומטית את הפריטים ותבנה רשימה.',
+        tip:'💡 עובד עם רשימות מוואטסאפ, הערות טלפון ועוד!',
+    },
+    excelBtn: {
+        emoji:'📊', phase:'before',
+        title:'ייבוא מאקסל / כרטיס אשראי',
+        body:'ייבא קובץ Excel (.xlsx) ישירות מהבנק או חברת האשראי.\nהאפליקציה תהפוך את העמודות לרשימת קניות חכמה.',
+        tip:'💡 תומך בקבצי Excel מבנק הפועלים, לאומי, כאל, ישראכרט ועוד.',
+    },
+    bankBtn: {
+        emoji:'🏦', phase:'before',
+        title:'ייבוא PDF מהבנק / אשראי',
+        body:'העלה קובץ PDF של דף חשבון, חיובי כרטיס אשראי או קבלה.\nהמערכת תסרוק את הנתונים ותייצר ממנם רשימה אוטומטית.',
+        tip:'💡 עובד עם PDF מחברות אשראי, דפי בנק וחשבוניות.',
+    },
+    myLists: {
+        emoji:'📚', phase:'before',
+        title:'הרשימות שלי',
+        body:'כאן תמצא את כל רשימות הקניות שלך.\nלחץ על רשימה לפתיחתה, או צור רשימה חדשה.',
+        tip:'💡 ניתן לגרור ולסדר את הרשימות בסדר הרצוי.',
+    },
 };
 
 // ── Core: show a full-screen wizard card ───────────────────────────
@@ -8588,7 +8622,9 @@ function wiz(key, phase, onDismiss) {
     if (!overlay || !card) { if (onDismiss) onDismiss(); return; }
 
     // Populate content
-    document.getElementById('wizEmoji').textContent  = data.emoji;
+    const wizEmojiEl = document.getElementById('wizEmoji');
+    wizEmojiEl.textContent = data.emoji;
+    wizEmojiEl.style.color = data.emojiColor || '';
     document.getElementById('wizTitle').textContent  = data.title;
     document.getElementById('wizBody').innerHTML     = data.body.replace(/\n/g,'<br>');
 
@@ -8630,10 +8666,7 @@ function wiz(key, phase, onDismiss) {
         });
     });
 
-    // After-phase: auto-dismiss after 4 seconds
-    if (!isBefore) {
-        _wizAutoTimer = setTimeout(_wizDismiss, 4000);
-    }
+    // After-phase: NO auto-dismiss — only button closes card
 
     // Tap backdrop to dismiss
     overlay.onclick = (e) => {
@@ -8865,7 +8898,7 @@ if (typeof showPage === 'function') {
     _orig.showPage = showPage;
     window.showPage = function(p) {
         if (wizardMode) {
-            const keyMap = { lists:'tabList', listsMenu:'tabLists', stats:'tabStats' };
+            const keyMap = { lists:'tabList', listsMenu:'myLists', allLists:'myLists', stats:'tabStats' };
             const key = keyMap[p];
             if (key) {
                 wiz(key, 'before', () => _orig.showPage(p));
@@ -8938,6 +8971,12 @@ function wizardOverlayClick(e) {
 
 // ── Init on DOMContentLoaded ───────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
+    const firstTime = !localStorage.getItem('wizardModeEverSet');
+    if (firstTime) {
+        // First launch: auto-enable wizard
+        localStorage.setItem('wizardModeEverSet', 'true');
+        localStorage.setItem('wizardMode', 'true');
+    }
     if (localStorage.getItem('wizardMode') === 'true') {
         wizardMode = true;
         const btn = document.getElementById('wizardModeBtn');
@@ -8945,8 +8984,12 @@ document.addEventListener('DOMContentLoaded', () => {
         if (btn) btn.classList.add('wizard-active');
         if (txt) txt.textContent = 'מדריך פעיל';
         document.body.classList.add('wizard-mode-active');
+        // Show welcome on first time
+        if (firstTime) {
+            setTimeout(_wizShowWelcome, 800);
+        }
+    } else {
+        const welcome = document.getElementById('wizWelcomeOverlay');
+        if (welcome) welcome.style.display = 'none';
     }
-    // Hide welcome overlay by default (only show on toggle-on)
-    const welcome = document.getElementById('wizWelcomeOverlay');
-    if (welcome) welcome.style.display = 'none';
 });
