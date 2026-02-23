@@ -7093,6 +7093,9 @@ function dismissAllNotifications() {
 }
 
 function openNotificationCenter() {
+    // If a wizard card is open, forcibly close it before opening notification center
+    if (typeof _wizForceClose === 'function') _wizForceClose();
+
     const notificationItems = getNotificationItems();
     const container   = document.getElementById('notificationsList');
     const clearAllBtn = document.getElementById('clearAllNotifsBtn');
@@ -8677,6 +8680,16 @@ function wiz(key, phase, onDismiss) {
     };
 }
 
+function _wizForceClose() {
+    // Immediately close any open wizard card without waiting for animation
+    clearTimeout(_wizAutoTimer);
+    _wizDismissCallback = null;
+    const overlay = document.getElementById('wizCardOverlay');
+    const card    = document.getElementById('wizCard');
+    if (overlay) overlay.classList.remove('wiz-active');
+    if (card) { card.classList.remove('wiz-card-in'); card.classList.remove('wiz-card-out'); }
+}
+
 function _wizDismiss() {
     clearTimeout(_wizAutoTimer);
     const overlay = document.getElementById('wizCardOverlay');
@@ -8821,17 +8834,7 @@ if (typeof toggleLock === 'function') {
     };
 }
 
-// openNotificationCenter
-if (typeof openNotificationCenter === 'function') {
-    _orig.openNotificationCenter = openNotificationCenter;
-    window.openNotificationCenter = function() {
-        if (wizardMode) {
-            wiz('bellBtn', 'before', () => _orig.openNotificationCenter());
-        } else {
-            _orig.openNotificationCenter();
-        }
-    };
-}
+// openNotificationCenter — NOT wizard-intercepted (must open immediately, also from lock screen)
 
 // openEditItemNameModal
 if (typeof openEditItemNameModal === 'function') {
