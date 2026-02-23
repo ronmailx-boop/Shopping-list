@@ -8417,7 +8417,512 @@ function checkNotificationUrlParam() {
 }
 window.addEventListener('load', () => { setTimeout(checkNotificationUrlParam, 1000); });
 
-// ===== INIT WIZARD MODE from localStorage =====
+
+// ╔══════════════════════════════════════════════════════════════════════╗
+// ║              🧙 VPLUS WIZARD SYSTEM — Built from Scratch            ║
+// ║  מערכת הדרכה חכמה שמסבירה כל פעולה בזמן אמת                        ║
+// ╚══════════════════════════════════════════════════════════════════════╝
+
+let wizardMode = false;
+let _wizardTooltipEl = null;
+let _wizardTooltipTimer = null;
+let _wizardActiveHighlight = null;
+let _wizardStep = null;
+let _wizardListeners = []; // for cleanup
+
+// ── Content library: all messages by action key ──────────────────────
+const WIZARD_TIPS = {
+    plusBtn: {
+        icon: '➕',
+        title: 'הוספת מוצר לרשימה',
+        before: 'לחץ כדי לפתוח את חלון הוספת המוצר. תוכל להזין שם, מחיר, כמות וקטגוריה.',
+        after: 'מעולה! עכשיו מלא את פרטי המוצר ולחץ "הוסף ✓".'
+    },
+    itemName: {
+        icon: '✏️',
+        title: 'עריכת שם מוצר',
+        before: 'לחץ על שם המוצר כדי לשנות אותו.',
+        after: 'השם עודכן! השינוי נשמר אוטומטית.'
+    },
+    itemPrice: {
+        icon: '₪',
+        title: 'עריכת מחיר',
+        before: 'לחץ על הסכום כדי לעדכן את המחיר.',
+        after: 'המחיר עודכן! הסיכום בתחתית מתעדכן אוטומטית.'
+    },
+    checkItem: {
+        icon: '✅',
+        title: 'סימון כשולם',
+        before: 'לחץ על הכרטיס כדי לסמן את המוצר כרכישה שבוצעה.',
+        after: 'יפה! המוצר סומן ✅. תוכל לבטל את הסימון בלחיצה נוספת.'
+    },
+    removeItem: {
+        icon: '🗑️',
+        title: 'מחיקת מוצר',
+        before: 'לחץ כדי להסיר את המוצר מהרשימה. יהיה לך 5 שניות לבטל.',
+        after: 'המוצר הוסר. לחץ "בטל" אם טעית.'
+    },
+    qtyPlus: {
+        icon: '🔢',
+        title: 'הגדלת כמות',
+        before: 'לחץ + כדי להוסיף יחידה נוספת.',
+        after: 'הכמות גדלה. המחיר הכולל מתעדכן אוטומטית.'
+    },
+    qtyMinus: {
+        icon: '🔢',
+        title: 'הפחתת כמות',
+        before: 'לחץ − כדי להפחית יחידה.',
+        after: 'הכמות הופחתה.'
+    },
+    newList: {
+        icon: '📋',
+        title: 'רשימה חדשה',
+        before: 'לחץ כדי ליצור רשימת קניות חדשה. תוכל לתת לה שם, תקציב וקישור לחנות.',
+        after: 'הרשימה נוצרה! תוכל להחליף בין רשימות מהתפריט.'
+    },
+    completeList: {
+        icon: '🏁',
+        title: 'סיום רשימה',
+        before: 'לחץ כדי לסמן את כל הרשימה כהושלמה ולשמור בהיסטוריה.',
+        after: 'הרשימה הושלמה ונשמרה בהיסטוריה. עצה: בנה תבנית מהרשימה לשימוש עתידי!'
+    },
+    lockBtn: {
+        icon: '🔒',
+        title: 'נעילת רשימה',
+        before: 'לחץ כדי לנעול עריכה — שימושי כשהרשימה מוכנה לקניה.',
+        after: 'הרשימה נעולה. לחץ שוב לביטול הנעילה.'
+    },
+    bellBtn: {
+        icon: '🔔',
+        title: 'מרכז התראות',
+        before: 'כאן תראה את כל הפריטים עם תאריכי יעד קרובים.',
+        after: 'ב-Swipe שמאלה/ימינה ניתן למחוק התראה בודדת.'
+    },
+    settingsBtn: {
+        icon: '⚙️',
+        title: 'הגדרות',
+        before: 'הגדרות כוללות: שפה, מצב לילה, סנכרון ענן וניהול קטגוריות.',
+        after: ''
+    },
+    tabList: {
+        icon: '🛒',
+        title: 'טאב הרשימה',
+        before: 'הצג את הרשימה הפעילה ופריטיה.',
+        after: ''
+    },
+    tabLists: {
+        icon: '📚',
+        title: 'טאב רשימות',
+        before: 'כאן תמצא את כל הרשימות שלך. ניתן ליצור, לערוך ולמחוק.',
+        after: ''
+    },
+    tabStats: {
+        icon: '📊',
+        title: 'טאב סטטיסטיקות',
+        before: 'צפה בגרפים של ההוצאות שלך לפי חודש וקטגוריה.',
+        after: ''
+    },
+    addItemBtn: {
+        icon: '✓',
+        title: 'אישור הוספת מוצר',
+        before: 'לחץ "הוסף ✓" לאחר מילוי הפרטים כדי להוסיף לרשימה.',
+        after: 'המוצר נוסף בהצלחה! תראה אותו ברשימה. לחץ ➕ שוב להוספת מוצר נוסף.'
+    },
+    categoryBadge: {
+        icon: '🏷️',
+        title: 'קטגוריה',
+        before: 'לחץ על הקטגוריה כדי לשנות אותה — עוזר לסדר ולסנן את הרשימה.',
+        after: ''
+    },
+    noteBadge: {
+        icon: '📝',
+        title: 'הערה למוצר',
+        before: 'לחץ כדי להוסיף הערה אישית — לינק, הנחיה, או כל מידע שחשוב לך.',
+        after: 'ההערה נשמרה. תוכל לראות אותה על הכרטיס.'
+    },
+    reminderEdit: {
+        icon: '⏰',
+        title: 'עריכת תזכורת',
+        before: 'לחץ כדי לקבוע מתי תקבל תזכורת לפני תאריך היעד.',
+        after: 'התזכורת נשמרה! תקבל התראה במועד שהגדרת.'
+    },
+    saveNewList: {
+        icon: '💾',
+        title: 'שמירת הרשימה',
+        before: 'לחץ "צור רשימה" לאחר מתן שם כדי לשמור.',
+        after: 'הרשימה נוצרה ונבחרה. עכשיו הוסף אליה מוצרים ב-➕.'
+    }
+};
+
+// ── Tooltip element builder ───────────────────────────────────────────
+function _wiz_createTooltip() {
+    const el = document.createElement('div');
+    el.id = 'wizardTooltip';
+    el.setAttribute('dir', 'rtl');
+    document.body.appendChild(el);
+    _wizardTooltipEl = el;
+    return el;
+}
+
+function _wiz_getTooltip() {
+    return document.getElementById('wizardTooltip') || _wiz_createTooltip();
+}
+
+// ── Show tooltip near a target element ───────────────────────────────
+function wizardShowTip(targetEl, tipKey, phase /* 'before'|'after' */, opts = {}) {
+    if (!wizardMode) return;
+
+    const tip = WIZARD_TIPS[tipKey];
+    if (!tip) return;
+    const msg = phase === 'after' ? tip.after : tip.before;
+    if (!msg) return;
+
+    clearTimeout(_wizardTooltipTimer);
+    _wiz_removeHighlight();
+
+    const tooltip = _wiz_getTooltip();
+
+    // Highlight target
+    if (targetEl) {
+        targetEl.classList.add('wizard-highlight');
+        _wizardActiveHighlight = targetEl;
+    }
+
+    tooltip.innerHTML = `
+        <div class="wiz-tip-icon">${tip.icon}</div>
+        <div class="wiz-tip-content">
+            <div class="wiz-tip-title">${tip.title}</div>
+            <div class="wiz-tip-msg">${msg}</div>
+        </div>
+        <button class="wiz-tip-close" onclick="_wiz_hideTip()">✕</button>
+    `;
+
+    // Position: prefer above target, fallback to fixed bottom
+    tooltip.className = 'wiz-tooltip';
+    if (phase === 'after') tooltip.classList.add('wiz-tip-success');
+
+    // Position calculation
+    if (targetEl) {
+        const rect = targetEl.getBoundingClientRect();
+        const vw = window.innerWidth;
+
+        // Fixed-bottom if target is in bottom bar
+        if (rect.top > window.innerHeight * 0.7) {
+            tooltip.classList.add('wiz-tip-bottom');
+            tooltip.style.cssText = `bottom:${window.innerHeight - rect.top + 12}px; left:50%; transform:translateX(-50%);`;
+        } else {
+            // Above or below
+            const spaceAbove = rect.top;
+            const spaceBelow = window.innerHeight - rect.bottom;
+            if (spaceAbove > 120 || spaceAbove > spaceBelow) {
+                tooltip.classList.add('wiz-tip-above');
+                tooltip.style.cssText = `top:${rect.top - 10}px; transform:translateY(-100%); left:${Math.min(Math.max(rect.left, 10), vw - 310)}px;`;
+            } else {
+                tooltip.classList.add('wiz-tip-below');
+                tooltip.style.cssText = `top:${rect.bottom + 10}px; left:${Math.min(Math.max(rect.left, 10), vw - 310)}px;`;
+            }
+        }
+    } else {
+        tooltip.classList.add('wiz-tip-center');
+        tooltip.style.cssText = '';
+    }
+
+    tooltip.classList.add('wiz-tip-visible');
+
+    // Auto-hide
+    const delay = phase === 'after' ? 3500 : (opts.persist ? 0 : 5000);
+    if (delay > 0) {
+        _wizardTooltipTimer = setTimeout(_wiz_hideTip, delay);
+    }
+}
+
+function _wiz_hideTip() {
+    clearTimeout(_wizardTooltipTimer);
+    const t = document.getElementById('wizardTooltip');
+    if (t) {
+        t.classList.remove('wiz-tip-visible');
+    }
+    _wiz_removeHighlight();
+}
+
+function _wiz_removeHighlight() {
+    if (_wizardActiveHighlight) {
+        _wizardActiveHighlight.classList.remove('wizard-highlight');
+        _wizardActiveHighlight = null;
+    }
+    document.querySelectorAll('.wizard-highlight').forEach(el => el.classList.remove('wizard-highlight'));
+}
+
+// ── Welcome splash when wizard is turned on ───────────────────────────
+function _wiz_showWelcome() {
+    const splash = document.createElement('div');
+    splash.id = 'wizardWelcomeSplash';
+    splash.innerHTML = `
+        <div class="wiz-splash-inner">
+            <div class="wiz-splash-emoji">🧙</div>
+            <div class="wiz-splash-title">מצב מדריך הופעל!</div>
+            <div class="wiz-splash-body">
+                כל פעולה שתבצע תלווה<br>בהסבר קצר ומועיל.<br>
+                <span style="color:#a78bfa;font-size:0.85rem;">לחץ על כל דבר — נסביר!</span>
+            </div>
+            <button class="wiz-splash-btn" onclick="document.getElementById('wizardWelcomeSplash').remove()">
+                בואו נתחיל ✨
+            </button>
+        </div>
+    `;
+    document.body.appendChild(splash);
+    setTimeout(() => splash.classList.add('visible'), 30);
+    setTimeout(() => {
+        splash.classList.remove('visible');
+        setTimeout(() => splash.remove(), 400);
+    }, 3000);
+}
+
+// ── Hook all interactive elements ────────────────────────────────────
+function _wiz_attachListeners() {
+    _wiz_detachListeners(); // clean old first
+
+    function addWiz(selector, tipKey, phase, getTarget) {
+        const handler = function(e) {
+            const target = getTarget ? getTarget(this) : this;
+            wizardShowTip(target, tipKey, phase);
+        };
+        document.querySelectorAll(selector).forEach(el => {
+            el.addEventListener('mouseenter', handler);
+            el.addEventListener('focus', handler);
+            _wizardListeners.push({ el, event: 'mouseenter', handler });
+            _wizardListeners.push({ el, event: 'focus', handler });
+        });
+    }
+
+    // Static elements (present at load)
+    const staticHooks = [
+        ['[onclick*="handlePlusBtn"]', 'plusBtn'],
+        ['[onclick*="newListModal"], [onclick*="openWizard(\'newList\')"]', 'newList'],
+        ['[onclick*="openNotificationCenter"]', 'bellBtn'],
+        ['[onclick*="settingsModal"]', 'settingsBtn'],
+        ['[onclick*="toggleLock"]', 'lockBtn'],
+        ['[onclick*="confirmModal"], [onclick*="completeList"]', 'completeList'],
+    ];
+    staticHooks.forEach(([sel, key]) => addWiz(sel, key, 'before'));
+
+    // Tab buttons
+    const tabs = document.querySelectorAll('.tab-btn');
+    const tabKeys = ['tabList', 'tabLists', 'tabStats'];
+    tabs.forEach((tab, i) => {
+        const key = tabKeys[i] || 'tabList';
+        const handler = () => wizardShowTip(tab, key, 'before');
+        tab.addEventListener('mouseenter', handler);
+        tab.addEventListener('focus', handler);
+        _wizardListeners.push({ el: tab, event: 'mouseenter', handler });
+        _wizardListeners.push({ el: tab, event: 'focus', handler });
+    });
+}
+
+function _wiz_detachListeners() {
+    _wizardListeners.forEach(({ el, event, handler }) => {
+        el.removeEventListener(event, handler);
+    });
+    _wizardListeners = [];
+}
+
+// ── Re-attach after render (dynamic elements) ────────────────────────
+function _wiz_attachDynamic() {
+    if (!wizardMode) return;
+
+    // Item cards
+    document.querySelectorAll('.item-card').forEach((card, idx) => {
+        if (card._wizardAttached) return;
+        card._wizardAttached = true;
+
+        card.addEventListener('mouseenter', () => wizardShowTip(card, 'checkItem', 'before'));
+    });
+
+    // + and - qty buttons
+    document.querySelectorAll('[onclick*="changeQty"][onclick*="1"]').forEach(btn => {
+        if (btn._wizardAttached) return;
+        btn._wizardAttached = true;
+        btn.addEventListener('mouseenter', () => wizardShowTip(btn, 'qtyPlus', 'before'));
+    });
+    document.querySelectorAll('[onclick*="changeQty"][onclick*="-1"]').forEach(btn => {
+        if (btn._wizardAttached) return;
+        btn._wizardAttached = true;
+        btn.addEventListener('mouseenter', () => wizardShowTip(btn, 'qtyMinus', 'before'));
+    });
+
+    // Delete buttons
+    document.querySelectorAll('[onclick*="removeItem"]').forEach(btn => {
+        if (btn._wizardAttached) return;
+        btn._wizardAttached = true;
+        btn.addEventListener('mouseenter', () => wizardShowTip(btn, 'removeItem', 'before'));
+    });
+
+    // Name edit
+    document.querySelectorAll('[onclick*="openEditItemNameModal"]').forEach(el => {
+        if (el._wizardAttached) return;
+        el._wizardAttached = true;
+        el.addEventListener('mouseenter', () => wizardShowTip(el, 'itemName', 'before'));
+    });
+
+    // Price edit
+    document.querySelectorAll('[onclick*="openEditTotalModal"]').forEach(el => {
+        if (el._wizardAttached) return;
+        el._wizardAttached = true;
+        el.addEventListener('mouseenter', () => wizardShowTip(el, 'itemPrice', 'before'));
+    });
+
+    // Category badge
+    document.querySelectorAll('[onclick*="openEditCategoryModal"]').forEach(el => {
+        if (el._wizardAttached) return;
+        el._wizardAttached = true;
+        el.addEventListener('mouseenter', () => wizardShowTip(el, 'categoryBadge', 'before'));
+    });
+
+    // Note icon
+    document.querySelectorAll('[onclick*="openItemNoteModal"]').forEach(el => {
+        if (el._wizardAttached) return;
+        el._wizardAttached = true;
+        el.addEventListener('mouseenter', () => wizardShowTip(el, 'noteBadge', 'before'));
+    });
+
+    // Reminder edit
+    document.querySelectorAll('[onclick*="openEditReminder"]').forEach(el => {
+        if (el._wizardAttached) return;
+        el._wizardAttached = true;
+        el.addEventListener('mouseenter', () => wizardShowTip(el, 'reminderEdit', 'before'));
+    });
+}
+
+// ── Intercept key actions to show AFTER tips ─────────────────────────
+// We wrap the core functions with wizard awareness
+
+const _origToggleItem   = typeof toggleItem   === 'function' ? toggleItem   : null;
+const _origRemoveItem   = typeof removeItem   === 'function' ? removeItem   : null;
+const _origAddItemToList= typeof addItemToList=== 'function' ? addItemToList: null;
+const _origSaveNewList  = typeof saveNewList  === 'function' ? saveNewList  : null;
+const _origCompleteList = typeof completeList === 'function' ? completeList : null;
+const _origToggleLock   = typeof toggleLock   === 'function' ? toggleLock   : null;
+
+if (_origToggleItem) {
+    window.toggleItem = function(idx) {
+        _origToggleItem(idx);
+        if (wizardMode) {
+            const cards = document.querySelectorAll('.item-card');
+            wizardShowTip(cards[idx] || null, 'checkItem', 'after');
+        }
+    };
+}
+if (_origRemoveItem) {
+    window.removeItem = function(idx) {
+        if (wizardMode) {
+            const cards = document.querySelectorAll('.item-card');
+            wizardShowTip(cards[idx] || null, 'removeItem', 'after');
+        }
+        _origRemoveItem(idx);
+    };
+}
+if (_origAddItemToList) {
+    window.addItemToList = function(e) {
+        const nameVal = document.getElementById('itemName')?.value?.trim();
+        _origAddItemToList(e);
+        if (wizardMode && nameVal) {
+            setTimeout(() => {
+                const addBtn = document.getElementById('addItemBtn');
+                wizardShowTip(addBtn, 'addItemBtn', 'after');
+            }, 300);
+        }
+    };
+}
+if (_origSaveNewList) {
+    window.saveNewList = function() {
+        _origSaveNewList();
+        if (wizardMode) {
+            setTimeout(() => wizardShowTip(null, 'saveNewList', 'after'), 400);
+        }
+    };
+}
+if (_origCompleteList) {
+    window.completeList = function() {
+        _origCompleteList();
+        if (wizardMode) {
+            setTimeout(() => wizardShowTip(null, 'completeList', 'after'), 400);
+        }
+    };
+}
+if (_origToggleLock) {
+    window.toggleLock = function() {
+        _origToggleLock();
+        if (wizardMode) {
+            const lockBtn = document.getElementById('mainLockBtn');
+            wizardShowTip(lockBtn, 'lockBtn', 'after');
+        }
+    };
+}
+
+// ── handlePlusBtn (with wizard before tip) ────────────────────────────
+function handlePlusBtn(e) {
+    if (e) e.stopPropagation();
+    if (wizardMode) {
+        const btn = e?.target?.closest('button') || e?.currentTarget;
+        wizardShowTip(btn, 'plusBtn', 'after');
+    }
+    openModal('inputForm');
+}
+
+// ── toggleWizardMode (main toggle) ───────────────────────────────────
+function toggleWizardMode() {
+    wizardMode = !wizardMode;
+    localStorage.setItem('wizardMode', wizardMode ? 'true' : 'false');
+
+    const btn = document.getElementById('wizardModeBtn');
+    const txt = document.getElementById('wizardBtnText');
+
+    if (wizardMode) {
+        if (btn) { btn.classList.add('wizard-active'); }
+        if (txt) txt.textContent = 'מדריך פעיל';
+        document.body.classList.add('wizard-mode-active');
+        _wiz_attachListeners();
+        _wiz_attachDynamic();
+        _wiz_showWelcome();
+    } else {
+        if (btn) { btn.classList.remove('wizard-active'); }
+        if (txt) txt.textContent = 'Wizard';
+        document.body.classList.remove('wizard-mode-active');
+        _wiz_detachListeners();
+        _wiz_hideTip();
+        _wiz_removeHighlight();
+        const t = document.getElementById('wizardTooltip');
+        if (t) t.remove();
+        _wizardTooltipEl = null;
+        showNotification('✨ מצב מדריך כובה');
+    }
+}
+
+// ── Patch render to re-attach dynamic elements ────────────────────────
+const _origRender = typeof render === 'function' ? render : null;
+if (_origRender) {
+    window.render = function() {
+        _origRender();
+        if (wizardMode) setTimeout(_wiz_attachDynamic, 100);
+    };
+}
+
+// ── Stub openWizard / closeWizard / wizardOverlayClick ───────────────
+function openWizard(type) {
+    // Wizard mode redirects to regular modals with tips
+    if (type === 'addItem')      { openModal('inputForm');    wizardShowTip(null, 'plusBtn', 'after'); }
+    else if (type === 'newList') { openModal('newListModal'); wizardShowTip(null, 'newList', 'after'); }
+    else if (type === 'completeList') { openModal('confirmModal'); wizardShowTip(null, 'completeList', 'before'); }
+}
+function closeWizard() {
+    const overlay = document.getElementById('wizardOverlay');
+    if (overlay) overlay.classList.remove('active');
+}
+function wizardOverlayClick(e) {
+    if (e && e.target === document.getElementById('wizardOverlay')) closeWizard();
+}
+
+// ── Init on page load ─────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
     const saved = localStorage.getItem('wizardMode');
     if (saved === 'true') {
@@ -8425,72 +8930,11 @@ document.addEventListener('DOMContentLoaded', () => {
         const btn = document.getElementById('wizardModeBtn');
         const txt = document.getElementById('wizardBtnText');
         if (btn) btn.classList.add('wizard-active');
-        if (txt) txt.textContent = 'פעיל';
+        if (txt) txt.textContent = 'מדריך פעיל';
+        document.body.classList.add('wizard-mode-active');
+        setTimeout(() => {
+            _wiz_attachListeners();
+            _wiz_attachDynamic();
+        }, 800);
     }
 });
-// ========== WIZARD MODE & PLUS BUTTON — Missing Functions ==========
-
-let wizardMode = false;
-
-function handlePlusBtn(e) {
-    if (e) e.stopPropagation();
-    if (wizardMode) {
-        openWizard('addItem');
-    } else {
-        openModal('inputForm');
-    }
-}
-
-function toggleWizardMode() {
-    wizardMode = !wizardMode;
-    localStorage.setItem('wizardMode', wizardMode ? 'true' : 'false');
-    const btn = document.getElementById('wizardModeBtn');
-    const txt = document.getElementById('wizardBtnText');
-    if (btn) btn.classList.toggle('wizard-active', wizardMode);
-    if (txt) txt.textContent = wizardMode ? 'פעיל' : 'Wizard';
-    showNotification(wizardMode ? '✨ Wizard Mode מופעל' : '✨ Wizard Mode כבוי');
-}
-
-function openWizard(type) {
-    const overlay = document.getElementById('wizardOverlay');
-    const body    = document.getElementById('wizardBody');
-    const title   = document.getElementById('wizardTitle');
-    if (!overlay || !body) return;
-
-    if (type === 'addItem') {
-        if (title) title.textContent = '✨ הוספת מוצר';
-        body.innerHTML = '';
-        overlay.classList.add('active');
-        // Fall back to regular modal inside wizard context
-        closeWizard();
-        openModal('inputForm');
-
-    } else if (type === 'newList') {
-        if (title) title.textContent = '✨ רשימה חדשה';
-        body.innerHTML = '';
-        overlay.classList.add('active');
-        closeWizard();
-        openModal('newListModal');
-
-    } else if (type === 'completeList') {
-        if (title) title.textContent = '✨ סיום רשימה';
-        body.innerHTML = '';
-        overlay.classList.add('active');
-        closeWizard();
-        openModal('confirmModal');
-
-    } else {
-        overlay.classList.add('active');
-    }
-}
-
-function closeWizard() {
-    const overlay = document.getElementById('wizardOverlay');
-    if (overlay) overlay.classList.remove('active');
-}
-
-function wizardOverlayClick(e) {
-    if (e && e.target === document.getElementById('wizardOverlay')) {
-        closeWizard();
-    }
-}
