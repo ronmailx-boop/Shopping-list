@@ -458,9 +458,10 @@
             justify-content: center;
         }
 
+        /* ── Notification Bell ── */
         .notification-bell {
-            width: 40px;
-            height: 40px;
+            width: 42px;
+            height: 42px;
             background: linear-gradient(135deg, #f59e0b 0%, #fb923c 100%);
             border-radius: 50%;
             display: flex;
@@ -469,21 +470,19 @@
             color: white;
             font-size: 20px;
             cursor: pointer;
-            box-shadow: 0 4px 8px rgba(245, 158, 11, 0.3);
-            transition: transform 0.2s;
+            box-shadow: 0 4px 12px rgba(245, 158, 11, 0.4);
+            transition: transform 0.2s, box-shadow 0.2s;
             position: relative;
             flex-shrink: 0;
         }
+        .notification-bell:active { transform: scale(0.92); }
 
-        .notification-bell:active {
-            transform: scale(0.95);
-        }
-
+        /* ── Badge ── */
         .notification-badge {
             position: absolute;
-            top: -6px;
-            right: -6px;
-            background: #ef4444;
+            top: -7px;
+            right: -7px;
+            background: linear-gradient(135deg, #ff3b30 0%, #ff2d55 100%);
             color: white;
             border-radius: 12px;
             min-width: 22px;
@@ -492,59 +491,157 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 12px;
+            font-size: 11px;
             font-weight: 900;
             border: 2.5px solid white;
-            box-shadow: 0 2px 6px rgba(239,68,68,0.5);
-            animation: badge-pop 0.3s ease;
+            box-shadow: 0 2px 8px rgba(255,45,85,0.55);
+            animation: badge-pop 0.35s cubic-bezier(0.34,1.56,0.64,1);
         }
         @keyframes badge-pop {
-            0%   { transform: scale(0.5); }
-            70%  { transform: scale(1.2); }
+            0%   { transform: scale(0); }
             100% { transform: scale(1); }
         }
 
+        /* ── Notification Center Modal (centered) ── */
+        #notificationCenterModal.active {
+            align-items: center;
+            padding-top: 0;
+        }
+        #notificationCenterModal .nc-modal-inner {
+            width: 92%;
+            max-width: 420px;
+            background: #f8f7ff;
+            border-radius: 28px;
+            overflow: hidden;
+            box-shadow: 0 24px 60px rgba(115,103,240,0.22), 0 8px 24px rgba(0,0,0,0.15);
+            max-height: 85vh;
+            display: flex;
+            flex-direction: column;
+        }
+        #notificationCenterModal .nc-header {
+            background: linear-gradient(135deg, #7367f0 0%, #9055ff 100%);
+            padding: 18px 20px 16px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-shrink: 0;
+        }
+        #notificationCenterModal .nc-title {
+            color: white;
+            font-size: 1.1rem;
+            font-weight: 800;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        #notificationCenterModal .nc-clear-all {
+            background: linear-gradient(135deg, #ff3b30 0%, #ff2d55 100%);
+            color: white;
+            border: none;
+            border-radius: 20px;
+            padding: 7px 14px;
+            font-size: 0.78rem;
+            font-weight: 800;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            box-shadow: 0 3px 10px rgba(255,45,85,0.45);
+            transition: transform 0.15s, box-shadow 0.15s;
+        }
+        #notificationCenterModal .nc-clear-all:active {
+            transform: scale(0.95);
+            box-shadow: 0 1px 6px rgba(255,45,85,0.3);
+        }
+        #notificationCenterModal .nc-body {
+            overflow-y: auto;
+            flex: 1;
+            padding: 14px 14px 8px;
+        }
+        #notificationCenterModal .nc-footer {
+            padding: 10px 14px 16px;
+            flex-shrink: 0;
+            background: #f8f7ff;
+        }
+        #notificationCenterModal .nc-close-btn {
+            width: 100%;
+            background: white;
+            border: 2px solid #e5e1ff;
+            color: #7367f0;
+            border-radius: 16px;
+            padding: 12px;
+            font-size: 0.95rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: background 0.15s;
+        }
+        #notificationCenterModal .nc-close-btn:active { background: #f0eeff; }
+
+        /* ── Notification Card Wrapper (for swipe) ── */
+        .nc-card-wrap {
+            position: relative;
+            margin-bottom: 10px;
+            border-radius: 18px;
+            overflow: hidden;
+        }
+        .nc-swipe-bg {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.4rem;
+            font-weight: 800;
+            color: white;
+            border-radius: 18px;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.15s;
+        }
+        .nc-swipe-bg.reveal { opacity: 1; }
+        .nc-swipe-bg.left-swipe  { background: linear-gradient(90deg, #ff3b30, #ff2d55); justify-content: flex-start; padding-right: 24px; }
+        .nc-swipe-bg.right-swipe { background: linear-gradient(270deg, #ff3b30, #ff2d55); justify-content: flex-end;  padding-left: 24px; }
+
+        /* ── Individual Notification Card ── */
         .notification-item {
             background: white;
-            border-radius: 15px;
-            padding: 12px;
-            margin-bottom: 10px;
+            border-radius: 18px;
+            padding: 14px 16px 12px;
             cursor: pointer;
-            transition: all 0.2s;
-            border: 2px solid transparent;
+            border: 1.5px solid #ede9ff;
+            box-shadow: 0 2px 10px rgba(115,103,240,0.07);
+            transition: transform 0.05s;
+            position: relative;
+            z-index: 1;
+            user-select: none;
+            will-change: transform;
         }
-
-        .notification-item:hover {
-            border-color: #7367f0;
-            box-shadow: 0 4px 12px rgba(115, 103, 240, 0.2);
-        }
-
-        .notification-item.overdue {
-            border-left: 4px solid #ef4444;
-        }
-
-        .notification-item.soon {
-            border-left: 4px solid #f97316;
-        }
-
-        .notification-item.upcoming {
-            border-left: 4px solid #3b82f6;
-        }
+        .notification-item.overdue  { border-right: 5px solid #ff3b30; }
+        .notification-item.soon     { border-right: 5px solid #ff9500; }
+        .notification-item.upcoming { border-right: 5px solid #3b82f6; }
 
         .notification-item-title {
-            font-weight: bold;
-            margin-bottom: 4px;
+            font-weight: 800;
+            font-size: 1rem;
+            color: #1a1a2e;
+            margin-bottom: 5px;
         }
-
         .notification-item-date {
-            font-size: 0.85em;
+            font-size: 0.82em;
             color: #6b7280;
+            margin-bottom: 3px;
         }
-
         .notification-item-list {
-            font-size: 0.8em;
-            color: #9ca3af;
-            margin-top: 4px;
+            font-size: 0.75em;
+            color: #a78bfa;
+            font-weight: 600;
+        }
+        .nc-swipe-hint {
+            text-align: center;
+            color: #c4b5fd;
+            font-size: 0.72rem;
+            padding: 4px 0 6px;
+            letter-spacing: 0.03em;
         }
 
         .item-card.highlight-item {
@@ -2357,14 +2454,20 @@ ${error.message}
 
     <!-- Notification Center Modal -->
     <div id="notificationCenterModal" class="modal-overlay no-print">
-        <div class="edit-modal" style="max-height: 80vh;">
-            <h2 style="display:flex;align-items:center;justify-content:space-between;">
-                <span>🔔 מרכז התראות</span>
-            </h2>
-            <div id="notificationsList" style="max-height: 500px; overflow-y: auto; margin-top: 15px;">
+        <div class="nc-modal-inner">
+            <div class="nc-header">
+                <div class="nc-title">🔔 מרכז התראות</div>
+                <button class="nc-clear-all" id="clearAllNotifsBtn" onclick="dismissAllNotifications()" style="display:none;">
+                    🗑️ נקה הכל
+                </button>
             </div>
-            <button class="bg-gray-100 w-full py-4 rounded-xl font-bold mt-3"
-                onclick="closeModal('notificationCenterModal')">סגור</button>
+            <div class="nc-body">
+                <div class="nc-swipe-hint" id="ncSwipeHint" style="display:none;">← החלק למחיקה →</div>
+                <div id="notificationsList"></div>
+            </div>
+            <div class="nc-footer">
+                <button class="nc-close-btn" onclick="closeModal('notificationCenterModal')">סגור</button>
+            </div>
         </div>
     </div>
 
