@@ -1876,7 +1876,7 @@ function generateItemMetadataHTML(item, idx) {
             const reminderTime = new Date(dueDateObj.getTime() - reminderMs);
             const rh = reminderTime.getHours().toString().padStart(2, '0');
             const rm = reminderTime.getMinutes().toString().padStart(2, '0');
-            reminderInfo = ` 🔔 התראה בעוד ${item.reminderValue} ${formatReminderText(item.reminderValue, item.reminderUnit)} ב-${rh}:${rm}`;
+            reminderInfo = ` 🔔 התראה בעוד ${formatReminderText(item.reminderValue, item.reminderUnit)} ב-${rh}:${rm}`;
         }
         
         html += `<div style="display: flex; align-items: center; gap: 8px;">
