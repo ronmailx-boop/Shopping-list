@@ -1496,6 +1496,25 @@ function openModal(id) {
         if (wrap) wrap.classList.toggle('active', continuous);
         if (btn) btn.textContent = continuous ? 'הוסף + המשך ➜' : 'הוסף ✓';
 
+        // Pre-fill date/time with current date and time
+        const _now = new Date();
+        const _dateStr = _now.toISOString().split('T')[0];
+        const _timeStr = _now.getHours().toString().padStart(2,'0') + ':' + _now.getMinutes().toString().padStart(2,'0');
+        const _dueDateEl = document.getElementById('itemDueDate');
+        const _dueTimeEl = document.getElementById('itemDueTime');
+        if (_dueDateEl) _dueDateEl.value = _dateStr;
+        if (_dueTimeEl) _dueTimeEl.value = _timeStr;
+
+        // Restore hide-date toggle state
+        const _hideDate = localStorage.getItem('hideDateAfterAdd') === 'true';
+        const _hideDateToggle = document.getElementById('hideDateToggle');
+        const _hideDateWrap = document.getElementById('hideDateToggleWrap');
+        const _hideDateLabel = document.getElementById('hideDateLabel');
+        const _dueDateWrap = document.getElementById('dueDateInputsWrap');
+        if (_hideDateToggle) _hideDateToggle.checked = _hideDate;
+        if (_hideDateWrap) _hideDateWrap.classList.toggle('active', _hideDate);
+        if (_dueDateWrap) _dueDateWrap.style.display = _hideDate ? 'none' : 'block';
+
         // Update category dropdown with latest custom categories
         updateCategoryDropdown();
 
@@ -3345,6 +3364,18 @@ function createListFromDropdown() {
 }
 
 // ===== QUICK ADD: CONTINUOUS MODE =====
+function toggleHideDateAfterAdd() {
+    const toggle = document.getElementById('hideDateToggle');
+    const wrap   = document.getElementById('hideDateToggleWrap');
+    const label  = document.getElementById('hideDateLabel');
+    const dueDateWrap = document.getElementById('dueDateInputsWrap');
+    if (!toggle) return;
+    const isOn = toggle.checked;
+    localStorage.setItem('hideDateAfterAdd', isOn ? 'true' : 'false');
+    if (wrap) wrap.classList.toggle('active', isOn);
+    if (dueDateWrap) dueDateWrap.style.display = isOn ? 'none' : 'block';
+}
+
 function toggleContinuousMode() {
     const toggle = document.getElementById('continuousToggle');
     if (!toggle) return;
