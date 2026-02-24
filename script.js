@@ -1868,7 +1868,7 @@ function generateItemMetadataHTML(item, idx) {
                 const minsRem = minsLeft % 60;
                 timeLeftText = minsRem > 0 ? `בעוד ${hoursLeft}ש' ${minsRem}ד'` : `בעוד ${hoursLeft} שעות`;
             }
-            reminderInfo = ` ⏰ תזכורת חוזרת ${timeLeftText} (${sh}:${sm})`;
+            reminderInfo = ` 🔔 התראה חוזרת ${timeLeftText}, ב-${sh}:${sm}`;
         } else if (item.reminderValue && item.reminderUnit) {
             const timeStr = item.dueTime || '09:00';
             const dueDateObj = new Date(item.dueDate + 'T' + timeStr + ':00');
@@ -1876,7 +1876,7 @@ function generateItemMetadataHTML(item, idx) {
             const reminderTime = new Date(dueDateObj.getTime() - reminderMs);
             const rh = reminderTime.getHours().toString().padStart(2, '0');
             const rm = reminderTime.getMinutes().toString().padStart(2, '0');
-            reminderInfo = ` 🔔 ${formatReminderText(item.reminderValue, item.reminderUnit)} לפני | התראה ב-${rh}:${rm}`;
+            reminderInfo = ` 🔔 התראה בעוד ${item.reminderValue} ${formatReminderText(item.reminderValue, item.reminderUnit)} ב-${rh}:${rm}`;
         }
         
         html += `<div style="display: flex; align-items: center; gap: 8px;">
