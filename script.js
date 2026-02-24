@@ -8798,12 +8798,12 @@ function toggleWizardMode() {
 
     if (wizardMode) {
         if (btn) btn.classList.add('wizard-active');
-        if (txt) txt.textContent = 'מדריך פעיל';
+        if (txt) txt.textContent = 'מדריך';
         document.body.classList.add('wizard-mode-active');
         _wizShowWelcome();
     } else {
         if (btn) btn.classList.remove('wizard-active');
-        if (txt) txt.textContent = 'Wizard';
+        if (txt) txt.textContent = 'מדריך';
         document.body.classList.remove('wizard-mode-active');
         // Close any open card
         const overlay = document.getElementById('wizCardOverlay');
@@ -9047,7 +9047,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const btn = document.getElementById('wizardModeBtn');
         const txt = document.getElementById('wizardBtnText');
         if (btn) btn.classList.add('wizard-active');
-        if (txt) txt.textContent = 'מדריך פעיל';
+        if (txt) txt.textContent = 'מדריך';
         document.body.classList.add('wizard-mode-active');
         // Show welcome on first time
         if (firstTime) {
