@@ -440,6 +440,12 @@
             top: 0;
             z-index: 2000;
             height: 60px;
+            overflow: hidden;
+        }
+
+        .app-header h1 {
+            flex-shrink: 0;
+            white-space: nowrap;
         }
 
         .header-controls {
@@ -1437,18 +1443,24 @@
             background: #dcfce7 !important;
             color: #15803d !important;
             border-color: #86efac !important;
+            min-width: 82px;
+            justify-content: center;
         }
 
         .cloud-btn-disconnected {
             background: #f3f4f6;
             color: #6b7280;
             border-color: #e5e7eb;
+            min-width: 82px;
+            justify-content: center;
         }
 
         .cloud-btn-syncing {
             background: #fef3c7 !important;
             color: #92400e !important;
             border-color: #fde68a !important;
+            min-width: 82px;
+            justify-content: center;
             animation: cloudPulse 2s ease-in-out infinite;
         }
 
