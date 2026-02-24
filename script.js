@@ -1505,15 +1505,6 @@ function openModal(id) {
         if (_dueDateEl) _dueDateEl.value = _dateStr;
         if (_dueTimeEl) _dueTimeEl.value = _timeStr;
 
-        // Restore hide-date toggle state
-        const _hideDate = localStorage.getItem('hideDateAfterAdd') === 'true';
-        const _hideDateToggle = document.getElementById('hideDateToggle');
-        const _hideDateWrap = document.getElementById('hideDateToggleWrap');
-        const _hideDateLabel = document.getElementById('hideDateLabel');
-        const _dueDateWrap = document.getElementById('dueDateInputsWrap');
-        if (_hideDateToggle) _hideDateToggle.checked = _hideDate;
-        if (_hideDateWrap) _hideDateWrap.classList.toggle('active', _hideDate);
-        if (_dueDateWrap) _dueDateWrap.style.display = _hideDate ? 'none' : 'block';
 
         // Update category dropdown with latest custom categories
         updateCategoryDropdown();
@@ -1844,8 +1835,8 @@ function searchInSummary() {
 function generateItemMetadataHTML(item, idx) {
     let html = '';
     
-    // Build dueDate display - NOT clickable itself, parent div handles click
-    if (item.dueDate) {
+    // Build dueDate display — only when a reminder is set
+    if (item.dueDate && (item.reminderValue || (item.nextAlertTime && item.nextAlertTime > Date.now()))) {
         const today = new Date();
         today.setHours(0, 0, 0, 0);
         const dueDate = new Date(item.dueDate);
@@ -3364,18 +3355,6 @@ function createListFromDropdown() {
 }
 
 // ===== QUICK ADD: CONTINUOUS MODE =====
-function toggleHideDateAfterAdd() {
-    const toggle = document.getElementById('hideDateToggle');
-    const wrap   = document.getElementById('hideDateToggleWrap');
-    const label  = document.getElementById('hideDateLabel');
-    const dueDateWrap = document.getElementById('dueDateInputsWrap');
-    if (!toggle) return;
-    const isOn = toggle.checked;
-    localStorage.setItem('hideDateAfterAdd', isOn ? 'true' : 'false');
-    if (wrap) wrap.classList.toggle('active', isOn);
-    if (dueDateWrap) dueDateWrap.style.display = isOn ? 'none' : 'block';
-}
-
 function toggleContinuousMode() {
     const toggle = document.getElementById('continuousToggle');
     if (!toggle) return;
