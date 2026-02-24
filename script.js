@@ -7170,23 +7170,64 @@ function openNotificationCenter() {
 }
 
 function attachSwipeDismiss(wrap, card, notif) {
-    const THRESHOLD = 80; // px to trigger dismiss
-    let startX = 0, currentX = 0, dragging = false;
+    const THRESHOLD      = 90;   // px to trigger dismiss
+    const DIR_LOCK_PX    = 8;    // px moved before direction is locked
+    const HORIZ_RATIO    = 1.8;  // horizontal must be this times larger than vertical
+
+    let startX = 0, startY = 0;
+    let currentX = 0;
+    let dragging = false;       // touch has started
+    let dirLocked = false;      // direction (horiz/vert) has been decided
+    let isHoriz = false;        // locked as horizontal swipe
+
     const leftBg  = wrap.querySelector('.left-swipe');
     const rightBg = wrap.querySelector('.right-swipe');
 
-    function onStart(clientX) {
-        startX = clientX;
+    function reset() {
+        dragging  = false;
+        dirLocked = false;
+        isHoriz   = false;
+        currentX  = 0;
+    }
+
+    function snapBack() {
+        card.style.transition = 'transform 0.22s cubic-bezier(0.34,1.4,0.64,1)';
+        card.style.transform  = 'translateX(0)';
+        if (leftBg)  { leftBg.style.opacity  = '0'; leftBg.classList.remove('reveal');  }
+        if (rightBg) { rightBg.style.opacity = '0'; rightBg.classList.remove('reveal'); }
+    }
+
+    function onTouchStart(e) {
+        startX   = e.touches[0].clientX;
+        startY   = e.touches[0].clientY;
         currentX = 0;
-        dragging = true;
+        dragging  = true;
+        dirLocked = false;
+        isHoriz   = false;
         card.style.transition = 'none';
     }
-    function onMove(clientX) {
+
+    function onTouchMove(e) {
         if (!dragging) return;
-        currentX = clientX - startX;
+
+        const dx = e.touches[0].clientX - startX;
+        const dy = e.touches[0].clientY - startY;
+        const absDx = Math.abs(dx);
+        const absDy = Math.abs(dy);
+
+        // Wait until we have enough movement to decide direction
+        if (!dirLocked && (absDx > DIR_LOCK_PX || absDy > DIR_LOCK_PX)) {
+            dirLocked = true;
+            isHoriz   = absDx > absDy * HORIZ_RATIO;
+        }
+
+        if (!dirLocked || !isHoriz) return; // vertical scroll — don't touch the card
+
+        // Horizontal swipe confirmed
+        currentX = dx;
         card.style.transform = `translateX(${currentX}px)`;
-        const abs = Math.abs(currentX);
-        const ratio = Math.min(abs / THRESHOLD, 1);
+
+        const ratio = Math.min(absDx / THRESHOLD, 1);
         if (currentX < 0) {
             if (leftBg)  { leftBg.classList.add('reveal');    leftBg.style.opacity  = ratio; }
             if (rightBg) { rightBg.classList.remove('reveal'); rightBg.style.opacity = 0; }
@@ -7195,44 +7236,73 @@ function attachSwipeDismiss(wrap, card, notif) {
             if (leftBg)  { leftBg.classList.remove('reveal'); leftBg.style.opacity  = 0; }
         }
     }
-    function onEnd() {
+
+    function onTouchEnd() {
         if (!dragging) return;
-        dragging = false;
-        if (Math.abs(currentX) >= THRESHOLD) {
-            // Dismiss: slide out then remove
-            const dir = currentX < 0 ? -1 : 1;
-            card.style.transition = 'transform 0.28s ease, opacity 0.28s ease';
+        const wasHoriz = isHoriz;
+        const savedX   = currentX;
+        reset();
+
+        if (!wasHoriz) return; // was a scroll — nothing to do
+
+        if (Math.abs(savedX) >= THRESHOLD) {
+            // Dismiss
+            const dir = savedX < 0 ? -1 : 1;
+            card.style.transition = 'transform 0.26s ease, opacity 0.26s ease';
             card.style.transform  = `translateX(${dir * window.innerWidth}px)`;
             card.style.opacity    = '0';
-            wrap.style.transition = 'max-height 0.3s ease 0.22s, margin 0.3s ease 0.22s, opacity 0.3s ease 0.22s';
+            wrap.style.transition = 'max-height 0.3s ease 0.2s, margin-bottom 0.3s ease 0.2s, opacity 0.3s ease 0.2s';
             wrap.style.overflow   = 'hidden';
             setTimeout(() => {
-                wrap.style.maxHeight = '0';
+                wrap.style.maxHeight    = '0';
                 wrap.style.marginBottom = '0';
-                wrap.style.opacity = '0';
+                wrap.style.opacity      = '0';
             }, 50);
             setTimeout(() => {
                 dismissNotification(notif.listId, notif.itemIdx, notif.dueDateMs, null);
             }, 380);
         } else {
-            // Snap back
-            card.style.transition = 'transform 0.25s cubic-bezier(0.34,1.56,0.64,1)';
-            card.style.transform  = 'translateX(0)';
-            if (leftBg)  { leftBg.style.opacity  = '0'; leftBg.classList.remove('reveal');  }
-            if (rightBg) { rightBg.style.opacity = '0'; rightBg.classList.remove('reveal'); }
+            snapBack();
         }
     }
 
-    // Touch
-    card.addEventListener('touchstart', e => onStart(e.touches[0].clientX),  { passive: true });
-    card.addEventListener('touchmove',  e => onMove(e.touches[0].clientX),   { passive: true });
-    card.addEventListener('touchend',   () => onEnd());
-    card.addEventListener('touchcancel',() => onEnd());
+    // Touch events — touchmove is NOT passive so we keep native scroll for vertical
+    card.addEventListener('touchstart',  onTouchStart,  { passive: true });
+    card.addEventListener('touchmove',   onTouchMove,   { passive: true });
+    card.addEventListener('touchend',    onTouchEnd,    { passive: true });
+    card.addEventListener('touchcancel', onTouchEnd,    { passive: true });
 
     // Mouse (desktop)
-    card.addEventListener('mousedown', e => { onStart(e.clientX); e.preventDefault(); });
-    window.addEventListener('mousemove', e => { if (dragging) onMove(e.clientX); });
-    window.addEventListener('mouseup',   () => { if (dragging) onEnd(); });
+    card.addEventListener('mousedown', e => {
+        startX = e.clientX; startY = e.clientY;
+        currentX = 0; dragging = true; dirLocked = false; isHoriz = false;
+        card.style.transition = 'none';
+        e.preventDefault();
+    });
+    window.addEventListener('mousemove', e => {
+        if (!dragging) return;
+        const dx = e.clientX - startX;
+        const dy = e.clientY - startY;
+        if (!dirLocked && (Math.abs(dx) > DIR_LOCK_PX || Math.abs(dy) > DIR_LOCK_PX)) {
+            dirLocked = true;
+            isHoriz   = Math.abs(dx) > Math.abs(dy) * HORIZ_RATIO;
+        }
+        if (!isHoriz) return;
+        currentX = dx;
+        card.style.transform = `translateX(${currentX}px)`;
+        const ratio = Math.min(Math.abs(dx) / THRESHOLD, 1);
+        if (dx < 0) {
+            if (leftBg)  { leftBg.classList.add('reveal');    leftBg.style.opacity = ratio; }
+            if (rightBg) { rightBg.classList.remove('reveal'); rightBg.style.opacity = 0; }
+        } else {
+            if (rightBg) { rightBg.classList.add('reveal');   rightBg.style.opacity = ratio; }
+            if (leftBg)  { leftBg.classList.remove('reveal'); leftBg.style.opacity = 0; }
+        }
+    });
+    window.addEventListener('mouseup', () => {
+        if (!dragging) return;
+        onTouchEnd();
+    });
 }
 
 function jumpToItem(listId, itemIdx) {
