@@ -1868,7 +1868,7 @@ function generateItemMetadataHTML(item, idx) {
                 const minsRem = minsLeft % 60;
                 timeLeftText = minsRem > 0 ? `בעוד ${hoursLeft}ש' ${minsRem}ד'` : `בעוד ${hoursLeft} שעות`;
             }
-            reminderInfo = ` 🔔 התראה חוזרת ${timeLeftText}, ב-${sh}:${sm}`;
+            reminderInfo = ` 🔔 התראה ${timeLeftText}, ב-${sh}:${sm}`;
         } else if (item.reminderValue && item.reminderUnit) {
             const timeStr = item.dueTime || '09:00';
             const dueDateObj = new Date(item.dueDate + 'T' + timeStr + ':00');
