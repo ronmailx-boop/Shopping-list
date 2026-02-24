@@ -4294,12 +4294,20 @@ function initFirebaseAuth() {
     const cloudBtn = document.getElementById('cloudBtn');
     if (cloudBtn) {
         cloudBtn.onclick = function () {
-            if (currentUser) {
-                // Already logged in, show settings
-                openModal('settingsModal');
+            if (wizardMode) {
+                wiz('cloudBtn', 'before', () => {
+                    if (currentUser) {
+                        openModal('settingsModal');
+                    } else {
+                        loginWithGoogle();
+                    }
+                });
             } else {
-                // Not logged in, trigger login
-                loginWithGoogle();
+                if (currentUser) {
+                    openModal('settingsModal');
+                } else {
+                    loginWithGoogle();
+                }
             }
         };
     }
@@ -8588,8 +8596,14 @@ const WIZ = {
     bellBtn: {
         emoji:'🔔', phase:'before',
         title:'מרכז התראות',
-        body:'כאן תראה את כל הפריטים עם תאריכי יעד קרובים, איחורים ותזכורות.',
-        tip:'💡 החלק התראה שמאלה/ימינה כדי למחוק אותה.',
+        body:'כאן מרוכזות כל ההתראות הפעילות שלך.\n🔴 אדום — תאריך היעד עבר, הפריט באיחור.\n🟠 כתום — הפריט דורש תשומת לב היום או מחר.\n🔵 כחול — יש תזכורת שפעילה בימים הקרובים.',
+        tip:'💡 החלק התראה שמאלה או ימינה כדי למחוק אותה.',
+    },
+    cloudBtn: {
+        emoji:'☁️', phase:'before',
+        title:'סנכרון וגיבוי לענן',
+        body:'חבר את האפליקציה לחשבון Google שלך.\nכל הרשימות יגובו אוטומטית בענן ויהיו זמינות מכל מכשיר.\nהנתונים שלך מאובטחים ולא יאבדו גם אם תחליף טלפון.',
+        tip:'💡 הסנכרון מתבצע אוטומטית בכל שינוי — ללא לחיצות נוספות.',
     },
     settingsBtn: {
         emoji:'⚙️', phase:'before',
