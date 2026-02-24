@@ -2440,9 +2440,20 @@ ${error.message}
 
             <!-- Advanced drawer -->
             <div class="advanced-drawer" id="advancedDrawer">
-                <label class="text-sm font-bold text-gray-600 block text-center mb-1">📅 תאריך ושעת יעד</label>
-                <input type="date" id="itemDueDate" class="modal-input">
-                <input type="time" id="itemDueTime" class="modal-input">
+                <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:6px;">
+                    <label class="text-sm font-bold text-gray-600">📅 תאריך ושעת יעד</label>
+                    <label class="continuous-toggle-wrap" id="hideDateToggleWrap" onclick="event.stopPropagation(); toggleHideDateAfterAdd()" style="flex-direction:row-reverse;">
+                        <span class="continuous-toggle-label" id="hideDateLabel">הסתר לאחר הוספה</span>
+                        <div class="toggle-switch">
+                            <input type="checkbox" id="hideDateToggle" onchange="toggleHideDateAfterAdd()">
+                            <span class="toggle-slider"></span>
+                        </div>
+                    </label>
+                </div>
+                <div id="dueDateInputsWrap">
+                    <input type="date" id="itemDueDate" class="modal-input">
+                    <input type="time" id="itemDueTime" class="modal-input">
+                </div>
                 <input type="url" id="itemPaymentUrl" placeholder="🔗 קישור לתשלום (אופציונלי)" class="modal-input">
                 <input type="text" id="itemNotes" placeholder="📝 הערות (אופציונלי)" class="modal-input">
                 <select id="itemCategory" class="modal-input">
