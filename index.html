@@ -857,14 +857,15 @@
             letter-spacing: 0.5px;
         }
         .wizard-btn.wizard-bottom-btn.wizard-active {
-            background: linear-gradient(135deg,#7367f0 0%,#9055ff 100%) !important;
-            color: white !important; border-color: transparent !important;
-            box-shadow: 0 0 0 3px rgba(115,103,240,0.35), 0 4px 18px rgba(115,103,240,0.5) !important;
+            background: rgba(255,255,255,0.15) !important;
+            color: white !important;
+            border: 2px solid rgba(255,255,255,0.9) !important;
+            box-shadow: 0 0 0 3px rgba(255,255,255,0.25), 0 4px 18px rgba(255,255,255,0.15) !important;
             animation: wizBtnPulse 2s ease-in-out infinite;
         }
         @keyframes wizBtnPulse {
-            0%,100% { box-shadow: 0 0 0 3px rgba(115,103,240,0.35), 0 4px 18px rgba(115,103,240,0.5); }
-            50%      { box-shadow: 0 0 0 7px rgba(115,103,240,0.15), 0 4px 26px rgba(115,103,240,0.7); }
+            0%,100% { box-shadow: 0 0 0 3px rgba(255,255,255,0.25), 0 4px 18px rgba(255,255,255,0.15); }
+            50%      { box-shadow: 0 0 0 6px rgba(255,255,255,0.12), 0 4px 22px rgba(255,255,255,0.25); }
         }
 
         /* ── Wizard sheet (legacy, kept for compat) ── */
@@ -2354,7 +2355,7 @@ ${error.message}
                 <div class="text-[10px] opacity-70" id="remainingToPayLabel">נשאר לשלם</div>
                 <div class="text-2xl font-black text-orange-300">₪<span id="displayLeft">0.00</span></div>
                 <button id="wizardModeBtn" onclick="event.stopPropagation(); toggleWizardMode()" class="wizard-btn wizard-bottom-btn mt-1">
-                    ✨ <span id="wizardBtnText">Wizard</span>
+                    ✨ <span id="wizardBtnText">מדריך</span>
                 </button>
             </div>
             <button onclick="event.stopPropagation(); wizardMode ? openWizard('completeList') : openModal('confirmModal')" class="bottom-circle-btn bg-red-500">
