@@ -102,25 +102,26 @@
             display: flex;
             flex-direction: column;
             align-items: center;
-            gap: 3px;
+            gap: 2px;
             background: rgba(255,255,255,0.15);
             border: 1.5px solid rgba(255,255,255,0.3);
-            border-radius: 14px;
-            padding: 7px 10px;
+            border-radius: 12px;
+            padding: 5px 7px;
             cursor: pointer;
             transition: all 0.2s ease;
-            min-width: 54px;
+            min-width: 44px;
+            max-width: 44px;
         }
         .voice-action-btn:active {
             transform: scale(0.93);
             background: rgba(255,255,255,0.25);
         }
         .voice-action-icon {
-            font-size: 18px;
+            font-size: 16px;
             line-height: 1;
         }
         .voice-action-label {
-            font-size: 10px;
+            font-size: 9px;
             font-weight: 800;
             color: rgba(255,255,255,0.9);
             white-space: nowrap;
@@ -2370,28 +2371,28 @@ ${error.message}
     </div>
 
     <div class="bottom-bar text-white no-print" onclick="toggleBottomBar()">
-        <div class="flex items-center justify-between mb-4">
-            <div class="flex-1 text-center" onclick="event.stopPropagation(); scrollToListTop()">
-                <div class="text-[10px] opacity-70" id="totalListLabel">סה"כ רשימה</div>
-                <div class="text-xl font-bold">₪<span id="displayTotal">0.00</span></div>
+        <div class="flex items-center justify-between mb-4" style="gap:4px;">
+            <div class="text-center" style="flex:1; min-width:0; overflow:hidden;" onclick="event.stopPropagation(); scrollToListTop()">
+                <div class="text-[10px] opacity-70 truncate" id="totalListLabel">סה"כ רשימה</div>
+                <div class="font-bold truncate" style="font-size:clamp(0.75rem,3vw,1.25rem);">₪<span id="displayTotal">0.00</span></div>
             </div>
-            <div class="flex-shrink-0 flex gap-3 items-center">
-                <button id="voiceTobuyBtn" onclick="event.stopPropagation(); if(_voiceActionActive){ startVoiceAction('tobuy'); } else if(wizardMode){ wiz('voiceTobuy','before',()=>startVoiceAction('tobuy')); } else { startVoiceAction('tobuy'); }"
+            <div class="flex-shrink-0 flex gap-1 items-center">
+                <button id="voiceTobuyBtn" onclick="event.stopPropagation(); startVoiceActionSmart('tobuy')"
                     class="voice-action-btn" title="לקנות — זיהוי קולי">
                     <span class="voice-action-icon">🛍️</span>
                     <span class="voice-action-label">לקנות</span>
                 </button>
                 <button onclick="handlePlusBtn(event)"
                     class="w-16 h-16 bg-green-500 rounded-full flex items-center justify-center shadow-2xl border-4 border-white/20 text-white text-4xl font-bold">+</button>
-                <button id="voiceBoughtBtn" onclick="event.stopPropagation(); if(_voiceActionActive){ startVoiceAction('bought'); } else if(wizardMode){ wiz('voiceBought','before',()=>startVoiceAction('bought')); } else { startVoiceAction('bought'); }"
+                <button id="voiceBoughtBtn" onclick="event.stopPropagation(); startVoiceActionSmart('bought')"
                     class="voice-action-btn" title="קניתי — זיהוי קולי">
                     <span class="voice-action-icon">✅</span>
                     <span class="voice-action-label">קניתי</span>
                 </button>
             </div>
-            <div class="flex-1 text-center" onclick="event.stopPropagation(); scrollToCheckedItems()">
-                <div class="text-[10px] opacity-70" id="paidInListLabel">שולם ברשימה</div>
-                <div class="text-xl font-bold">₪<span id="displayPaid">0.00</span></div>
+            <div class="text-center" style="flex:1; min-width:0; overflow:hidden;" onclick="event.stopPropagation(); scrollToCheckedItems()">
+                <div class="text-[10px] opacity-70 truncate" id="paidInListLabel">שולם ברשימה</div>
+                <div class="font-bold truncate" style="font-size:clamp(0.75rem,3vw,1.25rem);">₪<span id="displayPaid">0.00</span></div>
             </div>
         </div>
         <div class="flex items-center justify-between gap-4">
