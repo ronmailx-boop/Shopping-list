@@ -7015,7 +7015,11 @@ function getNotificationItems() {
                 const notifKey = makeNotifKey(listId, idx, dueDateMs);
                 if (dismissed.includes(notifKey)) return;
                 
-                if (shouldNotify || dueDate <= threeDaysFromNow) {
+                // הצג במרכז התראות רק אם יש התראה מוגדרת
+                const hasReminder = !!(item.reminderValue && item.reminderUnit) || !!(item.nextAlertTime && item.nextAlertTime > 0);
+                if (!hasReminder) return;
+
+                if (shouldNotify || isOverdue) {
                     const isToday = dueDate.getTime() === today.getTime();
                     const isTomorrow = dueDate.getTime() === new Date(today.getTime() + 86400000).getTime();
                     
