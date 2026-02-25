@@ -1573,7 +1573,7 @@ function showNotification(message, type = 'success') {
     _showToast({ message, type });
 }
 
-function _showToast({ message, type = 'success', undoCallback = null, duration = 4000 }) {
+function _showToast({ message, type = 'success', undoCallback = null, duration = 4000, undoLabel = null }) {
     const inner = document.getElementById('toastInner');
     const content = document.getElementById('toastContent');
     const iconEl = document.getElementById('toastIcon');
@@ -1603,10 +1603,10 @@ function _showToast({ message, type = 'success', undoCallback = null, duration =
         // הסר אמוג'י מתחילת הטקסט כדי למנוע כפילות
         textEl.textContent = message.replace(/^[\u{1F300}-\u{1FAFF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}✅⚠️❌🗑️✓☁️📋⭐💾🎤📊↩️✔️◻️]\s*/u, '');
 
-        // כפתור undo
         _toastUndoCallback = undoCallback;
         if (undoCallback) {
             undoBtn.style.display = '';
+            undoBtn.textContent = undoLabel || '↩ ביטול';
         } else {
             undoBtn.style.display = 'none';
         }
@@ -9087,3 +9087,197 @@ document.addEventListener('DOMContentLoaded', () => {
         if (welcome) welcome.style.display = 'none';
     }
 });
+
+// ══════════════════════════════════════════════════════════════
+// 🎙️ VOICE ACTION BUTTONS — "קניתי" & "לקנות"
+// ══════════════════════════════════════════════════════════════
+
+let _voiceActionRecognition = null;
+let _voiceActionMode = null; // 'bought' | 'tobuy'
+let _voiceActionActive = false;
+
+function initVoiceAction() {
+    if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+        showNotification('הדפדפן לא תומך בזיהוי קולי', 'error');
+        return null;
+    }
+    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    const r = new SR();
+    const langMap = { 'he':'he-IL','en':'en-US','ru':'ru-RU','ro':'ro-RO' };
+    r.lang = langMap[currentLang] || 'he-IL';
+    r.continuous = false;
+    r.interimResults = false;
+    r.maxAlternatives = 3;
+    return r;
+}
+
+// Fuzzy match — returns best matching item index or -1
+function _fuzzyFindItem(transcript, items) {
+    const q = transcript.trim().toLowerCase();
+    let bestIdx = -1, bestScore = 0;
+
+    items.forEach((item, idx) => {
+        const name = item.name.toLowerCase();
+        // exact
+        if (name === q) { bestIdx = idx; bestScore = 100; return; }
+        // contains
+        if (name.includes(q) || q.includes(name)) {
+            const score = 80 - Math.abs(name.length - q.length);
+            if (score > bestScore) { bestScore = score; bestIdx = idx; }
+            return;
+        }
+        // Levenshtein for typos/accent errors
+        const lev = _levenshtein(name, q);
+        const maxLen = Math.max(name.length, q.length);
+        const score = Math.round((1 - lev / maxLen) * 70);
+        if (score > bestScore && score >= 50) { bestScore = score; bestIdx = idx; }
+    });
+    return bestIdx;
+}
+
+function _levenshtein(a, b) {
+    const m = a.length, n = b.length;
+    const dp = Array.from({length: m+1}, (_, i) => Array.from({length: n+1}, (_, j) => i === 0 ? j : j === 0 ? i : 0));
+    for (let i = 1; i <= m; i++)
+        for (let j = 1; j <= n; j++)
+            dp[i][j] = a[i-1] === b[j-1] ? dp[i-1][j-1] : 1 + Math.min(dp[i-1][j], dp[i][j-1], dp[i-1][j-1]);
+    return dp[m][n];
+}
+
+function startVoiceAction(mode) {
+    // mode = 'bought' | 'tobuy'
+    if (!db.currentId || !db.lists[db.currentId]) {
+        showNotification('אין רשימה פעילה', 'error'); return;
+    }
+
+    if (_voiceActionActive) {
+        _stopVoiceAction(); return;
+    }
+
+    _voiceActionMode = mode;
+    _voiceActionRecognition = initVoiceAction();
+    if (!_voiceActionRecognition) return;
+
+    _voiceActionActive = true;
+    _updateVoiceActionBtns(true);
+
+    const label = mode === 'bought' ? '🛒 אמור שם מוצר שקנית...' : '📋 אמור שם מוצר לרשימה...';
+    showNotification(label, 'success');
+
+    _voiceActionRecognition.onresult = (e) => {
+        // Try all alternatives for best match
+        const transcripts = Array.from({length: e.results[0].length}, (_, i) => e.results[0][i].transcript);
+        _handleVoiceActionResult(transcripts, mode);
+    };
+
+    _voiceActionRecognition.onerror = (e) => {
+        _stopVoiceAction();
+        if (e.error === 'no-speech') showNotification('לא זוהה דיבור', 'warning');
+        else showNotification('שגיאת זיהוי קולי', 'error');
+    };
+
+    _voiceActionRecognition.onend = () => { _stopVoiceAction(); };
+
+    try { _voiceActionRecognition.start(); }
+    catch(e) { _stopVoiceAction(); }
+}
+
+function _stopVoiceAction() {
+    _voiceActionActive = false;
+    _voiceActionMode = null;
+    _updateVoiceActionBtns(false);
+    if (_voiceActionRecognition) {
+        try { _voiceActionRecognition.stop(); } catch(e) {}
+    }
+}
+
+function _updateVoiceActionBtns(recording) {
+    const boughtBtn = document.getElementById('voiceBoughtBtn');
+    const tobuyBtn  = document.getElementById('voiceTobuyBtn');
+    if (boughtBtn) boughtBtn.classList.toggle('voice-action-recording', recording && _voiceActionMode === 'bought');
+    if (tobuyBtn)  tobuyBtn.classList.toggle('voice-action-recording', recording && _voiceActionMode === 'tobuy');
+}
+
+function _handleVoiceActionResult(transcripts, mode) {
+    const list = db.lists[db.currentId];
+    const items = list.items;
+
+    let bestIdx = -1;
+    for (const t of transcripts) {
+        bestIdx = _fuzzyFindItem(t, items);
+        if (bestIdx !== -1) break;
+    }
+    const transcript = transcripts[0];
+
+    if (mode === 'bought') {
+        if (bestIdx === -1) {
+            showNotification(`❌ לא מצאתי "${transcript}" ברשימה`, 'error');
+            return;
+        }
+        const item = items[bestIdx];
+        if (item.checked) {
+            showNotification(`ℹ️ "${item.name}" כבר מסומן כנרכש`, 'warning');
+            return;
+        }
+        // Mark as bought
+        item.checked = true;
+        lastCheckedItem = item;
+        lastCheckedIdx = bestIdx;
+        lastCheckedState = false;
+        db.lists[db.currentId].items = sortItemsByStatusAndCategory(items);
+        save();
+        showUndoCheckNotification(item.name, true);
+
+    } else { // tobuy
+        if (bestIdx !== -1) {
+            const item = items[bestIdx];
+            if (!item.checked) {
+                showNotification(`ℹ️ "${item.name}" כבר ברשימה וממתין לרכישה`, 'warning');
+            } else {
+                // Uncheck — move back to "to buy"
+                item.checked = false;
+                lastCheckedItem = item;
+                lastCheckedIdx = bestIdx;
+                lastCheckedState = true;
+                db.lists[db.currentId].items = sortItemsByStatusAndCategory(items);
+                save();
+                showUndoCheckNotification(item.name, false);
+            }
+        } else {
+            // Not found — offer to add
+            _showAddItemPrompt(transcript);
+        }
+    }
+}
+
+function _showAddItemPrompt(name) {
+    // Use existing toast system with a custom action
+    _showToast({
+        message: `"${name}" לא ברשימה — להוסיף?`,
+        type: 'warning',
+        undoCallback: () => _addItemByVoice(name),
+        undoLabel: '➕ הוסף',
+        duration: 7000
+    });
+}
+
+function _addItemByVoice(name) {
+    const trimmed = name.trim();
+    if (!trimmed || !db.currentId) return;
+    const category = detectCategory(trimmed);
+    db.lists[db.currentId].items.push({
+        name: trimmed,
+        price: 0,
+        qty: 1,
+        checked: false,
+        category: category,
+        note: '',
+        dueDate: '',
+        paymentUrl: '',
+        isPaid: false,
+        lastUpdated: Date.now(),
+        cloudId: 'item_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9)
+    });
+    save();
+    showNotification(`✅ "${trimmed}" נוסף לרשימה!`, 'success');
+}
