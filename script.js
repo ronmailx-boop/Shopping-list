@@ -7019,7 +7019,8 @@ function getNotificationItems() {
                 const hasReminder = !!(item.reminderValue && item.reminderUnit) || !!(item.nextAlertTime && item.nextAlertTime > 0);
                 if (!hasReminder) return;
 
-                if (shouldNotify || isOverdue) {
+                // הצג את הפריט — יש התראה (לא משנה אם הגיע הזמן עדיין)
+                {
                     const isToday = dueDate.getTime() === today.getTime();
                     const isTomorrow = dueDate.getTime() === new Date(today.getTime() + 86400000).getTime();
                     
