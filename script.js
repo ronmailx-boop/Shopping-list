@@ -1930,8 +1930,8 @@ function render() {
     const _voiceBoughtBtn = document.getElementById('voiceBoughtBtn');
     const _voiceTobuyBtn  = document.getElementById('voiceTobuyBtn');
     const _showVoiceBtns  = activePage === 'lists';
-    if (_voiceBoughtBtn) _voiceBoughtBtn.style.display = _showVoiceBtns ? '' : 'none';
-    if (_voiceTobuyBtn)  _voiceTobuyBtn.style.display  = _showVoiceBtns ? '' : 'none';
+    if (_voiceBoughtBtn) { _voiceBoughtBtn.style.visibility = _showVoiceBtns ? 'visible' : 'hidden'; _voiceBoughtBtn.style.pointerEvents = _showVoiceBtns ? '' : 'none'; }
+    if (_voiceTobuyBtn)  { _voiceTobuyBtn.style.visibility  = _showVoiceBtns ? 'visible' : 'hidden'; _voiceTobuyBtn.style.pointerEvents = _showVoiceBtns ? '' : 'none'; }
 
     const btn = document.getElementById('mainLockBtn');
     const path = document.getElementById('lockIconPath');
@@ -9161,6 +9161,21 @@ function _levenshtein(a, b) {
         for (let j = 1; j <= n; j++)
             dp[i][j] = a[i-1] === b[j-1] ? dp[i-1][j-1] : 1 + Math.min(dp[i-1][j], dp[i][j-1], dp[i-1][j-1]);
     return dp[m][n];
+}
+
+function startVoiceActionSmart(mode) {
+    // אם מיקרופון פעיל — עצור
+    if (_voiceActionActive) {
+        startVoiceAction(mode);
+        return;
+    }
+    // wizard פעיל — הצג הסבר קודם
+    if (wizardMode) {
+        const wizKey = mode === 'bought' ? 'voiceBought' : 'voiceTobuy';
+        wiz(wizKey, 'before', () => startVoiceAction(mode));
+        return;
+    }
+    startVoiceAction(mode);
 }
 
 function startVoiceAction(mode) {
