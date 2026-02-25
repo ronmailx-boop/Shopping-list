@@ -16,7 +16,10 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '20'
-      
+
+      - name: Install Firebase Tools
+        run: npm install -g firebase-tools
+
       # Deploy Functions
       - name: Install Functions Dependencies
         run: |
@@ -27,7 +30,6 @@ jobs:
         uses: w9jds/firebase-action@master
         with:
           args: deploy --only functions --project vplus-pro --force
-
         env:
           GCP_SA_KEY: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_VPLUS_PRO }}
       
