@@ -1926,6 +1926,13 @@ function render() {
     document.getElementById('tabSummary').className = `tab-btn ${activePage === 'summary' ? 'tab-active' : ''}`;
     document.getElementById('tabStats').className = `tab-btn ${activePage === 'stats' ? 'tab-active' : ''}`;
 
+    // הצג כפתורי קולי רק בטאב "הרשימה שלי"
+    const _voiceBoughtBtn = document.getElementById('voiceBoughtBtn');
+    const _voiceTobuyBtn  = document.getElementById('voiceTobuyBtn');
+    const _showVoiceBtns  = activePage === 'lists';
+    if (_voiceBoughtBtn) _voiceBoughtBtn.style.display = _showVoiceBtns ? '' : 'none';
+    if (_voiceTobuyBtn)  _voiceTobuyBtn.style.display  = _showVoiceBtns ? '' : 'none';
+
     const btn = document.getElementById('mainLockBtn');
     const path = document.getElementById('lockIconPath');
     const tag = document.getElementById('statusTag');
