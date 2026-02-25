@@ -2371,30 +2371,37 @@ ${error.message}
     </div>
 
     <div class="bottom-bar text-white no-print" onclick="toggleBottomBar()">
-        <div class="flex items-center justify-between mb-4" style="gap:4px;">
-            <div class="text-center" style="flex:1; min-width:0; overflow:hidden;" onclick="event.stopPropagation(); scrollToListTop()">
-                <div class="text-[10px] opacity-70 truncate" id="totalListLabel">סה"כ רשימה</div>
-                <div class="font-bold truncate" style="font-size:clamp(0.75rem,3vw,1.25rem);">₪<span id="displayTotal">0.00</span></div>
+        <!-- שורה 1: לקנות | + | קניתי -->
+        <div class="flex items-center justify-center gap-3 mb-3">
+            <button id="voiceTobuyBtn" onclick="event.stopPropagation(); startVoiceActionSmart('tobuy')"
+                class="voice-action-btn" title="לקנות — זיהוי קולי">
+                <span class="voice-action-icon">🛍️</span>
+                <span class="voice-action-label">לקנות</span>
+            </button>
+            <button onclick="handlePlusBtn(event)"
+                class="w-16 h-16 bg-green-500 rounded-full flex items-center justify-center shadow-2xl border-4 border-white/20 text-white text-4xl font-bold">+</button>
+            <button id="voiceBoughtBtn" onclick="event.stopPropagation(); startVoiceActionSmart('bought')"
+                class="voice-action-btn" title="קניתי — זיהוי קולי">
+                <span class="voice-action-icon">✅</span>
+                <span class="voice-action-label">קניתי</span>
+            </button>
+        </div>
+        <!-- שורה 2: שולם ברשימה | נשאר לשלם | סה"כ ברשימה -->
+        <div class="flex items-center justify-between mb-2" style="gap:6px;">
+            <div class="text-center flex-1" onclick="event.stopPropagation(); scrollToCheckedItems()" style="cursor:pointer;">
+                <div class="text-[10px] opacity-70" id="paidInListLabel">שולם ברשימה</div>
+                <div class="text-base font-bold">₪<span id="displayPaid">0.00</span></div>
             </div>
-            <div class="flex-shrink-0 flex gap-1 items-center">
-                <button id="voiceTobuyBtn" onclick="event.stopPropagation(); startVoiceActionSmart('tobuy')"
-                    class="voice-action-btn" title="לקנות — זיהוי קולי">
-                    <span class="voice-action-icon">🛍️</span>
-                    <span class="voice-action-label">לקנות</span>
-                </button>
-                <button onclick="handlePlusBtn(event)"
-                    class="w-16 h-16 bg-green-500 rounded-full flex items-center justify-center shadow-2xl border-4 border-white/20 text-white text-4xl font-bold">+</button>
-                <button id="voiceBoughtBtn" onclick="event.stopPropagation(); startVoiceActionSmart('bought')"
-                    class="voice-action-btn" title="קניתי — זיהוי קולי">
-                    <span class="voice-action-icon">✅</span>
-                    <span class="voice-action-label">קניתי</span>
-                </button>
+            <div class="text-center flex-1" onclick="event.stopPropagation(); scrollToListTop()" style="cursor:pointer;">
+                <div class="text-[10px] opacity-70" id="remainingToPayLabel">נשאר לשלם</div>
+                <div class="text-xl font-black text-orange-300">₪<span id="displayLeft">0.00</span></div>
             </div>
-            <div class="text-center" style="flex:1; min-width:0; overflow:hidden;" onclick="event.stopPropagation(); scrollToCheckedItems()">
-                <div class="text-[10px] opacity-70 truncate" id="paidInListLabel">שולם ברשימה</div>
-                <div class="font-bold truncate" style="font-size:clamp(0.75rem,3vw,1.25rem);">₪<span id="displayPaid">0.00</span></div>
+            <div class="text-center flex-1" onclick="event.stopPropagation(); scrollToListTop()" style="cursor:pointer;">
+                <div class="text-[10px] opacity-70" id="totalListLabel">סה"כ רשימה</div>
+                <div class="text-base font-bold">₪<span id="displayTotal">0.00</span></div>
             </div>
         </div>
+        <!-- שורה 3: נעילה | מדריך | סיום -->
         <div class="flex items-center justify-between gap-4">
             <button id="mainLockBtn" onclick="event.stopPropagation(); toggleLock()" class="bottom-circle-btn bg-blue-600">
                 <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -2403,10 +2410,8 @@ ${error.message}
                     </path>
                 </svg>
             </button>
-            <div class="text-center flex-1 flex flex-col items-center">
-                <div class="text-[10px] opacity-70" id="remainingToPayLabel">נשאר לשלם</div>
-                <div class="text-2xl font-black text-orange-300">₪<span id="displayLeft">0.00</span></div>
-                <button id="wizardModeBtn" onclick="event.stopPropagation(); toggleWizardMode()" class="wizard-btn wizard-bottom-btn mt-1">
+            <div class="flex-1 flex justify-center">
+                <button id="wizardModeBtn" onclick="event.stopPropagation(); toggleWizardMode()" class="wizard-btn wizard-bottom-btn">
                     ✨ <span id="wizardBtnText">מדריך</span>
                 </button>
             </div>
