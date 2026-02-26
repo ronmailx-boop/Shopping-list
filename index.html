@@ -2420,7 +2420,7 @@ ${error.message}
         <div class="flex items-center justify-between gap-2 px-1">
 
             <!-- הוספה -->
-            <button id="voiceTobuyBtn"
+            <button id="bottomAddBtn"
                 onclick="event.stopPropagation(); if(_voiceActionActive){ startVoiceAction('tobuy'); } else if(wizardMode){ wiz('voiceTobuy','before',()=>startVoiceAction('tobuy')); } else { startVoiceAction('tobuy'); }"
                 title="הוספה — זיהוי קולי"
                 style="flex:1;height:44px;background:rgba(255,255,255,0.15);border:2px solid rgba(255,255,255,0.35);border-radius:50px;font-size:13px;font-weight:800;color:white;cursor:pointer;transition:all 0.2s;display:flex;align-items:center;justify-content:center;gap:5px;white-space:nowrap;">
@@ -2438,7 +2438,7 @@ ${error.message}
             </button>
 
             <!-- בוצע -->
-            <button id="voiceBoughtBtn"
+            <button id="bottomDoneBtn"
                 onclick="event.stopPropagation(); if(_voiceActionActive){ startVoiceAction('bought'); } else if(wizardMode){ wiz('voiceBought','before',()=>startVoiceAction('bought')); } else { startVoiceAction('bought'); }"
                 title="בוצע — זיהוי קולי"
                 style="flex:1;height:44px;background:rgba(255,255,255,0.15);border:2px solid rgba(255,255,255,0.35);border-radius:50px;font-size:13px;font-weight:800;color:white;cursor:pointer;transition:all 0.2s;display:flex;align-items:center;justify-content:center;white-space:nowrap;">
