@@ -2377,9 +2377,9 @@ ${error.message}
             <!-- Right: Lock (blue) - בטל גרירה -->
             <div class="flex flex-col items-center gap-1" onclick="event.stopPropagation(); scrollToCheckedItems()">
                 <button id="mainLockBtn" onclick="event.stopPropagation(); toggleLock()"
-                    style="width:68px;height:68px;border-radius:50%;background:#1a56db;border:3px solid rgba(255,255,255,0.25);display:flex;align-items:center;justify-content:center;box-shadow:0 6px 20px rgba(0,0,0,0.25);transition:transform 0.2s;"
+                    style="width:62px;height:62px;border-radius:50%;background:#1a56db;border:3px solid rgba(255,255,255,0.25);display:flex;align-items:center;justify-content:center;box-shadow:0 6px 20px rgba(0,0,0,0.25);transition:transform 0.2s;"
                     ontouchstart="this.style.transform='scale(0.93)'" ontouchend="this.style.transform='scale(1)'">
-                    <svg class="w-7 h-7" fill="none" stroke="white" viewBox="0 0 24 24">
+                    <svg width="26" height="26" fill="none" stroke="white" viewBox="0 0 24 24">
                         <path id="lockIconPath" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                             d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
                     </svg>
@@ -2388,11 +2388,15 @@ ${error.message}
                 <div class="text-lg font-bold leading-tight">₪<span id="displayPaid">0.00</span></div>
             </div>
 
-            <!-- Center: Add / Plus (green) - bigger -->
+            <!-- Center: Add / Plus (green) - bigger with SVG -->
             <div class="flex flex-col items-center gap-1">
                 <button onclick="handlePlusBtn(event)"
-                    style="width:80px;height:80px;border-radius:50%;background:#27ae60;border:3px solid rgba(255,255,255,0.25);display:flex;align-items:center;justify-content:center;box-shadow:0 8px 24px rgba(0,0,0,0.3);transition:transform 0.2s;font-size:40px;font-weight:bold;color:white;line-height:1;"
-                    ontouchstart="this.style.transform='scale(0.93)'" ontouchend="this.style.transform='scale(1)'">+</button>
+                    style="width:82px;height:82px;border-radius:50%;background:#22c55e;border:3px solid rgba(255,255,255,0.25);display:flex;align-items:center;justify-content:center;box-shadow:0 8px 24px rgba(0,0,0,0.3);transition:transform 0.2s;"
+                    ontouchstart="this.style.transform='scale(0.93)'" ontouchend="this.style.transform='scale(1)'">
+                    <svg width="38" height="38" fill="none" stroke="white" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 5v14M5 12h14"/>
+                    </svg>
+                </button>
                 <div class="text-[10px] opacity-75 mt-1" id="remainingToPayLabel">נשאר לשלם</div>
                 <div class="text-xl font-black leading-tight" style="color:#fcd34d;">₪<span id="displayLeft">0.00</span></div>
             </div>
@@ -2400,10 +2404,10 @@ ${error.message}
             <!-- Left: Complete / Checkmark (red) - סיים רשימה -->
             <div class="flex flex-col items-center gap-1" onclick="event.stopPropagation(); scrollToListTop()">
                 <button onclick="event.stopPropagation(); wizardMode ? openWizard('completeList') : openModal('confirmModal')"
-                    style="width:68px;height:68px;border-radius:50%;background:#e74c3c;border:3px solid rgba(255,255,255,0.25);display:flex;align-items:center;justify-content:center;box-shadow:0 6px 20px rgba(0,0,0,0.25);transition:transform 0.2s;"
+                    style="width:62px;height:62px;border-radius:50%;background:#ef4444;border:3px solid rgba(255,255,255,0.25);display:flex;align-items:center;justify-content:center;box-shadow:0 6px 20px rgba(0,0,0,0.25);transition:transform 0.2s;"
                     ontouchstart="this.style.transform='scale(0.93)'" ontouchend="this.style.transform='scale(1)'">
-                    <svg width="30" height="30" fill="none" stroke="white" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/>
+                    <svg width="26" height="26" fill="none" stroke="white" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/>
                     </svg>
                 </button>
                 <div class="text-[10px] opacity-75 mt-1" id="totalListLabel">סה"כ רשימה</div>
@@ -2420,7 +2424,12 @@ ${error.message}
                 onclick="event.stopPropagation(); if(_voiceActionActive){ startVoiceAction('tobuy'); } else if(wizardMode){ wiz('voiceTobuy','before',()=>startVoiceAction('tobuy')); } else { startVoiceAction('tobuy'); }"
                 title="הוספה — זיהוי קולי"
                 style="flex:1;background:rgba(255,255,255,0.15);border:2px solid rgba(255,255,255,0.35);border-radius:50px;padding:12px 10px;font-size:14px;font-weight:800;color:white;cursor:pointer;transition:all 0.2s;text-align:center;white-space:nowrap;display:flex;align-items:center;justify-content:center;gap:6px;">
-                <span style="display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;background:#3dbb5e;border-radius:5px;font-size:16px;font-weight:900;color:white;line-height:1;flex-shrink:0;">+</span> הוספה
+                <span style="display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;flex-shrink:0;">
+                  <svg width="22" height="22" viewBox="0 0 22 22" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <rect width="22" height="22" rx="5" fill="#3dbb5e"/>
+                    <path d="M11 6v10M6 11h10" stroke="white" stroke-width="2.5" stroke-linecap="round"/>
+                  </svg>
+                </span> הוספה
             </button>
 
             <!-- מדריך -->
