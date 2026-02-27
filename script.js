@@ -8174,7 +8174,10 @@ document.addEventListener('DOMContentLoaded', function() {
         if (typeof updateNotificationBadge === 'function') {
             updateNotificationBadge();
         }
-        if (typeof checkUrgentPayments === 'function') {
+        // אם הגענו מלחיצה על התראה (URL param או SW) — דלג על ה-modal האוטומטי,
+        // כי checkNotificationUrlParam יציג בעצמו רק את ההתראה הנוכחית
+        const isFromNotification = new URLSearchParams(window.location.search).get('vplus-action');
+        if (!isFromNotification && !_suppressStartupModal && typeof checkUrgentPayments === 'function') {
             checkUrgentPayments();
         }
         
@@ -8476,6 +8479,9 @@ function updateAppBadge(count) {
 }
 
 // ── SW Message Listener ───────────────────────────────────────────
+// flag: מונע מה-startup modal להופיע כשמגיעים מהתראה דרך SW
+let _suppressStartupModal = false;
+
 if ('serviceWorker' in navigator) {
     navigator.serviceWorker.addEventListener('message', function(event) {
         const msg = event.data;
@@ -8485,6 +8491,8 @@ if ('serviceWorker' in navigator) {
             const action = msg.action || 'show';
             if (action === 'snooze-10')  { snoozeUrgentAlert(10 * 60 * 1000); return; }
             if (action === 'snooze-60')  { snoozeUrgentAlert(60 * 60 * 1000); return; }
+            _suppressStartupModal = true; // מנע modal אוטומטי
+            closeModal('urgentAlertModal');
             _forceShowAfterNotificationClick = true;
             checkUrgentPayments();
         }
@@ -8494,6 +8502,8 @@ if ('serviceWorker' in navigator) {
                 const action = msg.data.action;
                 if (action === 'snooze-10') { snoozeUrgentAlert(10 * 60 * 1000); return; }
                 if (action === 'snooze-60') { snoozeUrgentAlert(60 * 60 * 1000); return; }
+                _suppressStartupModal = true; // מנע modal אוטומטי
+                closeModal('urgentAlertModal');
                 _forceShowAfterNotificationClick = true;
                 checkUrgentPayments();
                 if (navigator.serviceWorker.controller) {
@@ -8513,6 +8523,7 @@ function checkNotificationUrlParam() {
         setTimeout(() => {
             if (action === 'snooze-10') { snoozeUrgentAlert(10 * 60 * 1000); return; }
             if (action === 'snooze-60') { snoozeUrgentAlert(60 * 60 * 1000); return; }
+            closeModal('urgentAlertModal'); // סגור modal ישן שנפתח ב-startup לפני הצגת הנכון
             _forceShowAfterNotificationClick = true;
             checkUrgentPayments();
         }, 1500);
