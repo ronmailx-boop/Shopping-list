@@ -1614,47 +1614,71 @@
             background: #fff !important;
         }
         
+        /* ── Urgent Alert Modal — ממורכז ומעוצב ── */
+        #urgentAlertModal.modal-overlay {
+            align-items: center !important;
+            justify-content: center !important;
+            padding: 16px;
+        }
+
         .urgent-alert-modal {
             background-color: #ffffff !important;
-            border-radius: 30px;
-            padding: 25px;
+            border-radius: 24px;
+            padding: 20px 20px 16px;
             text-align: center;
             color: #333;
             border: 3px solid #ef4444;
-            box-shadow: 0 20px 50px rgba(239, 68, 68, 0.4);
-            max-height: 80vh;
+            box-shadow: 0 20px 50px rgba(239, 68, 68, 0.35);
+            width: 100%;
+            max-width: 380px;
+            max-height: 92vh;
             overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 0;
         }
         
         .urgent-alert-header {
-            font-size: 3em;
-            margin-bottom: 10px;
+            font-size: 2.2em;
+            margin-bottom: 4px;
+            line-height: 1;
         }
         
         .urgent-alert-title {
-            font-size: 1.5rem;
+            font-size: 1.4rem;
             font-weight: bold;
             color: #ef4444;
-            margin-bottom: 15px;
+            margin: 0 0 4px;
+        }
+
+        .urgent-alert-subtitle {
+            color: #6b7280;
+            font-size: 0.88rem;
+            margin: 0 0 12px;
         }
         
         .urgent-items-list {
             text-align: right;
-            margin: 20px 0;
-            padding: 15px;
+            margin: 0 0 12px;
+            padding: 12px;
             background: #fef2f2;
-            border-radius: 15px;
-            max-height: 300px;
+            border-radius: 14px;
+            max-height: 30vh;
             overflow-y: auto;
+            flex-shrink: 1;
         }
         
         .urgent-item {
-            padding: 10px;
+            padding: 10px 12px;
             margin-bottom: 8px;
             background: white;
             border-radius: 10px;
             border-right: 4px solid #ef4444;
-            font-size: 0.95rem;
+            font-size: 0.9rem;
+        }
+
+        .urgent-item:last-child {
+            margin-bottom: 0;
         }
         
         .urgent-item-name {
@@ -1664,25 +1688,26 @@
         
         .urgent-item-date {
             color: #ef4444;
-            font-size: 0.85rem;
-            margin-top: 3px;
+            font-size: 0.8rem;
+            margin-top: 2px;
         }
         
         .urgent-buttons {
             display: flex;
             flex-direction: column;
-            gap: 10px;
-            margin-top: 20px;
+            gap: 8px;
+            flex-shrink: 0;
         }
         
         .urgent-btn {
-            padding: 15px;
-            border-radius: 15px;
+            padding: 13px 8px;
+            border-radius: 14px;
             font-weight: bold;
-            font-size: 1rem;
+            font-size: 0.92rem;
             cursor: pointer;
             border: none;
-            transition: transform 0.2s, box-shadow 0.2s;
+            transition: transform 0.15s, box-shadow 0.15s;
+            line-height: 1.2;
         }
         
         .urgent-btn:active {
@@ -2885,28 +2910,28 @@ ${error.message}
         <div class="urgent-alert-modal">
             <div class="urgent-alert-header">⚠️</div>
             <h2 class="urgent-alert-title">התראות חשובות!</h2>
-            <p style="color: #6b7280; margin-bottom: 15px;">יש לך פריטים הדורשים תשומת לב</p>
+            <p class="urgent-alert-subtitle">יש לך פריטים הדורשים תשומת לב</p>
             <div class="urgent-items-list" id="urgentItemsList">
                 <!-- Urgent items will be inserted here -->
             </div>
             <div class="urgent-buttons">
-                <!-- Hours row - small chips -->
-                <div style="display:flex; gap:8px; margin-bottom:8px;">
-                    <button class="urgent-btn urgent-btn-snooze" style="flex:1; padding:10px 4px; font-size:0.8rem;"
+                <!-- Hours row -->
+                <div style="display:flex; gap:8px;">
+                    <button class="urgent-btn urgent-btn-snooze" style="flex:1;"
                         onclick="snoozeUrgentAlert(1*60*60*1000)">⏰ שעה</button>
-                    <button class="urgent-btn urgent-btn-snooze" style="flex:1; padding:10px 4px; font-size:0.8rem;"
+                    <button class="urgent-btn urgent-btn-snooze" style="flex:1;"
                         onclick="snoozeUrgentAlert(2*60*60*1000)">⏰ 2 שעות</button>
-                    <button class="urgent-btn urgent-btn-snooze" style="flex:1; padding:10px 4px; font-size:0.8rem;"
+                    <button class="urgent-btn urgent-btn-snooze" style="flex:1;"
                         onclick="snoozeUrgentAlert(4*60*60*1000)">⏰ 4 שעות</button>
                 </div>
-                <!-- Days row - small chips -->
-                <div style="display:flex; gap:8px; margin-bottom:8px;">
-                    <button class="urgent-btn urgent-btn-tomorrow" style="flex:1; padding:10px 4px; font-size:0.8rem;"
+                <!-- Days row -->
+                <div style="display:flex; gap:8px;">
+                    <button class="urgent-btn urgent-btn-tomorrow" style="flex:1;"
                         onclick="snoozeUrgentAlert(1*24*60*60*1000)">📅 מחר</button>
-                    <button class="urgent-btn urgent-btn-tomorrow" style="flex:1; padding:10px 4px; font-size:0.8rem;"
+                    <button class="urgent-btn urgent-btn-tomorrow" style="flex:1;"
                         onclick="snoozeUrgentAlert(2*24*60*60*1000)">📅 יומיים</button>
                 </div>
-                <button class="urgent-btn urgent-btn-custom" onclick="openCustomSnooze()" style="background: #8b5cf6;">
+                <button class="urgent-btn" onclick="openCustomSnooze()" style="background:#8b5cf6; color:white;">
                     ⚙️ מותאם אישית
                 </button>
                 <button class="urgent-btn urgent-btn-close" onclick="closeUrgentAlert()">
