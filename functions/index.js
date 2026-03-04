@@ -182,7 +182,7 @@ async function cleanToken(token) {
     }
 }
 // ─── fetchBankData: סנכרון בנקאי (v2 onCall + dynamic ESM import) ────────────
-const { onCall } = require('firebase-functions/v2/https');
+const { onCall, HttpsError } = require('firebase-functions/v2/https');
 
 exports.fetchBankData = onCall(
     {
@@ -192,19 +192,34 @@ exports.fetchBankData = onCall(
     },
     async (request) => {
         if (!request.auth) {
-            throw new Error('unauthenticated');
+            throw new HttpsError('unauthenticated', 'המשתמש לא מחובר');
         }
 
         const { companyId, username, password } = request.data;
 
-        // Dynamic import — israeli-bank-scrapers is ESM-only
-        const { createScraper }      = await import('israeli-bank-scrapers');
-        const chromium               = await import('@sparticuz/chromium');
+        if (!companyId || !username || !password) {
+            throw new HttpsError('invalid-argument', 'חסרים שדות: companyId, username, password');
+        }
+
+        let createScraper, chromium;
+        try {
+            ({ createScraper } = await import('israeli-bank-scrapers'));
+            chromium           = await import('@sparticuz/chromium');
+        } catch (importErr) {
+            console.error('🔴 Failed to import scrapers:', importErr.message);
+            throw new HttpsError('internal', 'שגיאה בטעינת מודול הסריקה: ' + importErr.message);
+        }
 
         const startDate = new Date();
         startDate.setMonth(startDate.getMonth() - 1);
 
-        const executablePath = await chromium.default.executablePath();
+        let executablePath;
+        try {
+            executablePath = await chromium.default.executablePath();
+        } catch (chromiumErr) {
+            console.error('🔴 Chromium executablePath error:', chromiumErr.message);
+            throw new HttpsError('internal', 'שגיאה בטעינת Chromium: ' + chromiumErr.message);
+        }
 
         const scraper = createScraper({
             companyId,
@@ -223,7 +238,7 @@ exports.fetchBankData = onCall(
             console.error('🔴 scraper.scrape() threw exception:');
             console.error('  message:', scrapeErr.message);
             console.error('  stack:', scrapeErr.stack);
-            throw scrapeErr;
+            throw new HttpsError('internal', 'שגיאת סריקה: ' + scrapeErr.message);
         }
 
         console.log('🏦 Scrape result success:', scrapeResult.success);
@@ -232,7 +247,18 @@ exports.fetchBankData = onCall(
 
         if (!scrapeResult.success) {
             console.error('🔴 Scrape failed with errorType:', scrapeResult.errorType);
-            throw new Error(scrapeResult.errorType || 'scrape_failed');
+            // מיפוי errorType לקוד HttpsError + הודעה ברורה בעברית
+            const errorMap = {
+                'InvalidPassword':          ['permission-denied',   'שם משתמש או סיסמה שגויים'],
+                'ChangePassword':           ['permission-denied',   'נדרש לשנות סיסמה באתר הבנק'],
+                'AccountBlocked':           ['permission-denied',   'החשבון חסום — פנה לבנק'],
+                'TwoFactorRetrieval':       ['failed-precondition', 'נדרש קוד אימות דו-שלבי'],
+                'Generic':                  ['internal',            'שגיאה כללית בסריקה — נסה שוב מאוחר יותר'],
+                'Timeout':                  ['deadline-exceeded',   'פסק הזמן חלף — נסה שוב'],
+                'SessionExpired':           ['unauthenticated',     'הפעלה פגה — נסה שוב'],
+            };
+            const [code, msg] = errorMap[scrapeResult.errorType] || ['internal', `שגיאה: ${scrapeResult.errorType}`];
+            throw new HttpsError(code, msg);
         }
 
         return scrapeResult.accounts;
