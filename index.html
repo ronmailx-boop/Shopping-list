@@ -2037,6 +2037,7 @@
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
         import { getAuth, signInWithPopup, GoogleAuthProvider, getRedirectResult, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
         import { getFirestore, doc, setDoc, onSnapshot, getDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        import { getFunctions, httpsCallable } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-functions.js";
 
         try {
             const firebaseConfig = { 
@@ -2075,6 +2076,10 @@
             window.setDoc = setDoc;
             window.onSnapshot = onSnapshot;
             window.getDoc = getDoc;
+
+            const functions = getFunctions(app, 'europe-west1');
+            window.firebaseFunctions = functions;
+            window.httpsCallable = httpsCallable;
 
             console.log('✅ Firebase initialized successfully');
 
@@ -2217,6 +2222,7 @@ ${error.message}
             <div id="tabLists" onclick="showPage('lists')" class="tab-btn">הרשימה שלי</div>
             <div id="tabSummary" onclick="showPage('summary')" class="tab-btn">הרשימות שלי</div>
             <div id="tabStats" onclick="showPage('stats')" class="tab-btn">📊 סטטיסטיקות</div>
+            <div id="tabBank" onclick="showPage('bank')" class="tab-btn whitespace-nowrap">🏦 פיננסי</div>
         </div>
 
         <div id="pageLists">
@@ -3144,6 +3150,59 @@ ${error.message}
         </div>
       </div>
       <div class="wizard-body" id="wizardBody"></div>
+    </div>
+  </div>
+
+
+  <!-- ===== BANK PAGE ===== -->
+  <div id="pageBank" class="hidden max-w-md mx-auto p-4">
+    <div class="mb-6">
+        <button onclick="openBankModal()" class="w-full bg-gradient-to-r from-indigo-500 to-purple-600 shadow-lg rounded-2xl p-4 text-white">
+            <div class="flex items-center gap-3">
+                <div class="bg-white/20 w-12 h-12 rounded-xl flex items-center justify-center backdrop-blur-sm"><span class="text-2xl">🔄</span></div>
+                <div class="text-right">
+                    <span class="block text-xl font-black">סנכרון חכם מהבנק</span>
+                    <span class="text-white/80 text-sm font-medium">יבוא יתרות והוצאות באבטחה מלאה</span>
+                </div>
+            </div>
+        </button>
+    </div>
+    <div id="bankDataContainer" class="mt-4">
+        <div class="text-center text-gray-400 py-10 bg-white rounded-3xl shadow-sm border border-gray-100">
+            <span class="text-5xl block mb-4">🏦</span>
+            <p class="font-medium">אין נתונים פיננסיים להצגה.</p>
+        </div>
+    </div>
+  </div>
+
+  <!-- ===== BANK LOGIN MODAL ===== -->
+  <div id="bankLoginModal" class="hidden fixed inset-0 bg-black/60 z-[100] flex items-center justify-center backdrop-blur-sm" dir="rtl">
+    <div class="bg-white rounded-3xl p-6 w-11/12 max-w-md shadow-2xl relative">
+        <div id="bankLoginForm">
+            <button onclick="closeBankModal()" class="absolute top-4 left-4 text-gray-400 text-2xl">&times;</button>
+            <h3 class="text-xl font-bold mb-6 text-center text-gray-800">התחברות מאובטחת</h3>
+            <div class="space-y-4">
+                <select id="bankCompanyId" class="w-full border-2 border-gray-100 rounded-xl p-3 bg-gray-50 outline-none">
+                    <option value="hapoalim">בנק הפועלים</option>
+                    <option value="leumi">בנק לאומי</option>
+                    <option value="discount">בנק דיסקונט</option>
+                    <option value="mizrahi">בנק מזרחי-טפחות</option>
+                    <option value="max">מקס (Max)</option>
+                    <option value="cal">כאל (Cal)</option>
+                    <option value="isracard">ישראכרט</option>
+                </select>
+                <input type="text" id="bankUsername" placeholder="קוד משתמש / ת.ז" class="w-full border-2 border-gray-100 rounded-xl p-3 bg-gray-50 outline-none">
+                <input type="password" id="bankPassword" placeholder="סיסמה" class="w-full border-2 border-gray-100 rounded-xl p-3 bg-gray-50 outline-none">
+            </div>
+            <div class="mt-8 flex gap-3">
+                <button onclick="closeBankModal()" class="flex-1 p-3 rounded-xl border-2 border-gray-100 text-gray-500 font-bold">ביטול</button>
+                <button onclick="startBankSync()" class="flex-1 p-3 rounded-xl bg-indigo-600 text-white font-bold shadow-md">התחבר</button>
+            </div>
+        </div>
+        <div id="bankLoginLoading" class="hidden text-center py-6">
+            <h3 class="text-lg font-bold text-gray-800 mb-4">מתחבר ומאמת נתונים...</h3>
+            <img src="https://firebasestorage.googleapis.com/v0/b/vplus-pro.appspot.com/o/images%2Fgif1.gif?alt=media&token=c2cb0f94-cdba-4346-95a9-d309f7a79f67" class="w-24 h-24 mx-auto rounded-2xl shadow-lg mb-4" alt="טוען">
+        </div>
     </div>
   </div>
 
