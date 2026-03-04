@@ -187,7 +187,7 @@ exports.fetchBankData = functions
         memory: '2GB',
         timeoutSeconds: 300,
     })
-    .region('europe-west1')
+    .region('me-west1')
     .https.onCall(async (data, context) => {
         if (!context.auth) {
             throw new functions.https.HttpsError('unauthenticated', 'המשתמש לא מחובר');
