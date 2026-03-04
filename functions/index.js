@@ -215,9 +215,23 @@ exports.fetchBankData = onCall(
             headless: chromium.default.headless,
         });
 
-        const scrapeResult = await scraper.scrape({ username, password });
+        console.log('🏦 Starting scrape for:', companyId);
+        let scrapeResult;
+        try {
+            scrapeResult = await scraper.scrape({ username, password });
+        } catch (scrapeErr) {
+            console.error('🔴 scraper.scrape() threw exception:');
+            console.error('  message:', scrapeErr.message);
+            console.error('  stack:', scrapeErr.stack);
+            throw scrapeErr;
+        }
+
+        console.log('🏦 Scrape result success:', scrapeResult.success);
+        console.log('🏦 Scrape errorType:', scrapeResult.errorType);
+        console.log('🏦 Scrape accounts count:', scrapeResult.accounts?.length);
 
         if (!scrapeResult.success) {
+            console.error('🔴 Scrape failed with errorType:', scrapeResult.errorType);
             throw new Error(scrapeResult.errorType || 'scrape_failed');
         }
 
