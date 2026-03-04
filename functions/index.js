@@ -181,22 +181,24 @@ async function cleanToken(token) {
         console.log('🧹 Token נוקה');
     }
 }
-// ─── fetchBankData: סנכרון בנקאי (Gen 1 onCall + dynamic ESM import) ──────────
-exports.fetchBankData = functions
-    .runWith({
-        memory: '2GB',
+// ─── fetchBankData: סנכרון בנקאי (Gen 2 onCall — me-west1 תל אביב) ────────────
+const { onCall, HttpsError } = require('firebase-functions/v2/https');
+
+exports.fetchBankData = onCall(
+    {
+        memory: '2GiB',
         timeoutSeconds: 300,
-    })
-    .region('me-west1')
-    .https.onCall(async (data, context) => {
-        if (!context.auth) {
-            throw new functions.https.HttpsError('unauthenticated', 'המשתמש לא מחובר');
+        region: 'me-west1',
+    },
+    async (request) => {
+        if (!request.auth) {
+            throw new HttpsError('unauthenticated', 'המשתמש לא מחובר');
         }
 
-        const { companyId, username, password } = data;
+        const { companyId, username, password } = request.data;
 
         if (!companyId || !username || !password) {
-            throw new functions.https.HttpsError('invalid-argument', 'חסרים שדות: companyId, username, password');
+            throw new HttpsError('invalid-argument', 'חסרים שדות: companyId, username, password');
         }
 
         // Dynamic import — israeli-bank-scrapers is ESM-only
@@ -206,7 +208,7 @@ exports.fetchBankData = functions
             chromium           = await import('@sparticuz/chromium');
         } catch (importErr) {
             console.error('🔴 Failed to import scrapers:', importErr.message);
-            throw new functions.https.HttpsError('internal', 'שגיאה בטעינת מודול הסריקה: ' + importErr.message);
+            throw new HttpsError('internal', 'שגיאה בטעינת מודול הסריקה: ' + importErr.message);
         }
 
         const startDate = new Date();
@@ -217,7 +219,7 @@ exports.fetchBankData = functions
             executablePath = await chromium.default.executablePath();
         } catch (chromiumErr) {
             console.error('🔴 Chromium error:', chromiumErr.message);
-            throw new functions.https.HttpsError('internal', 'שגיאה בטעינת Chromium: ' + chromiumErr.message);
+            throw new HttpsError('internal', 'שגיאה בטעינת Chromium: ' + chromiumErr.message);
         }
 
         const scraper = createScraper({
@@ -235,7 +237,7 @@ exports.fetchBankData = functions
             scrapeResult = await scraper.scrape({ username, password });
         } catch (scrapeErr) {
             console.error('🔴 scraper.scrape() threw:', scrapeErr.message);
-            throw new functions.https.HttpsError('internal', 'שגיאת סריקה: ' + scrapeErr.message);
+            throw new HttpsError('internal', 'שגיאת סריקה: ' + scrapeErr.message);
         }
 
         console.log('🏦 Scrape result success:', scrapeResult.success);
@@ -254,8 +256,9 @@ exports.fetchBankData = functions
                 'Generic':            ['internal',            'שגיאה כללית בסריקה — נסה שוב מאוחר יותר'],
             };
             const [code, msg] = errorMap[scrapeResult.errorType] || ['internal', `שגיאה: ${scrapeResult.errorType}`];
-            throw new functions.https.HttpsError(code, msg);
+            throw new HttpsError(code, msg);
         }
 
         return scrapeResult.accounts;
-    });
+    }
+);
