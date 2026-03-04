@@ -222,13 +222,30 @@ exports.fetchBankData = onCall(
             throw new HttpsError('internal', 'שגיאה בטעינת Chromium: ' + chromiumErr.message);
         }
 
+        // Stealth browser — מסתיר חתימת Puppeteer מ-Max/Cal
+        let browser;
+        try {
+            const puppeteerExtra = require('puppeteer-extra');
+            const StealthPlugin  = require('puppeteer-extra-plugin-stealth');
+            puppeteerExtra.use(StealthPlugin());
+            browser = await puppeteerExtra.launch({
+                executablePath,
+                args:     chromium.default.args,
+                headless: chromium.default.headless,
+                defaultViewport: chromium.default.defaultViewport,
+            });
+            console.log('🥷 Stealth browser launched');
+        } catch (browserErr) {
+            console.error('🔴 Browser launch error:', browserErr.message);
+            throw new HttpsError('internal', 'שגיאה בהפעלת הדפדפן: ' + browserErr.message);
+        }
+
         const scraper = createScraper({
             companyId,
             startDate,
             combineInstallments: false,
-            executablePath,
-            args:     chromium.default.args,
-            headless: chromium.default.headless,
+            browser,
+            skipCloseBrowser: false,
         });
 
         console.log('🏦 Starting scrape for:', companyId);
