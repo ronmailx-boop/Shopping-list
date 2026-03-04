@@ -1944,11 +1944,6 @@ function render() {
         tag.innerText = isLocked ? t('locked') : t('unlocked');
     }
 
-    const _pageBank = document.getElementById('pageBank');
-    if (_pageBank) {
-        if (activePage === 'bank') { _pageBank.classList.remove('hidden'); } else { _pageBank.classList.add('hidden'); }
-    }
-
     if (activePage === 'lists') {
         document.getElementById('pageLists').classList.remove('hidden');
         document.getElementById('pageSummary').classList.add('hidden');
@@ -2345,12 +2340,22 @@ function render() {
         document.getElementById('pageLists').classList.add('hidden');
         document.getElementById('pageSummary').classList.add('hidden');
         document.getElementById('pageStats').classList.remove('hidden');
+        const _pbS = document.getElementById('pageBank');
+        if (_pbS) _pbS.classList.add('hidden');
         renderStats();
     } else if (activePage === 'bank') {
         document.getElementById('pageLists').classList.add('hidden');
         document.getElementById('pageSummary').classList.add('hidden');
         document.getElementById('pageStats').classList.add('hidden');
+        const _pb = document.getElementById('pageBank');
+        if (_pb) _pb.classList.remove('hidden');
         renderBankData();
+    }
+
+    // Hide pageBank when not on bank tab
+    if (activePage !== 'bank') {
+        const _pbH = document.getElementById('pageBank');
+        if (_pbH) _pbH.classList.add('hidden');
     }
 
     document.getElementById('displayTotal').innerText = total.toFixed(2);
@@ -9348,18 +9353,31 @@ async function startBankSync() {
         return;
     }
 
-    // Show loading state
     document.getElementById('bankLoginForm').classList.add('hidden');
     document.getElementById('bankLoginLoading').classList.remove('hidden');
 
-    try {
-        const fetchBankData = window.httpsCallable(window.firebaseFunctions, 'fetchBankData');
-        const result = await fetchBankData({ companyId, username, password });
+    // ── diagnostics ─────────────────────────────────────────────────────────
+    console.log('🏦 [BankSync] Starting sync');
+    console.log('🏦 [BankSync] companyId:', companyId);
+    console.log('🏦 [BankSync] firebaseFunctions available:', !!window.firebaseFunctions);
+    console.log('🏦 [BankSync] httpsCallable available:', !!window.httpsCallable);
+    console.log('🏦 [BankSync] currentUser:', window.firebaseAuth?.currentUser?.uid || 'NOT LOGGED IN');
+    // ────────────────────────────────────────────────────────────────────────
 
-        // Save accounts to db
+    try {
+        if (!window.firebaseFunctions || !window.httpsCallable) {
+            throw new Error('Firebase Functions לא אותחל — נסה לרענן את הדף');
+        }
+
+        const fetchBankData = window.httpsCallable(window.firebaseFunctions, 'fetchBankData');
+        console.log('🏦 [BankSync] Calling fetchBankData cloud function...');
+
+        const result = await fetchBankData({ companyId, username, password });
+        console.log('🏦 [BankSync] Success! accounts received:', result?.data?.length);
+
         if (!db.bankData) db.bankData = {};
-        db.bankData.accounts = result.data;
-        db.bankData.lastSync = Date.now();
+        db.bankData.accounts  = result.data;
+        db.bankData.lastSync  = Date.now();
         db.bankData.companyId = companyId;
         save();
 
@@ -9367,10 +9385,23 @@ async function startBankSync() {
         showNotification('✅ סנכרון הבנק הצליח!', 'success');
         renderBankData();
     } catch (err) {
-        console.error('Bank sync error:', err);
+        // ── Full error dump ────────────────────────────────────────────────
+        console.error('🔴 [BankSync] ERROR DETAILS:');
+        console.error('  message  :', err.message);
+        console.error('  code     :', err.code);
+        console.error('  details  :', err.details);
+        console.error('  stack    :', err.stack);
+        console.error('  full obj :', JSON.stringify(err, Object.getOwnPropertyNames(err), 2));
+        // ──────────────────────────────────────────────────────────────────
+
         document.getElementById('bankLoginForm').classList.remove('hidden');
         document.getElementById('bankLoginLoading').classList.add('hidden');
-        showNotification('❌ שגיאה בסנכרון: ' + (err.message || 'נסה שוב'), 'error');
+
+        // Show detailed error in notification
+        const errMsg = err.code
+            ? `${err.code}: ${err.message}`
+            : (err.message || 'שגיאה לא ידועה');
+        showNotification('❌ שגיאה בסנכרון: ' + errMsg, 'error');
     }
 }
 
@@ -9389,8 +9420,7 @@ function renderBankData() {
     }
 
     const lastSync = db.bankData.lastSync
-        ? new Date(db.bankData.lastSync).toLocaleString('he-IL')
-        : '';
+        ? new Date(db.bankData.lastSync).toLocaleString('he-IL') : '';
 
     let html = `<p class="text-xs text-gray-400 text-center mb-4">עדכון אחרון: ${lastSync}</p>`;
 
@@ -9400,9 +9430,9 @@ function renderBankData() {
             : '—';
 
         const txRows = (account.txns || []).slice(0, 20).map(tx => {
-            const sign  = tx.chargedAmount < 0 ? 'text-red-500' : 'text-green-600';
+            const sign   = tx.chargedAmount < 0 ? 'text-red-500' : 'text-green-600';
             const amount = Number(tx.chargedAmount).toLocaleString('he-IL', { style: 'currency', currency: account.currency || 'ILS' });
-            const date  = tx.date ? new Date(tx.date).toLocaleDateString('he-IL') : '';
+            const date   = tx.date ? new Date(tx.date).toLocaleDateString('he-IL') : '';
             return `
                 <div class="flex justify-between items-center py-2 border-b border-gray-50 last:border-0">
                     <span class="${sign} font-bold text-sm">${amount}</span>
