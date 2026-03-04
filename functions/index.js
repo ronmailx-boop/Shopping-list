@@ -187,7 +187,7 @@ const { onCall, HttpsError } = require('firebase-functions/v2/https');
 exports.fetchBankData = onCall(
     {
         memory: '2GiB',
-        timeoutSeconds: 300,
+        timeoutSeconds: 540,
         region: 'me-west1',
     },
     async (request) => {
