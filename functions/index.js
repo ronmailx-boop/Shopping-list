@@ -181,22 +181,25 @@ async function cleanToken(token) {
         console.log('🧹 Token נוקה');
     }
 }
-// ─── fetchBankData: סנכרון בנקאי (v1 onCall + dynamic ESM import) ────────────
-exports.fetchBankData = functions
-    .runWith({ memory: '2GB', timeoutSeconds: 300 })
-    .region('europe-west1')
-    .https.onCall(async (data, context) => {
+// ─── fetchBankData: סנכרון בנקאי (v2 onCall + dynamic ESM import) ────────────
+const { onCall } = require('firebase-functions/v2/https');
 
-        if (!context.auth) {
-            throw new functions.https.HttpsError('unauthenticated', 'נדרשת התחברות');
+exports.fetchBankData = onCall(
+    {
+        memory: '2GiB',
+        timeoutSeconds: 300,
+        region: 'europe-west1',
+    },
+    async (request) => {
+        if (!request.auth) {
+            throw new Error('unauthenticated');
         }
 
-        const { companyId, username, password } = data;
+        const { companyId, username, password } = request.data;
 
         // Dynamic import — israeli-bank-scrapers is ESM-only
-        const { createScraper }  = await import('israeli-bank-scrapers');
-        const chromium           = await import('@sparticuz/chromium');
-        const { default: puppeteer } = await import('puppeteer-core');
+        const { createScraper }      = await import('israeli-bank-scrapers');
+        const chromium               = await import('@sparticuz/chromium');
 
         const startDate = new Date();
         startDate.setMonth(startDate.getMonth() - 1);
@@ -208,18 +211,16 @@ exports.fetchBankData = functions
             startDate,
             combineInstallments: false,
             executablePath,
-            args: chromium.default.args,
+            args:     chromium.default.args,
             headless: chromium.default.headless,
         });
 
         const scrapeResult = await scraper.scrape({ username, password });
 
         if (!scrapeResult.success) {
-            throw new functions.https.HttpsError(
-                'internal',
-                scrapeResult.errorType || 'scrape_failed'
-            );
+            throw new Error(scrapeResult.errorType || 'scrape_failed');
         }
 
         return scrapeResult.accounts;
-    });
+    }
+);
