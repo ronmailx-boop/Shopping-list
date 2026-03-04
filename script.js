@@ -1925,6 +1925,8 @@ function render() {
     document.getElementById('tabLists').className = `tab-btn ${activePage === 'lists' ? 'tab-active' : ''}`;
     document.getElementById('tabSummary').className = `tab-btn ${activePage === 'summary' ? 'tab-active' : ''}`;
     document.getElementById('tabStats').className = `tab-btn ${activePage === 'stats' ? 'tab-active' : ''}`;
+    const _tabBank = document.getElementById('tabBank');
+    if (_tabBank) _tabBank.className = `tab-btn whitespace-nowrap ${activePage === 'bank' ? 'tab-active' : ''}`;
 
     // הצג כפתורי קולי רק בטאב "הרשימה שלי"
     const _voiceBoughtBtn = document.getElementById('voiceBoughtBtn');
@@ -1940,6 +1942,11 @@ function render() {
         btn.className = `bottom-circle-btn ${isLocked ? 'bg-blue-600' : 'bg-orange-400'}`;
         path.setAttribute('d', isLocked ? 'M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z' : 'M8 11V7a4 4 0 118 0m-4 8v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2z');
         tag.innerText = isLocked ? t('locked') : t('unlocked');
+    }
+
+    const _pageBank = document.getElementById('pageBank');
+    if (_pageBank) {
+        if (activePage === 'bank') { _pageBank.classList.remove('hidden'); } else { _pageBank.classList.add('hidden'); }
     }
 
     if (activePage === 'lists') {
@@ -2339,6 +2346,11 @@ function render() {
         document.getElementById('pageSummary').classList.add('hidden');
         document.getElementById('pageStats').classList.remove('hidden');
         renderStats();
+    } else if (activePage === 'bank') {
+        document.getElementById('pageLists').classList.add('hidden');
+        document.getElementById('pageSummary').classList.add('hidden');
+        document.getElementById('pageStats').classList.add('hidden');
+        renderBankData();
     }
 
     document.getElementById('displayTotal').innerText = total.toFixed(2);
@@ -9310,4 +9322,106 @@ function _addItemByVoice(name) {
     });
     save();
     showNotification(`✅ "${trimmed}" נוסף לרשימה!`, 'success');
+}
+// ========== Bank Sync Functions ==========
+
+function openBankModal() {
+    const modal = document.getElementById('bankLoginModal');
+    if (!modal) return;
+    document.getElementById('bankLoginForm').classList.remove('hidden');
+    document.getElementById('bankLoginLoading').classList.add('hidden');
+    modal.classList.remove('hidden');
+}
+
+function closeBankModal() {
+    const modal = document.getElementById('bankLoginModal');
+    if (modal) modal.classList.add('hidden');
+}
+
+async function startBankSync() {
+    const companyId = document.getElementById('bankCompanyId').value;
+    const username  = document.getElementById('bankUsername').value.trim();
+    const password  = document.getElementById('bankPassword').value;
+
+    if (!username || !password) {
+        showNotification('⚠️ יש למלא שם משתמש וסיסמה', 'warning');
+        return;
+    }
+
+    // Show loading state
+    document.getElementById('bankLoginForm').classList.add('hidden');
+    document.getElementById('bankLoginLoading').classList.remove('hidden');
+
+    try {
+        const fetchBankData = window.httpsCallable(window.firebaseFunctions, 'fetchBankData');
+        const result = await fetchBankData({ companyId, username, password });
+
+        // Save accounts to db
+        if (!db.bankData) db.bankData = {};
+        db.bankData.accounts = result.data;
+        db.bankData.lastSync = Date.now();
+        db.bankData.companyId = companyId;
+        save();
+
+        closeBankModal();
+        showNotification('✅ סנכרון הבנק הצליח!', 'success');
+        renderBankData();
+    } catch (err) {
+        console.error('Bank sync error:', err);
+        document.getElementById('bankLoginForm').classList.remove('hidden');
+        document.getElementById('bankLoginLoading').classList.add('hidden');
+        showNotification('❌ שגיאה בסנכרון: ' + (err.message || 'נסה שוב'), 'error');
+    }
+}
+
+function renderBankData() {
+    const container = document.getElementById('bankDataContainer');
+    if (!container) return;
+
+    const accounts = db.bankData && db.bankData.accounts;
+    if (!accounts || accounts.length === 0) {
+        container.innerHTML = `
+            <div class="text-center text-gray-400 py-10 bg-white rounded-3xl shadow-sm border border-gray-100">
+                <span class="text-5xl block mb-4">🏦</span>
+                <p class="font-medium">אין נתונים פיננסיים להצגה.</p>
+            </div>`;
+        return;
+    }
+
+    const lastSync = db.bankData.lastSync
+        ? new Date(db.bankData.lastSync).toLocaleString('he-IL')
+        : '';
+
+    let html = `<p class="text-xs text-gray-400 text-center mb-4">עדכון אחרון: ${lastSync}</p>`;
+
+    accounts.forEach(account => {
+        const balance = account.balance != null
+            ? Number(account.balance).toLocaleString('he-IL', { style: 'currency', currency: account.currency || 'ILS' })
+            : '—';
+
+        const txRows = (account.txns || []).slice(0, 20).map(tx => {
+            const sign  = tx.chargedAmount < 0 ? 'text-red-500' : 'text-green-600';
+            const amount = Number(tx.chargedAmount).toLocaleString('he-IL', { style: 'currency', currency: account.currency || 'ILS' });
+            const date  = tx.date ? new Date(tx.date).toLocaleDateString('he-IL') : '';
+            return `
+                <div class="flex justify-between items-center py-2 border-b border-gray-50 last:border-0">
+                    <span class="${sign} font-bold text-sm">${amount}</span>
+                    <div class="text-right">
+                        <p class="text-sm font-medium text-gray-700">${tx.description || ''}</p>
+                        <p class="text-xs text-gray-400">${date}</p>
+                    </div>
+                </div>`;
+        }).join('');
+
+        html += `
+            <div class="bg-white rounded-3xl shadow-sm border border-gray-100 mb-4 overflow-hidden">
+                <div class="bg-gradient-to-r from-indigo-500 to-purple-600 p-4 text-white">
+                    <p class="text-sm font-medium opacity-80">${account.accountNumber || ''}</p>
+                    <p class="text-2xl font-black mt-1">${balance}</p>
+                </div>
+                <div class="p-4">${txRows || '<p class="text-center text-gray-400 text-sm py-4">אין עסקאות</p>'}</div>
+            </div>`;
+    });
+
+    container.innerHTML = html;
 }
