@@ -181,33 +181,32 @@ async function cleanToken(token) {
         console.log('🧹 Token נוקה');
     }
 }
-// ─── fetchBankData: סנכרון בנקאי (v2 onCall + dynamic ESM import) ────────────
-const { onCall, HttpsError } = require('firebase-functions/v2/https');
-
-exports.fetchBankData = onCall(
-    {
-        memory: '2GiB',
+// ─── fetchBankData: סנכרון בנקאי (Gen 1 onCall + dynamic ESM import) ──────────
+exports.fetchBankData = functions
+    .runWith({
+        memory: '2GB',
         timeoutSeconds: 300,
-        region: 'europe-west1',
-    },
-    async (request) => {
-        if (!request.auth) {
-            throw new HttpsError('unauthenticated', 'המשתמש לא מחובר');
+    })
+    .region('europe-west1')
+    .https.onCall(async (data, context) => {
+        if (!context.auth) {
+            throw new functions.https.HttpsError('unauthenticated', 'המשתמש לא מחובר');
         }
 
-        const { companyId, username, password } = request.data;
+        const { companyId, username, password } = data;
 
         if (!companyId || !username || !password) {
-            throw new HttpsError('invalid-argument', 'חסרים שדות: companyId, username, password');
+            throw new functions.https.HttpsError('invalid-argument', 'חסרים שדות: companyId, username, password');
         }
 
+        // Dynamic import — israeli-bank-scrapers is ESM-only
         let createScraper, chromium;
         try {
             ({ createScraper } = await import('israeli-bank-scrapers'));
             chromium           = await import('@sparticuz/chromium');
         } catch (importErr) {
             console.error('🔴 Failed to import scrapers:', importErr.message);
-            throw new HttpsError('internal', 'שגיאה בטעינת מודול הסריקה: ' + importErr.message);
+            throw new functions.https.HttpsError('internal', 'שגיאה בטעינת מודול הסריקה: ' + importErr.message);
         }
 
         const startDate = new Date();
@@ -217,8 +216,8 @@ exports.fetchBankData = onCall(
         try {
             executablePath = await chromium.default.executablePath();
         } catch (chromiumErr) {
-            console.error('🔴 Chromium executablePath error:', chromiumErr.message);
-            throw new HttpsError('internal', 'שגיאה בטעינת Chromium: ' + chromiumErr.message);
+            console.error('🔴 Chromium error:', chromiumErr.message);
+            throw new functions.https.HttpsError('internal', 'שגיאה בטעינת Chromium: ' + chromiumErr.message);
         }
 
         const scraper = createScraper({
@@ -235,10 +234,8 @@ exports.fetchBankData = onCall(
         try {
             scrapeResult = await scraper.scrape({ username, password });
         } catch (scrapeErr) {
-            console.error('🔴 scraper.scrape() threw exception:');
-            console.error('  message:', scrapeErr.message);
-            console.error('  stack:', scrapeErr.stack);
-            throw new HttpsError('internal', 'שגיאת סריקה: ' + scrapeErr.message);
+            console.error('🔴 scraper.scrape() threw:', scrapeErr.message);
+            throw new functions.https.HttpsError('internal', 'שגיאת סריקה: ' + scrapeErr.message);
         }
 
         console.log('🏦 Scrape result success:', scrapeResult.success);
@@ -247,20 +244,18 @@ exports.fetchBankData = onCall(
 
         if (!scrapeResult.success) {
             console.error('🔴 Scrape failed with errorType:', scrapeResult.errorType);
-            // מיפוי errorType לקוד HttpsError + הודעה ברורה בעברית
             const errorMap = {
-                'InvalidPassword':          ['permission-denied',   'שם משתמש או סיסמה שגויים'],
-                'ChangePassword':           ['permission-denied',   'נדרש לשנות סיסמה באתר הבנק'],
-                'AccountBlocked':           ['permission-denied',   'החשבון חסום — פנה לבנק'],
-                'TwoFactorRetrieval':       ['failed-precondition', 'נדרש קוד אימות דו-שלבי'],
-                'Generic':                  ['internal',            'שגיאה כללית בסריקה — נסה שוב מאוחר יותר'],
-                'Timeout':                  ['deadline-exceeded',   'פסק הזמן חלף — נסה שוב'],
-                'SessionExpired':           ['unauthenticated',     'הפעלה פגה — נסה שוב'],
+                'InvalidPassword':    ['permission-denied',   'שם משתמש או סיסמה שגויים'],
+                'ChangePassword':     ['permission-denied',   'נדרש לשנות סיסמה באתר הבנק'],
+                'AccountBlocked':     ['permission-denied',   'החשבון חסום — פנה לבנק'],
+                'TwoFactorRetrieval': ['failed-precondition', 'נדרש קוד אימות דו-שלבי'],
+                'Timeout':            ['deadline-exceeded',   'פסק הזמן חלף — נסה שוב'],
+                'SessionExpired':     ['unauthenticated',     'הפעלה פגה — נסה שוב'],
+                'Generic':            ['internal',            'שגיאה כללית בסריקה — נסה שוב מאוחר יותר'],
             };
             const [code, msg] = errorMap[scrapeResult.errorType] || ['internal', `שגיאה: ${scrapeResult.errorType}`];
-            throw new HttpsError(code, msg);
+            throw new functions.https.HttpsError(code, msg);
         }
 
         return scrapeResult.accounts;
-    }
-);
+    });
