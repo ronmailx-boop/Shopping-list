@@ -181,3 +181,45 @@ async function cleanToken(token) {
         console.log('🧹 Token נוקה');
     }
 }
+// ─── fetchBankData: סנכרון בנקאי ─────────────────────────────────────────────
+const { onCall } = require('firebase-functions/v2/https');
+const { createScraper } = require('israeli-bank-scrapers');
+const chromium = require('@sparticuz/chromium');
+const puppeteer = require('puppeteer-core');
+
+exports.fetchBankData = onCall(
+    {
+        memory: '2GiB',
+        timeoutSeconds: 300,
+        region: 'europe-west1',
+    },
+    async (request) => {
+        if (!request.auth) {
+            throw new Error('unauthenticated');
+        }
+
+        const { companyId, username, password } = request.data;
+
+        const startDate = new Date();
+        startDate.setMonth(startDate.getMonth() - 1);
+
+        const executablePath = await chromium.executablePath();
+
+        const scraper = createScraper({
+            companyId,
+            startDate,
+            combineInstallments: false,
+            executablePath,
+            args: chromium.args,
+            headless: chromium.headless,
+        });
+
+        const scrapeResult = await scraper.scrape({ username, password });
+
+        if (!scrapeResult.success) {
+            throw new Error(scrapeResult.errorType || 'scrape_failed');
+        }
+
+        return scrapeResult.accounts;
+    }
+);
