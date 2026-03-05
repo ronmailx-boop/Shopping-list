@@ -9369,7 +9369,7 @@ async function startBankSync() {
             throw new Error('Firebase Functions לא אותחל — נסה לרענן את הדף');
         }
 
-        const fetchBankData = window.httpsCallable(window.firebaseFunctions, 'fetchBankData');
+        const fetchBankData = window.httpsCallable(window.firebaseFunctions, 'fetchBankData', { timeout: 540000 }); // 540 שניות
         console.log('🏦 [BankSync] Calling fetchBankData cloud function...');
 
         const result = await fetchBankData({ companyId, username, password });
