@@ -808,12 +808,14 @@ function updateUILanguage() {
     if (selectAllLabel) selectAllLabel.textContent = t('selectAll');
 
     // Update tabs
-    const tabs = document.querySelectorAll('.tab-btn');
-    if (tabs.length >= 3) {
-        tabs[0].textContent = t('myList');
-        tabs[1].textContent = t('myLists');
-        tabs[2].textContent = t('statistics');
-    }
+    const tabListsEl = document.getElementById('tabLists');
+    const tabSummaryEl = document.getElementById('tabSummary');
+    const tabStatsEl = document.getElementById('tabStats');
+    const tabBankEl = document.getElementById('tabBank');
+    if (tabListsEl) tabListsEl.textContent = t('myList');
+    if (tabSummaryEl) tabSummaryEl.textContent = t('myLists');
+    if (tabStatsEl) tabStatsEl.textContent = t('statistics');
+    if (tabBankEl) tabBankEl.textContent = '🏦 פיננסי';
 
     // Update header buttons
     const cloudSyncText = document.getElementById('cloudSyncText');
