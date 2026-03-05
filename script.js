@@ -1463,13 +1463,16 @@ function createListFromReceipt(items) {
 function toggleBottomBar() {
     const bottomBar = document.querySelector('.bottom-bar');
     const toggleBtn = document.getElementById('floatingToggle');
+    const tabsStrip = document.getElementById('bottomTabsStrip');
 
     if (bottomBar.classList.contains('minimized')) {
         bottomBar.classList.remove('minimized');
         toggleBtn.classList.remove('bar-hidden');
+        if (tabsStrip) tabsStrip.classList.remove('bar-minimized');
     } else {
         bottomBar.classList.add('minimized');
         toggleBtn.classList.add('bar-hidden');
+        if (tabsStrip) tabsStrip.classList.add('bar-minimized');
     }
 }
 
