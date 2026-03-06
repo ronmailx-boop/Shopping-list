@@ -2438,6 +2438,18 @@ ${error.message}
         <!-- ═══ COLLAPSED STATE ═══ -->
         <div id="barCollapsed" onclick="toggleSmartBar()">
 
+            <!-- שורת ביטול גרירה — גלויה רק במצב גרירה -->
+            <div id="barDragRow" style="display:none;gap:8px;padding:10px 14px 0;" onclick="event.stopPropagation()">
+                <div onclick="toggleLock()"
+                    style="flex:1;height:52px;border-radius:16px;background:rgba(255,255,255,0.15);border:1.5px solid rgba(255,255,255,0.3);display:flex;align-items:center;justify-content:center;gap:10px;cursor:pointer;transition:all 0.2s;"
+                    ontouchstart="this.style.transform='scale(0.97)'" ontouchend="this.style.transform='scale(1)'">
+                    <svg width="18" height="18" fill="none" stroke="white" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                    <span style="font-size:14px;font-weight:800;color:white;">ביטול גרירה</span>
+                </div>
+            </div>
+
             <!-- שורת נתונים: שולם / נשאר לשלם / סה"כ -->
             <div id="barStatsRow" style="display:flex;gap:8px;padding:10px 14px 0;">
 
@@ -2481,14 +2493,8 @@ ${error.message}
             </div>
         </div>
 
-        <!-- פס דק תחתון — מחליף בין הבר הסגור לפתוח -->
-        <div onclick="event.stopPropagation(); toggleSmartBar()"
-            style="display:flex;justify-content:center;padding:6px 0 10px;cursor:pointer;">
-            <div style="width:40px;height:4px;background:rgba(255,255,255,0.35);border-radius:2px;"></div>
-        </div>
-
         <!-- ═══ EXPANDED STATE ═══ -->
-        <div id="barExpanded" style="display:none;flex-direction:column;align-items:center;padding:16px 14px 22px;gap:14px;">
+        <div id="barExpanded" style="display:none;flex-direction:column;align-items:center;padding:16px 14px 6px;gap:14px;">
 
             <!-- פלוס ירוק גדול -->
             <button onclick="event.stopPropagation(); handlePlusBtn(event)"
@@ -2545,7 +2551,13 @@ ${error.message}
             </div>
         </div>
 
-        <!-- מנעול גרירה — נשאר נסתר, נחשף ע"י toggleLock() -->
+        <!-- פס דק — תמיד בתחתית, מחליף בין מצבי הבר -->
+        <div onclick="event.stopPropagation(); toggleSmartBar()"
+            style="display:flex;justify-content:center;padding:6px 0 10px;cursor:pointer;">
+            <div style="width:40px;height:4px;background:rgba(255,255,255,0.35);border-radius:2px;"></div>
+        </div>
+
+        <!-- מנעול גרירה — נסתר, נחשף ע"י toggleLock() -->
         <button id="mainLockBtn" onclick="event.stopPropagation(); toggleLock()" style="display:none;">
             <path id="lockIconPath" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
         </button>
