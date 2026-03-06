@@ -115,7 +115,20 @@
         .bottom-tabs-strip .tab-btn {
             pointer-events: all;
             flex: 1;
-            box-shadow: 0 4px 14px rgba(115, 103, 240, 0.25);
+            /* סגול זכוכית שקוף */
+            background: rgba(115, 103, 240, 0.13) !important;
+            color: #6d28d9 !important;
+            border: 1.5px solid rgba(115, 103, 240, 0.25) !important;
+            box-shadow: 0 4px 16px rgba(115, 103, 240, 0.12) !important;
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+        }
+
+        .bottom-tabs-strip .tab-btn.tab-active {
+            background: linear-gradient(135deg, #4c1d95 0%, #6d28d9 100%) !important;
+            color: white !important;
+            border-color: transparent !important;
+            box-shadow: 0 6px 20px rgba(109, 40, 217, 0.45) !important;
         }
 
         /* When bottom bar is visible, push the strip up */
@@ -178,8 +191,9 @@
             cursor: pointer;
             transition: 0.2s;
             background: white;
-            color: #666;
-            border: 1px solid #eee;
+            color: #888;
+            border: 1.5px solid #ede9fe;
+            box-shadow: 0 2px 8px rgba(115, 103, 240, 0.07);
         }
 
         .tab-active {
@@ -791,12 +805,14 @@
         }
 
         .category-separator {
-            background: linear-gradient(135deg, #7367f0 0%, #9055ff 100%);
+            background: linear-gradient(135deg, #4c1d95 0%, #6d28d9 100%);
             color: white;
             border-radius: 20px;
             padding: 15px;
             margin-bottom: 20px;
             text-align: center;
+            box-shadow: 0 8px 28px rgba(109, 40, 217, 0.30);
+            border: 1.5px solid rgba(255, 255, 255, 0.10);
         }
 
         .category-badge {
@@ -3243,4 +3259,3 @@ ${error.message}
 
 </body>
 </html>
-
