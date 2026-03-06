@@ -86,10 +86,12 @@
             right: 0;
             background: linear-gradient(135deg, #7367f0 0%, #9055ff 100%);
             z-index: 1000;
-            padding: 0;
+            padding: 12px 14px 20px;
             border-radius: 35px 35px 0 0;
             box-shadow: 0 -10px 25px rgba(0, 0, 0, 0.15);
-            transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
         }
         .bottom-bar.minimized {
             transform: translateY(calc(100% - 8px));
@@ -2573,27 +2575,51 @@ ${error.message}
         var _smartBarOpen = false;
         // ═══ בר קבוע — לוגיקת גלילה ועדכון טאבים ═══
 
-        var _scrollTimer = null;
+        var _isTouching = false;
         var _isScrolling = false;
 
-        // החלפת שורת פעולות ↔ נתונים בגלילה
+        function _showStats() {
+            var actions = document.getElementById('barActionsRow');
+            var stats   = document.getElementById('barStatsRow');
+            if (actions) actions.style.display = 'none';
+            if (stats)   { stats.style.display = 'flex'; stats.style.animation = 'barFadeIn 0.2s ease'; }
+        }
+
+        function _showActions() {
+            var actions = document.getElementById('barActionsRow');
+            var stats   = document.getElementById('barStatsRow');
+            if (stats)   stats.style.display = 'none';
+            if (actions) { actions.style.display = 'flex'; actions.style.animation = 'barFadeIn 0.2s ease'; }
+        }
+
+        // גלילה מתחילה — הצג נתונים
         window.addEventListener('scroll', function() {
             if (!_isScrolling) {
                 _isScrolling = true;
-                var actions = document.getElementById('barActionsRow');
-                var stats   = document.getElementById('barStatsRow');
-                if (actions) actions.style.display = 'none';
-                if (stats)   { stats.style.display = 'flex'; stats.style.animation = 'barFadeIn 0.2s ease'; }
+                _showStats();
             }
-            clearTimeout(_scrollTimer);
-            _scrollTimer = setTimeout(function() {
-                _isScrolling = false;
-                var actions = document.getElementById('barActionsRow');
-                var stats   = document.getElementById('barStatsRow');
-                if (stats)   stats.style.display = 'none';
-                if (actions) { actions.style.display = 'flex'; actions.style.animation = 'barFadeIn 0.2s ease'; }
-            }, 800);
         }, { passive: true });
+
+        // אצבע הורמה — הצג פעולות (רק אם לא גולל עוד)
+        window.addEventListener('touchend', function() {
+            _isTouching = false;
+            if (_isScrolling) {
+                _isScrolling = false;
+                _showActions();
+            }
+        }, { passive: true });
+
+        window.addEventListener('touchstart', function() {
+            _isTouching = true;
+        }, { passive: true });
+
+        // fallback למאוס
+        window.addEventListener('mouseup', function() {
+            if (_isScrolling) {
+                _isScrolling = false;
+                _showActions();
+            }
+        });
 
         function updateNavPill(page) {
             var activeStyle   = 'flex:1;height:44px;border-radius:14px;background:white;font-size:15px;font-weight:900;color:#7367f0;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all 0.2s;box-shadow:0 3px 10px rgba(0,0,0,0.12);';
