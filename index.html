@@ -122,9 +122,10 @@
         }
 
         .bottom-tabs-strip .tab-btn.tab-active {
-            background: linear-gradient(135deg, #7367f0 0%, #9055ff 100%) !important;
-            color: white !important;
-            box-shadow: 0 6px 20px rgba(115, 103, 240, 0.5) !important;
+            background: white !important;
+            color: #7367f0 !important;
+            border: 2px solid rgba(115, 103, 240, 0.2) !important;
+            box-shadow: 0 6px 20px rgba(115, 103, 240, 0.25) !important;
         }
 
         /* When bottom bar is visible, push the strip up */
@@ -800,14 +801,14 @@
         }
 
         .category-separator {
-            background: rgba(115, 103, 240, 0.22);
-            color: white;
+            background: rgba(115, 103, 240, 0.30);
+            color: #3b0764;
             border-radius: 20px;
             padding: 15px;
             margin-bottom: 20px;
             text-align: center;
-            border: 1.5px solid rgba(115, 103, 240, 0.35);
-            box-shadow: 0 4px 20px rgba(115, 103, 240, 0.15);
+            border: 1.5px solid rgba(115, 103, 240, 0.30);
+            box-shadow: 0 4px 20px rgba(115, 103, 240, 0.12);
             backdrop-filter: blur(12px);
             -webkit-backdrop-filter: blur(12px);
         }
@@ -2322,14 +2323,14 @@ ${error.message}
             </div>
             <div class="category-separator">
                 <div class="flex justify-between items-center px-2">
-                    <button onclick="shareNative('list')" class="text-white opacity-90">
+                    <button onclick="shareNative('list')" class="text-indigo-900 opacity-90">
                         <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                 d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z">
                             </path>
                         </svg>
                     </button>
-                    <button onclick="openModal('translateModal')" class="text-white opacity-90" title="תרגם רשימה">
+                    <button onclick="openModal('translateModal')" class="text-indigo-900 opacity-90" title="תרגם רשימה">
                         <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                 d="M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9h7M11 21l5-10 5 10M12.751 5C11.783 10.77 8.07 15.61 3 18.129">
@@ -2342,7 +2343,7 @@ ${error.message}
                         <div id="itemCountDisplay"
                             class="text-[10px] font-bold opacity-80 uppercase tracking-wider mt-0.5">0 מוצרים</div>
                     </div>
-                    <button onclick="toggleTemplateMode()" class="text-white opacity-90">
+                    <button onclick="toggleTemplateMode()" class="text-indigo-900 opacity-90">
                         <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                 d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2">
@@ -2352,7 +2353,7 @@ ${error.message}
                 </div>
                 <div id="statusTag" class="text-[10px] font-bold mt-2 opacity-80 text-center">נעול</div>
                 <button onclick="toggleCategorySorting()" id="categorySortBtn"
-                    class="text-[10px] font-bold mt-1 bg-white/20 hover:bg-white/30 text-white py-1 px-3 rounded-full transition">
+                    class="text-[10px] font-bold mt-1 bg-indigo-100/60 hover:bg-indigo-200/60 text-indigo-900 py-1 px-3 rounded-full transition">
                     <span id="categorySortText">🔤 מיון לפי קטגוריות</span>
                 </button>
                 <div id="budgetWarning"
