@@ -2584,6 +2584,19 @@ ${error.message}
                 </button>
 
             </div>
+
+            <!-- שורת ניווט מהירה — תמיד גלויה בבר הפתוח -->
+            <div style="display:flex;gap:8px;width:100%;padding:0 0 2px;" onclick="event.stopPropagation()">
+                <div id="expandedTabLists" onclick="showPage('lists'); updateExpandedTabs('lists')"
+                    style="flex:1;height:36px;border-radius:12px;background:rgba(255,255,255,0.16);display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all 0.2s;font-size:12px;font-weight:800;color:white;">
+                    הרשימה שלי
+                </div>
+                <div id="expandedTabSummary" onclick="showPage('summary'); updateExpandedTabs('summary')"
+                    style="flex:1;height:36px;border-radius:12px;background:rgba(255,255,255,0.16);display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all 0.2s;font-size:12px;font-weight:800;color:white;">
+                    הרשימות שלי
+                </div>
+            </div>
+
         </div>
 
         <!-- פס דק — תמיד בתחתית, מחליף בין מצבי הבר, מורד למניעת לחיצה בטעות -->
@@ -2622,6 +2635,24 @@ ${error.message}
             document.getElementById('barStatsRow').style.display = _barShowStats ? 'flex' : 'none';
             document.getElementById('barTabsRow').style.display  = _barShowStats ? 'none' : 'flex';
         }
+        function updateExpandedTabs(page) {
+            var activeStyle = 'flex:1;height:36px;border-radius:12px;background:white;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all 0.2s;font-size:12px;font-weight:900;color:#7367f0;box-shadow:0 2px 8px rgba(0,0,0,0.15);';
+            var inactiveStyle = 'flex:1;height:36px;border-radius:12px;background:rgba(255,255,255,0.16);display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all 0.2s;font-size:12px;font-weight:800;color:white;';
+            var tl = document.getElementById('expandedTabLists');
+            var ts = document.getElementById('expandedTabSummary');
+            if (tl) tl.style.cssText = (page === 'lists') ? activeStyle : inactiveStyle;
+            if (ts) ts.style.cssText = (page === 'summary') ? activeStyle : inactiveStyle;
+        }
+
+        function openSmartBar() {
+            if (_smartBarOpen) return;
+            _smartBarOpen = true;
+            document.getElementById('barCollapsed').classList.add('sb-hidden');
+            var expanded = document.getElementById('barExpanded');
+            expanded.style.display = 'flex';
+            expanded.classList.add('open-anim');
+        }
+
         function toggleSmartBar() {
             _smartBarOpen = !_smartBarOpen;
             var collapsed = document.getElementById('barCollapsed');
