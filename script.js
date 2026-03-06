@@ -1465,16 +1465,13 @@ function createListFromReceipt(items) {
 function toggleBottomBar() {
     const bottomBar = document.querySelector('.bottom-bar');
     const toggleBtn = document.getElementById('floatingToggle');
-    const tabsStrip = document.getElementById('bottomTabsStrip');
 
     if (bottomBar.classList.contains('minimized')) {
         bottomBar.classList.remove('minimized');
         toggleBtn.classList.remove('bar-hidden');
-        if (tabsStrip) tabsStrip.classList.remove('bar-minimized');
     } else {
         bottomBar.classList.add('minimized');
         toggleBtn.classList.add('bar-hidden');
-        if (tabsStrip) tabsStrip.classList.add('bar-minimized');
     }
 }
 
@@ -1927,25 +1924,13 @@ function render() {
     const container = document.getElementById(activePage === 'lists' ? 'itemsContainer' : activePage === 'summary' ? 'summaryContainer' : null);
     let total = 0, paid = 0;
 
-    // טאבי הרשימה שלי/הרשימות שלי — בתוך הבר הסגול: פעיל=לבן, לא פעיל=שקוף
+    // הרשימה שלי / הרשימות שלי — לבן תמיד, כשפעיל: צל חזק + טקסט כהה יותר
     const _tabLists = document.getElementById('tabLists');
     const _tabSummary = document.getElementById('tabSummary');
-    if (_tabLists) {
-        const isActive = activePage === 'lists';
-        _tabLists.style.background = isActive ? 'white' : 'rgba(255,255,255,0.15)';
-        _tabLists.style.color = isActive ? '#7367f0' : 'white';
-        _tabLists.style.border = isActive ? '2px solid rgba(255,255,255,0.5)' : '2px solid rgba(255,255,255,0.35)';
-        _tabLists.style.fontWeight = '800';
-        _tabLists.style.boxShadow = isActive ? '0 4px 14px rgba(0,0,0,0.15)' : 'none';
-    }
-    if (_tabSummary) {
-        const isActive = activePage === 'summary';
-        _tabSummary.style.background = isActive ? 'white' : 'rgba(255,255,255,0.15)';
-        _tabSummary.style.color = isActive ? '#7367f0' : 'white';
-        _tabSummary.style.border = isActive ? '2px solid rgba(255,255,255,0.5)' : '2px solid rgba(255,255,255,0.35)';
-        _tabSummary.style.fontWeight = '800';
-        _tabSummary.style.boxShadow = isActive ? '0 4px 14px rgba(0,0,0,0.15)' : 'none';
-    }
+    const _activeTabStyle = 'flex:1;height:40px;min-width:0;background:white;border:none;border-radius:50px;font-size:13px;font-weight:900;color:#4c1d95;cursor:pointer;transition:all 0.2s;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 16px rgba(0,0,0,0.25);transform:scale(1.03);';
+    const _inactiveTabStyle = 'flex:1;height:40px;min-width:0;background:white;border:none;border-radius:50px;font-size:13px;font-weight:800;color:#7367f0;cursor:pointer;transition:all 0.2s;display:flex;align-items:center;justify-content:center;box-shadow:0 3px 10px rgba(0,0,0,0.15);';
+    if (_tabLists) _tabLists.style.cssText = activePage === 'lists' ? _activeTabStyle : _inactiveTabStyle;
+    if (_tabSummary) _tabSummary.style.cssText = activePage === 'summary' ? _activeTabStyle : _inactiveTabStyle;
     document.getElementById('tabStats').className = `tab-btn ${activePage === 'stats' ? 'tab-active' : ''}`;
     const _tabBank = document.getElementById('tabBank');
     if (_tabBank) _tabBank.className = `tab-btn whitespace-nowrap ${activePage === 'bank' ? 'tab-active' : ''}`;
