@@ -2247,7 +2247,7 @@ ${error.message}
     </div>
 
     <div class="max-w-md mx-auto p-4 no-print">
-        <div class="flex gap-3 mb-6">
+        <div class="flex gap-3 mb-6" style="display:none!important;">
             <div id="tabStats" onclick="showPage('stats')" class="tab-btn">סטטיסטיקות 📊</div>
             <div id="tabBank" onclick="showPage('bank')" class="tab-btn whitespace-nowrap">פיננסי 🏦</div>
         </div>
@@ -2470,24 +2470,27 @@ ${error.message}
 
             </div>
 
-            <!-- שורת טאבים + מדריך -->
-            <div id="barTabsRow" style="display:flex;gap:8px;padding:8px 14px 14px;" onclick="event.stopPropagation()">
+            <!-- שורת טאבים -->
+            <div id="barTabsRow" style="display:flex;gap:6px;padding:8px 14px 14px;" onclick="event.stopPropagation()">
 
                 <div id="tabLists" onclick="showPage('lists')"
-                    style="flex:1;height:38px;background:rgba(255,255,255,0.16);border:none;border-radius:50px;font-size:13px;font-weight:800;color:white;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all 0.2s;">
+                    style="flex:1;height:38px;background:rgba(255,255,255,0.16);border:none;border-radius:50px;font-size:12px;font-weight:800;color:white;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all 0.2s;">
                     הרשימה שלי
                 </div>
 
-                <!-- כפתור מדריך -->
-                <button id="wizardModeBtn" onclick="event.stopPropagation(); toggleWizardMode()"
-                    style="width:38px;height:38px;border-radius:50%;background:rgba(255,255,255,0.16);border:none;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;transition:all 0.2s;font-size:17px;"
-                    ontouchstart="this.style.transform='scale(0.9)'" ontouchend="this.style.transform='scale(1)'">
-                    ✨
-                </button>
-
                 <div id="tabSummary" onclick="showPage('summary')"
-                    style="flex:1;height:38px;background:rgba(255,255,255,0.16);border:none;border-radius:50px;font-size:13px;font-weight:800;color:white;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all 0.2s;">
+                    style="flex:1;height:38px;background:rgba(255,255,255,0.16);border:none;border-radius:50px;font-size:12px;font-weight:800;color:white;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all 0.2s;">
                     הרשימות שלי
+                </div>
+
+                <div id="tabStats" onclick="event.stopPropagation();showPage('stats')"
+                    style="flex:1;height:38px;background:rgba(255,255,255,0.16);border:none;border-radius:50px;font-size:12px;font-weight:800;color:white;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all 0.2s;">
+                    סטטיסטיקות 📊
+                </div>
+
+                <div id="tabBank" onclick="event.stopPropagation();showPage('bank')"
+                    style="flex:1;height:38px;background:rgba(255,255,255,0.16);border:none;border-radius:50px;font-size:12px;font-weight:800;color:white;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all 0.2s;">
+                    פיננסי 🏦
                 </div>
 
             </div>
@@ -2499,16 +2502,18 @@ ${error.message}
             <!-- שורת פלוס + ביטול גרירה + מדריך -->
             <div style="display:flex;align-items:center;justify-content:center;gap:12px;width:100%;">
 
-                <!-- ביטול גרירה (מנעול) -->
-                <button id="mainLockBtn" onclick="event.stopPropagation(); toggleLock()"
-                    style="width:52px;height:52px;border-radius:16px;background:#1a56db;border:1px solid rgba(255,255,255,0.2);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;cursor:pointer;transition:all 0.2s;"
-                    ontouchstart="this.style.transform='scale(0.93)'" ontouchend="this.style.transform='scale(1)'">
-                    <svg id="lockIconSvg" width="20" height="20" fill="none" stroke="white" viewBox="0 0 24 24">
-                        <path id="lockIconPath" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                            d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
-                    </svg>
-                    <span style="font-size:8px;font-weight:800;color:white;line-height:1;">גרירה</span>
-                </button>
+                <!-- ביטול גרירה (מנעול) — עגול -->
+                <div style="display:flex;flex-direction:column;align-items:center;gap:4px;">
+                    <button id="mainLockBtn" onclick="event.stopPropagation(); toggleLock()"
+                        style="width:52px;height:52px;border-radius:50%;background:#1a56db;border:2.5px solid rgba(255,255,255,0.25);display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all 0.2s;box-shadow:0 4px 14px rgba(0,0,0,0.2);"
+                        ontouchstart="this.style.transform='scale(0.93)'" ontouchend="this.style.transform='scale(1)'">
+                        <svg width="22" height="22" fill="none" stroke="white" viewBox="0 0 24 24">
+                            <path id="lockIconPath" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
+                        </svg>
+                    </button>
+                    <span style="font-size:9px;font-weight:800;color:rgba(255,255,255,0.8);">גרירה</span>
+                </div>
 
                 <!-- פלוס ירוק גדול -->
                 <button onclick="event.stopPropagation(); handlePlusBtn(event)"
@@ -2519,13 +2524,15 @@ ${error.message}
                     </svg>
                 </button>
 
-                <!-- מדריך -->
-                <button id="wizardModeBtn" onclick="event.stopPropagation(); toggleWizardMode()"
-                    style="width:52px;height:52px;border-radius:16px;background:rgba(255,255,255,0.13);border:1px solid rgba(255,255,255,0.2);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;cursor:pointer;transition:all 0.2s;font-size:20px;"
-                    ontouchstart="this.style.transform='scale(0.93)'" ontouchend="this.style.transform='scale(1)'">
-                    ✨
-                    <span style="font-size:8px;font-weight:800;color:white;line-height:1;">מדריך</span>
-                </button>
+                <!-- מדריך — עגול -->
+                <div style="display:flex;flex-direction:column;align-items:center;gap:4px;">
+                    <button id="wizardModeBtn" onclick="event.stopPropagation(); toggleWizardMode()"
+                        style="width:52px;height:52px;border-radius:50%;background:rgba(255,255,255,0.16);border:2.5px solid rgba(255,255,255,0.25);display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all 0.2s;font-size:22px;box-shadow:0 4px 14px rgba(0,0,0,0.15);"
+                        ontouchstart="this.style.transform='scale(0.93)'" ontouchend="this.style.transform='scale(1)'">
+                        ✨
+                    </button>
+                    <span style="font-size:9px;font-weight:800;color:rgba(255,255,255,0.8);">מדריך</span>
+                </div>
 
             </div>
 
@@ -2549,12 +2556,12 @@ ${error.message}
 
                 <!-- סיום רשימה -->
                 <button onclick="event.stopPropagation(); wizardMode ? openWizard('completeList') : openModal('confirmModal')"
-                    style="flex:1;height:52px;border-radius:16px;background:rgba(239,68,68,0.18);border:1px solid rgba(239,68,68,0.38);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;cursor:pointer;transition:all 0.2s;"
+                    style="flex:1;height:52px;border-radius:16px;background:#ef4444;border:none;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;cursor:pointer;transition:all 0.2s;box-shadow:0 4px 14px rgba(239,68,68,0.4);"
                     ontouchstart="this.style.transform='scale(0.93)'" ontouchend="this.style.transform='scale(1)'">
                     <svg width="20" height="20" fill="none" stroke="white" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/>
                     </svg>
-                    <span style="font-size:10px;font-weight:800;color:rgba(255,255,255,0.92);">סיום רשימה</span>
+                    <span style="font-size:10px;font-weight:800;color:white;">סיום רשימה</span>
                 </button>
 
                 <!-- בוצע קולי -->
