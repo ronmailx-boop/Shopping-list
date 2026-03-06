@@ -3561,6 +3561,13 @@ function finalizeDelete() {
 
 function toggleLock() {
     isLocked = !isLocked;
+    // עדכון שורת ביטול גרירה בבר החדש
+    var dragRow  = document.getElementById('barDragRow');
+    var statsRow = document.getElementById('barStatsRow');
+    if (dragRow && statsRow) {
+        dragRow.style.display  = isLocked ? 'none' : 'flex';
+        statsRow.style.display = isLocked ? 'flex' : 'none';
+    }
     render();
 }
 
