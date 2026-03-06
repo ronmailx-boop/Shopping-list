@@ -3346,8 +3346,8 @@ ${error.message}
   </div>
 
   <!-- ===== BANK LOGIN MODAL ===== -->
-  <div id="bankLoginModal" class="hidden fixed inset-0 bg-black/60 z-[100] flex items-center justify-center backdrop-blur-sm" dir="rtl">
-    <div class="bg-white rounded-3xl p-6 w-11/12 max-w-md shadow-2xl relative">
+  <div id="bankLoginModal" class="hidden fixed inset-x-0 top-0 z-[100] flex flex-col" dir="rtl" style="padding-top: env(safe-area-inset-top);">
+    <div class="bg-white rounded-b-3xl p-6 w-full shadow-2xl relative">
         <div id="bankLoginForm">
             <button onclick="closeBankModal()" class="absolute top-4 left-4 text-gray-400 text-2xl">&times;</button>
             <h3 class="text-xl font-bold mb-6 text-center text-gray-800">התחברות מאובטחת</h3>
