@@ -3560,18 +3560,16 @@ function finalizeDelete() {
 
 function toggleLock() {
     isLocked = !isLocked;
-    // עדכון כפתור המנעול במסך הפתוח
-    var lockBtn = document.getElementById('mainLockBtn');
+    var lockBtn  = document.getElementById('mainLockBtn');
     var lockPath = document.getElementById('lockIconPath');
+    var lockSvg  = document.getElementById('lockIconSvg');
     if (lockBtn) {
-        lockBtn.style.background = isLocked ? '#1a56db' : '#f97316';
-        if (lockPath) {
-            lockPath.setAttribute('d', isLocked
-                ? 'M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z'
-                : 'M8 11V7a4 4 0 118 0m-4 8v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2z');
-        }
+        // כחול = נעול, כתום = פתוח — רק צבע האייקון משתנה
+        if (lockSvg) lockSvg.setAttribute('stroke', isLocked ? 'white' : '#fb923c');
+        if (lockPath) lockPath.setAttribute('d', isLocked
+            ? 'M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z'
+            : 'M8 11V7a4 4 0 118 0m-4 8v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2z');
     }
-    // עדכון שורת ביטול גרירה בבר הסגור
     var dragRow  = document.getElementById('barDragRow');
     var statsRow = document.getElementById('barStatsRow');
     if (dragRow && statsRow) {
