@@ -1465,7 +1465,6 @@ function createListFromReceipt(items) {
 function toggleBottomBar() {
     const bottomBar = document.querySelector('.bottom-bar');
     const toggleBtn = document.getElementById('floatingToggle');
-
     if (bottomBar.classList.contains('minimized')) {
         bottomBar.classList.remove('minimized');
         toggleBtn.classList.remove('bar-hidden');
@@ -1924,11 +1923,11 @@ function render() {
     const container = document.getElementById(activePage === 'lists' ? 'itemsContainer' : activePage === 'summary' ? 'summaryContainer' : null);
     let total = 0, paid = 0;
 
-    // הרשימה שלי / הרשימות שלי — לבן תמיד, כשפעיל: צל חזק + טקסט כהה יותר
+    // הרשימה שלי / הרשימות שלי — לא פעיל: rgba/20 שקוף, פעיל: לבן מלא
     const _tabLists = document.getElementById('tabLists');
     const _tabSummary = document.getElementById('tabSummary');
-    const _activeTabStyle = 'flex:1;height:40px;min-width:0;background:white;border:none;border-radius:50px;font-size:13px;font-weight:900;color:#4c1d95;cursor:pointer;transition:all 0.2s;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 16px rgba(0,0,0,0.25);transform:scale(1.03);';
-    const _inactiveTabStyle = 'flex:1;height:40px;min-width:0;background:white;border:none;border-radius:50px;font-size:13px;font-weight:800;color:#7367f0;cursor:pointer;transition:all 0.2s;display:flex;align-items:center;justify-content:center;box-shadow:0 3px 10px rgba(0,0,0,0.15);';
+    const _activeTabStyle = 'flex:1;height:40px;min-width:0;background:white;border:none;border-radius:50px;font-size:13px;font-weight:900;color:#7367f0;cursor:pointer;transition:all 0.2s;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 14px rgba(0,0,0,0.18);';
+    const _inactiveTabStyle = 'flex:1;height:40px;min-width:0;background:rgba(255,255,255,0.20);border:none;border-radius:50px;font-size:13px;font-weight:800;color:white;cursor:pointer;transition:all 0.2s;display:flex;align-items:center;justify-content:center;';
     if (_tabLists) _tabLists.style.cssText = activePage === 'lists' ? _activeTabStyle : _inactiveTabStyle;
     if (_tabSummary) _tabSummary.style.cssText = activePage === 'summary' ? _activeTabStyle : _inactiveTabStyle;
     document.getElementById('tabStats').className = `tab-btn ${activePage === 'stats' ? 'tab-active' : ''}`;
