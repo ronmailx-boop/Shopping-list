@@ -811,11 +811,11 @@ function updateUILanguage() {
     const tabListsEl = document.getElementById('tabLists');
     const tabSummaryEl = document.getElementById('tabSummary');
     const tabStatsEl = document.getElementById('tabStats');
-    const tabBankEl = document.getElementById('tabBank');
+    const tabBankEl2 = document.getElementById('tabBank');
     if (tabListsEl) tabListsEl.textContent = t('myList');
     if (tabSummaryEl) tabSummaryEl.textContent = t('myLists');
     if (tabStatsEl) tabStatsEl.textContent = t('statistics');
-    if (tabBankEl) tabBankEl.textContent = '🏦 פיננסי';
+    if (tabBankEl2) tabBankEl2.textContent = '🏦 פיננסי';
 
     // Update header buttons
     const cloudSyncText = document.getElementById('cloudSyncText');
@@ -1927,8 +1927,25 @@ function render() {
     const container = document.getElementById(activePage === 'lists' ? 'itemsContainer' : activePage === 'summary' ? 'summaryContainer' : null);
     let total = 0, paid = 0;
 
-    document.getElementById('tabLists').className = `tab-btn ${activePage === 'lists' ? 'tab-active' : ''}`;
-    document.getElementById('tabSummary').className = `tab-btn ${activePage === 'summary' ? 'tab-active' : ''}`;
+    // טאבי הרשימה שלי/הרשימות שלי — בתוך הבר הסגול: פעיל=לבן, לא פעיל=שקוף
+    const _tabLists = document.getElementById('tabLists');
+    const _tabSummary = document.getElementById('tabSummary');
+    if (_tabLists) {
+        const isActive = activePage === 'lists';
+        _tabLists.style.background = isActive ? 'white' : 'rgba(255,255,255,0.15)';
+        _tabLists.style.color = isActive ? '#7367f0' : 'white';
+        _tabLists.style.border = isActive ? '2px solid rgba(255,255,255,0.5)' : '2px solid rgba(255,255,255,0.35)';
+        _tabLists.style.fontWeight = '800';
+        _tabLists.style.boxShadow = isActive ? '0 4px 14px rgba(0,0,0,0.15)' : 'none';
+    }
+    if (_tabSummary) {
+        const isActive = activePage === 'summary';
+        _tabSummary.style.background = isActive ? 'white' : 'rgba(255,255,255,0.15)';
+        _tabSummary.style.color = isActive ? '#7367f0' : 'white';
+        _tabSummary.style.border = isActive ? '2px solid rgba(255,255,255,0.5)' : '2px solid rgba(255,255,255,0.35)';
+        _tabSummary.style.fontWeight = '800';
+        _tabSummary.style.boxShadow = isActive ? '0 4px 14px rgba(0,0,0,0.15)' : 'none';
+    }
     document.getElementById('tabStats').className = `tab-btn ${activePage === 'stats' ? 'tab-active' : ''}`;
     const _tabBank = document.getElementById('tabBank');
     if (_tabBank) _tabBank.className = `tab-btn whitespace-nowrap ${activePage === 'bank' ? 'tab-active' : ''}`;
@@ -9460,4 +9477,3 @@ function renderBankData() {
 
     container.innerHTML = html;
 }
-
