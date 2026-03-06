@@ -2453,44 +2453,48 @@ ${error.message}
             <!-- שורת נתונים: שולם / נשאר לשלם / סה"כ -->
             <div id="barStatsRow" style="display:flex;gap:8px;padding:10px 14px 0;">
 
-                <div style="flex:1;height:52px;border-radius:16px;background:rgba(255,255,255,0.13);border:1px solid rgba(255,255,255,0.2);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;">
-                    <span style="font-size:7.5px;font-weight:700;color:rgba(255,255,255,0.58);white-space:nowrap;" id="paidInListLabel">שולם ברשימה</span>
-                    <span style="font-size:14px;font-weight:900;color:#86efac;line-height:1.2;">₪<span id="displayPaid">0.00</span></span>
+                <div style="flex:1;height:58px;border-radius:16px;background:rgba(255,255,255,0.13);border:1px solid rgba(255,255,255,0.2);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;">
+                    <span style="font-size:9px;font-weight:700;color:rgba(255,255,255,0.58);white-space:nowrap;" id="paidInListLabel">שולם ברשימה</span>
+                    <span style="font-size:17px;font-weight:900;color:#86efac;line-height:1.2;">₪<span id="displayPaid">0.00</span></span>
                 </div>
 
-                <div style="flex:1;height:52px;border-radius:16px;background:rgba(255,255,255,0.13);border:1px solid rgba(255,255,255,0.2);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;">
-                    <span style="font-size:7.5px;font-weight:700;color:rgba(255,255,255,0.58);white-space:nowrap;" id="remainingToPayLabel">נשאר לשלם</span>
-                    <span style="font-size:14px;font-weight:900;color:#fcd34d;line-height:1.2;">₪<span id="displayLeft">0.00</span></span>
+                <div style="flex:1;height:58px;border-radius:16px;background:rgba(255,255,255,0.13);border:1px solid rgba(255,255,255,0.2);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;">
+                    <span style="font-size:9px;font-weight:700;color:rgba(255,255,255,0.58);white-space:nowrap;" id="remainingToPayLabel">נשאר לשלם</span>
+                    <span style="font-size:17px;font-weight:900;color:#fcd34d;line-height:1.2;">₪<span id="displayLeft">0.00</span></span>
                 </div>
 
-                <div style="flex:1;height:52px;border-radius:16px;background:rgba(255,255,255,0.13);border:1px solid rgba(255,255,255,0.2);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;">
-                    <span style="font-size:7.5px;font-weight:700;color:rgba(255,255,255,0.58);white-space:nowrap;" id="totalListLabel">סה"כ רשימה</span>
-                    <span style="font-size:14px;font-weight:900;color:white;line-height:1.2;">₪<span id="displayTotal">0.00</span></span>
+                <div style="flex:1;height:58px;border-radius:16px;background:rgba(255,255,255,0.13);border:1px solid rgba(255,255,255,0.2);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;">
+                    <span style="font-size:9px;font-weight:700;color:rgba(255,255,255,0.58);white-space:nowrap;" id="totalListLabel">סה"כ רשימה</span>
+                    <span style="font-size:17px;font-weight:900;color:white;line-height:1.2;">₪<span id="displayTotal">0.00</span></span>
                 </div>
 
             </div>
 
             <!-- שורת טאבים -->
-            <div id="barTabsRow" style="display:flex;gap:6px;padding:8px 14px 14px;" onclick="event.stopPropagation()">
+            <div id="barTabsRow" style="display:flex;flex-direction:column;gap:7px;padding:8px 14px 14px;" onclick="event.stopPropagation()">
 
-                <div id="tabLists" onclick="showPage('lists')"
-                    style="flex:1;height:38px;background:rgba(255,255,255,0.16);border:none;border-radius:50px;font-size:12px;font-weight:800;color:white;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all 0.2s;">
-                    הרשימה שלי
+                <!-- שורה 1: הרשימה שלי + הרשימות שלי -->
+                <div style="display:flex;gap:7px;">
+                    <div id="tabLists" onclick="showPage('lists')"
+                        style="flex:1;height:44px;background:rgba(255,255,255,0.16);border-radius:16px;font-size:15px;font-weight:800;color:white;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all 0.2s;">
+                        הרשימה שלי
+                    </div>
+                    <div id="tabSummary" onclick="showPage('summary')"
+                        style="flex:1;height:44px;background:rgba(255,255,255,0.16);border-radius:16px;font-size:15px;font-weight:800;color:white;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all 0.2s;">
+                        הרשימות שלי
+                    </div>
                 </div>
 
-                <div id="tabSummary" onclick="showPage('summary')"
-                    style="flex:1;height:38px;background:rgba(255,255,255,0.16);border:none;border-radius:50px;font-size:12px;font-weight:800;color:white;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all 0.2s;">
-                    הרשימות שלי
-                </div>
-
-                <div id="tabStats" onclick="event.stopPropagation();showPage('stats')"
-                    style="flex:1;height:38px;background:rgba(255,255,255,0.16);border:none;border-radius:50px;font-size:12px;font-weight:800;color:white;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all 0.2s;">
-                    סטטיסטיקות 📊
-                </div>
-
-                <div id="tabBank" onclick="event.stopPropagation();showPage('bank')"
-                    style="flex:1;height:38px;background:rgba(255,255,255,0.16);border:none;border-radius:50px;font-size:12px;font-weight:800;color:white;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all 0.2s;">
-                    פיננסי 🏦
+                <!-- שורה 2: סטטיסטיקות + פיננסי -->
+                <div style="display:flex;gap:7px;">
+                    <div id="tabStats" onclick="showPage('stats')"
+                        style="flex:1;height:44px;background:rgba(255,255,255,0.16);border-radius:16px;font-size:15px;font-weight:800;color:white;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all 0.2s;">
+                        סטטיסטיקות 📊
+                    </div>
+                    <div id="tabBank" onclick="showPage('bank')"
+                        style="flex:1;height:44px;background:rgba(255,255,255,0.16);border-radius:16px;font-size:15px;font-weight:800;color:white;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all 0.2s;">
+                        פיננסי 🏦
+                    </div>
                 </div>
 
             </div>
