@@ -112,20 +112,8 @@
             transition: bottom 0.4s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
-        .bottom-tabs-strip .tab-btn {
+        .bottom-tabs-strip button {
             pointer-events: all;
-            flex: 1;
-            background: linear-gradient(135deg, #7367f0 0%, #9055ff 100%) !important;
-            color: white !important;
-            border: none !important;
-            box-shadow: 0 4px 16px rgba(115, 103, 240, 0.35) !important;
-        }
-
-        .bottom-tabs-strip .tab-btn.tab-active {
-            background: white !important;
-            color: #7367f0 !important;
-            border: 2px solid rgba(115, 103, 240, 0.2) !important;
-            box-shadow: 0 6px 20px rgba(115, 103, 240, 0.25) !important;
         }
 
         /* When bottom bar is visible, push the strip up */
@@ -801,16 +789,12 @@
         }
 
         .category-separator {
-            background: rgba(115, 103, 240, 0.30);
-            color: #3b0764;
+            background: linear-gradient(135deg, #7367f0 0%, #9055ff 100%);
+            color: white;
             border-radius: 20px;
             padding: 15px;
             margin-bottom: 20px;
             text-align: center;
-            border: 1.5px solid rgba(115, 103, 240, 0.30);
-            box-shadow: 0 4px 20px rgba(115, 103, 240, 0.12);
-            backdrop-filter: blur(12px);
-            -webkit-backdrop-filter: blur(12px);
         }
 
         .category-badge {
@@ -2323,14 +2307,14 @@ ${error.message}
             </div>
             <div class="category-separator">
                 <div class="flex justify-between items-center px-2">
-                    <button onclick="shareNative('list')" class="text-indigo-900 opacity-90">
+                    <button onclick="shareNative('list')" class="text-white opacity-90">
                         <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                 d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z">
                             </path>
                         </svg>
                     </button>
-                    <button onclick="openModal('translateModal')" class="text-indigo-900 opacity-90" title="תרגם רשימה">
+                    <button onclick="openModal('translateModal')" class="text-white opacity-90" title="תרגם רשימה">
                         <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                 d="M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9h7M11 21l5-10 5 10M12.751 5C11.783 10.77 8.07 15.61 3 18.129">
@@ -2343,7 +2327,7 @@ ${error.message}
                         <div id="itemCountDisplay"
                             class="text-[10px] font-bold opacity-80 uppercase tracking-wider mt-0.5">0 מוצרים</div>
                     </div>
-                    <button onclick="toggleTemplateMode()" class="text-indigo-900 opacity-90">
+                    <button onclick="toggleTemplateMode()" class="text-white opacity-90">
                         <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                 d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2">
@@ -2353,7 +2337,7 @@ ${error.message}
                 </div>
                 <div id="statusTag" class="text-[10px] font-bold mt-2 opacity-80 text-center">נעול</div>
                 <button onclick="toggleCategorySorting()" id="categorySortBtn"
-                    class="text-[10px] font-bold mt-1 bg-indigo-100/60 hover:bg-indigo-200/60 text-indigo-900 py-1 px-3 rounded-full transition">
+                    class="text-[10px] font-bold mt-1 bg-white/20 hover:bg-white/30 text-white py-1 px-3 rounded-full transition">
                     <span id="categorySortText">🔤 מיון לפי קטגוריות</span>
                 </button>
                 <div id="budgetWarning"
@@ -2456,10 +2440,33 @@ ${error.message}
         </svg>
     </div>
 
-    <!-- Fixed tabs strip above bottom bar -->
+    <!-- Fixed action buttons strip above bottom bar -->
     <div class="bottom-tabs-strip no-print" id="bottomTabsStrip">
-        <div id="tabLists" onclick="showPage('lists')" class="tab-btn">הרשימה שלי</div>
-        <div id="tabSummary" onclick="showPage('summary')" class="tab-btn">הרשימות שלי</div>
+        <!-- הוספה -->
+        <button id="bottomAddBtn"
+            onclick="event.stopPropagation(); if(_voiceActionActive){ startVoiceAction('tobuy'); } else if(wizardMode){ wiz('voiceTobuy','before',()=>startVoiceAction('tobuy')); } else { startVoiceAction('tobuy'); }"
+            title="הוספה"
+            style="flex:1;height:44px;min-width:0;background:white;border:1.5px solid #ede9fe;border-radius:50px;font-size:13px;font-weight:800;color:#7367f0;cursor:pointer;transition:all 0.2s;display:flex;align-items:center;justify-content:center;gap:6px;box-shadow:0 4px 14px rgba(115,103,240,0.15);pointer-events:all;">
+            <svg width="17" height="17" viewBox="0 0 22 22" fill="none" style="flex-shrink:0;">
+                <rect width="22" height="22" rx="5" fill="#3dbb5e"/>
+                <path d="M11 6v10M6 11h10" stroke="white" stroke-width="2.5" stroke-linecap="round"/>
+            </svg>
+            <span>הוספה</span>
+        </button>
+
+        <!-- מדריך -->
+        <button id="wizardModeBtn" onclick="event.stopPropagation(); toggleWizardMode()"
+            style="flex:1.2;height:44px;min-width:0;background:white;border:1.5px solid #ede9fe;border-radius:50px;font-size:13px;font-weight:800;color:#7367f0;cursor:pointer;transition:all 0.2s;display:flex;align-items:center;justify-content:center;gap:4px;box-shadow:0 4px 14px rgba(115,103,240,0.15);pointer-events:all;">
+            <span>✨</span><span id="wizardBtnText">מדריך</span>
+        </button>
+
+        <!-- בוצע -->
+        <button id="bottomDoneBtn"
+            onclick="event.stopPropagation(); if(_voiceActionActive){ startVoiceAction('bought'); } else if(wizardMode){ wiz('voiceBought','before',()=>startVoiceAction('bought')); } else { startVoiceAction('bought'); }"
+            title="בוצע"
+            style="flex:1;height:44px;min-width:0;background:white;border:1.5px solid #ede9fe;border-radius:50px;font-size:13px;font-weight:800;color:#7367f0;cursor:pointer;transition:all 0.2s;display:flex;align-items:center;justify-content:center;gap:6px;box-shadow:0 4px 14px rgba(115,103,240,0.15);pointer-events:all;">
+            <span>✅</span><span>בוצע</span>
+        </button>
     </div>
 
     <div class="bottom-bar text-white no-print" onclick="toggleBottomBar()">
@@ -2509,34 +2516,20 @@ ${error.message}
 
         </div>
 
-        <!-- Row 2: Three oval buttons -->
+        <!-- Row 2: הרשימה שלי + הרשימות שלי -->
         <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;padding:0 2px;">
 
-            <!-- הוספה -->
-            <button id="bottomAddBtn"
-                onclick="event.stopPropagation(); if(_voiceActionActive){ startVoiceAction('tobuy'); } else if(wizardMode){ wiz('voiceTobuy','before',()=>startVoiceAction('tobuy')); } else { startVoiceAction('tobuy'); }"
-                title="הוספה"
-                style="flex:1;height:38px;min-width:0;background:rgba(255,255,255,0.15);border:2px solid rgba(255,255,255,0.35);border-radius:50px;font-size:12px;font-weight:800;color:white;cursor:pointer;transition:all 0.2s;display:flex;align-items:center;justify-content:center;gap:5px;overflow:hidden;">
-                <svg width="17" height="17" viewBox="0 0 22 22" fill="none" style="flex-shrink:0;">
-                    <rect width="22" height="22" rx="5" fill="#3dbb5e"/>
-                    <path d="M11 6v10M6 11h10" stroke="white" stroke-width="2.5" stroke-linecap="round"/>
-                </svg>
-                <span style="flex-shrink:0;">הוספה</span>
-            </button>
+            <!-- הרשימה שלי -->
+            <div id="tabLists" onclick="event.stopPropagation(); showPage('lists')"
+                style="flex:1;height:38px;min-width:0;border-radius:50px;font-size:13px;font-weight:800;cursor:pointer;transition:all 0.2s;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,0.15);border:2px solid rgba(255,255,255,0.35);color:white;">
+                הרשימה שלי
+            </div>
 
-            <!-- מדריך -->
-            <button id="wizardModeBtn" onclick="event.stopPropagation(); toggleWizardMode()"
-                style="flex:1.2;height:38px;min-width:0;background:rgba(255,255,255,0.12);border:2px solid rgba(255,255,255,0.35);border-radius:50px;font-size:12px;font-weight:800;color:white;cursor:pointer;transition:all 0.2s;display:flex;align-items:center;justify-content:center;gap:4px;overflow:hidden;">
-                <span style="flex-shrink:0;">✨</span><span id="wizardBtnText" style="flex-shrink:0;">מדריך</span>
-            </button>
-
-            <!-- בוצע -->
-            <button id="bottomDoneBtn"
-                onclick="event.stopPropagation(); if(_voiceActionActive){ startVoiceAction('bought'); } else if(wizardMode){ wiz('voiceBought','before',()=>startVoiceAction('bought')); } else { startVoiceAction('bought'); }"
-                title="בוצע"
-                style="flex:1;height:38px;min-width:0;background:rgba(255,255,255,0.15);border:2px solid rgba(255,255,255,0.35);border-radius:50px;font-size:12px;font-weight:800;color:white;cursor:pointer;transition:all 0.2s;display:flex;align-items:center;justify-content:center;gap:5px;overflow:hidden;">
-                <span style="flex-shrink:0;">✅</span><span style="flex-shrink:0;">בוצע</span>
-            </button>
+            <!-- הרשימות שלי -->
+            <div id="tabSummary" onclick="event.stopPropagation(); showPage('summary')"
+                style="flex:1;height:38px;min-width:0;border-radius:50px;font-size:13px;font-weight:800;cursor:pointer;transition:all 0.2s;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,0.15);border:2px solid rgba(255,255,255,0.35);color:white;">
+                הרשימות שלי
+            </div>
 
         </div>
     </div>
