@@ -97,7 +97,36 @@
             transform: translateY(calc(100% - 8px));
         }
 
-        /* bottom-tabs-strip removed */
+        /* Fixed tabs strip above bottom bar */
+        .bottom-tabs-strip {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            z-index: 999;
+            display: flex;
+            gap: 10px;
+            padding: 8px 15px 10px 15px;
+            background: transparent;
+            pointer-events: none;
+            transition: bottom 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .bottom-tabs-strip .tab-btn {
+            pointer-events: all;
+            flex: 1;
+            box-shadow: 0 4px 14px rgba(115, 103, 240, 0.25);
+        }
+
+        /* When bottom bar is visible, push the strip up */
+        .bottom-tabs-strip {
+            bottom: 165px;
+        }
+
+        /* When bottom bar is minimized, bring strip down */
+        .bottom-tabs-strip.bar-minimized {
+            bottom: 14px;
+        }
 
         /* ── Voice Action Buttons ── */
         .voice-action-btn {
@@ -2417,33 +2446,23 @@ ${error.message}
 
         <!-- Row 1: הוספה / מדריך / בוצע -->
         <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;padding:0 2px;margin-bottom:10px;">
-
-            <!-- הוספה -->
             <button id="bottomAddBtn"
                 onclick="event.stopPropagation(); if(_voiceActionActive){ startVoiceAction('tobuy'); } else if(wizardMode){ wiz('voiceTobuy','before',()=>startVoiceAction('tobuy')); } else { startVoiceAction('tobuy'); }"
                 title="הוספה"
                 style="flex:1;height:40px;min-width:0;background:white;border:none;border-radius:50px;font-size:13px;font-weight:800;color:#7367f0;cursor:pointer;transition:all 0.2s;display:flex;align-items:center;justify-content:center;gap:5px;box-shadow:0 3px 10px rgba(0,0,0,0.15);">
-                <svg width="17" height="17" viewBox="0 0 22 22" fill="none" style="flex-shrink:0;">
-                    <rect width="22" height="22" rx="5" fill="#3dbb5e"/>
-                    <path d="M11 6v10M6 11h10" stroke="white" stroke-width="2.5" stroke-linecap="round"/>
-                </svg>
+                <svg width="17" height="17" viewBox="0 0 22 22" fill="none" style="flex-shrink:0;"><rect width="22" height="22" rx="5" fill="#3dbb5e"/><path d="M11 6v10M6 11h10" stroke="white" stroke-width="2.5" stroke-linecap="round"/></svg>
                 <span>הוספה</span>
             </button>
-
-            <!-- מדריך -->
             <button id="wizardModeBtn" onclick="event.stopPropagation(); toggleWizardMode()"
                 style="flex:1.2;height:40px;min-width:0;background:white;border:none;border-radius:50px;font-size:13px;font-weight:800;color:#7367f0;cursor:pointer;transition:all 0.2s;display:flex;align-items:center;justify-content:center;gap:4px;box-shadow:0 3px 10px rgba(0,0,0,0.15);">
                 <span>✨</span><span id="wizardBtnText">מדריך</span>
             </button>
-
-            <!-- בוצע -->
             <button id="bottomDoneBtn"
                 onclick="event.stopPropagation(); if(_voiceActionActive){ startVoiceAction('bought'); } else if(wizardMode){ wiz('voiceBought','before',()=>startVoiceAction('bought')); } else { startVoiceAction('bought'); }"
                 title="בוצע"
                 style="flex:1;height:40px;min-width:0;background:white;border:none;border-radius:50px;font-size:13px;font-weight:800;color:#7367f0;cursor:pointer;transition:all 0.2s;display:flex;align-items:center;justify-content:center;gap:5px;box-shadow:0 3px 10px rgba(0,0,0,0.15);">
                 <span>✅</span><span>בוצע</span>
             </button>
-
         </div>
 
         <!-- Row 2: Three circles -->
@@ -2493,17 +2512,14 @@ ${error.message}
 
         <!-- Row 3: הרשימה שלי / הרשימות שלי -->
         <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;padding:0 2px;">
-
             <div id="tabLists" onclick="event.stopPropagation(); showPage('lists')"
-                style="flex:1;height:40px;min-width:0;background:white;border:none;border-radius:50px;font-size:13px;font-weight:800;color:#7367f0;cursor:pointer;transition:all 0.2s;display:flex;align-items:center;justify-content:center;box-shadow:0 3px 10px rgba(0,0,0,0.15);">
+                style="flex:1;height:40px;min-width:0;background:rgba(255,255,255,0.20);border:none;border-radius:50px;font-size:13px;font-weight:800;color:white;cursor:pointer;transition:all 0.2s;display:flex;align-items:center;justify-content:center;">
                 הרשימה שלי
             </div>
-
             <div id="tabSummary" onclick="event.stopPropagation(); showPage('summary')"
-                style="flex:1;height:40px;min-width:0;background:white;border:none;border-radius:50px;font-size:13px;font-weight:800;color:#7367f0;cursor:pointer;transition:all 0.2s;display:flex;align-items:center;justify-content:center;box-shadow:0 3px 10px rgba(0,0,0,0.15);">
+                style="flex:1;height:40px;min-width:0;background:rgba(255,255,255,0.20);border:none;border-radius:50px;font-size:13px;font-weight:800;color:white;cursor:pointer;transition:all 0.2s;display:flex;align-items:center;justify-content:center;">
                 הרשימות שלי
             </div>
-
         </div>
     </div>
 
