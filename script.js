@@ -1463,15 +1463,7 @@ function createListFromReceipt(items) {
 }
 
 function toggleBottomBar() {
-    const bottomBar = document.querySelector('.bottom-bar');
-    const toggleBtn = document.getElementById('floatingToggle');
-    if (bottomBar.classList.contains('minimized')) {
-        bottomBar.classList.remove('minimized');
-        toggleBtn.classList.remove('bar-hidden');
-    } else {
-        bottomBar.classList.add('minimized');
-        toggleBtn.classList.add('bar-hidden');
-    }
+    // הבר החדש משתמש ב-toggleSmartBar — לא עושה כלום כאן
 }
 
 function openModal(id) {
@@ -1948,6 +1940,10 @@ function render() {
     if (btn && path && tag) {
         btn.className = `bottom-circle-btn ${isLocked ? 'bg-blue-600' : 'bg-orange-400'}`;
         path.setAttribute('d', isLocked ? 'M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z' : 'M8 11V7a4 4 0 118 0m-4 8v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2z');
+        tag.innerText = isLocked ? t('locked') : t('unlocked');
+    }
+    // עדכון תווית statusTag גם אם כפתור המנעול מוסתר בבר החדש
+    if (!btn && tag) {
         tag.innerText = isLocked ? t('locked') : t('unlocked');
     }
 
