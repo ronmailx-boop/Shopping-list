@@ -1917,15 +1917,14 @@ function render() {
 
     const _tabLists = document.getElementById('tabLists');
     const _tabSummary = document.getElementById('tabSummary');
-    // לא פעיל: bg-white/20 טקסט לבן — בדיוק כמו מיון לפי קטגוריות
-    // פעיל: לבן מלא, טקסט סגול
-    const _activeTabStyle = 'flex:1;height:40px;background:white;border:none;border-radius:50px;font-size:13px;font-weight:900;color:#7367f0;cursor:pointer;transition:all 0.2s;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 14px rgba(0,0,0,0.18);';
-    const _inactiveTabStyle = 'flex:1;height:40px;background:rgba(255,255,255,0.20);border:none;border-radius:50px;font-size:13px;font-weight:800;color:white;cursor:pointer;transition:all 0.2s;display:flex;align-items:center;justify-content:center;';
-    if (_tabLists) _tabLists.style.cssText = activePage === 'lists' ? _activeTabStyle : _inactiveTabStyle;
-    if (_tabSummary) _tabSummary.style.cssText = activePage === 'summary' ? _activeTabStyle : _inactiveTabStyle;
-    document.getElementById('tabStats').className = `tab-btn ${activePage === 'stats' ? 'tab-active' : ''}`;
+    const _tabStats = document.getElementById('tabStats');
     const _tabBank = document.getElementById('tabBank');
-    if (_tabBank) _tabBank.className = `tab-btn whitespace-nowrap ${activePage === 'bank' ? 'tab-active' : ''}`;
+    const _activeTabStyle = 'flex:1;height:44px;background:white;border:none;border-radius:16px;font-size:15px;font-weight:900;color:#7367f0;cursor:pointer;transition:all 0.2s;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 14px rgba(0,0,0,0.18);';
+    const _inactiveTabStyle = 'flex:1;height:44px;background:rgba(255,255,255,0.16);border:none;border-radius:16px;font-size:15px;font-weight:800;color:white;cursor:pointer;transition:all 0.2s;display:flex;align-items:center;justify-content:center;';
+    if (_tabLists)   _tabLists.style.cssText   = activePage === 'lists'   ? _activeTabStyle : _inactiveTabStyle;
+    if (_tabSummary) _tabSummary.style.cssText = activePage === 'summary' ? _activeTabStyle : _inactiveTabStyle;
+    if (_tabStats)   _tabStats.style.cssText   = activePage === 'stats'   ? _activeTabStyle : _inactiveTabStyle;
+    if (_tabBank)    _tabBank.style.cssText     = activePage === 'bank'    ? _activeTabStyle : _inactiveTabStyle;
 
     // הצג כפתורי קולי רק בטאב "הרשימה שלי"
     const _voiceBoughtBtn = document.getElementById('voiceBoughtBtn');
@@ -9476,4 +9475,3 @@ function renderBankData() {
 
     container.innerHTML = html;
 }
-
