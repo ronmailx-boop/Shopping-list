@@ -676,6 +676,11 @@ function toggleDarkMode() {
 
 function showPage(p) {
     activePage = p;
+    // פתיחת הבר אוטומטית ועדכון טאבי הניווט בבר הפתוח
+    if (p === 'lists' || p === 'summary') {
+        if (typeof openSmartBar === 'function') openSmartBar();
+        if (typeof updateExpandedTabs === 'function') updateExpandedTabs(p);
+    }
     save();
 }
 
@@ -3594,6 +3599,8 @@ function saveNewList() {
         activePage = 'lists';
         closeModal('newListModal');
         save();
+        if (typeof openSmartBar === 'function') openSmartBar();
+        if (typeof updateExpandedTabs === 'function') updateExpandedTabs('lists');
         showNotification(t ? '⭐ תבנית נוצרה!' : '✅ רשימה נוצרה!');
     }
 }
