@@ -2352,6 +2352,19 @@ ${error.message}
         </div>
 
         <div id="pageSummary" class="hidden">
+            <!-- כפתורי סטטיסטיקות ופיננסי -->
+            <div style="display:flex;gap:8px;margin-bottom:14px;">
+                <button onclick="showPage('stats')"
+                    style="flex:1;height:40px;border-radius:14px;background:white;border:none;font-size:13px;font-weight:800;color:#7367f0;cursor:pointer;box-shadow:0 2px 10px rgba(115,103,240,0.15);transition:all 0.2s;"
+                    ontouchstart="this.style.transform='scale(0.96)'" ontouchend="this.style.transform='scale(1)'">
+                    📊 סטטיסטיקות
+                </button>
+                <button onclick="showPage('bank')"
+                    style="flex:1;height:40px;border-radius:14px;background:white;border:none;font-size:13px;font-weight:800;color:#7367f0;cursor:pointer;box-shadow:0 2px 10px rgba(115,103,240,0.15);transition:all 0.2s;"
+                    ontouchstart="this.style.transform='scale(0.96)'" ontouchend="this.style.transform='scale(1)'">
+                    🏦 פיננסי
+                </button>
+            </div>
             <div
                 class="bg-white rounded-2xl p-4 mb-4 shadow-sm border border-gray-100 flex items-center gap-3 select-all-container">
                 <input type="checkbox" id="selectAllLists" onchange="toggleSelectAll(this.checked)"
@@ -2437,175 +2450,109 @@ ${error.message}
         </div>
     </div>
 
-    <div class="bottom-bar text-white no-print" id="smartBottomBar">
+    <div class="bottom-bar text-white no-print" id="smartBottomBar" style="padding:12px 14px 20px;display:flex;flex-direction:column;gap:8px;">
 
-        <!-- ═══ COLLAPSED STATE ═══ -->
-        <div id="barCollapsed" onclick="toggleSmartBar()">
-
-            <!-- שורת ביטול גרירה — גלויה רק במצב גרירה -->
-            <div id="barDragRow" style="display:none;gap:8px;padding:10px 14px 0;" onclick="event.stopPropagation()">
-                <div onclick="toggleLock()"
-                    style="flex:1;height:52px;border-radius:16px;background:rgba(255,255,255,0.15);border:1.5px solid rgba(255,255,255,0.3);display:flex;align-items:center;justify-content:center;gap:10px;cursor:pointer;transition:all 0.2s;"
-                    ontouchstart="this.style.transform='scale(0.97)'" ontouchend="this.style.transform='scale(1)'">
-                    <svg width="18" height="18" fill="none" stroke="white" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"/>
-                    </svg>
-                    <span style="font-size:14px;font-weight:800;color:white;">ביטול גרירה</span>
-                </div>
+        <!-- שורה 1: ניווט -->
+        <div style="display:flex;gap:8px;">
+            <div id="tabLists" onclick="showPage('lists')"
+                style="flex:1;height:44px;border-radius:14px;background:rgba(255,255,255,0.16);font-size:15px;font-weight:800;color:white;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all 0.2s;">
+                הרשימה שלי
             </div>
-
-            <!-- שורת נתונים: שולם / נשאר לשלם / סה"כ -->
-            <div id="barStatsRow" style="display:flex;gap:8px;padding:10px 14px 0;">
-
-                <div style="flex:1;height:58px;border-radius:16px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;">
-                    <span style="font-size:9px;font-weight:700;color:rgba(255,255,255,0.58);white-space:nowrap;" id="paidInListLabel">שולם ברשימה</span>
-                    <span style="font-size:17px;font-weight:900;color:#86efac;line-height:1.2;">₪<span id="displayPaid">0.00</span></span>
-                </div>
-
-                <div style="flex:1;height:58px;border-radius:16px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;">
-                    <span style="font-size:9px;font-weight:700;color:rgba(255,255,255,0.58);white-space:nowrap;" id="remainingToPayLabel">נשאר לשלם</span>
-                    <span style="font-size:17px;font-weight:900;color:#fcd34d;line-height:1.2;">₪<span id="displayLeft">0.00</span></span>
-                </div>
-
-                <div style="flex:1;height:58px;border-radius:16px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;">
-                    <span style="font-size:9px;font-weight:700;color:rgba(255,255,255,0.58);white-space:nowrap;" id="totalListLabel">סה"כ רשימה</span>
-                    <span style="font-size:17px;font-weight:900;color:white;line-height:1.2;">₪<span id="displayTotal">0.00</span></span>
-                </div>
-
-            </div>
-
-            <!-- שורת טאבים -->
-            <div id="barTabsRow" style="display:flex;flex-direction:column;gap:7px;padding:8px 14px 14px;" onclick="event.stopPropagation()">
-
-                <!-- שורה 1: הרשימה שלי + הרשימות שלי -->
-                <div style="display:flex;gap:7px;">
-                    <div id="tabLists" onclick="showPage('lists')"
-                        style="flex:1;height:44px;background:rgba(255,255,255,0.16);border-radius:16px;font-size:15px;font-weight:800;color:white;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all 0.2s;">
-                        הרשימה שלי
-                    </div>
-                    <div id="tabSummary" onclick="showPage('summary')"
-                        style="flex:1;height:44px;background:rgba(255,255,255,0.16);border-radius:16px;font-size:15px;font-weight:800;color:white;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all 0.2s;">
-                        הרשימות שלי
-                    </div>
-                </div>
-
-                <!-- שורה 2: סטטיסטיקות + פיננסי -->
-                <div style="display:flex;gap:7px;">
-                    <div id="tabStats" onclick="showPage('stats')"
-                        style="flex:1;height:44px;background:rgba(255,255,255,0.16);border-radius:16px;font-size:15px;font-weight:800;color:white;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all 0.2s;">
-                        סטטיסטיקות 📊
-                    </div>
-                    <div id="tabBank" onclick="showPage('bank')"
-                        style="flex:1;height:44px;background:rgba(255,255,255,0.16);border-radius:16px;font-size:15px;font-weight:800;color:white;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all 0.2s;">
-                        פיננסי 🏦
-                    </div>
-                </div>
-
+            <div id="tabSummary" onclick="showPage('summary')"
+                style="flex:1;height:44px;border-radius:14px;background:rgba(255,255,255,0.16);font-size:15px;font-weight:800;color:white;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all 0.2s;">
+                הרשימות שלי
             </div>
         </div>
 
-        <!-- ═══ EXPANDED STATE ═══ -->
-        <div id="barExpanded" style="display:none;flex-direction:column;align-items:center;padding:14px 14px 4px;gap:8px;">
+        <!-- שורה 2: מדריך | פלוס | גרירה -->
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;align-items:center;">
 
-            <!-- שורה עליונה: גרירה | פלוס | מדריך — גריד 3 עמודות שוות -->
-            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;width:100%;align-items:center;">
+            <button id="wizardModeBtn" onclick="toggleWizardMode()"
+                style="height:52px;border-radius:16px;background:rgba(255,255,255,0.13);border:1px solid rgba(255,255,255,0.2);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;cursor:pointer;transition:all 0.2s;"
+                ontouchstart="this.style.transform='scale(0.93)'" ontouchend="this.style.transform='scale(1)'">
+                <span style="font-size:18px;line-height:1;">✨</span>
+                <span id="wizardBtnText" style="font-size:10px;font-weight:800;color:rgba(255,255,255,0.92);">מדריך</span>
+            </button>
 
-                <!-- ביטול גרירה -->
-                <button id="mainLockBtn" onclick="event.stopPropagation(); toggleLock()"
-                    style="height:52px;border-radius:16px;background:rgba(255,255,255,0.13);border:1px solid rgba(255,255,255,0.2);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;cursor:pointer;transition:all 0.2s;"
-                    ontouchstart="this.style.transform='scale(0.93)'" ontouchend="this.style.transform='scale(1)'">
-                    <svg id="lockIconSvg" width="18" height="18" fill="none" stroke="white" viewBox="0 0 24 24">
-                        <path id="lockIconPath" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                            d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
-                    </svg>
-                    <span style="font-size:10px;font-weight:800;color:rgba(255,255,255,0.92);">גרירה</span>
-                </button>
+            <button onclick="handlePlusBtn(event)"
+                style="width:62px;height:62px;justify-self:center;border-radius:50%;background:#22c55e;border:3px solid rgba(255,255,255,0.35);display:flex;align-items:center;justify-content:center;box-shadow:0 6px 20px rgba(34,197,94,0.5);cursor:pointer;transition:transform 0.2s;animation:smartPlusPulse 2.4s ease-out infinite;"
+                ontouchstart="this.style.transform='scale(0.9)'" ontouchend="this.style.transform='scale(1)'">
+                <svg width="30" height="30" fill="none" stroke="white" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.8" d="M12 5v14M5 12h14"/>
+                </svg>
+            </button>
 
-                <!-- פלוס ירוק גדול — מרכז -->
-                <button onclick="event.stopPropagation(); handlePlusBtn(event)"
-                    style="width:62px;height:62px;justify-self:center;border-radius:50%;background:#22c55e;border:3px solid rgba(255,255,255,0.35);display:flex;align-items:center;justify-content:center;box-shadow:0 6px 20px rgba(34,197,94,0.5);cursor:pointer;transition:transform 0.2s;animation:smartPlusPulse 2.4s ease-out infinite;"
-                    ontouchstart="this.style.transform='scale(0.9)'" ontouchend="this.style.transform='scale(1)'">
-                    <svg width="30" height="30" fill="none" stroke="white" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.8" d="M12 5v14M5 12h14"/>
-                    </svg>
-                </button>
-
-                <!-- מדריך -->
-                <button id="wizardModeBtn" onclick="event.stopPropagation(); toggleWizardMode()"
-                    style="height:52px;border-radius:16px;background:rgba(255,255,255,0.13);border:1px solid rgba(255,255,255,0.2);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;cursor:pointer;transition:all 0.2s;"
-                    ontouchstart="this.style.transform='scale(0.93)'" ontouchend="this.style.transform='scale(1)'">
-                    <span style="font-size:18px;line-height:1;">✨</span>
-                    <span id="wizardBtnText" style="font-size:10px;font-weight:800;color:rgba(255,255,255,0.92);">מדריך</span>
-                </button>
-
-            </div>
-
-            <!-- 3 כפתורי פעולה -->
-            <div style="display:flex;gap:8px;width:100%;">
-
-                <!-- הוספה קולית -->
-                <button id="bottomAddBtn"
-                    onclick="event.stopPropagation(); if(_voiceActionActive){ startVoiceAction('tobuy'); } else if(wizardMode){ wiz('voiceTobuy','before',()=>startVoiceAction('tobuy')); } else { startVoiceAction('tobuy'); }"
-                    style="flex:1;height:52px;border-radius:16px;background:rgba(255,255,255,0.13);border:1px solid rgba(255,255,255,0.2);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;cursor:pointer;transition:all 0.2s;"
-                    ontouchstart="this.style.transform='scale(0.93)'" ontouchend="this.style.transform='scale(1)'">
-                    <div style="position:relative;width:20px;height:20px;display:flex;align-items:center;justify-content:center;">
-                        <svg width="18" height="18" fill="none" stroke="white" stroke-width="1.8" viewBox="0 0 24 24">
-                            <rect x="9" y="2" width="6" height="11" rx="3" fill="rgba(255,255,255,0.2)" stroke="white" stroke-width="1.8"/>
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M19 10a7 7 0 01-14 0M12 19v3M9 22h6"/>
-                        </svg>
-                        <div style="position:absolute;top:-4px;right:-6px;width:13px;height:13px;border-radius:50%;background:#22c55e;display:flex;align-items:center;justify-content:center;border:1.5px solid rgba(115,103,240,0.8);font-size:8px;font-weight:900;color:white;">+</div>
-                    </div>
-                    <span style="font-size:10px;font-weight:800;color:rgba(255,255,255,0.92);">הוספה</span>
-                </button>
-
-                <!-- סיום רשימה -->
-                <button onclick="event.stopPropagation(); wizardMode ? openWizard('completeList') : openModal('confirmModal')"
-                    style="flex:1;height:52px;border-radius:16px;background:#ef4444;border:none;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;cursor:pointer;transition:all 0.2s;box-shadow:0 4px 14px rgba(239,68,68,0.4);"
-                    ontouchstart="this.style.transform='scale(0.93)'" ontouchend="this.style.transform='scale(1)'">
-                    <svg width="20" height="20" fill="none" stroke="white" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/>
-                    </svg>
-                    <span style="font-size:10px;font-weight:800;color:white;">סיום רשימה</span>
-                </button>
-
-                <!-- בוצע קולי -->
-                <button id="bottomDoneBtn"
-                    onclick="event.stopPropagation(); if(_voiceActionActive){ startVoiceAction('bought'); } else if(wizardMode){ wiz('voiceBought','before',()=>startVoiceAction('bought')); } else { startVoiceAction('bought'); }"
-                    style="flex:1;height:52px;border-radius:16px;background:rgba(255,255,255,0.13);border:1px solid rgba(255,255,255,0.2);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;cursor:pointer;transition:all 0.2s;"
-                    ontouchstart="this.style.transform='scale(0.93)'" ontouchend="this.style.transform='scale(1)'">
-                    <div style="position:relative;width:20px;height:20px;display:flex;align-items:center;justify-content:center;">
-                        <svg width="18" height="18" fill="none" stroke="white" stroke-width="1.8" viewBox="0 0 24 24">
-                            <rect x="9" y="2" width="6" height="11" rx="3" fill="rgba(255,255,255,0.2)" stroke="white" stroke-width="1.8"/>
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M19 10a7 7 0 01-14 0M12 19v3M9 22h6"/>
-                        </svg>
-                        <div style="position:absolute;top:-4px;right:-6px;width:13px;height:13px;border-radius:50%;background:#22c55e;display:flex;align-items:center;justify-content:center;border:1.5px solid rgba(115,103,240,0.8);font-size:8px;font-weight:900;color:white;">✓</div>
-                    </div>
-                    <span style="font-size:10px;font-weight:800;color:rgba(255,255,255,0.92);">בוצע</span>
-                </button>
-
-            </div>
-
-            <!-- שורת ניווט מהירה — תמיד גלויה בבר הפתוח -->
-            <div style="display:flex;gap:8px;width:100%;padding:0 0 2px;" onclick="event.stopPropagation()">
-                <div id="expandedTabLists" onclick="showPage('lists'); updateExpandedTabs('lists')"
-                    style="flex:1;height:36px;border-radius:12px;background:rgba(255,255,255,0.16);display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all 0.2s;font-size:12px;font-weight:800;color:white;">
-                    הרשימה שלי
-                </div>
-                <div id="expandedTabSummary" onclick="showPage('summary'); updateExpandedTabs('summary')"
-                    style="flex:1;height:36px;border-radius:12px;background:rgba(255,255,255,0.16);display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all 0.2s;font-size:12px;font-weight:800;color:white;">
-                    הרשימות שלי
-                </div>
-            </div>
+            <button id="mainLockBtn" onclick="toggleLock()"
+                style="height:52px;border-radius:16px;background:rgba(255,255,255,0.13);border:1px solid rgba(255,255,255,0.2);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;cursor:pointer;transition:all 0.2s;"
+                ontouchstart="this.style.transform='scale(0.93)'" ontouchend="this.style.transform='scale(1)'">
+                <svg id="lockIconSvg" width="18" height="18" fill="none" stroke="white" viewBox="0 0 24 24">
+                    <path id="lockIconPath" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
+                </svg>
+                <span style="font-size:10px;font-weight:800;color:rgba(255,255,255,0.92);">גרירה</span>
+            </button>
 
         </div>
 
-        <!-- פס דק — תמיד בתחתית, מחליף בין מצבי הבר, מורד למניעת לחיצה בטעות -->
-        <div onclick="event.stopPropagation(); toggleSmartBar()"
-            style="display:flex;justify-content:center;padding:10px 0 14px;cursor:pointer;">
-            <div style="width:40px;height:4px;background:rgba(255,255,255,0.35);border-radius:2px;"></div>
+        <!-- שורה 3: פעולות / נתונים (מתחלף בגלילה) -->
+        <div id="barActionsRow" style="display:flex;gap:8px;">
+
+            <button id="bottomAddBtn"
+                onclick="if(_voiceActionActive){ startVoiceAction('tobuy'); } else if(wizardMode){ wiz('voiceTobuy','before',()=>startVoiceAction('tobuy')); } else { startVoiceAction('tobuy'); }"
+                style="flex:1;height:52px;border-radius:16px;background:rgba(255,255,255,0.13);border:1px solid rgba(255,255,255,0.2);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;cursor:pointer;transition:all 0.2s;"
+                ontouchstart="this.style.transform='scale(0.93)'" ontouchend="this.style.transform='scale(1)'">
+                <div style="position:relative;width:20px;height:20px;display:flex;align-items:center;justify-content:center;">
+                    <svg width="18" height="18" fill="none" stroke="white" stroke-width="1.8" viewBox="0 0 24 24">
+                        <rect x="9" y="2" width="6" height="11" rx="3" fill="rgba(255,255,255,0.2)" stroke="white" stroke-width="1.8"/>
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M19 10a7 7 0 01-14 0M12 19v3M9 22h6"/>
+                    </svg>
+                    <div style="position:absolute;top:-4px;right:-6px;width:13px;height:13px;border-radius:50%;background:#22c55e;display:flex;align-items:center;justify-content:center;border:1.5px solid rgba(115,103,240,0.8);font-size:8px;font-weight:900;color:white;">+</div>
+                </div>
+                <span style="font-size:10px;font-weight:800;color:rgba(255,255,255,0.92);">הוספה</span>
+            </button>
+
+            <button onclick="wizardMode ? openWizard('completeList') : openModal('confirmModal')"
+                style="flex:1;height:52px;border-radius:16px;background:#ef4444;border:none;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;cursor:pointer;transition:all 0.2s;box-shadow:0 4px 14px rgba(239,68,68,0.4);"
+                ontouchstart="this.style.transform='scale(0.93)'" ontouchend="this.style.transform='scale(1)'">
+                <svg width="20" height="20" fill="none" stroke="white" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/>
+                </svg>
+                <span style="font-size:10px;font-weight:800;color:white;">סיום רשימה</span>
+            </button>
+
+            <button id="bottomDoneBtn"
+                onclick="if(_voiceActionActive){ startVoiceAction('bought'); } else if(wizardMode){ wiz('voiceBought','before',()=>startVoiceAction('bought')); } else { startVoiceAction('bought'); }"
+                style="flex:1;height:52px;border-radius:16px;background:rgba(255,255,255,0.13);border:1px solid rgba(255,255,255,0.2);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;cursor:pointer;transition:all 0.2s;"
+                ontouchstart="this.style.transform='scale(0.93)'" ontouchend="this.style.transform='scale(1)'">
+                <div style="position:relative;width:20px;height:20px;display:flex;align-items:center;justify-content:center;">
+                    <svg width="18" height="18" fill="none" stroke="white" stroke-width="1.8" viewBox="0 0 24 24">
+                        <rect x="9" y="2" width="6" height="11" rx="3" fill="rgba(255,255,255,0.2)" stroke="white" stroke-width="1.8"/>
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M19 10a7 7 0 01-14 0M12 19v3M9 22h6"/>
+                    </svg>
+                    <div style="position:absolute;top:-4px;right:-6px;width:13px;height:13px;border-radius:50%;background:#22c55e;display:flex;align-items:center;justify-content:center;border:1.5px solid rgba(115,103,240,0.8);font-size:8px;font-weight:900;color:white;">✓</div>
+                </div>
+                <span style="font-size:10px;font-weight:800;color:rgba(255,255,255,0.92);">בוצע</span>
+            </button>
+
         </div>
 
-        <!-- mainLockBtn מוסתר — נשאר לתאימות עם script.js -->
+        <!-- שורת נתונים — מוצגת בגלילה -->
+        <div id="barStatsRow" style="display:none;gap:8px;">
+            <div style="flex:1;height:52px;border-radius:16px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;">
+                <span style="font-size:9px;font-weight:700;color:rgba(255,255,255,0.58);" id="paidInListLabel">שולם ברשימה</span>
+                <span style="font-size:17px;font-weight:900;color:#86efac;line-height:1.2;">₪<span id="displayPaid">0.00</span></span>
+            </div>
+            <div style="flex:1;height:52px;border-radius:16px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;">
+                <span style="font-size:9px;font-weight:700;color:rgba(255,255,255,0.58);" id="remainingToPayLabel">נשאר לשלם</span>
+                <span style="font-size:17px;font-weight:900;color:#fcd34d;line-height:1.2;">₪<span id="displayLeft">0.00</span></span>
+            </div>
+            <div style="flex:1;height:52px;border-radius:16px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;">
+                <span style="font-size:9px;font-weight:700;color:rgba(255,255,255,0.58);" id="totalListLabel">סה"כ רשימה</span>
+                <span style="font-size:17px;font-weight:900;color:white;line-height:1.2;">₪<span id="displayTotal">0.00</span></span>
+            </div>
+        </div>
+
+        <!-- mainLockBtn מוסתר — תאימות עם script.js -->
         <button id="mainLockBtnHidden" style="display:none;"></button>
 
     </div>
@@ -2616,90 +2563,52 @@ ${error.message}
             70%  { box-shadow: 0 0 0 14px rgba(34,197,94,0),   0 6px 20px rgba(34,197,94,0.5); }
             100% { box-shadow: 0 0 0 0   rgba(34,197,94,0),   0 6px 20px rgba(34,197,94,0.5); }
         }
-        #barExpanded.open-anim .action-btn-1 { animation: smartPopIn 0.3s cubic-bezier(0.34,1.56,0.64,1) 0.08s both; }
-        #barExpanded.open-anim .action-btn-2 { animation: smartPopIn 0.3s cubic-bezier(0.34,1.56,0.64,1) 0.15s both; }
-        #barExpanded.open-anim .action-btn-3 { animation: smartPopIn 0.3s cubic-bezier(0.34,1.56,0.64,1) 0.22s both; }
-        @keyframes smartPopIn {
-            from { transform: scale(0.5) translateY(14px); opacity: 0; }
-            to   { transform: scale(1)   translateY(0);    opacity: 1; }
+        @keyframes barFadeIn {
+            from { opacity: 0; transform: translateY(4px); }
+            to   { opacity: 1; transform: translateY(0); }
         }
-        #barCollapsed.sb-hidden { display: none; }
     </style>
 
     <script>
         var _smartBarOpen = false;
-        var _barShowStats = true; // true = שורת נתונים, false = שורת טאבים
+        // ═══ בר קבוע — לוגיקת גלילה ועדכון טאבים ═══
 
-        function toggleBarView() {
-            _barShowStats = !_barShowStats;
-            document.getElementById('barStatsRow').style.display = _barShowStats ? 'flex' : 'none';
-            document.getElementById('barTabsRow').style.display  = _barShowStats ? 'none' : 'flex';
-        }
-        function updateExpandedTabs(page) {
-            var activeStyle = 'flex:1;height:36px;border-radius:12px;background:white;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all 0.2s;font-size:12px;font-weight:900;color:#7367f0;box-shadow:0 2px 8px rgba(0,0,0,0.15);';
-            var inactiveStyle = 'flex:1;height:36px;border-radius:12px;background:rgba(255,255,255,0.16);display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all 0.2s;font-size:12px;font-weight:800;color:white;';
-            var tl = document.getElementById('expandedTabLists');
-            var ts = document.getElementById('expandedTabSummary');
-            if (tl) tl.style.cssText = (page === 'lists') ? activeStyle : inactiveStyle;
+        var _scrollTimer = null;
+        var _isScrolling = false;
+
+        // החלפת שורת פעולות ↔ נתונים בגלילה
+        window.addEventListener('scroll', function() {
+            if (!_isScrolling) {
+                _isScrolling = true;
+                var actions = document.getElementById('barActionsRow');
+                var stats   = document.getElementById('barStatsRow');
+                if (actions) actions.style.display = 'none';
+                if (stats)   { stats.style.display = 'flex'; stats.style.animation = 'barFadeIn 0.2s ease'; }
+            }
+            clearTimeout(_scrollTimer);
+            _scrollTimer = setTimeout(function() {
+                _isScrolling = false;
+                var actions = document.getElementById('barActionsRow');
+                var stats   = document.getElementById('barStatsRow');
+                if (stats)   stats.style.display = 'none';
+                if (actions) { actions.style.display = 'flex'; actions.style.animation = 'barFadeIn 0.2s ease'; }
+            }, 800);
+        }, { passive: true });
+
+        function updateNavPill(page) {
+            var activeStyle   = 'flex:1;height:44px;border-radius:14px;background:white;font-size:15px;font-weight:900;color:#7367f0;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all 0.2s;box-shadow:0 3px 10px rgba(0,0,0,0.12);';
+            var inactiveStyle = 'flex:1;height:44px;border-radius:14px;background:rgba(255,255,255,0.16);font-size:15px;font-weight:800;color:white;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all 0.2s;';
+            var tl = document.getElementById('tabLists');
+            var ts = document.getElementById('tabSummary');
+            if (tl) tl.style.cssText = (page === 'lists')   ? activeStyle : inactiveStyle;
             if (ts) ts.style.cssText = (page === 'summary') ? activeStyle : inactiveStyle;
         }
 
-        function openSmartBar() {
-            if (_smartBarOpen) return;
-            _smartBarOpen = true;
-            document.getElementById('barCollapsed').classList.add('sb-hidden');
-            var expanded = document.getElementById('barExpanded');
-            expanded.style.display = 'flex';
-            expanded.classList.add('open-anim');
-        }
-
-        function toggleSmartBar() {
-            _smartBarOpen = !_smartBarOpen;
-            var collapsed = document.getElementById('barCollapsed');
-            var expanded  = document.getElementById('barExpanded');
-            if (_smartBarOpen) {
-                collapsed.classList.add('sb-hidden');
-                expanded.style.display = 'flex';
-                expanded.classList.add('open-anim');
-            } else {
-                collapsed.classList.remove('sb-hidden');
-                expanded.style.display = 'none';
-                expanded.classList.remove('open-anim');
-            }
-        }
-
-        function updateNavPill(page) {
-            var addPill = document.getElementById('navPillAdd');
-            var payPill = document.getElementById('navPillPay');
-            if (!addPill || !payPill) return;
-            var activeStyle = 'padding:5px 18px;border-radius:50px;font-size:12px;font-weight:800;cursor:pointer;transition:all 0.2s;background:rgba(255,255,255,0.85);color:#7367f0;';
-            var inactiveStyle = 'padding:5px 18px;border-radius:50px;font-size:12px;font-weight:800;cursor:pointer;transition:all 0.2s;color:rgba(255,255,255,0.7);';
-            if (page === 'lists') {
-                addPill.style.cssText = activeStyle;
-                payPill.style.cssText = inactiveStyle;
-            } else {
-                addPill.style.cssText = inactiveStyle;
-                payPill.style.cssText = activeStyle;
-            }
-        }
-
-        // סגירת הבר בגלילה — נשאר סגור
-        window.addEventListener('scroll', function() {
-            if (_smartBarOpen) {
-                _smartBarOpen = false;
-                document.getElementById('barCollapsed').classList.remove('sb-hidden');
-                document.getElementById('barExpanded').style.display = 'none';
-            }
-        }, { passive: true });
-
-        // סגירת הבר כשלוחצים מחוץ לו
-        document.addEventListener('click', function(e) {
-            if (_smartBarOpen && !document.getElementById('smartBottomBar').contains(e.target)) {
-                _smartBarOpen = false;
-                document.getElementById('barCollapsed').classList.remove('sb-hidden');
-                document.getElementById('barExpanded').style.display = 'none';
-            }
-        });
+        // stub functions לתאימות עם קוד קיים
+        function openSmartBar() {}
+        function toggleSmartBar() {}
+        function updateExpandedTabs(page) { updateNavPill(page); }
+        var _smartBarOpen = true;
     </script>
 
     <div id="printArea" class="hidden"></div>
