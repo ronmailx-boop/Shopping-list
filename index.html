@@ -2448,19 +2448,17 @@ ${error.message}
         <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;padding:0 2px;margin-bottom:10px;">
             <button id="bottomAddBtn"
                 onclick="event.stopPropagation(); if(_voiceActionActive){ startVoiceAction('tobuy'); } else if(wizardMode){ wiz('voiceTobuy','before',()=>startVoiceAction('tobuy')); } else { startVoiceAction('tobuy'); }"
-                title="הוספה"
-                style="flex:1;height:40px;min-width:0;background:white;border:none;border-radius:50px;font-size:13px;font-weight:800;color:#7367f0;cursor:pointer;transition:all 0.2s;display:flex;align-items:center;justify-content:center;gap:5px;box-shadow:0 3px 10px rgba(0,0,0,0.15);">
-                <svg width="17" height="17" viewBox="0 0 22 22" fill="none" style="flex-shrink:0;"><rect width="22" height="22" rx="5" fill="#3dbb5e"/><path d="M11 6v10M6 11h10" stroke="white" stroke-width="2.5" stroke-linecap="round"/></svg>
+                style="flex:1;height:40px;background:white;border:none;border-radius:50px;font-size:13px;font-weight:800;color:#7367f0;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:5px;box-shadow:0 3px 10px rgba(0,0,0,0.15);">
+                <svg width="17" height="17" viewBox="0 0 22 22" fill="none"><rect width="22" height="22" rx="5" fill="#3dbb5e"/><path d="M11 6v10M6 11h10" stroke="white" stroke-width="2.5" stroke-linecap="round"/></svg>
                 <span>הוספה</span>
             </button>
             <button id="wizardModeBtn" onclick="event.stopPropagation(); toggleWizardMode()"
-                style="flex:1.2;height:40px;min-width:0;background:white;border:none;border-radius:50px;font-size:13px;font-weight:800;color:#7367f0;cursor:pointer;transition:all 0.2s;display:flex;align-items:center;justify-content:center;gap:4px;box-shadow:0 3px 10px rgba(0,0,0,0.15);">
+                style="flex:1.2;height:40px;background:white;border:none;border-radius:50px;font-size:13px;font-weight:800;color:#7367f0;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:4px;box-shadow:0 3px 10px rgba(0,0,0,0.15);">
                 <span>✨</span><span id="wizardBtnText">מדריך</span>
             </button>
             <button id="bottomDoneBtn"
                 onclick="event.stopPropagation(); if(_voiceActionActive){ startVoiceAction('bought'); } else if(wizardMode){ wiz('voiceBought','before',()=>startVoiceAction('bought')); } else { startVoiceAction('bought'); }"
-                title="בוצע"
-                style="flex:1;height:40px;min-width:0;background:white;border:none;border-radius:50px;font-size:13px;font-weight:800;color:#7367f0;cursor:pointer;transition:all 0.2s;display:flex;align-items:center;justify-content:center;gap:5px;box-shadow:0 3px 10px rgba(0,0,0,0.15);">
+                style="flex:1;height:40px;background:white;border:none;border-radius:50px;font-size:13px;font-weight:800;color:#7367f0;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:5px;box-shadow:0 3px 10px rgba(0,0,0,0.15);">
                 <span>✅</span><span>בוצע</span>
             </button>
         </div>
@@ -2478,8 +2476,8 @@ ${error.message}
                             d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
                     </svg>
                 </button>
-                <div style="font-size:10px;opacity:0.8;margin-top:4px;text-align:center;" id="paidInListLabel">שולם ברשימה</div>
-                <div style="font-size:14px;font-weight:800;line-height:1.2;text-align:center;">₪<span id="displayPaid">0.00</span></div>
+                <div style="font-size:10px;opacity:0.8;margin-top:4px;text-align:center;color:white;" id="paidInListLabel">שולם ברשימה</div>
+                <div style="font-size:14px;font-weight:800;line-height:1.2;text-align:center;color:white;">₪<span id="displayPaid">0.00</span></div>
             </div>
 
             <!-- Center: Plus (green) -->
@@ -2504,8 +2502,8 @@ ${error.message}
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/>
                     </svg>
                 </button>
-                <div style="font-size:10px;opacity:0.8;margin-top:4px;text-align:center;" id="totalListLabel">סה"כ רשימה</div>
-                <div style="font-size:14px;font-weight:800;line-height:1.2;text-align:center;">₪<span id="displayTotal">0.00</span></div>
+                <div style="font-size:10px;opacity:0.8;margin-top:4px;text-align:center;color:white;" id="totalListLabel">סה"כ רשימה</div>
+                <div style="font-size:14px;font-weight:800;line-height:1.2;text-align:center;color:white;">₪<span id="displayTotal">0.00</span></div>
             </div>
 
         </div>
@@ -2513,11 +2511,11 @@ ${error.message}
         <!-- Row 3: הרשימה שלי / הרשימות שלי -->
         <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;padding:0 2px;">
             <div id="tabLists" onclick="event.stopPropagation(); showPage('lists')"
-                style="flex:1;height:40px;min-width:0;background:rgba(255,255,255,0.20);border:none;border-radius:50px;font-size:13px;font-weight:800;color:white;cursor:pointer;transition:all 0.2s;display:flex;align-items:center;justify-content:center;">
+                style="flex:1;height:40px;background:rgba(255,255,255,0.20);border:none;border-radius:50px;font-size:13px;font-weight:800;color:white;cursor:pointer;transition:all 0.2s;display:flex;align-items:center;justify-content:center;">
                 הרשימה שלי
             </div>
             <div id="tabSummary" onclick="event.stopPropagation(); showPage('summary')"
-                style="flex:1;height:40px;min-width:0;background:rgba(255,255,255,0.20);border:none;border-radius:50px;font-size:13px;font-weight:800;color:white;cursor:pointer;transition:all 0.2s;display:flex;align-items:center;justify-content:center;">
+                style="flex:1;height:40px;background:rgba(255,255,255,0.20);border:none;border-radius:50px;font-size:13px;font-weight:800;color:white;cursor:pointer;transition:all 0.2s;display:flex;align-items:center;justify-content:center;">
                 הרשימות שלי
             </div>
         </div>
