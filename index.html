@@ -2683,6 +2683,25 @@ ${error.message}
             }
         }
 
+        // סגירת הבר בגלילה, פתיחה מחדש כשמפסיקים
+        var _scrollTimer = null;
+        window.addEventListener('scroll', function() {
+            if (_smartBarOpen) {
+                // סגור את הבר בזמן גלילה
+                _smartBarOpen = false;
+                document.getElementById('barCollapsed').classList.remove('sb-hidden');
+                document.getElementById('barExpanded').style.display = 'none';
+            }
+            // פתח מחדש אחרי עצירת גלילה (500ms)
+            clearTimeout(_scrollTimer);
+            _scrollTimer = setTimeout(function() {
+                if (!_smartBarOpen && (activePage === 'lists' || activePage === 'summary')) {
+                    openSmartBar();
+                    if (typeof updateExpandedTabs === 'function') updateExpandedTabs(activePage);
+                }
+            }, 500);
+        }, { passive: true });
+
         // סגירת הבר כשלוחצים מחוץ לו
         document.addEventListener('click', function(e) {
             if (_smartBarOpen && !document.getElementById('smartBottomBar').contains(e.target)) {
