@@ -91,15 +91,6 @@
             box-shadow: 0 -10px 25px rgba(0, 0, 0, 0.15);
             transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
         }
-        #smartBottomBar::before {
-            content: '';
-            display: block;
-            width: 38px; height: 4px;
-            background: rgba(255,255,255,0.3);
-            border-radius: 2px;
-            margin: 11px auto 0;
-        }
-
         .bottom-bar.minimized {
             transform: translateY(calc(100% - 8px));
         }
@@ -2448,7 +2439,7 @@ ${error.message}
         <div id="barCollapsed" onclick="toggleSmartBar()">
 
             <!-- שורת נתונים: שולם / נשאר לשלם / סה"כ -->
-            <div style="display:flex;gap:8px;padding:10px 14px 0;">
+            <div id="barStatsRow" style="display:flex;gap:8px;padding:10px 14px 0;">
 
                 <div style="flex:1;height:52px;border-radius:16px;background:rgba(255,255,255,0.13);border:1px solid rgba(255,255,255,0.2);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;">
                     <span style="font-size:7.5px;font-weight:700;color:rgba(255,255,255,0.58);white-space:nowrap;" id="paidInListLabel">שולם ברשימה</span>
@@ -2468,7 +2459,7 @@ ${error.message}
             </div>
 
             <!-- שורת טאבים + מדריך -->
-            <div style="display:flex;gap:8px;padding:8px 14px 14px;" onclick="event.stopPropagation()">
+            <div id="barTabsRow" style="display:flex;gap:8px;padding:8px 14px 14px;" onclick="event.stopPropagation()">
 
                 <div id="tabLists" onclick="showPage('lists')"
                     style="flex:1;height:38px;background:rgba(255,255,255,0.16);border:none;border-radius:50px;font-size:13px;font-weight:800;color:white;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all 0.2s;">
@@ -2490,8 +2481,8 @@ ${error.message}
             </div>
         </div>
 
-        <!-- פס דק תחתון — תמיד גלוי, מחליף בין מסכים -->
-        <div onclick="event.stopPropagation(); showPage(typeof activePage !== 'undefined' && activePage === 'lists' ? 'summary' : 'lists')"
+        <!-- פס דק תחתון — מחליף בין הבר הסגור לפתוח -->
+        <div onclick="event.stopPropagation(); toggleSmartBar()"
             style="display:flex;justify-content:center;padding:6px 0 10px;cursor:pointer;">
             <div style="width:40px;height:4px;background:rgba(255,255,255,0.35);border-radius:2px;"></div>
         </div>
@@ -2579,6 +2570,13 @@ ${error.message}
 
     <script>
         var _smartBarOpen = false;
+        var _barShowStats = true; // true = שורת נתונים, false = שורת טאבים
+
+        function toggleBarView() {
+            _barShowStats = !_barShowStats;
+            document.getElementById('barStatsRow').style.display = _barShowStats ? 'flex' : 'none';
+            document.getElementById('barTabsRow').style.display  = _barShowStats ? 'none' : 'flex';
+        }
         function toggleSmartBar() {
             _smartBarOpen = !_smartBarOpen;
             var collapsed = document.getElementById('barCollapsed');
