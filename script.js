@@ -4379,7 +4379,7 @@ function loginWithGoogle() {
     updateCloudIndicator('syncing');
 
     // Use signInWithRedirect for GitHub Pages, signInWithPopup for Firebase domains
-            const isGitHubPages = true; // Always use Redirect to avoid popup block
+    const isGitHubPages = window.location.hostname.includes('github.io');
     
     if (isGitHubPages) {
         // GitHub Pages - use Redirect (Popup is blocked)
