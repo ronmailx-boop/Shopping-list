@@ -1403,6 +1403,11 @@ ${error.message}
                         <span class="pill-text">בנק</span>
                     </label>
 
+                    <button onclick="openBankModal()" class="action-pill" style="background: linear-gradient(135deg, #0ea5e9 0%, #0369a1 100%); border-color: #0369a1;">
+                        <span class="pill-icon">🏛️</span>
+                        <span class="pill-text" style="color: white;">בנק</span>
+                    </button>
+
                     <button onclick="openCreditCardModal()" class="action-pill" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-color: #764ba2;">
                         <span class="pill-icon">💳</span>
                         <span class="pill-text" style="color: white;">פיננסי</span>
@@ -1965,6 +1970,78 @@ ${error.message}
     </div>
 
     <!-- ===== Credit Card Connection Modal ===== -->
+
+    <!-- ===== Bank Modal ===== -->
+    <div id="bankModal" class="modal-overlay no-print">
+        <div class="credit-modal" style="max-height:90vh; overflow-y:auto;">
+            <h2 style="text-align:center; font-size:1.3rem; font-weight:900; margin-bottom:4px;">🏛️ חיבור לבנק</h2>
+            <p style="text-align:center; color:#6b7280; font-size:13px; margin-bottom:12px;">בחר בנק והזן פרטי התחברות</p>
+
+            <div class="credit-company-grid" style="grid-template-columns: repeat(3, 1fr); gap:8px; margin-bottom:14px;">
+                <button class="credit-company-btn" onclick="selectBank('hapoalim', this)">
+                    <div style="font-size:20px;">🔴</div>
+                    <div style="font-size:11px;">פועלים</div>
+                </button>
+                <button class="credit-company-btn" onclick="selectBank('leumi', this)">
+                    <div style="font-size:20px;">🟢</div>
+                    <div style="font-size:11px;">לאומי</div>
+                </button>
+                <button class="credit-company-btn" onclick="selectBank('mizrahi', this)">
+                    <div style="font-size:20px;">🟠</div>
+                    <div style="font-size:11px;">מזרחי</div>
+                </button>
+                <button class="credit-company-btn" onclick="selectBank('discount', this)">
+                    <div style="font-size:20px;">🔵</div>
+                    <div style="font-size:11px;">דיסקונט</div>
+                </button>
+                <button class="credit-company-btn" onclick="selectBank('otsarHahayal', this)">
+                    <div style="font-size:20px;">🪖</div>
+                    <div style="font-size:11px;">אוצר החייל</div>
+                </button>
+                <button class="credit-company-btn" onclick="selectBank('yahav', this)">
+                    <div style="font-size:20px;">🟡</div>
+                    <div style="font-size:11px;">יהב</div>
+                </button>
+                <button class="credit-company-btn" onclick="selectBank('massad', this)">
+                    <div style="font-size:20px;">🏦</div>
+                    <div style="font-size:11px;">מסד</div>
+                </button>
+                <button class="credit-company-btn" onclick="selectBank('unionBank', this)">
+                    <div style="font-size:20px;">🤝</div>
+                    <div style="font-size:11px;">איגוד</div>
+                </button>
+                <button class="credit-company-btn" onclick="selectBank('beinleumi', this)">
+                    <div style="font-size:20px;">🌐</div>
+                    <div style="font-size:11px;">בינלאומי</div>
+                </button>
+            </div>
+
+            <input type="text" id="bankUsername"
+                placeholder="שם משתמש / תעודת זהות"
+                class="modal-input" autocomplete="username"
+                style="margin-bottom:10px;">
+            <input type="password" id="bankPassword"
+                placeholder="סיסמה"
+                class="modal-input" autocomplete="current-password"
+                style="margin-bottom:16px;">
+
+            <div style="background:#fef9c3; border-radius:12px; padding:10px 14px; font-size:12px; color:#92400e; margin-bottom:16px; text-align:right;">
+                🔒 הפרטים נשלחים ישירות לבנק ואינם נשמרים אצלנו
+            </div>
+
+            <div class="flex gap-3">
+                <button onclick="startBankFetch()"
+                    style="flex:1; background:linear-gradient(135deg,#0ea5e9,#0369a1); color:white; padding:14px; border-radius:14px; font-weight:900; font-size:15px; border:none; cursor:pointer;">
+                    🏛️ התחבר ושלוף נתונים
+                </button>
+                <button onclick="closeModal('bankModal')"
+                    style="flex:0 0 56px; background:#f3f4f6; color:#6b7280; padding:14px; border-radius:14px; font-weight:700; border:none; cursor:pointer;">
+                    ✕
+                </button>
+            </div>
+        </div>
+    </div>
+
     <div id="creditCardModal" class="modal-overlay no-print">
         <div class="credit-modal">
             <h2 style="text-align:center; font-size:1.3rem; font-weight:900; margin-bottom:4px;">💳 חיבור כרטיס אשראי</h2>
