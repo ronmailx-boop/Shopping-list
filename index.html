@@ -1979,51 +1979,45 @@ ${error.message}
 
             <div class="credit-company-grid" style="grid-template-columns: repeat(3, 1fr); gap:8px; margin-bottom:14px;">
                 <button class="credit-company-btn" onclick="selectBank('hapoalim', this)">
-                    <div style="font-size:20px;">🔴</div>
-                    <div style="font-size:11px;">פועלים</div>
+                    <div style="font-size:20px;">🔴</div><div style="font-size:11px;">פועלים</div>
                 </button>
-                <button class="credit-company-btn" onclick="selectBank('leumiBank', this)">
-                    <div style="font-size:20px;">🟢</div>
-                    <div style="font-size:11px;">לאומי</div>
+                <button class="credit-company-btn" onclick="selectBank('leumi', this)">
+                    <div style="font-size:20px;">🟢</div><div style="font-size:11px;">לאומי</div>
                 </button>
                 <button class="credit-company-btn" onclick="selectBank('mizrahi', this)">
-                    <div style="font-size:20px;">🟠</div>
-                    <div style="font-size:11px;">מזרחי</div>
+                    <div style="font-size:20px;">🟠</div><div style="font-size:11px;">מזרחי</div>
                 </button>
                 <button class="credit-company-btn" onclick="selectBank('discount', this)">
-                    <div style="font-size:20px;">🔵</div>
-                    <div style="font-size:11px;">דיסקונט</div>
+                    <div style="font-size:20px;">🔵</div><div style="font-size:11px;">דיסקונט</div>
                 </button>
                 <button class="credit-company-btn" onclick="selectBank('otsarHahayal', this)">
-                    <div style="font-size:20px;">🪖</div>
-                    <div style="font-size:11px;">אוצר החייל</div>
+                    <div style="font-size:20px;">🪖</div><div style="font-size:11px;">אוצר החייל</div>
                 </button>
                 <button class="credit-company-btn" onclick="selectBank('yahav', this)">
-                    <div style="font-size:20px;">🟡</div>
-                    <div style="font-size:11px;">יהב</div>
+                    <div style="font-size:20px;">🟡</div><div style="font-size:11px;">יהב</div>
                 </button>
                 <button class="credit-company-btn" onclick="selectBank('massad', this)">
-                    <div style="font-size:20px;">🏦</div>
-                    <div style="font-size:11px;">מסד</div>
+                    <div style="font-size:20px;">🏦</div><div style="font-size:11px;">מסד</div>
                 </button>
                 <button class="credit-company-btn" onclick="selectBank('unionBank', this)">
-                    <div style="font-size:20px;">🤝</div>
-                    <div style="font-size:11px;">איגוד</div>
+                    <div style="font-size:20px;">🤝</div><div style="font-size:11px;">איגוד</div>
                 </button>
                 <button class="credit-company-btn" onclick="selectBank('beinleumi', this)">
-                    <div style="font-size:20px;">🌐</div>
-                    <div style="font-size:11px;">בינלאומי</div>
+                    <div style="font-size:20px;">🌐</div><div style="font-size:11px;">בינלאומי</div>
                 </button>
             </div>
 
-            <input type="text" id="bankUsername"
-                placeholder="שם משתמש / תעודת זהות"
-                class="modal-input" autocomplete="username"
-                style="margin-bottom:10px;">
-            <input type="password" id="bankPassword"
-                placeholder="סיסמה"
-                class="modal-input" autocomplete="current-password"
-                style="margin-bottom:16px;">
+            <!-- Dynamic fields — change per bank -->
+            <div id="bankFieldsContainer">
+                <input type="text" id="bankField1" placeholder="שם משתמש"
+                    class="modal-input" style="margin-bottom:10px;">
+                <input type="password" id="bankPassword" placeholder="סיסמה"
+                    class="modal-input" style="margin-bottom:10px;">
+                <input type="text" id="bankField2" placeholder=""
+                    class="modal-input" style="margin-bottom:10px; display:none;">
+            </div>
+
+            <div id="bankHint" style="background:#e0f2fe; border-radius:12px; padding:10px 14px; font-size:12px; color:#0369a1; margin-bottom:12px; text-align:right; display:none;"></div>
 
             <div style="background:#fef9c3; border-radius:12px; padding:10px 14px; font-size:12px; color:#92400e; margin-bottom:16px; text-align:right;">
                 🔒 הפרטים נשלחים ישירות לבנק ואינם נשמרים אצלנו
