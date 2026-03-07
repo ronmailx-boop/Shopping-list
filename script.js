@@ -7032,11 +7032,12 @@ async function startCreditCardFetch() {
         if (window.firebaseApp) {
             try {
                 const { getFunctions, httpsCallable } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-functions.js');
-                const functions = getFunctions(window.firebaseApp);
-                const fetchAccountData = httpsCallable(functions, 'fetchAccountData');
+                // ⚠️ Must match the region where the function is deployed (me-west1 = Tel Aviv)
+                const functions = getFunctions(window.firebaseApp, 'me-west1');
+                const fetchAccountData = httpsCallable(functions, 'fetchAccountData', { timeout: 300000 });
 
                 const result = await fetchAccountData({
-                    company: selectedCreditCompany,
+                    companyId: selectedCreditCompany,   // server expects 'companyId' not 'company'
                     username,
                     password
                 });
