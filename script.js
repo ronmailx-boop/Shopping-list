@@ -7034,7 +7034,7 @@ async function startCreditCardFetch() {
                 const { getFunctions, httpsCallable } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-functions.js');
                 // ⚠️ Must match the region where the function is deployed (me-west1 = Tel Aviv)
                 const functions = getFunctions(window.firebaseApp, 'me-west1');
-                const fetchAccountData = httpsCallable(functions, 'fetchAccountData', { timeout: 300000 });
+                        const fetchAccountData = httpsCallable(functions, 'fetchBankData', { timeout: 300000 });
 
                 const result = await fetchAccountData({
                     companyId: selectedCreditCompany,   // server expects 'companyId' not 'company'
