@@ -7043,7 +7043,10 @@ async function startCreditCardFetch() {
                 });
                 transactions = result.data?.transactions || [];
             } catch (fnErr) {
-                console.warn('Firebase Function error, using demo data:', fnErr);
+                console.error('Firebase Function error:', fnErr);
+                // Show the real error so we can debug
+                const errMsg = fnErr?.message || fnErr?.code || JSON.stringify(fnErr);
+                showNotification('⚠️ שגיאת Function: ' + errMsg, 'warning');
                 // Fall back to demo transactions
                 transactions = getDemoCreditTransactions(selectedCreditCompany);
             }
