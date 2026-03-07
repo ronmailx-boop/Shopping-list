@@ -1,0 +1,66 @@
+name: Deploy All (Hosting + Functions + Pages)
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  # משימה 1: Deploy Firebase Hosting + Functions
+  deploy-firebase:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install Firebase Tools
+        run: npm install -g firebase-tools
+
+      # Deploy Functions
+      - name: Install Functions Dependencies
+        run: |
+          cd functions
+          npm install
+      
+      - name: Deploy Firebase Functions
+        uses: w9jds/firebase-action@master
+        with:
+          args: deploy --only functions --project vplus-pro --force
+        env:
+          GCP_SA_KEY: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_VPLUS_PRO }}
+      
+      # Deploy Hosting
+      - name: Deploy Firebase Hosting
+        uses: FirebaseExtended/action-hosting-deploy@v0
+        with:
+          repoToken: '${{ secrets.GITHUB_TOKEN }}'
+          firebaseServiceAccount: '${{ secrets.FIREBASE_SERVICE_ACCOUNT_VPLUS_PRO }}'
+          channelId: live
+          projectId: vplus-pro
+
+  # משימה 2: Deploy GitHub Pages
+  deploy-pages:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      
+      - name: Setup Pages
+        uses: actions/configure-pages@v3
+      
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: '.'
+      
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
