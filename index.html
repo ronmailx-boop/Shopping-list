@@ -1,2076 +1,309 @@
-<!DOCTYPE html>
-<html lang="he" dir="rtl">
-
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>vplus - ניהול תקציב חכם</title>
-    <meta name="theme-color" content="#7367f0">
-    <link rel="manifest" href="manifest.json">
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-    <!-- PDF.js Library for PDF parsing -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
-<script>var pdfjsLib = window["pdfjs-dist/build/pdf"];</script>
-    <script>
-        // Configure PDF.js worker
-        if (typeof pdfjsLib !== 'undefined') {
-            pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
-        }
-    </script>
-
-    <style>
-        * {
-            box-sizing: border-box;
-            touch-action: manipulation;
-        }
-
-        body {
-            font-family: system-ui, sans-serif;
-            background: linear-gradient(135deg, #f4f7fa 0%, #e8ecf3 100%);
-            padding-bottom: 240px;
-            min-height: 100vh;
-            transition: background 0.3s;
-            margin: 0;
-        }
-
-        .item-card {
-            background: white;
-            border-radius: 25px;
-            padding: 15px;
-            margin-bottom: 12px;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
-            display: flex;
-            flex-direction: column;
-            transition: transform 0.2s, box-shadow 0.2s;
-        }
-
-        .item-card:active {
-            transform: scale(0.98);
-        }
-
-        .item-number {
-            color: #7367f0;
-            opacity: 0.6;
-            font-size: 0.8em;
-            margin-left: 4px;
-        }
-
-        #searchInput {
-            transition: all 0.3s ease;
-            border: 2px solid transparent;
-        }
-
-        #searchInput:focus {
-            border-color: #7367f0;
-            background: #fff;
-            box-shadow: 0 10px 25px rgba(115, 103, 240, 0.1);
-            outline: none;
-        }
-
-        .bottom-bar {
-            position: fixed;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            background: linear-gradient(135deg, #7367f0 0%, #9055ff 100%);
-            z-index: 1000;
-            padding: 15px 15px 35px 15px;
-            border-radius: 35px 35px 0 0;
-            box-shadow: 0 -10px 25px rgba(0, 0, 0, 0.15);
-            transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-            cursor: pointer;
-        }
-
-        .bottom-bar.minimized {
-            transform: translateY(calc(100% - 8px));
-        }
-
-        .tab-btn {
-            flex: 1;
-            padding: 12px;
-            border-radius: 15px;
-            font-weight: bold;
-            text-align: center;
-            cursor: pointer;
-            transition: 0.2s;
-            background: white;
-            color: #666;
-            border: 1px solid #eee;
-        }
-
-        .tab-active {
-            background: linear-gradient(135deg, #7367f0 0%, #9055ff 100%) !important;
-            color: white !important;
-            box-shadow: 0 4px 12px rgba(115, 103, 240, 0.3);
-        }
-
-        .bottom-circle-btn {
-            width: 48px !important;
-            height: 48px !important;
-            flex-shrink: 0 !important;
-            border-radius: 50% !important;
-            display: flex !important;
-            align-items: center !important;
-            justify-content: center !important;
-            border: 2px solid rgba(255, 255, 255, 0.2) !important;
-            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2) !important;
-            cursor: pointer;
-            transition: transform 0.2s;
-        }
-
-        .bottom-circle-btn:active {
-            transform: scale(0.95);
-        }
-
-        .modal-overlay {
-            display: none;
-            position: fixed;
-            inset: 0;
-            background: rgba(0, 0, 0, 0.75);
-            z-index: 7000;
-            align-items: flex-start;
-            justify-content: center;
-            backdrop-filter: blur(8px);
-            padding-top: 0;
-        }
-
-        .modal-overlay.active {
-            display: flex;
-        }
-
-        .edit-modal {
-            width: 90%;
-            max-width: 400px;
-            background-color: #ffffff !important;
-            border-radius: 0 0 30px 30px;
-            padding: 6px 25px;
-            text-align: center;
-            color: #333;
-            border: 2px solid #eee;
-            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.3);
-            max-height: 90vh;
-            overflow-y: auto;
-        }
-
-        .modal-input {
-            width: 100%;
-            padding: 6px;
-            border: 2px solid #f3f4f6;
-            border-radius: 16px;
-            font-size: 16px;
-            text-align: center;
-            outline: none;
-            margin-bottom: 5px;
-            font-weight: bold;
-            background: #f9fafb !important;
-            color: #333;
-        }
-
-        .edit-modal h2 {
-            margin-top: 2px;
-            margin-bottom: 8px;
-            font-size: 1.15rem;
-        }
-
-        .app-header {
-            background: white;
-            padding: 10px 20px;
-            display: flex;
-            flex-direction: row-reverse;
-            justify-content: space-between;
-            align-items: center;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-            position: sticky;
-            top: 0;
-            z-index: 2000;
-            height: 60px;
-        }
-
-        .header-controls {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            direction: rtl;
-        }
-
-        .gear-btn {
-            flex-shrink: 0;
-            width: 40px;
-            height: 40px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .notification-bell {
-            width: 40px;
-            height: 40px;
-            background: linear-gradient(135deg, #f59e0b 0%, #fb923c 100%);
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: white;
-            font-size: 20px;
-            cursor: pointer;
-            box-shadow: 0 4px 8px rgba(245, 158, 11, 0.3);
-            transition: transform 0.2s;
-            position: relative;
-            flex-shrink: 0;
-        }
-
-        .notification-bell:active {
-            transform: scale(0.95);
-        }
-
-        .notification-badge {
-            position: absolute;
-            top: -4px;
-            right: -4px;
-            background: #ef4444;
-            color: white;
-            border-radius: 50%;
-            width: 20px;
-            height: 20px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 11px;
-            font-weight: bold;
-            border: 2px solid white;
-        }
-
-        .notification-item {
-            background: white;
-            border-radius: 15px;
-            padding: 12px;
-            margin-bottom: 10px;
-            cursor: pointer;
-            transition: all 0.2s;
-            border: 2px solid transparent;
-        }
-
-        .notification-item:hover {
-            border-color: #7367f0;
-            box-shadow: 0 4px 12px rgba(115, 103, 240, 0.2);
-        }
-
-        .notification-item.overdue {
-            border-left: 4px solid #ef4444;
-        }
-
-        .notification-item.soon {
-            border-left: 4px solid #f97316;
-        }
-
-        .notification-item.upcoming {
-            border-left: 4px solid #3b82f6;
-        }
-
-        .notification-item-title {
-            font-weight: bold;
-            margin-bottom: 4px;
-        }
-
-        .notification-item-date {
-            font-size: 0.85em;
-            color: #6b7280;
-        }
-
-        .notification-item-list {
-            font-size: 0.8em;
-            color: #9ca3af;
-            margin-top: 4px;
-        }
-
-        .item-card.highlight-item {
-            animation: highlightPulse 2s ease-in-out;
-            box-shadow: 0 0 20px rgba(115, 103, 240, 0.5);
-        }
-
-        @keyframes highlightPulse {
-            0%, 100% { box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03); }
-            50% { box-shadow: 0 0 30px rgba(115, 103, 240, 0.8); }
-        }
-
-        .item-duedate-display {
-            font-size: 0.85em;
-            color: #6b7280;
-            margin-top: 4px;
-            cursor: pointer;
-            padding: 2px 6px;
-            border-radius: 8px;
-            display: inline-block;
-        }
-
-        .item-duedate-display.overdue {
-            color: #ef4444;
-            font-weight: bold;
-            background: #fee2e2;
-        }
-
-        .item-duedate-display.soon {
-            color: #f97316;
-            font-weight: bold;
-            background: #ffedd5;
-        }
-
-        .item-payment-link {
-            display: inline-flex;
-            align-items: center;
-            gap: 4px;
-            font-size: 0.85em;
-            color: #7367f0;
-            cursor: pointer;
-            padding: 4px 8px;
-            border-radius: 8px;
-            background: #f3f4f6;
-            margin-left: 8px;
-            margin-top: 4px;
-            transition: all 0.2s;
-            text-decoration: none;
-        }
-
-        .item-payment-link:hover {
-            background: #e5e7eb;
-            transform: scale(1.05);
-        }
-
-        .trash-btn {
-            width: 44px;
-            height: 44px;
-            background: white;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: #ef4444;
-            border: none;
-            cursor: pointer;
-            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-        }
-
-        .category-separator {
-            background: linear-gradient(135deg, #7367f0 0%, #9055ff 100%);
-            color: white;
-            border-radius: 20px;
-            padding: 15px;
-            margin-bottom: 20px;
-            text-align: center;
-        }
-
-        .category-badge {
-            display: inline-block;
-            padding: 4px 12px;
-            border-radius: 12px;
-            font-size: 11px;
-            font-weight: bold;
-            margin: 2px;
-        }
-
-        .stat-card {
-            background: white;
-            border-radius: 20px;
-            padding: 20px;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
-            margin-bottom: 15px;
-        }
-
-        .progress-bar {
-            width: 100%;
-            height: 8px;
-            background: #e5e7eb;
-            border-radius: 10px;
-            overflow: hidden;
-            margin-top: 8px;
-        }
-
-        .progress-fill {
-            height: 100%;
-            background: linear-gradient(90deg, #22c55e 0%, #16a34a 100%);
-            border-radius: 10px;
-            transition: width 0.3s ease;
-        }
-
-        body.dark-mode {
-            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
-            color: #e0e0e0;
-        }
-
-        .dark-mode .app-header {
-            background: #16213e;
-            border-bottom: 1px solid #0f3460;
-        }
-
-        .dark-mode .item-card,
-        .dark-mode .bg-white,
-        .dark-mode .stat-card {
-            background-color: #0f3460 !important;
-            border-color: #1a1a2e;
-            color: white;
-        }
-
-        .dark-mode #selectAllLabel {
-            color: white !important;
-        }
-
-        .dark-mode .select-all-container {
-            background-color: #0f3460 !important;
-        }
-
-        .dark-mode #searchInput {
-            background-color: #0f3460 !important;
-            color: white;
-        }
-
-        .dark-mode .item-number {
-            color: #a5a2f7;
-        }
-
-        .dark-mode .item-card span.font-bold {
-            color: white !important;
-        }
-
-        .dark-mode .item-card .bg-gray-50 {
-            background-color: rgba(255, 255, 255, 0.1) !important;
-            border-color: rgba(255, 255, 255, 0.2);
-        }
-
-        .dark-mode .modal-input {
-            background-color: #0f3460 !important;
-            color: white !important;
-            border-color: #1a1a2e;
-        }
-
-        .dark-mode .edit-modal {
-            background-color: #16213e !important;
-            color: white;
-            border-color: #0f3460;
-        }
-
-        @media print {
-
-            .no-print,
-            .bottom-bar,
-            .app-header,
-            .tab-btn,
-            .modal-overlay,
-            .trash-btn,
-            input,
-            button {
-                display: none !important;
-            }
-
-            #printArea {
-                display: block !important;
-                width: 100%;
-                direction: rtl;
-            }
-        }
-
-        .notification {
-            position: fixed;
-            top: 70px;
-            right: 20px;
-            background: white;
-            padding: 15px 20px;
-            border-radius: 15px;
-            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
-            z-index: 9000;
-            transform: translateX(400px);
-            transition: transform 0.3s ease;
-        }
-
-        .notification.show {
-            transform: translateX(0);
-        }
-
-        .undo-notification button:hover {
-            background: #f3f4f6 !important;
-            transform: scale(1.05);
-        }
-
-        .undo-notification button:active {
-            transform: scale(0.95);
-        }
-
-        .floating-toggle-btn {
-            position: fixed;
-            bottom: 220px;
-            right: 10px;
-            width: 35px;
-            height: 35px;
-            background: white;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.2);
-            cursor: pointer;
-            z-index: 1001;
-            transition: all 0.3s ease;
-            border: 2px solid rgba(115, 103, 240, 0.3);
-        }
-
-        .floating-toggle-btn:active {
-            transform: scale(0.9);
-        }
-
-        .floating-toggle-btn svg {
-            transition: transform 0.3s ease;
-            color: #7367f0;
-        }
-
-        .floating-toggle-btn.bar-hidden {
-            bottom: 10px;
-        }
-
-        .floating-toggle-btn.bar-hidden svg {
-            transform: rotate(180deg);
-        }
-
-        .template-badge {
-            background: #fbbf24;
-            color: white;
-            padding: 2px 8px;
-            border-radius: 8px;
-            font-size: 10px;
-            font-weight: bold;
-            margin-right: 8px;
-        }
-
-        .autocomplete-container {
-            position: absolute;
-            top: 100%;
-            left: 0;
-            right: 0;
-            background: white;
-            border: 2px solid #e5e7eb;
-            border-top: none;
-            border-radius: 0 0 16px 16px;
-            max-height: 200px;
-            overflow-y: auto;
-            z-index: 1000;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-        }
-
-        .autocomplete-item {
-            padding: 10px;
-            cursor: pointer;
-            border-bottom: 1px solid #f3f4f6;
-            transition: background 0.2s;
-        }
-
-        .autocomplete-item:hover {
-            background: #f9fafb;
-        }
-
-        .autocomplete-item:last-child {
-            border-bottom: none;
-        }
-
-        /* Cloud Button Connected State */
-        .cloud-btn-connected {
-            background: #dcfce7 !important;
-            color: #15803d !important;
-            border-color: #86efac !important;
-        }
-
-        .cloud-btn-disconnected {
-            background: #f3f4f6;
-            color: #6b7280;
-            border-color: #e5e7eb;
-        }
-
-        /* Bank Import Button Styles */
-        .bank-import-btn {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
-            padding: 12px 20px;
-            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-            color: white;
-            border-radius: 15px;
-            font-weight: bold;
-            cursor: pointer;
-            transition: all 0.2s;
-            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
-            border: none;
-            font-size: 14px;
-        }
-
-        .bank-import-btn:active {
-            transform: scale(0.95);
-        }
-
-        .bank-import-btn:hover {
-            box-shadow: 0 6px 16px rgba(16, 185, 129, 0.4);
-        }
-
-        /* Note icon styles */
-        .note-icon {
-            width: 24px;
-            height: 24px;
-            border-radius: 8px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            transition: all 0.2s;
-            background: linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%);
-            border: 1px solid #d1d5db;
-        }
-
-        .note-icon:hover {
-            transform: scale(1.1);
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-        }
-
-        .note-icon.has-note {
-            background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
-            border-color: #fbbf24;
-            position: relative;
-        }
-
-        .note-icon.has-note::after {
-            content: '';
-            position: absolute;
-            top: -2px;
-            right: -2px;
-            width: 8px;
-            height: 8px;
-            background: #f59e0b;
-            border-radius: 50%;
-            border: 2px solid white;
-        }
-
-        .note-modal-textarea {
-            width: 100%;
-            min-height: 120px;
-            padding: 12px;
-            border: 2px solid #f3f4f6;
-            border-radius: 16px;
-            font-size: 15px;
-            text-align: right;
-            outline: none;
-            margin-bottom: 15px;
-            font-family: system-ui, sans-serif;
-            background: #f9fafb !important;
-            color: #333;
-            resize: vertical;
-        }
-
-        .note-modal-textarea:focus {
-            border-color: #fbbf24;
-            background: #fff !important;
-        }
-        
-        .urgent-alert-modal {
-            background-color: #ffffff !important;
-            border-radius: 30px;
-            padding: 25px;
-            text-align: center;
-            color: #333;
-            border: 3px solid #ef4444;
-            box-shadow: 0 20px 50px rgba(239, 68, 68, 0.4);
-            max-height: 80vh;
-            overflow-y: auto;
-        }
-        
-        .urgent-alert-header {
-            font-size: 3em;
-            margin-bottom: 10px;
-        }
-        
-        .urgent-alert-title {
-            font-size: 1.5rem;
-            font-weight: bold;
-            color: #ef4444;
-            margin-bottom: 15px;
-        }
-        
-        .urgent-items-list {
-            text-align: right;
-            margin: 20px 0;
-            padding: 15px;
-            background: #fef2f2;
-            border-radius: 15px;
-            max-height: 300px;
-            overflow-y: auto;
-        }
-        
-        .urgent-item {
-            padding: 10px;
-            margin-bottom: 8px;
-            background: white;
-            border-radius: 10px;
-            border-right: 4px solid #ef4444;
-            font-size: 0.95rem;
-        }
-        
-        .urgent-item-name {
-            font-weight: bold;
-            color: #1f2937;
-        }
-        
-        .urgent-item-date {
-            color: #ef4444;
-            font-size: 0.85rem;
-            margin-top: 3px;
-        }
-        
-        .urgent-buttons {
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-            margin-top: 20px;
-        }
-        
-        .urgent-btn {
-            padding: 15px;
-            border-radius: 15px;
-            font-weight: bold;
-            font-size: 1rem;
-            cursor: pointer;
-            border: none;
-            transition: transform 0.2s, box-shadow 0.2s;
-        }
-        
-        .urgent-btn:active {
-            transform: scale(0.97);
-        }
-        
-        .urgent-btn-snooze {
-            background: #fbbf24;
-            color: white;
-        }
-        
-        .urgent-btn-tomorrow {
-            background: #3b82f6;
-            color: white;
-        }
-        
-        .urgent-btn-close {
-            background: #6b7280;
-            color: white;
-        }
-        
-        .dark-mode .urgent-alert-modal {
-            background-color: #2a2a3e !important;
-            border-color: #ef4444;
-        }
-        
-        .dark-mode .urgent-alert-title {
-            color: #fca5a5;
-        }
-        
-        .dark-mode .urgent-items-list {
-            background: #1a1a2e;
-        }
-        
-        .dark-mode .urgent-item {
-            background: #2a2a3e;
-            border-right-color: #ef4444;
-        }
-        
-        .dark-mode .urgent-item-name {
-            color: #e0e0e0;
-        }
-        
-        .item-notes-display {
-            font-size: 0.85em;
-            color: #6b7280;
-            margin-top: 5px;
-            cursor: pointer;
-            padding: 5px;
-            border-radius: 8px;
-            transition: background 0.2s;
-            word-wrap: break-word;
-        }
-        
-        .item-notes-display:hover {
-            background: rgba(115, 103, 240, 0.05);
-        }
-        
-        .item-notes-display a {
-            color: #7367f0;
-            text-decoration: underline;
-        }
-        
-        .item-duedate-display {
-            font-size: 0.85em;
-            color: #f59e0b;
-            margin-top: 5px;
-            cursor: pointer;
-            padding: 5px;
-            border-radius: 8px;
-            transition: background 0.2s;
-            font-weight: 600;
-        }
-        
-        .item-duedate-display:hover {
-            background: rgba(245, 158, 11, 0.1);
-        }
-        
-        .item-duedate-display.overdue {
-            color: #ef4444;
-            font-weight: bold;
-        }
-        
-        .dark-mode .item-notes-display {
-            color: #9ca3af;
-        }
-        
-        .dark-mode .item-notes-display a {
-            color: #a78bfa;
-        }
-        
-        .dark-mode .item-duedate-display {
-            color: #fbbf24;
-        }
-        
-        .dark-mode .item-duedate-display.overdue {
-            color: #fca5a5;
-        }
-
-        /* --- Floating Pills Styles (FIXED) --- */
-
-        /* 1. Main Wide Button */
-        .hero-wide-btn {
-            background: linear-gradient(135deg, #7367f0 0%, #9055ff 100%);
-            width: 100%;
-            padding: 18px 24px;
-            border-radius: 20px;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            box-shadow: 0 10px 30px -5px rgba(115, 103, 240, 0.4);
-            border: 1px solid rgba(255,255,255,0.1);
-            transition: transform 0.2s, box-shadow 0.2s;
-            position: relative;
-            overflow: hidden;
-            margin-bottom: 16px;
-            color: white !important; /* Force white text */
-            cursor: pointer;
-        }
-
-        .hero-wide-btn:active {
-            transform: scale(0.98);
-            box-shadow: 0 5px 15px -5px rgba(115, 103, 240, 0.3);
-        }
-
-        /* 2. Pills Container */
-        .pills-container {
-            display: flex;
-            gap: 8px; /* Reduced gap */
-            width: 100%;
-        }
-
-        /* 3. Individual Pill - Compact Mode */
-        .action-pill {
-            flex: 1;
-            background: white;
-            border: 1px solid #edf2f7;
-            padding: 10px 4px; /* Reduced side padding */
-            border-radius: 50px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 6px;
-            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.03);
-            transition: all 0.2s;
-            cursor: pointer;
-            white-space: nowrap;
-            min-width: 0; /* CRITICAL: Allows shrinking to fit screen */
-        }
-
-        .action-pill:active {
-            transform: scale(0.95);
-            background: #f8fafc;
-        }
-
-        .pill-icon { 
-            font-size: 16px; 
-        }
-        
-        .pill-text { 
-            font-size: 12px; 
-            font-weight: 700; 
-            color: #4b5563; 
-        }
-
-        /* ===== Credit Card Connection Styles ===== */
-        .credit-modal {
-            background: white;
-            border-radius: 30px;
-            padding: 28px 24px;
-            width: 92%;
-            max-width: 420px;
-            margin-top: 20px;
-            box-shadow: 0 25px 60px rgba(0,0,0,0.3);
-        }
-
-        .credit-company-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 10px;
-            margin: 16px 0;
-        }
-
-        .credit-company-btn {
-            padding: 14px 10px;
-            border-radius: 16px;
-            border: 2px solid #e5e7eb;
-            background: white;
-            cursor: pointer;
-            font-size: 13px;
-            font-weight: 700;
-            color: #374151;
-            transition: all 0.2s;
-            text-align: center;
-        }
-
-        .credit-company-btn:hover {
-            border-color: #7367f0;
-            background: #f5f3ff;
-            transform: scale(1.03);
-        }
-
-        .credit-company-btn.selected {
-            border-color: #7367f0;
-            background: linear-gradient(135deg, #7367f0, #9055ff);
-            color: white;
-            box-shadow: 0 4px 14px rgba(115,103,240,0.4);
-        }
-
-        /* Progress overlay */
-        #creditProgressOverlay {
-            display: none;
-            position: fixed;
-            inset: 0;
-            background: rgba(0,0,0,0.85);
-            z-index: 9999;
-            align-items: center;
-            justify-content: center;
-            backdrop-filter: blur(10px);
-        }
-
-        #creditProgressOverlay.active {
-            display: flex;
-        }
-
-        .credit-progress-card {
-            background: white;
-            border-radius: 30px;
-            padding: 36px 30px;
-            width: 88%;
-            max-width: 360px;
-            text-align: center;
-            box-shadow: 0 30px 80px rgba(0,0,0,0.4);
-        }
-
-        .credit-progress-icon {
-            font-size: 52px;
-            margin-bottom: 12px;
-            animation: iconBounce 1.2s ease-in-out infinite;
-        }
-
-        @keyframes iconBounce {
-            0%, 100% { transform: translateY(0); }
-            50% { transform: translateY(-8px); }
-        }
-
-        .credit-progress-title {
-            font-size: 20px;
-            font-weight: 900;
-            color: #1f2937;
-            margin-bottom: 6px;
-        }
-
-        .credit-progress-subtitle {
-            font-size: 14px;
-            color: #6b7280;
-            margin-bottom: 28px;
-        }
-
-        .credit-progress-bar-wrap {
-            background: #f3f4f6;
-            border-radius: 20px;
-            height: 12px;
-            overflow: hidden;
-            margin-bottom: 24px;
-        }
-
-        .credit-progress-bar-fill {
-            height: 100%;
-            border-radius: 20px;
-            background: linear-gradient(90deg, #7367f0, #9055ff, #c084fc);
-            transition: width 1.2s cubic-bezier(0.4,0,0.2,1);
-            background-size: 200% 100%;
-            animation: shimmer 1.8s linear infinite;
-        }
-
-        @keyframes shimmer {
-            0% { background-position: 200% 0; }
-            100% { background-position: -200% 0; }
-        }
-
-        .credit-stage-list {
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-            text-align: right;
-        }
-
-        .credit-stage-item {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            padding: 10px 14px;
-            border-radius: 14px;
-            background: #f9fafb;
-            font-size: 14px;
-            font-weight: 600;
-            color: #9ca3af;
-            transition: all 0.4s ease;
-        }
-
-        .credit-stage-item.active {
-            background: linear-gradient(135deg, #ede9fe, #ddd6fe);
-            color: #5b21b6;
-        }
-
-        .credit-stage-item.done {
-            background: #dcfce7;
-            color: #15803d;
-        }
-
-        .stage-dot {
-            width: 24px;
-            height: 24px;
-            border-radius: 50%;
-            background: #e5e7eb;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 12px;
-            flex-shrink: 0;
-            transition: all 0.4s ease;
-        }
-
-        .credit-stage-item.active .stage-dot {
-            background: #7367f0;
-            color: white;
-            animation: pulse 1s ease-in-out infinite;
-        }
-
-        .credit-stage-item.done .stage-dot {
-            background: #22c55e;
-            color: white;
-        }
-
-        @keyframes pulse {
-            0%, 100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(115,103,240,0.4); }
-            50% { transform: scale(1.1); box-shadow: 0 0 0 6px rgba(115,103,240,0); }
-        }
-    </style>
-
-    <script>
-        if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => {
-                navigator.serviceWorker.register('sw.js')
-                    .then(registration => {
-                        console.log('SW registered:', registration);
-                    })
-                    .catch(error => {
-                        console.log('SW registration failed:', error);
-                    });
-            });
-        }
-    </script>
-
-
-    <style>
-        /* ERROR DISPLAY STYLES */
-        #firebaseErrorDisplay {
-            position: fixed;
-            top: 80px;
-            left: 50%;
-            transform: translateX(-50%);
-            background: #fee2e2;
-            border: 3px solid #ef4444;
-            color: #991b1b;
-            padding: 20px;
-            border-radius: 20px;
-            box-shadow: 0 10px 40px rgba(239, 68, 68, 0.3);
-            z-index: 10000;
-            max-width: 90%;
-            width: 500px;
-            display: none;
-            animation: slideDown 0.3s ease-out;
-        }
-
-        #firebaseErrorDisplay.show {
-            display: block;
-        }
-
-        @keyframes slideDown {
-            from {
-                transform: translateX(-50%) translateY(-100px);
-                opacity: 0;
-            }
-            to {
-                transform: translateX(-50%) translateY(0);
-                opacity: 1;
-            }
-        }
-
-        .error-title {
-            font-size: 18px;
-            font-weight: bold;
-            margin-bottom: 10px;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .error-message {
-            font-size: 14px;
-            line-height: 1.6;
-            white-space: pre-wrap;
-            margin-bottom: 15px;
-        }
-
-        .error-close-btn {
-            background: #ef4444;
-            color: white;
-            border: none;
-            padding: 10px 20px;
-            border-radius: 10px;
-            font-weight: bold;
-            cursor: pointer;
-            width: 100%;
-        }
-
-        .error-close-btn:active {
-            transform: scale(0.95);
-        }
-    </style>
-
-    <script>
-        // Helper function to show errors visually
-        function showFirebaseError(title, message) {
-            console.error('🔴 Firebase Error:', title, message);
-            
-            // Create error display if it doesn't exist
-            let errorDiv = document.getElementById('firebaseErrorDisplay');
-            if (!errorDiv) {
-                errorDiv = document.createElement('div');
-                errorDiv.id = 'firebaseErrorDisplay';
-                document.body.appendChild(errorDiv);
-            }
-            
-            errorDiv.innerHTML = `
-                <div class="error-title">⚠️ ${title}</div>
-                <div class="error-message">${message}</div>
-                <button class="error-close-btn" onclick="document.getElementById('firebaseErrorDisplay').classList.remove('show')">סגור</button>
-            `;
-            
-            errorDiv.classList.add('show');
-            
-            // Also log to console
-            console.log('%c══════════════════════════════════', 'color: red; font-weight: bold');
-            console.log('%c🔴 ' + title, 'color: red; font-size: 16px; font-weight: bold');
-            console.log('%c' + message, 'color: red; font-size: 14px');
-            console.log('%c══════════════════════════════════', 'color: red; font-weight: bold');
-        }
-    </script>
-
-    <script type="module">
-        console.log('🔵 Starting Firebase initialization...');
-        
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import { getAuth, signInWithPopup, GoogleAuthProvider, getRedirectResult, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-        import { getFirestore, doc, setDoc, onSnapshot, getDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
-
-        try {
-            const firebaseConfig = { 
-                apiKey: "AIzaSyBqIqxoiwwqeKkjlYJpEiqgCG09PgabwhI", 
-                authDomain: "vplus-pro.firebaseapp.com", 
-                projectId: "vplus-pro", 
-                storageBucket: "vplus-pro.firebasestorage.app", 
-                messagingSenderId: "386740827706", 
-                appId: "1:386740827706:web:a3c95c895826df4bb26703" 
-            };
-
-            console.log('🔵 Initializing Firebase app...');
-            const app = initializeApp(firebaseConfig);
-            
-            console.log('🔵 Getting Auth instance...');
-            const auth = getAuth(app);
-            
-            console.log('🔵 Getting Firestore instance...');
-            const db = getFirestore(app);
-            
-            console.log('🔵 Creating Google provider...');
-            const provider = new GoogleAuthProvider();
-            provider.addScope('email');
-            provider.addScope('profile');
-
-            window.firebaseApp = app;
-            window.firebaseAuth = auth;
-            window.firebaseDb = db;
-            window.googleProvider = provider;
-
-            window.signInWithPopup = signInWithPopup;
-            window.getRedirectResult = getRedirectResult;
-            window.signOut = signOut;
-            window.onAuthStateChanged = onAuthStateChanged;
-            window.doc = doc;
-            window.setDoc = setDoc;
-            window.onSnapshot = onSnapshot;
-            window.getDoc = getDoc;
-
-            console.log('✅ Firebase initialized successfully');
-
-            // Check for redirect result
-            console.log('🔵 Checking for redirect result...');
-            getRedirectResult(auth).then((result) => {
-                if (result && result.user) {
-                    console.log('✅ Login successful!', result.user.email);
-                    showFirebaseError('התחברות הצליחה! ✅', 'ברוך הבא ' + result.user.email);
-                    setTimeout(() => {
-                        document.getElementById('firebaseErrorDisplay').classList.remove('show');
-                    }, 3000);
-                } else {
-                    console.log('ℹ️ No redirect result (normal page load)');
-                }
-            }).catch((error) => {
-                console.error('❌ Redirect error caught:', error);
-                
-                let errorTitle = "שגיאה בהתחברות";
-                let errorMsg = "";
-                
-                if (error.code === 'auth/unauthorized-domain') {
-                    errorTitle = "⚠️ הדומיין לא מורשה";
-                    errorMsg = `הדומיין הזה לא מורשה להתחברות ב-Firebase.
-
-צעדים לפתרון:
-1. פתח את Firebase Console
-2. עבור ל: Authentication → Settings
-3. גלול ל: Authorized domains
-4. הוסף את הדומיין: ${window.location.hostname}
-
-לחץ על "Add domain" והדבק: ${window.location.hostname}`;
-                } else if (error.code === 'auth/operation-not-allowed') {
-                    errorTitle = "⚠️ Google Sign-In לא מופעל";
-                    errorMsg = `שיטת ההתחברות של Google לא מופעלת בפרויקט.
-
-צעדים לפתרון:
-1. פתח את Firebase Console
-2. עבור ל: Authentication → Sign-in method
-3. מצא את "Google" ברשימה
-4. לחץ עליו ואפשר אותו (Enable)
-5. שמור את השינויים`;
-                } else if (error.code === 'auth/popup-blocked') {
-                    errorTitle = "⚠️ חלון נחסם";
-                    errorMsg = `הדפדפן חסם את חלון ההתחברות.
-
-אפשר חלונות קופצים (pop-ups) לאתר זה בהגדרות הדפדפן.`;
-                } else if (error.code === 'auth/network-request-failed') {
-                    errorTitle = "⚠️ בעיית רשת";
-                    errorMsg = `לא ניתן להתחבר לשרתי Firebase.
-
-בדוק את החיבור לאינטרנט ונסה שוב.`;
-                } else {
-                    errorMsg = `קוד שגיאה: ${error.code || 'UNKNOWN'}
-
-הודעה טכנית:
-${error.message}
-
-פתח את Console (F12) למידע נוסף.`;
-                }
-                
-                showFirebaseError(errorTitle, errorMsg);
-                
-                // Also update cloud indicator
-                setTimeout(() => {
-                    if (window.updateCloudIndicator) {
-                        window.updateCloudIndicator('disconnected');
+/**
+ * Firebase Cloud Functions for VPlus Push Notifications
+ * שולח התראות push לפי nextAlertTime בלבד.
+ * 
+ * כלל זהב: Cloud Function לא כותבת alertDismissedAt לעולם.
+ * המשתמש שולט על snooze/dismiss דרך האפליקציה בלבד.
+ * 
+ * הלוגיקה:
+ *   אם item.nextAlertTime קיים ומגיע כרגע (±60 שניות) ו-alertDismissedAt < nextAlertTime → שלח push
+ */
+
+const functions = require('firebase-functions');
+const admin = require('firebase-admin');
+admin.initializeApp();
+
+// ─── sendScheduledReminders: רץ כל דקה דרך Cloud Scheduler ─────────────────
+exports.sendScheduledReminders = functions.https.onRequest(async (req, res) => {
+    console.log('⏰ בודק תזכורות...');
+
+    const now = new Date();
+    const nowMs = now.getTime();
+
+    // חלון זמן: ±60 שניות מהדקה הנוכחית
+    const windowStart = nowMs - 60000;
+    const windowEnd   = nowMs + 60000;
+
+    try {
+        // משוך FCM tokens
+        const usersSnap = await admin.firestore()
+            .collection('users')
+            .where('fcmToken', '!=', null)
+            .get();
+
+        if (usersSnap.empty) {
+            console.log('אין משתמשים עם FCM tokens');
+            return res.status(200).send('OK - no users');
+        }
+
+        const userTokens = {};
+        usersSnap.forEach(doc => { userTokens[doc.id] = doc.data().fcmToken; });
+
+        // עבור על רשימות הקניות
+        const listsSnap = await admin.firestore().collection('shopping_lists').get();
+
+        const sendPromises = [];
+
+        listsSnap.forEach(doc => {
+            const userId = doc.id;
+            const token  = userTokens[userId];
+            if (!token) return;
+
+            const data = doc.data();
+            if (!data.lists) return;
+
+            Object.values(data.lists).forEach(list => {
+                if (!list.items || !Array.isArray(list.items)) return;
+
+                list.items.forEach(item => {
+                    if (item.checked || item.isPaid) return;
+                    if (!item.dueDate || !item.reminderValue || !item.reminderUnit) return;
+                    if (!item.nextAlertTime) return;
+
+                    const t = item.nextAlertTime;
+
+                    // בדוק אם הגיע הזמן (חלון ±60 שניות)
+                    if (t < windowStart || t > windowEnd) return;
+
+                    // בדוק אם כבר dismissed עבור זמן זה
+                    if (item.alertDismissedAt && item.alertDismissedAt >= t) {
+                        console.log(`🔕 כבר dismissed: "${item.name}"`);
+                        return;
                     }
-                }, 100);
+
+                    console.log(`🔔 שולח push: "${item.name}" (nextAlertTime: ${new Date(t).toISOString()})`);
+
+                    const dateStr = new Date(item.dueDate).toLocaleDateString('he-IL');
+                    const timeStr = item.dueTime ? ` בשעה ${item.dueTime}` : '';
+
+                    sendPromises.push(
+                        sendPush(token, {
+                            title: `⏰ תזכורת: ${item.name}`,
+                            body:  `יעד: ${dateStr}${timeStr}`,
+                            data: {
+                                type:     'reminder',
+                                itemName: item.name,
+                                dueDate:  item.dueDate,
+                                dueTime:  item.dueTime || '',
+                                userId
+                            }
+                        })
+                    );
+                });
             });
+        });
 
-        } catch (e) {
-            console.error('❌ Firebase initialization failed:', e);
-            showFirebaseError('שגיאה קריטית', 'Firebase לא הצליח לטעון:\n\n' + e.message);
+        if (sendPromises.length === 0) {
+            console.log('אין תזכורות לשלוח');
+        } else {
+            await Promise.all(sendPromises);
+            console.log(`נשלחו ${sendPromises.length} תזכורות`);
         }
-    </script>
-</head>
 
-<body>
+        return res.status(200).send('OK');
 
-    <div class="app-header no-print">
-        <h1 class="font-bold text-2xl" style="direction: ltr;">
-            <span style="color: #22c55e !important;">V</span>
-            <span class="text-indigo-600">plus</span>
-            <span style="font-size: 10px; color: #9055ff; vertical-align: super;">PRO</span>
-        </h1>
-
-        <div class="header-controls">
-            <div id="cloudBtn" onclick="loginWithGoogle()"
-                class="cloud-btn-disconnected px-3 py-1 rounded-full text-[10px] font-bold border flex items-center gap-1 cursor-pointer transition-all">
-                <span id="cloudSyncText">סנכרון ענן</span>
-                <div id="cloudIndicator" class="w-2 h-2 bg-gray-400 rounded-full"></div>
-            </div>
-
-            <div
-                class="w-10 h-10 rounded-full border border-gray-200 flex items-center justify-center bg-white shadow-sm cursor-pointer overflow-hidden">
-                <svg class="w-6 h-6 flex-shrink-0" viewBox="0 0 24 24" style="width: 24px; height: 24px;">
-                    <path fill="#4285F4"
-                        d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
-                    <path fill="#34A853"
-                        d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-1 .67-2.28 1.07-3.71 1.07-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
-                    <path fill="#FBBC05"
-                        d="M5.84 14.11c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.09H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.91l3.66-2.8z" />
-                    <path fill="#EA4335"
-                        d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.09l3.66 2.84c.87-2.6 3.3-4.55 6.16-4.55z" />
-                </svg>
-            </div>
-
-            <div class="notification-bell" onclick="openNotificationCenter()">
-                🔔
-                <div class="notification-badge" id="notificationBadge" style="display: none;">0</div>
-            </div>
-
-            <button onclick="openModal('settingsModal')" class="p-2 rounded-full hover:bg-gray-100 gear-btn">
-                <svg class="w-7 h-7 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                        d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z">
-                    </path>
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                        d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
-                </svg>
-            </button>
-        </div>
-    </div>
-
-    <div class="max-w-md mx-auto p-4 no-print">
-        <div class="flex gap-3 mb-6">
-            <div id="tabLists" onclick="showPage('lists')" class="tab-btn">הרשימה שלי</div>
-            <div id="tabSummary" onclick="showPage('summary')" class="tab-btn">הרשימות שלי</div>
-            <div id="tabStats" onclick="showPage('stats')" class="tab-btn">📊 סטטיסטיקות</div>
-        </div>
-
-        <div id="pageLists">
-            <!-- NEW FLOATING PILLS SECTION -->
-            <div class="mb-6 px-1">
-                
-                <div class="flex justify-between items-end mb-3">
-                    <h2 class="text-sm font-bold text-slate-400 uppercase tracking-wider">פעולות מהירות</h2>
-                </div>
-
-                <button onclick="openModal('newListModal')" class="hero-wide-btn group">
-                    <div class="flex items-center gap-3">
-                        <div class="bg-white/20 w-10 h-10 rounded-xl flex items-center justify-center backdrop-blur-sm group-active:scale-90 transition-transform">
-                            <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"></path></svg>
-                        </div>
-                        <div class="text-right">
-                            <span class="block text-xl font-black leading-none tracking-tight text-white">רשימה חדשה</span>
-                        </div>
-                    </div>
-                    <div class="text-white/80 text-sm font-medium">צור ידנית ➔</div>
-                </button>
-
-                <div class="pills-container">
-                    
-                    <button onclick="openModal('importModal')" class="action-pill">
-                        <span class="pill-icon">📋</span>
-                        <span class="pill-text">הדבק</span>
-                    </button>
-
-                    <label for="excel-upload" class="action-pill">
-                        <span class="pill-icon">📊</span>
-                        <span class="pill-text">Excel</span>
-                    </label>
-
-                    <label for="bankFileInput" class="action-pill">
-                        <span class="pill-icon">🏦</span>
-                        <span class="pill-text">בנק</span>
-                    </label>
-
-                    <button onclick="openCreditCardModal()" class="action-pill" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-color: #764ba2;">
-                        <span class="pill-icon">💳</span>
-                        <span class="pill-text" style="color: white;">פיננסי</span>
-                    </button>
-
-                </div>
-                
-                <input type="file" id="bankFileInput" accept=".xls,.xlsx,.pdf" style="display: none;" onchange="importBankFile(event)">
-                <input type="file" id="excel-upload" accept=".xlsx, .xls" style="display: none;" onchange="handleExcelUpload(event)">
-
-            </div>
-            <!-- END NEW FLOATING PILLS SECTION -->
-            <div class="mb-3">
-                <div class="relative">
-                    <input type="text" id="listSearchInput" oninput="searchInList()" placeholder="חפש מוצר ברשימה..."
-                        class="w-full p-3 pr-12 rounded-2xl border-2 border-indigo-200 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 text-base">
-                    <svg class="w-5 h-5 text-gray-400 absolute left-4 top-1/2 -translate-y-1/2" fill="none"
-                        stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                            d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
-                    </svg>
-                    <button onclick="clearListSearch()"
-                        class="absolute left-12 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">✕</button>
-                </div>
-            </div>
-            <div class="category-separator">
-                <div class="flex justify-between items-center px-2">
-                    <button onclick="shareNative('list')" class="text-white opacity-90">
-                        <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z">
-                            </path>
-                        </svg>
-                    </button>
-                    <button onclick="openModal('translateModal')" class="text-white opacity-90" title="תרגם רשימה">
-                        <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                d="M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9h7M11 21l5-10 5 10M12.751 5C11.783 10.77 8.07 15.61 3 18.129">
-                            </path>
-                        </svg>
-                    </button>
-                    <div class="flex-1 text-center">
-                        <div id="listNameDisplay" class="text-2xl font-black truncate"
-                            onclick="openModal('editListNameModal')"></div>
-                        <div id="itemCountDisplay"
-                            class="text-[10px] font-bold opacity-80 uppercase tracking-wider mt-0.5">0 מוצרים</div>
-                    </div>
-                    <button onclick="toggleTemplateMode()" class="text-white opacity-90">
-                        <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2">
-                            </path>
-                        </svg>
-                    </button>
-                </div>
-                <div id="statusTag" class="text-[10px] font-bold mt-2 opacity-80 text-center">נעול</div>
-                <button onclick="toggleCategorySorting()" id="categorySortBtn"
-                    class="text-[10px] font-bold mt-1 bg-white/20 hover:bg-white/30 text-white py-1 px-3 rounded-full transition">
-                    <span id="categorySortText">🔤 מיון לפי קטגוריות</span>
-                </button>
-                <div id="budgetWarning"
-                    class="hidden text-[10px] font-bold mt-2 bg-red-500 text-white py-1 px-3 rounded-full inline-block">
-                    ⚠️ חריגה מתקציב!</div>
-            </div>
-            <div id="itemsContainer"></div>
-        </div>
-
-        <div id="pageSummary" class="hidden">
-            <div
-                class="bg-white rounded-2xl p-4 mb-4 shadow-sm border border-gray-100 flex items-center gap-3 select-all-container">
-                <input type="checkbox" id="selectAllLists" onchange="toggleSelectAll(this.checked)"
-                    class="w-7 h-7 accent-indigo-600">
-                <span id="selectAllLabel" class="font-bold text-slate-700 text-lg flex-1">בחר את כל הרשימות</span>
-                <button onclick="shareNative('summary')" class="text-indigo-600">
-                    <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                            d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z">
-                        </path>
-                    </svg>
-                </button>
-            </div>
-            <div id="summaryContainer"></div>
-        </div>
-
-        <div id="pageStats" class="hidden">
-            <div class="stat-card">
-                <h3 class="text-xl font-bold mb-4" id="monthlyStatsTitle">📊 סטטיסטיקות חודשיות</h3>
-                <div class="mb-4">
-                    <div class="flex justify-between mb-2">
-                        <span class="font-bold" id="monthlyExpensesLabel">הוצאות החודש</span>
-                        <span class="text-indigo-600 font-black" id="monthlyTotal">₪0.00</span>
-                    </div>
-                    <div class="progress-bar">
-                        <div class="progress-fill" id="monthlyProgress" style="width: 0%"></div>
-                    </div>
-                </div>
-                <div class="grid grid-cols-2 gap-3 mb-4">
-                    <div class="bg-green-50 p-3 rounded-xl cursor-pointer hover:bg-green-100 transition"
-                        onclick="showCompletedListsModal()">
-                        <div class="text-xs text-green-600 mb-1" id="completedListsCountLabel">רשימות הושלמו 👆</div>
-                        <div class="text-2xl font-black text-green-600" id="completedLists">0</div>
-                    </div>
-                    <div class="bg-blue-50 p-3 rounded-xl">
-                        <div class="text-xs text-blue-600 mb-1" id="avgPerListLabel">ממוצע לרשימה</div>
-                        <div class="text-2xl font-black text-blue-600" id="avgPerList">₪0</div>
-                    </div>
-                </div>
-                <canvas id="monthlyChart" height="200"></canvas>
-            </div>
-
-            <div class="stat-card">
-                <h3 class="text-xl font-bold mb-4" id="categoryExpensesTitle">💰 הוצאות לפי קטגוריה</h3>
-                <div style="max-width: 350px; margin: 0 auto;">
-                    <canvas id="categoryDoughnutChart" height="250"></canvas>
-                </div>
-                <div id="categoryBreakdown" class="mt-4"></div>
-            </div>
-
-            <div class="stat-card">
-                <h3 class="text-xl font-bold mb-4" id="popularItemsTitle">🏆 מוצרים פופולריים</h3>
-                <div id="popularItems"></div>
-            </div>
-
-            <div class="stat-card">
-                <h3 class="text-xl font-bold mb-4" id="historyStatsTitle">📁 היסטוריה</h3>
-                <button onclick="openModal('historyModal')"
-                    class="w-full bg-indigo-600 text-white py-3 rounded-xl font-bold">
-                    <span id="viewCompletedListsBtn">צפה ברשימות שהושלמו</span>
-                </button>
-            </div>
-        </div>
-    </div>
-
-    <!-- Floating Toggle Button -->
-    <div id="floatingToggle" class="floating-toggle-btn no-print" onclick="toggleBottomBar()">
-        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M19 9l-7 7-7-7"></path>
-        </svg>
-    </div>
-
-    <div class="bottom-bar text-white no-print" onclick="toggleBottomBar()">
-        <div class="flex items-center justify-between mb-4">
-            <div class="flex-1 text-center">
-                <div class="text-[10px] opacity-70" id="totalListLabel">סה"כ רשימה</div>
-                <div class="text-xl font-bold">₪<span id="displayTotal">0.00</span></div>
-            </div>
-            <div class="flex-shrink-0 flex gap-3">
-                <button onclick="event.stopPropagation(); openModal('inputForm')"
-                    class="w-16 h-16 bg-green-500 rounded-full flex items-center justify-center shadow-2xl border-4 border-white/20 text-white text-4xl font-bold">+</button>
-            </div>
-            <div class="flex-1 text-center">
-                <div class="text-[10px] opacity-70" id="paidInListLabel">שולם ברשימה</div>
-                <div class="text-xl font-bold">₪<span id="displayPaid">0.00</span></div>
-            </div>
-        </div>
-        <div class="flex items-center justify-between gap-4">
-            <button id="mainLockBtn" onclick="event.stopPropagation(); toggleLock()" class="bottom-circle-btn bg-blue-600">
-                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path id="lockIconPath" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                        d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z">
-                    </path>
-                </svg>
-            </button>
-            <div class="text-center flex-1">
-                <div class="text-[10px] opacity-70" id="remainingToPayLabel">נשאר לשלם</div>
-                <div class="text-2xl font-black text-orange-300">₪<span id="displayLeft">0.00</span></div>
-            </div>
-            <button onclick="event.stopPropagation(); openModal('confirmModal')" class="bottom-circle-btn bg-red-500">
-                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"></path>
-                </svg>
-            </button>
-        </div>
-    </div>
-
-    <div id="printArea" class="hidden"></div>
-
-    <!-- Modals -->
-    <div id="inputForm" class="modal-overlay no-print">
-        <div class="edit-modal" style="position: relative;">
-            <h2 id="addItemModalTitle">הוספת מוצר</h2>
-
-            <!-- Voice Input Button - Top Right Corner -->
-            <button onclick="startVoiceInput()" id="voiceBtn"
-                class="absolute top-4 left-4 w-12 h-12 bg-purple-500 rounded-full flex items-center justify-center shadow-lg border-2 border-white/30 text-white hover:bg-purple-600 transition-all hover:scale-110"
-                style="z-index: 10;" title="הקלט קולי">
-                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                        d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z">
-                    </path>
-                </svg>
-            </button>
-
-            <div style="position: relative;">
-                <input type="text" id="itemName" placeholder="שם המוצר" class="modal-input" autocomplete="off">
-                <div id="autocompleteContainer" class="autocomplete-container"></div>
-            </div>
-            <input type="number" id="itemPrice" inputmode="decimal" placeholder="מחיר" class="modal-input">
-            <input type="number" id="itemQty" placeholder="כמות" class="modal-input" value="1" min="1">
-            <div style="margin-bottom: 5px;">
-                <label class="text-sm font-bold text-gray-600 block text-center mb-1">📅 תאריך יעד</label>
-                <input type="date" id="itemDueDate" class="modal-input">
-            </div>
-            <input type="url" id="itemPaymentUrl" placeholder="🔗 קישור לתשלום (אופציונלי)" class="modal-input">
-            <input type="text" id="itemNotes" placeholder="📝 הערות (אופציונלי)" class="modal-input">
-            <select id="itemCategory" class="modal-input">
-                <option value="">בחר קטגוריה (אופציונלי)</option>
-                <option value="פירות וירקות">🥬 פירות וירקות</option>
-                <option value="בשר ודגים">🥩 בשר ודגים</option>
-                <option value="חלב וביצים">🥛 חלב וביצים</option>
-                <option value="לחם ומאפים">🍞 לחם ומאפים</option>
-                <option value="שימורים">🥫 שימורים</option>
-                <option value="חטיפים">🍪 חטיפים</option>
-                <option value="משקאות">🥤 משקאות</option>
-                <option value="ניקיון">🧹 ניקיון</option>
-                <option value="היגיינה">🧴 היגיינה</option>
-                <option value="אחר">📦 אחר</option>
-            </select>
-            <div style="margin-bottom: 5px;">
-                <label class="text-sm font-bold text-gray-600 block text-center mb-1">🔔 התראה מראש</label>
-                <div class="flex gap-2">
-                    <input type="number" id="itemReminderValue" placeholder="מספר" class="modal-input" min="0" style="flex: 1;">
-                    <select id="itemReminderUnit" class="modal-input" style="flex: 1;">
-                        <option value="">בחר יחידה</option>
-                        <option value="minutes">דקות</option>
-                        <option value="hours">שעות</option>
-                        <option value="days">ימים</option>
-                        <option value="weeks">שבועות</option>
-                    </select>
-                </div>
-            </div>
-            <div class="flex gap-3">
-                <button class="bg-green-500 text-white flex-1 py-4 rounded-xl font-bold shadow-md"
-                    onclick="event.stopPropagation(); addItemToList(event);">הוסף</button>
-                <button class="bg-gray-100 text-gray-500 flex-1 py-4 rounded-xl font-bold"
-                    onclick="event.stopPropagation(); closeModal('inputForm');">ביטול</button>
-            </div>
-        </div>
-    </div>
-
-    <div id="importModal" class="modal-overlay no-print">
-        <div class="edit-modal">
-            <h2 class="mb-2">ייבוא רשימה מטקסט</h2>
-            <p class="text-sm text-gray-500 mb-4">הדבק טקסט מוואטסאפ או כל רשימה</p>
-            <textarea id="importText" placeholder="הדבק כאן טקסט לייבוא..." class="modal-input" rows="8"
-                style="resize: vertical; min-height: 150px;"></textarea>
-            <div class="flex gap-3">
-                <button class="bg-green-500 text-white flex-1 py-4 rounded-xl font-bold shadow-md"
-                    onclick="event.stopPropagation(); importFromText();">ייבא</button>
-                <button class="bg-gray-100 flex-1 py-4 rounded-xl font-bold"
-                    onclick="event.stopPropagation(); closeModal('importModal');">ביטול</button>
-            </div>
-        </div>
-    </div>
-
-    <div id="newListModal" class="modal-overlay no-print">
-        <div class="edit-modal">
-            <h2>רשימה חדשה</h2>
-            <input type="text" id="newListNameInput" placeholder="שם הרשימה" class="modal-input">
-            <input type="url" id="newListUrlInput" placeholder="כתובת אתר (אופציונלי)" class="modal-input">
-            <input type="number" id="newListBudget" placeholder="תקציב (אופציונלי)" class="modal-input">
-            <div class="flex items-center justify-center gap-2 mb-3">
-                <label class="flex items-center gap-2 cursor-pointer">
-                    <input type="checkbox" id="newListTemplate" class="w-5 h-5 accent-indigo-600">
-                    <span class="text-sm font-bold">⭐ שמור כתבנית</span>
-                </label>
-            </div>
-            <div class="flex gap-3">
-                <button class="bg-indigo-600 text-white flex-1 py-4 rounded-xl font-bold shadow-md"
-                    onclick="event.stopPropagation(); saveNewList();">צור</button>
-                <button class="bg-gray-100 flex-1 py-4 rounded-xl font-bold"
-                    onclick="event.stopPropagation(); closeModal('newListModal');">ביטול</button>
-            </div>
-        </div>
-    </div>
-
-    <div id="confirmModal" class="modal-overlay no-print">
-        <div class="edit-modal">
-            <h2 class="text-green-600">סיום רשימה</h2>
-            <p class="mb-6">לסמן רשימה זו כהושלמה ולשמור בהיסטוריה?</p>
-            <div class="flex gap-3">
-                <button class="bg-green-500 text-white flex-1 py-4 rounded-xl font-bold shadow-lg"
-                    onclick="completeList()">השלם</button>
-                <button class="bg-gray-100 flex-1 py-4 rounded-xl font-bold"
-                    onclick="closeModal('confirmModal')">ביטול</button>
-            </div>
-        </div>
-    </div>
-
-    <div id="deleteListModal" class="modal-overlay no-print">
-        <div class="edit-modal">
-            <h2 class="text-red-600">מחיקת רשימה</h2>
-            <div class="flex gap-3">
-                <button id="confirmDeleteListBtn" class="bg-red-500 text-white flex-1 py-4 rounded-xl font-bold"
-                    onclick="deleteFullList()">מחק</button>
-                <button class="bg-gray-100 flex-1 py-4 rounded-xl font-bold"
-                    onclick="closeModal('deleteListModal')">ביטול</button>
-            </div>
-        </div>
-    </div>
-
-    <div id="editListNameModal" class="modal-overlay no-print">
-        <div class="edit-modal">
-            <h2>עריכת רשימה</h2>
-            <input type="text" id="editListNameInput" placeholder="שם הרשימה" class="modal-input">
-            <input type="url" id="editListUrlInput" placeholder="כתובת אתר (אופציונלי)" class="modal-input">
-            <input type="number" id="editListBudget" placeholder="תקציב (אופציונלי)" class="modal-input">
-            <div class="flex gap-3">
-                <button class="bg-indigo-600 text-white flex-1 py-4 rounded-xl font-bold"
-                    onclick="event.stopPropagation(); saveListName();">שמור</button>
-                <button class="bg-gray-100 flex-1 py-4 rounded-xl font-bold"
-                    onclick="event.stopPropagation(); closeModal('editListNameModal');">ביטול</button>
-            </div>
-        </div>
-    </div>
-
-    <div id="editTotalModal" class="modal-overlay no-print">
-        <div class="edit-modal">
-            <h2>עדכון מחיר</h2>
-            <input type="number" id="editTotalInput" class="modal-input">
-            <div class="flex gap-3">
-                <button class="bg-indigo-600 text-white flex-1 py-4 rounded-xl font-bold"
-                    onclick="event.stopPropagation(); saveTotal();">עדכן</button>
-                <button class="bg-gray-100 flex-1 py-4 rounded-xl font-bold"
-                    onclick="event.stopPropagation(); closeModal('editTotalModal');">ביטול</button>
-            </div>
-        </div>
-    </div>
-
-    <div id="editItemNameModal" class="modal-overlay no-print">
-        <div class="edit-modal">
-            <h2>📝 עריכת פריט</h2>
-            <input type="text" id="editItemName" class="modal-input" placeholder="שם הפריט">
-            <div style="margin-bottom: 5px;">
-                <label class="text-sm font-bold text-gray-600 block text-center mb-1">📅 תאריך יעד</label>
-                <input type="date" id="editItemDueDate" class="modal-input">
-            </div>
-            <input type="url" id="editItemPaymentUrl" class="modal-input" placeholder="🔗 קישור לתשלום (אופציונלי)">
-            <div style="margin-bottom: 5px;">
-                <label class="text-sm font-bold text-gray-600 block text-center mb-1">🔔 התראה מראש</label>
-                <div class="flex gap-2">
-                    <input type="number" id="editItemReminderValue" placeholder="מספר" class="modal-input" min="0" style="flex: 1;">
-                    <select id="editItemReminderUnit" class="modal-input" style="flex: 1;">
-                        <option value="">בחר יחידה</option>
-                        <option value="minutes">דקות</option>
-                        <option value="hours">שעות</option>
-                        <option value="days">ימים</option>
-                        <option value="weeks">שבועות</option>
-                    </select>
-                </div>
-            </div>
-            <div class="flex gap-3">
-                <button class="bg-indigo-600 text-white flex-1 py-4 rounded-xl font-bold"
-                    onclick="event.stopPropagation(); saveItemEdit();">שמור</button>
-                <button class="bg-gray-100 flex-1 py-4 rounded-xl font-bold"
-                    onclick="event.stopPropagation(); closeModal('editItemNameModal');">ביטול</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- Notification Center Modal -->
-    <div id="notificationCenterModal" class="modal-overlay no-print">
-        <div class="edit-modal" style="max-height: 80vh;">
-            <h2>🔔 מרכז התראות</h2>
-            <div id="notificationsList" style="max-height: 500px; overflow-y: auto; margin-top: 15px;">
-            </div>
-            <button class="bg-gray-100 w-full py-4 rounded-xl font-bold mt-3"
-                onclick="closeModal('notificationCenterModal')">סגור</button>
-        </div>
-    </div>
-
-    <div id="editCategoryModal" class="modal-overlay no-print">
-        <div class="edit-modal" style="max-height: 80vh; overflow-y: auto;">
-            <h2>בחירת קטגוריה</h2>
-            <div id="categoryOptions" class="mb-4" style="max-height: 400px; overflow-y: auto;">
-                <!-- Category buttons will be inserted here -->
-            </div>
-            <div class="border-t-2 border-gray-200 pt-4 mt-4">
-                <div class="text-sm font-bold text-gray-600 mb-2">✏️ קטגוריה מותאמת אישית</div>
-                <input type="text" id="customCategoryInput" class="modal-input" placeholder="הזן שם קטגוריה חדשה..." onkeypress="if(event.key==='Enter') saveCustomCategory()">
-                <button class="bg-purple-500 text-white w-full py-3 rounded-xl font-bold mt-2"
-                    onclick="saveCustomCategory()">שמור קטגוריה מותאמת</button>
-            </div>
-            <button class="bg-gray-100 w-full py-4 rounded-xl font-bold mt-3"
-                onclick="closeModal('editCategoryModal')">ביטול</button>
-        </div>
-    </div>
-
-    <div id="historyModal" class="modal-overlay no-print">
-        <div class="edit-modal">
-            <h2>📁 היסטוריית רכישות</h2>
-            <div id="historyContent" style="max-height: 400px; overflow-y: auto;"></div>
-            <button onclick="closeModal('historyModal')" class="mt-4 text-gray-400 block w-full">סגור</button>
-        </div>
-    </div>
-
-    <div id="templatesModal" class="modal-overlay no-print">
-        <div class="edit-modal">
-            <h2>⭐ תבניות רשימות</h2>
-            <div id="templatesContent" style="max-height: 400px; overflow-y: auto;"></div>
-            <button onclick="closeModal('templatesModal')" class="mt-4 text-gray-400 block w-full">סגור</button>
-        </div>
-    </div>
-
-    <div id="completedListsModal" class="modal-overlay no-print">
-        <div class="edit-modal">
-            <h2>✅ רשימות שהושלמו</h2>
-            <div id="completedListsContent" style="max-height: 400px; overflow-y: auto;"></div>
-            <button onclick="closeModal('completedListsModal')" class="mt-4 text-gray-400 block w-full">סגור</button>
-        </div>
-    </div>
-
-    <div id="settingsModal" class="modal-overlay no-print">
-        <div class="edit-modal">
-            <h2 id="settingsModalTitle">הגדרות</h2>
-            <div id="userEmailDisplay" class="text-indigo-600 font-bold mb-2 text-center text-sm"></div>
-            <button id="logoutBtn" onclick="logoutFromCloud()"
-                class="w-full bg-red-50 text-red-600 py-3 rounded-xl font-bold border border-red-100 mb-4 hidden">התנתק מהענן
-                🚪</button>
-            <button onclick="toggleDarkMode()"
-                class="w-full bg-indigo-50 text-indigo-600 py-4 rounded-xl font-bold mb-3">
-                <span id="darkModeText">מצב לילה 🌙</span>
-            </button>
-
-            <!-- Language Selector -->
-            <div class="mb-3">
-                <label class="block text-sm font-bold mb-2 text-gray-700" id="languageLabel">שפת ממשק</label>
-                <select id="languageSelector"
-                    class="w-full p-3 rounded-xl border-2 border-gray-200 font-bold text-center bg-white mb-2">
-                    <option value="he">🇮🇱 עברית</option>
-                    <option value="en">🇬🇧 English</option>
-                    <option value="ru">🇷🇺 Русский</option>
-                    <option value="ro">🇷🇴 Română</option>
-                </select>
-                <button onclick="confirmLanguageChange()"
-                    class="w-full bg-green-500 text-white py-3 rounded-xl font-bold" id="confirmLangBtn">
-                    ✓ אשר שינוי שפה
-                </button>
-            </div>
-
-            <button onclick="openModal('templatesModal'); closeModal('settingsModal')"
-                class="w-full bg-yellow-50 text-yellow-600 py-4 rounded-xl font-bold mb-3" id="savedTemplatesBtn">
-                ⭐ תבניות שמורות
-            </button>
-            <button onclick="openCategoryManager(); closeModal('settingsModal')"
-                class="w-full bg-purple-50 text-purple-600 py-4 rounded-xl font-bold mb-3" id="manageCategoriesBtn">
-                🗂️ ניהול קטגוריות
-            </button>
-            <button onclick="preparePrint()" class="w-full bg-orange-500 text-white py-4 rounded-xl font-bold mb-3"
-                id="printPDFBtn">
-                הדפס PDF 🖨️
-            </button>
-            <button onclick="exportData()" class="w-full bg-blue-500 text-white py-4 rounded-xl font-bold mb-3"
-                id="backupDataBtn">
-                💾 גיבוי נתונים
-            </button>
-            <button onclick="document.getElementById('importDataFile').click()"
-                class="w-full bg-purple-500 text-white py-4 rounded-xl font-bold mb-3" id="restoreDataBtn">
-                📂 שחזר נתונים
-            </button>
-            <input type="file" id="importDataFile" accept=".json" style="display: none;" onchange="importData(event)">
-            <button onclick="closeModal('settingsModal')" class="mt-4 text-gray-400 block w-full">סגור</button>
-        </div>
-    </div>
-
-    <!-- Translation Modal -->
-    <div id="translateModal" class="modal-overlay no-print">
-        <div class="edit-modal">
-            <h2>תרגם רשימה</h2>
-            <p class="text-sm text-gray-600 mb-4">בחר שפת יעד לתרגום כל המוצרים ברשימה</p>
-            <select id="targetLanguage" class="modal-input mb-4">
-                <option value="he">עברית - Hebrew</option>
-                <option value="en">English - אנגלית</option>
-                <option value="ar">العربية - ערבית</option>
-                <option value="ru">Русский - רוסית</option>
-                <option value="fr">Français - צרפתית</option>
-                <option value="es">Español - ספרדית</option>
-                <option value="de">Deutsch - גרמנית</option>
-                <option value="it">Italiano - איטלקית</option>
-                <option value="pt">Português - פורטוגזית</option>
-                <option value="tr">Türkçe - טורקית</option>
-                <option value="pl">Polski - פולנית</option>
-            </select>
-            <div class="flex gap-3">
-                <button onclick="performTranslation()"
-                    class="flex-1 bg-indigo-600 text-white py-3 rounded-xl font-bold">
-                    🌐 תרגם
-                </button>
-                <button onclick="closeModal('translateModal')"
-                    class="flex-1 bg-gray-300 text-gray-700 py-3 rounded-xl font-bold">
-                    ביטול
-                </button>
-            </div>
-            <div id="translationProgress" class="hidden mt-4 text-center">
-                <div class="text-sm text-gray-600">מתרגם...</div>
-                <div class="text-xs text-gray-500 mt-1" id="translationStatus"></div>
-            </div>
-        </div>
-    </div>
-
-    <div id="itemNoteModal" class="modal-overlay no-print">
-        <div class="edit-modal">
-            <h2>📝 הערה למוצר</h2>
-            <textarea id="itemNoteInput" class="note-modal-textarea" placeholder="הוסף הערה למוצר..."></textarea>
-            <div class="flex gap-3">
-                <button class="bg-yellow-500 text-white flex-1 py-4 rounded-xl font-bold"
-                    onclick="event.stopPropagation(); saveItemNote();">שמור</button>
-                <button class="bg-gray-100 flex-1 py-4 rounded-xl font-bold"
-                    onclick="event.stopPropagation(); closeModal('itemNoteModal');">ביטול</button>
-            </div>
-        </div>
-    </div>
-
-    <div id="categoryManagerModal" class="modal-overlay no-print">
-        <div class="edit-modal">
-            <h2>🗂️ ניהול קטגוריות מותאמות</h2>
-            <p class="text-sm text-gray-600 mb-4">קטגוריות שיצרת - ניתן למחוק קטגוריות שאינן בשימוש</p>
-            <div id="customCategoriesList" style="max-height: 400px; overflow-y: auto;">
-                <!-- Custom categories will be listed here -->
-            </div>
-            <button onclick="closeModal('categoryManagerModal')" class="mt-4 bg-gray-100 w-full py-4 rounded-xl font-bold">סגור</button>
-        </div>
-    </div>
-
-    <div id="deleteCategoryModal" class="modal-overlay no-print">
-        <div class="edit-modal">
-            <h2 class="text-red-600">מחיקת קטגוריה</h2>
-            <p class="text-center text-gray-700 mb-2">האם אתה בטוח שברצונך למחוק את הקטגוריה</p>
-            <p class="text-center font-bold text-xl mb-2" id="categoryToDeleteName" style="color: #7367f0;">...</p>
-            <p class="text-center text-sm text-gray-600 mb-4">כל הפריטים בקטגוריה זו יועברו לקטגוריה 'אחר'</p>
-            <div class="flex gap-3">
-                <button id="confirmDeleteCategoryBtn" class="bg-red-500 text-white flex-1 py-4 rounded-xl font-bold"
-                    onclick="executeDeleteCategory()">מחק</button>
-                <button class="bg-gray-100 flex-1 py-4 rounded-xl font-bold"
-                    onclick="closeModal('deleteCategoryModal')">ביטול</button>
-            </div>
-        </div>
-    </div>
-
-    <div id="urgentAlertModal" class="modal-overlay no-print">
-        <div class="urgent-alert-modal">
-            <div class="urgent-alert-header">⚠️</div>
-            <h2 class="urgent-alert-title">התראות חשובות!</h2>
-            <p style="color: #6b7280; margin-bottom: 15px;">יש לך פריטים הדורשים תשומת לב</p>
-            <div class="urgent-items-list" id="urgentItemsList">
-                <!-- Urgent items will be inserted here -->
-            </div>
-            <div class="urgent-buttons">
-                <button class="urgent-btn urgent-btn-snooze" onclick="snoozeUrgentAlert(4)">
-                    ⏰ הזכר לי בעוד 4 שעות
-                </button>
-                <button class="urgent-btn urgent-btn-tomorrow" onclick="snoozeUrgentAlert(24)">
-                    📅 הזכר לי מחר
-                </button>
-                <button class="urgent-btn urgent-btn-close" onclick="closeUrgentAlert()">
-                    ✕ סגור
-                </button>
-            </div>
-        </div>
-    </div>
-
-    <!-- ===== Credit Card Connection Modal ===== -->
-    <div id="creditCardModal" class="modal-overlay no-print">
-        <div class="credit-modal">
-            <h2 style="text-align:center; font-size:1.3rem; font-weight:900; margin-bottom:4px;">💳 חיבור כרטיס אשראי</h2>
-            <p style="text-align:center; color:#6b7280; font-size:13px; margin-bottom:4px;">בחר חברת אשראי והזן פרטי התחברות</p>
-
-            <!-- Company Selector -->
-            <div class="credit-company-grid">
-                <button class="credit-company-btn" onclick="selectCreditCompany('max', this)">
-                    <div style="font-size:22px;">💜</div>
-                    Max
-                </button>
-                <button class="credit-company-btn" onclick="selectCreditCompany('cal', this)">
-                    <div style="font-size:22px;">🔵</div>
-                    Cal
-                </button>
-                <button class="credit-company-btn" onclick="selectCreditCompany('leumi', this)">
-                    <div style="font-size:22px;">🟢</div>
-                    לאומי קארד
-                </button>
-                <button class="credit-company-btn" onclick="selectCreditCompany('isracard', this)">
-                    <div style="font-size:22px;">🔴</div>
-                    ישראכרט
-                </button>
-            </div>
-
-            <!-- Credentials -->
-            <input type="text" id="creditUsername"
-                placeholder="שם משתמש / תעודת זהות"
-                class="modal-input" autocomplete="username"
-                style="margin-bottom:10px;">
-            <input type="password" id="creditPassword"
-                placeholder="סיסמה"
-                class="modal-input" autocomplete="current-password"
-                style="margin-bottom:16px;">
-
-            <div style="background:#fef9c3; border-radius:12px; padding:10px 14px; font-size:12px; color:#92400e; margin-bottom:16px; text-align:right;">
-                🔒 הפרטים נשלחים ישירות לחברת האשראי ואינם נשמרים אצלנו
-            </div>
-
-            <div class="flex gap-3">
-                <button onclick="startCreditCardFetch()"
-                    style="flex:1; background:linear-gradient(135deg,#7367f0,#9055ff); color:white; padding:14px; border-radius:14px; font-weight:900; font-size:15px; border:none; cursor:pointer;">
-                    💳 התחבר ושלוף נתונים
-                </button>
-                <button onclick="closeModal('creditCardModal')"
-                    style="flex:0 0 56px; background:#f3f4f6; color:#6b7280; padding:14px; border-radius:14px; font-weight:700; border:none; cursor:pointer;">
-                    ✕
-                </button>
-            </div>
-        </div>
-    </div>
-
-    <!-- ===== Credit Card Progress Overlay ===== -->
-    <div id="creditProgressOverlay">
-        <div class="credit-progress-card">
-            <div class="credit-progress-icon" id="progressIcon">🔐</div>
-            <div class="credit-progress-title" id="progressTitle">מתחבר לחברת האשראי...</div>
-            <div class="credit-progress-subtitle" id="progressSubtitle">אנא המתן, זה עשוי לקחת עד דקה</div>
-
-            <!-- Progress Bar -->
-            <div class="credit-progress-bar-wrap">
-                <div class="credit-progress-bar-fill" id="creditProgressBar" style="width:5%"></div>
-            </div>
-
-            <!-- Stage List -->
-            <div class="credit-stage-list">
-                <div class="credit-stage-item" id="stage1">
-                    <div class="stage-dot" id="dot1">1</div>
-                    <span>מתחבר לחברת האשראי</span>
-                </div>
-                <div class="credit-stage-item" id="stage2">
-                    <div class="stage-dot" id="dot2">2</div>
-                    <span>שולף נתוני עסקאות</span>
-                </div>
-                <div class="credit-stage-item" id="stage3">
-                    <div class="stage-dot" id="dot3">3</div>
-                    <span>מעבד ומייבא נתונים</span>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <script src="script.js"></script>
-
-      <!-- Firebase Cloud Messaging SDK -->
-  <script type="module">
-    import { getMessaging } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-messaging.js';
-    if (window.firebaseApp) {
-      const messaging = getMessaging(window.firebaseApp);
-      window.firebaseMessaging = messaging;
-      console.log('✅ Firebase Messaging initialized');
+    } catch (err) {
+        console.error('שגיאה:', err);
+        return res.status(500).send('Error: ' + err.message);
     }
-  </script>
+});
 
-  <!-- Push Notifications Handler -->
-  <script src="push-notifications.js" type="module"></script>
-</body>
+// ─── testNotification ─────────────────────────────────────────────────────────
+exports.testNotification = functions.https.onRequest(async (req, res) => {
+    try {
+        const snap = await admin.firestore()
+            .collection('users')
+            .where('fcmToken', '!=', null)
+            .limit(1)
+            .get();
 
-</html>
+        if (snap.empty) {
+            return res.status(404).send('אין משתמשים עם FCM token');
+        }
 
+        const token = snap.docs[0].data().fcmToken;
+        await sendPush(token, {
+            title: '🧪 בדיקה',
+            body:  'VPlus - התראת בדיקה',
+            data:  { type: 'test' }
+        });
 
+        return res.status(200).send('נשלח');
+    } catch (err) {
+        return res.status(500).send('Error: ' + err.message);
+    }
+});
 
+// ─── sendPush: שולח FCM לtoken יחיד ─────────────────────────────────────────
+async function sendPush(token, { title, body, data }) {
+    const message = {
+        notification: { title, body },
+        data: data || {},
+        webpush: {
+            notification: {
+                icon:              '/icon-96.png',
+                badge:             '/icon-96.png',
+                vibrate:           [300, 100, 300, 100, 300],
+                requireInteraction: true,
+                renotify:          true,
+                // כפתורי snooze מובנים בהתראה
+                actions: [
+                    { action: 'snooze-10', title: '⏰ דחה 10 דק׳' },
+                    { action: 'snooze-60', title: '⏰ דחה שעה'    }
+                ]
+            },
+            fcmOptions: { link: 'https://vplus-pro.web.app' }
+        },
+        token
+    };
 
+    try {
+        const result = await admin.messaging().send(message);
+        console.log(`✅ נשלח: ${result}`);
+    } catch (err) {
+        console.error(`❌ שגיאה בשליחה:`, err.code, err.message);
+        if (err.code === 'messaging/registration-token-not-registered' ||
+            err.code === 'messaging/invalid-registration-token') {
+            await cleanToken(token);
+        }
+    }
+}
 
+// ─── cleanToken: מנקה token לא תקף ──────────────────────────────────────────
+async function cleanToken(token) {
+    const snap = await admin.firestore()
+        .collection('users')
+        .where('fcmToken', '==', token)
+        .limit(1)
+        .get();
+    if (!snap.empty) {
+        await snap.docs[0].ref.update({ fcmToken: admin.firestore.FieldValue.delete() });
+        console.log('🧹 Token נוקה');
+    }
+}
+// ─── fetchBankData: סנכרון בנקאי (Gen 2 onCall — me-west1 תל אביב) ────────────
+const { onCall, HttpsError } = require('firebase-functions/v2/https');
 
+exports.fetchBankData = onCall(
+    {
+        memory: '2GiB',
+        timeoutSeconds: 540,
+        region: 'me-west1',
+    },
+    async (request) => {
+        if (!request.auth) {
+            throw new HttpsError('unauthenticated', 'המשתמש לא מחובר');
+        }
 
+        let { companyId, username, password } = request.data;
 
+        if (!companyId || !username || !password) {
+            throw new HttpsError('invalid-argument', 'חסרים שדות: companyId, username, password');
+        }
 
+        // Normalize companyId from UI names → israeli-bank-scrapers enum values
+        const companyIdMap = {
+            'max':      'max',
+            'cal':      'cal',
+            'leumi':    'leumincard',
+            'isracard': 'isracard'
+        };
+        companyId = companyIdMap[companyId] || companyId;
+        console.log('🏦 Normalized companyId:', companyId);
 
+        // Dynamic import — israeli-bank-scrapers is ESM-only
+        let createScraper, chromium;
+        try {
+            ({ createScraper } = await import('israeli-bank-scrapers'));
+            chromium           = await import('@sparticuz/chromium');
+        } catch (importErr) {
+            console.error('🔴 Failed to import scrapers:', importErr.message);
+            throw new HttpsError('internal', 'שגיאה בטעינת מודול הסריקה: ' + importErr.message);
+        }
+
+        const startDate = new Date();
+        startDate.setMonth(startDate.getMonth() - 1);
+
+        let executablePath;
+        try {
+            executablePath = await chromium.default.executablePath();
+        } catch (chromiumErr) {
+            console.error('🔴 Chromium error:', chromiumErr.message);
+            throw new HttpsError('internal', 'שגיאה בטעינת Chromium: ' + chromiumErr.message);
+        }
+
+        // Stealth browser — מסתיר חתימת Puppeteer מ-Max/Cal
+        let browser;
+        try {
+            const puppeteerExtra = require('puppeteer-extra');
+            const StealthPlugin  = require('puppeteer-extra-plugin-stealth');
+            puppeteerExtra.use(StealthPlugin());
+            browser = await puppeteerExtra.launch({
+                executablePath,
+                args:     chromium.default.args,
+                headless: chromium.default.headless,
+                defaultViewport: chromium.default.defaultViewport,
+            });
+            console.log('🥷 Stealth browser launched');
+        } catch (browserErr) {
+            console.error('🔴 Browser launch error:', browserErr.message);
+            throw new HttpsError('internal', 'שגיאה בהפעלת הדפדפן: ' + browserErr.message);
+        }
+
+        const scraper = createScraper({
+            companyId,
+            startDate,
+            combineInstallments: false,
+            browser,
+            skipCloseBrowser: false,
+        });
+
+        console.log('🏦 Starting scrape for:', companyId);
+        let scrapeResult;
+        try {
+            scrapeResult = await scraper.scrape({ username, password });
+        } catch (scrapeErr) {
+            console.error('🔴 scraper.scrape() threw:', scrapeErr.message);
+            throw new HttpsError('internal', 'שגיאת סריקה: ' + scrapeErr.message);
+        }
+
+        console.log('🏦 Scrape result success:', scrapeResult.success);
+        console.log('🏦 Scrape errorType:', scrapeResult.errorType);
+        console.log('🏦 Scrape accounts count:', scrapeResult.accounts?.length);
+
+        if (!scrapeResult.success) {
+            console.error('🔴 Scrape failed with errorType:', scrapeResult.errorType);
+            console.error('🔴 errorMessage:', scrapeResult.errorMessage);
+            console.error('🔴 full result keys:', Object.keys(scrapeResult));
+            const errorMap = {
+                'InvalidPassword':    ['permission-denied',   'שם משתמש או סיסמה שגויים'],
+                'ChangePassword':     ['permission-denied',   'נדרש לשנות סיסמה באתר הבנק'],
+                'AccountBlocked':     ['permission-denied',   'החשבון חסום — פנה לבנק'],
+                'TwoFactorRetrieval': ['failed-precondition', 'נדרש קוד אימות דו-שלבי'],
+                'Timeout':            ['deadline-exceeded',   'פסק הזמן חלף — נסה שוב'],
+                'SessionExpired':     ['unauthenticated',     'הפעלה פגה — נסה שוב'],
+                'Generic':            ['internal',            'שגיאה כללית בסריקה — נסה שוב מאוחר יותר'],
+            };
+            const [code, baseMsg] = errorMap[scrapeResult.errorType] || ['internal', `שגיאה: ${scrapeResult.errorType}`];
+            const fullMsg = scrapeResult.errorMessage ? `${baseMsg} | ${scrapeResult.errorMessage}` : baseMsg;
+            throw new HttpsError(code, fullMsg);
+        }
+
+        // Flatten all accounts → transactions array
+        const transactions = [];
+        for (const account of (scrapeResult.accounts || [])) {
+            for (const txn of (account.txns || [])) {
+                transactions.push({
+                    name:   txn.description || txn.memo || 'עסקה',
+                    amount: Math.abs(txn.chargedAmount || txn.originalAmount || 0),
+                    date:   txn.date ? new Date(txn.date).toLocaleDateString('he-IL') : ''
+                });
+            }
+        }
+        console.log(`✅ Returning ${transactions.length} transactions`);
+        return { transactions };
+    }
+);
+
+// Alias so client-side call to 'fetchAccountData' also works
+exports.fetchAccountData = exports.fetchBankData;
