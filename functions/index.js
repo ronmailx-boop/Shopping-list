@@ -195,31 +195,38 @@ exports.fetchBankData = onCall(
             throw new HttpsError('unauthenticated', 'המשתמש לא מחובר');
         }
 
-        let { companyId, username, password } = request.data;
+        let { companyId, credentials, username, password } = request.data;
 
-        if (!companyId || !username || !password) {
-            throw new HttpsError('invalid-argument', 'חסרים שדות: companyId, username, password');
+        if (!companyId) {
+            throw new HttpsError('invalid-argument', 'חסר שדה: companyId');
         }
 
         // Normalize companyId from UI names → israeli-bank-scrapers enum values
         const companyIdMap = {
             // כרטיסי אשראי
-            'max':            'max',
-            'cal':            'cal',
-            'leumi':          'leumincard',
-            'isracard':       'isracard',
+            'max':          'max',
+            'cal':          'visaCal',
+            'leumi':        'leumi',        // בנק לאומי
+            'isracard':     'isracard',
             // בנקים
-            'hapoalim':       'hapoalim',
-            'leumiBank':      'leumi',
-            'mizrahi':        'mizrahi',
-            'discount':       'discount',
-            'otsarHahayal':   'otsarHahayal',
-            'yahav':          'yahav',
-            'massad':         'massad',
-            'unionBank':      'unionBank',
-            'beinleumi':      'beinleumi',
+            'hapoalim':     'hapoalim',
+            'mizrahi':      'mizrahi',
+            'discount':     'discount',
+            'otsarHahayal': 'otsarHahayal',
+            'yahav':        'yahav',
+            'massad':       'massad',
+            'unionBank':    'unionBank',
+            'beinleumi':    'beinleumi',
         };
         companyId = companyIdMap[companyId] || companyId;
+
+        // Use dynamic credentials object if provided, else fallback to legacy username/password
+        if (!credentials) {
+            if (!username || !password) {
+                throw new HttpsError('invalid-argument', 'חסרים פרטי התחברות');
+            }
+            credentials = { username, password };
+        }
         console.log('🏦 Normalized companyId:', companyId);
 
         // Dynamic import — israeli-bank-scrapers is ESM-only
@@ -272,7 +279,7 @@ exports.fetchBankData = onCall(
         console.log('🏦 Starting scrape for:', companyId);
         let scrapeResult;
         try {
-            scrapeResult = await scraper.scrape({ username, password });
+            scrapeResult = await scraper.scrape(credentials);
         } catch (scrapeErr) {
             console.error('🔴 scraper.scrape() threw:', scrapeErr.message);
             throw new HttpsError('internal', 'שגיאת סריקה: ' + scrapeErr.message);
