@@ -7003,16 +7003,39 @@ function hideCreditProgress() {
 }
 
 
-// ═══════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════
 // 🏛️  BANK SCRAPER — Israeli Banks
-// ═══════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════
 
 let selectedBank = null;
 
+// Per-bank field definitions based on israeli-bank-scrapers docs
+const BANK_CONFIG = {
+    hapoalim:     { field1: 'userCode',  field1Label: 'קוד משתמש',      field2: null,  field2Label: '', hint: 'קוד המשתמש הוא הקוד שלך באינטרנט פועלים' },
+    leumi:        { field1: 'username',  field1Label: 'שם משתמש',        field2: null,  field2Label: '', hint: 'שם המשתמש שלך בלאומי דיגיטל' },
+    mizrahi:      { field1: 'username',  field1Label: 'שם משתמש',        field2: null,  field2Label: '', hint: 'שם המשתמש שלך בבנק מזרחי' },
+    discount:     { field1: 'id',        field1Label: 'תעודת זהות',       field2: 'num', field2Label: 'מספר סניף (3 ספרות)', hint: 'נדרשים: ת"ז + מספר סניף + סיסמה' },
+    otsarHahayal: { field1: 'username',  field1Label: 'שם משתמש',        field2: null,  field2Label: '', hint: '' },
+    yahav:        { field1: 'username',  field1Label: 'שם משתמש',        field2: null,  field2Label: '', hint: '' },
+    massad:       { field1: 'username',  field1Label: 'שם משתמש',        field2: null,  field2Label: '', hint: '' },
+    unionBank:    { field1: 'username',  field1Label: 'שם משתמש',        field2: null,  field2Label: '', hint: '' },
+    beinleumi:    { field1: 'username',  field1Label: 'שם משתמש',        field2: null,  field2Label: '', hint: '' },
+};
+
+const BANK_NAMES = {
+    hapoalim: 'פועלים', leumi: 'לאומי', mizrahi: 'מזרחי',
+    discount: 'דיסקונט', otsarHahayal: 'אוצר החייל',
+    yahav: 'יהב', massad: 'מסד', unionBank: 'איגוד', beinleumi: 'בינלאומי'
+};
+
 function openBankModal() {
     selectedBank = null;
-    document.getElementById('bankUsername').value = '';
+    document.getElementById('bankField1').value = '';
     document.getElementById('bankPassword').value = '';
+    document.getElementById('bankField2').value = '';
+    document.getElementById('bankField2').style.display = 'none';
+    document.getElementById('bankField1').placeholder = 'שם משתמש';
+    document.getElementById('bankHint').style.display = 'none';
     document.querySelectorAll('#bankModal .credit-company-btn').forEach(b => b.classList.remove('selected'));
     openModal('bankModal');
 }
@@ -7021,6 +7044,31 @@ function selectBank(bankId, btn) {
     selectedBank = bankId;
     document.querySelectorAll('#bankModal .credit-company-btn').forEach(b => b.classList.remove('selected'));
     btn.classList.add('selected');
+
+    const cfg = BANK_CONFIG[bankId];
+    if (!cfg) return;
+
+    // Update field1
+    document.getElementById('bankField1').placeholder = cfg.field1Label;
+
+    // Show/hide field2
+    const f2 = document.getElementById('bankField2');
+    if (cfg.field2) {
+        f2.placeholder = cfg.field2Label;
+        f2.style.display = 'block';
+    } else {
+        f2.style.display = 'none';
+        f2.value = '';
+    }
+
+    // Show hint
+    const hint = document.getElementById('bankHint');
+    if (cfg.hint) {
+        hint.textContent = 'ℹ️ ' + cfg.hint;
+        hint.style.display = 'block';
+    } else {
+        hint.style.display = 'none';
+    }
 }
 
 async function startBankFetch() {
@@ -7035,40 +7083,49 @@ async function startBankFetch() {
         showNotification('⚠️ בחר בנק תחילה', 'warning');
         return;
     }
-    const username = document.getElementById('bankUsername').value.trim();
-    const password = document.getElementById('bankPassword').value.trim();
-    if (!username || !password) {
-        showNotification('⚠️ הזן שם משתמש וסיסמה', 'warning');
+
+    const cfg = BANK_CONFIG[selectedBank];
+    const field1Val = document.getElementById('bankField1').value.trim();
+    const password  = document.getElementById('bankPassword').value.trim();
+    const field2Val = document.getElementById('bankField2').value.trim();
+
+    if (!field1Val || !password) {
+        showNotification('⚠️ הזן את כל פרטי ההתחברות', 'warning');
         return;
     }
+    if (cfg.field2 && !field2Val) {
+        showNotification('⚠️ ' + cfg.field2Label + ' נדרש', 'warning');
+        return;
+    }
+
+    // Build credentials object dynamically
+    const credentials = { password };
+    credentials[cfg.field1] = field1Val;
+    if (cfg.field2) credentials[cfg.field2] = field2Val;
 
     closeModal('bankModal');
     showCreditProgress();
 
     try {
         log(`בנק נבחר: ${selectedBank}`, 'info', '🏛️');
-        log(`window.firebaseApp: ${!!window.firebaseApp}`, 'info', '🔥');
+        log(`credentials keys: ${Object.keys(credentials).join(', ')}`, 'info', '🔑');
 
         setCreditStage(1, { icon: '🔐', title: 'מתחבר לבנק...', sub: 'מאמת פרטי התחברות' });
         await delay(3000);
-        setCreditStage(2, { icon: '📡', title: 'שולף נתוני חשבון...', sub: 'טוען תנועות — זה לוקח רגע' });
+        setCreditStage(2, { icon: '📡', title: 'שולף נתוני חשבון...', sub: 'טוען תנועות — זה לוקח כדקה' });
 
         let transactions = [];
 
         if (window.firebaseApp) {
             const user = window.firebaseAuth?.currentUser;
-            log(`currentUser: ${user ? user.email : 'null — לא מחובר!'}`, user ? 'success' : 'error', user ? '👤' : '❌');
-
+            log(`currentUser: ${user ? user.email : 'null'}`, user ? 'success' : 'error', user ? '👤' : '❌');
             if (!user) {
                 hideCreditProgress();
-                showNotification('❌ יש להתחבר לחשבון לפני שליפת נתוני בנק', 'error');
+                showNotification('❌ יש להתחבר לחשבון תחילה', 'error');
                 return;
             }
 
-            log('טוען firebase-functions...', 'info', '📦');
             const { getFunctions, httpsCallable } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-functions.js');
-            log('firebase-functions נטען', 'success', '✅');
-
             const functions = getFunctions(window.firebaseApp, 'me-west1');
             const fetchBankData = httpsCallable(functions, 'fetchAccountData', { timeout: 300000 });
 
@@ -7076,20 +7133,21 @@ async function startBankFetch() {
             try {
                 const result = await fetchBankData({
                     companyId: selectedBank,
-                    username,
+                    credentials,         // ← send full credentials object
+                    // legacy fields for backwards compat
+                    username: field1Val,
                     password
                 });
                 log(`התקבלו ${result.data?.transactions?.length ?? 0} תנועות`, 'success', '✅');
                 transactions = result.data?.transactions || [];
             } catch (fnErr) {
-                log(`שגיאת Function: ${fnErr?.message || fnErr?.code || JSON.stringify(fnErr)}`, 'error', '❌');
+                log(`שגיאת Function: ${fnErr?.message || fnErr?.code}`, 'error', '❌');
                 log(`code: ${fnErr?.code || 'אין'}`, 'error', '🔴');
                 hideCreditProgress();
                 showNotification('❌ שגיאת בנק — ראה לוג למטה', 'error');
                 return;
             }
         } else {
-            log('firebaseApp לא קיים — נתוני דמו', 'warn', '⚠️');
             transactions = getDemoBankTransactions(selectedBank);
         }
 
@@ -7107,7 +7165,6 @@ async function startBankFetch() {
         document.getElementById('progressIcon').textContent  = '✅';
         document.getElementById('progressTitle').textContent  = 'הושלם בהצלחה!';
         document.getElementById('progressSubtitle').textContent = 'הנתונים יובאו לרשימה';
-
         await delay(1200);
         hideCreditProgress();
 
@@ -7120,60 +7177,39 @@ async function startBankFetch() {
     } catch (err) {
         log(`שגיאה כללית: ${err.message || err}`, 'error', '💥');
         hideCreditProgress();
-        showNotification('❌ שגיאה בשליפת נתוני בנק — ראה לוג למטה', 'error');
+        showNotification('❌ שגיאה — ראה לוג למטה', 'error');
     }
 }
 
 function getDemoBankTransactions(bank) {
-    const bankNames = {
-        hapoalim: 'פועלים', leumi: 'לאומי', leumiBank: 'לאומי', mizrahi: 'מזרחי',
-        discount: 'דיסקונט', otsarHahayal: 'אוצר החייל',
-        yahav: 'יהב', massad: 'מסד', unionBank: 'איגוד', beinleumi: 'בינלאומי'
-    };
     const today = new Date();
     const fmt = d => d.toLocaleDateString('he-IL');
-    const mkDate = daysAgo => { const d = new Date(today); d.setDate(d.getDate() - daysAgo); return fmt(d); };
+    const mkDate = n => { const d = new Date(today); d.setDate(d.getDate() - n); return fmt(d); };
     return [
-        { name: 'משכורת',        amount: 12000, date: mkDate(5)  },
-        { name: 'שכירות',        amount: 4500,  date: mkDate(3)  },
-        { name: 'חשמל',          amount: 380,   date: mkDate(7)  },
-        { name: 'מים',           amount: 120,   date: mkDate(10) },
-        { name: 'ביטוח לאומי',   amount: 650,   date: mkDate(2)  },
-        { name: 'הוראת קבע סלולר', amount: 199, date: mkDate(8)  },
+        { name: 'משכורת',          amount: 12000, date: mkDate(5)  },
+        { name: 'שכירות',          amount: 4500,  date: mkDate(3)  },
+        { name: 'חשמל',            amount: 380,   date: mkDate(7)  },
+        { name: 'מים',             amount: 120,   date: mkDate(10) },
+        { name: 'ביטוח לאומי',     amount: 650,   date: mkDate(2)  },
+        { name: 'הוראת קבע סלולר', amount: 199,   date: mkDate(8)  },
     ];
 }
 
 function importBankTransactions(transactions) {
-    const bankNames = {
-        hapoalim: 'פועלים', leumi: 'לאומי', leumiBank: 'לאומי', mizrahi: 'מזרחי',
-        discount: 'דיסקונט', otsarHahayal: 'אוצר החייל',
-        yahav: 'יהב', massad: 'מסד', unionBank: 'איגוד', beinleumi: 'בינלאומי'
-    };
-    const bank = bankNames[selectedBank] || 'בנק';
+    const bank = BANK_NAMES[selectedBank] || 'בנק';
     const today = new Date().toLocaleDateString('he-IL');
     const newId = 'L' + Date.now();
-
     const items = transactions.map(t => ({
         name: t.name || t.description || 'תנועה',
         price: parseFloat(t.amount || t.price || 0),
-        qty: 1,
-        checked: false,
-        isPaid: true,
+        qty: 1, checked: false, isPaid: true,
         category: detectCategory(t.name || t.description || ''),
         note: t.date ? '📅 ' + t.date : '',
-        dueDate: '',
-        paymentUrl: '',
+        dueDate: '', paymentUrl: '',
         lastUpdated: Date.now(),
         cloudId: 'item_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9)
     }));
-
-    db.lists[newId] = {
-        name: '🏛️ ' + bank + ' - ' + today,
-        url: '',
-        budget: 0,
-        isTemplate: false,
-        items
-    };
+    db.lists[newId] = { name: '🏛️ ' + bank + ' - ' + today, url: '', budget: 0, isTemplate: false, items };
     db.currentId = newId;
     activePage = 'lists';
     save();
