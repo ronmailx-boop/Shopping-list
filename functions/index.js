@@ -304,4 +304,4 @@ exports.fetchBankData = onCall(
 );
 
 // Alias so client-side call to 'fetchAccountData' also works
-exports.fetchAccountData = exports.fetchBankData;
+// fetchAccountData is now served directly as fetchBankData (Gen 2 onCall, me-west1)
