@@ -7002,7 +7002,53 @@ function hideCreditProgress() {
     document.getElementById('creditProgressOverlay').classList.remove('active');
 }
 
+// ── In-App Debug Logger ──
+function showDebugLog(logs) {
+    let panel = document.getElementById('debugLogPanel');
+    if (!panel) {
+        panel = document.createElement('div');
+        panel.id = 'debugLogPanel';
+        panel.style.cssText = `
+            position:fixed; bottom:0; left:0; right:0; z-index:99999;
+            background:#1a1a2e; color:#e0e0e0; font-family:monospace;
+            font-size:12px; max-height:55vh; overflow-y:auto;
+            border-top:3px solid #e94560; padding:8px;
+            direction:ltr; text-align:left;
+        `;
+        const header = document.createElement('div');
+        header.style.cssText = 'display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;';
+        header.innerHTML = `
+            <span style="color:#e94560;font-weight:bold;font-size:13px;">🐛 Debug Log</span>
+            <div>
+                <button onclick="navigator.clipboard?.writeText(document.getElementById('debugLogContent').innerText).then(()=>alert('הועתק!'))" 
+                    style="background:#0f3460;color:white;border:none;padding:3px 8px;border-radius:4px;margin-left:6px;cursor:pointer;font-size:11px;">📋 העתק</button>
+                <button onclick="document.getElementById('debugLogPanel').remove()" 
+                    style="background:#e94560;color:white;border:none;padding:3px 8px;border-radius:4px;cursor:pointer;font-size:11px;">✕ סגור</button>
+            </div>
+        `;
+        panel.appendChild(header);
+        const content = document.createElement('div');
+        content.id = 'debugLogContent';
+        panel.appendChild(content);
+        document.body.appendChild(panel);
+    }
+    const content = document.getElementById('debugLogContent');
+    content.innerHTML = logs.map(l => {
+        const color = l.type === 'error' ? '#ff6b6b' : l.type === 'warn' ? '#ffd93d' : l.type === 'success' ? '#6bcb77' : '#a8dadc';
+        return `<div style="color:${color};padding:2px 0;border-bottom:1px solid #333;">${l.icon || '•'} [${l.time}] ${l.msg}</div>`;
+    }).join('');
+    content.scrollTop = content.scrollHeight;
+}
+
 async function startCreditCardFetch() {
+    const debugLogs = [];
+    const log = (msg, type = 'info', icon = '•') => {
+        const time = new Date().toLocaleTimeString('he-IL');
+        debugLogs.push({ msg, type, icon, time });
+        showDebugLog(debugLogs);
+        console.log(`[${type}] ${msg}`);
+    };
+
     // Validation
     if (!selectedCreditCompany) {
         showNotification('⚠️ בחר חברת אשראי תחילה', 'warning');
@@ -7015,53 +7061,67 @@ async function startCreditCardFetch() {
         return;
     }
 
-    // Close the input modal and show progress
     closeModal('creditCardModal');
     showCreditProgress();
 
     try {
-        // ── Stage 1: Connecting ──
+        log(`חברה נבחרה: ${selectedCreditCompany}`, 'info', '🏦');
+        log(`window.firebaseApp: ${!!window.firebaseApp}`, 'info', '🔥');
+        log(`window.firebaseAuth: ${!!window.firebaseAuth}`, 'info', '🔐');
+
         setCreditStage(1, { icon: '🔐', title: 'מתחבר לחברת האשראי...', sub: 'מאמת פרטי התחברות' });
         await delay(3000);
-
-        // ── Stage 2: Fetching data ──
         setCreditStage(2, { icon: '📡', title: 'שולף נתוני עסקאות...', sub: 'טוען פעולות אחרונות — זה לוקח רגע' });
 
-        // Call Firebase Function if available
         let transactions = [];
+
         if (window.firebaseApp) {
-            // ── בדיקת התחברות לפני הקריאה לפונקציה ──
             const user = window.firebaseAuth?.currentUser;
+            log(`currentUser: ${user ? user.email : 'null — לא מחובר!'}`, user ? 'success' : 'error', user ? '👤' : '❌');
+
             if (!user) {
                 hideCreditProgress();
+                log('נכשל: המשתמש לא מחובר', 'error', '🚫');
                 showNotification('❌ יש להתחבר לחשבון לפני שליפת נתוני אשראי', 'error');
                 return;
             }
 
+            log('טוען firebase-functions...', 'info', '📦');
             const { getFunctions, httpsCallable } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-functions.js');
-            // ⚠️ Must match the region where the function is deployed (me-west1 = Tel Aviv)
-            const functions = getFunctions(window.firebaseApp, 'me-west1');
-            const fetchAccountData = httpsCallable(functions, 'fetchAccountData', { timeout: 300000 });
+            log('firebase-functions נטען בהצלחה', 'success', '✅');
 
-            const result = await fetchAccountData({
-                companyId: selectedCreditCompany,
-                username,
-                password
-            });
-            transactions = result.data?.transactions || [];
+            const functions = getFunctions(window.firebaseApp, 'me-west1');
+            log('getFunctions(me-west1) — OK', 'success', '✅');
+
+            const fetchAccountData = httpsCallable(functions, 'fetchAccountData', { timeout: 300000 });
+            log('httpsCallable(fetchAccountData) — OK', 'success', '✅');
+
+            log('שולח קריאה ל-Cloud Function...', 'info', '📡');
+            try {
+                const result = await fetchAccountData({
+                    companyId: selectedCreditCompany,
+                    username,
+                    password
+                });
+                log(`תשובה התקבלה, מספר עסקאות: ${result.data?.transactions?.length ?? 0}`, 'success', '✅');
+                transactions = result.data?.transactions || [];
+            } catch (fnErr) {
+                log(`שגיאת Function: ${fnErr?.message || fnErr?.code || JSON.stringify(fnErr)}`, 'error', '❌');
+                log(`code: ${fnErr?.code || 'אין'}`, 'error', '🔴');
+                log(`details: ${JSON.stringify(fnErr?.details) || 'אין'}`, 'error', '🔴');
+                hideCreditProgress();
+                showNotification('❌ שגיאת Function — ראה לוג למטה', 'error');
+                return;
+            }
         } else {
-            // No Firebase — use demo data so the UI flow is visible
+            log('firebaseApp לא קיים — משתמש בנתוני דמו', 'warn', '⚠️');
             transactions = getDemoCreditTransactions(selectedCreditCompany);
         }
 
-        // ── Stage 3: Processing ──
         setCreditStage(3, { icon: '⚙️', title: 'מעבד ומייבא נתונים...', sub: 'בונה רשימה מהעסקאות שלך' });
         await delay(1500);
 
-        // Finish progress bar
         document.getElementById('creditProgressBar').style.width = '100%';
-
-        // Mark all stages done
         for (let i = 1; i <= 3; i++) {
             const el  = document.getElementById('stage' + i);
             const dot = document.getElementById('dot' + i);
@@ -7077,15 +7137,18 @@ async function startCreditCardFetch() {
         hideCreditProgress();
 
         if (transactions.length > 0) {
+            log(`מייבא ${transactions.length} עסקאות לרשימה`, 'success', '📥');
             importCreditTransactions(transactions);
         } else {
+            log('לא נמצאו עסקאות', 'warn', '⚠️');
             showNotification('ℹ️ לא נמצאו עסקאות חדשות', 'warning');
         }
 
     } catch (err) {
-        console.error('Credit card fetch error:', err);
+        log(`שגיאה כללית: ${err.message || err}`, 'error', '💥');
+        log(`stack: ${err.stack?.split('\n')[1] || 'אין'}`, 'error', '🔴');
         hideCreditProgress();
-        showNotification('❌ שגיאה בשליפת הנתונים: ' + (err.message || 'שגיאה לא ידועה'), 'error');
+        showNotification('❌ שגיאה בשליפת הנתונים — ראה לוג למטה', 'error');
     }
 }
 
