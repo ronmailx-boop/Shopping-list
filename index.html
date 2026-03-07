@@ -1900,28 +1900,7 @@
             font-weight: 700; 
             color: #4b5563; 
         }
-    
-        .fin-btn {
-            padding: 12px 8px;
-            border-radius: 14px;
-            border: 2px solid #e5e7eb;
-            background: white;
-            cursor: pointer;
-            font-size: 13px;
-            font-weight: 700;
-            color: #374151;
-            transition: all 0.2s;
-            text-align: center;
-        }
-        .fin-btn:active { transform: scale(0.96); }
-        .fin-btn.selected {
-            border-color: #7367f0;
-            background: linear-gradient(135deg,#7367f0,#9055ff);
-            color: white;
-            box-shadow: 0 4px 14px rgba(115,103,240,0.35);
-        }
-
-        </style>
+    </style>
 
     <script>
         // ─── Helper: trigger urgent alert modal safely (waits for app to be ready) ───
@@ -2269,7 +2248,7 @@ ${error.message}
     <div class="max-w-md mx-auto p-4 no-print">
         <div class="flex gap-3 mb-6" style="display:none!important;">
             <div id="tabStats" onclick="showPage('stats')" class="tab-btn">סטטיסטיקות 📊</div>
-            <div id="tabBank" onclick="openModal('financialChoiceModal')" class="tab-btn whitespace-nowrap">פיננסי 💰</div>
+            <div id="tabBank" onclick="showPage('bank')" class="tab-btn whitespace-nowrap">פיננסי 🏦</div>
         </div>
 
         <div id="pageLists">
@@ -2380,10 +2359,10 @@ ${error.message}
                     ontouchstart="this.style.transform='scale(0.96)'" ontouchend="this.style.transform='scale(1)'">
                     📊 סטטיסטיקות
                 </button>
-                <button onclick="openModal('financialChoiceModal')"
-                    style="flex:1;height:40px;border-radius:14px;background:linear-gradient(135deg,#7367f0,#0ea5e9);border:none;font-size:13px;font-weight:800;color:white;cursor:pointer;box-shadow:0 2px 10px rgba(115,103,240,0.25);transition:all 0.2s;"
+                <button onclick="showPage('bank')"
+                    style="flex:1;height:40px;border-radius:14px;background:white;border:none;font-size:13px;font-weight:800;color:#7367f0;cursor:pointer;box-shadow:0 2px 10px rgba(115,103,240,0.15);transition:all 0.2s;"
                     ontouchstart="this.style.transform='scale(0.96)'" ontouchend="this.style.transform='scale(1)'">
-                    💰 פיננסי
+                    🏦 פיננסי
                 </button>
             </div>
             <div
@@ -3315,147 +3294,33 @@ ${error.message}
     </div>
   </div>
 
-  <!-- ===== FINANCIAL CHOICE MODAL ===== -->
-  <div id="financialChoiceModal" class="modal-overlay no-print">
-    <div class="edit-modal" style="width:90%;max-width:380px;padding:28px 24px;border-radius:24px;margin-top:80px;">
-        <h2 style="text-align:center;font-size:1.25rem;font-weight:900;margin-bottom:6px;color:#1e1b4b;">💰 חיבור פיננסי</h2>
-        <p style="text-align:center;color:#6b7280;font-size:13px;margin-bottom:20px;">בחר את סוג החיבור</p>
-        <div style="display:flex;gap:12px;margin-bottom:16px;">
-            <button onclick="closeModal('financialChoiceModal');openModal('creditCardModal')"
-                style="flex:1;padding:18px 10px;border-radius:18px;border:2px solid #e5e7eb;background:white;cursor:pointer;font-weight:800;font-size:14px;color:#374151;transition:all 0.2s;"
-                ontouchstart="this.style.background='#f5f3ff';this.style.borderColor='#7367f0'" ontouchend="this.style.background='white'">
-                <div style="font-size:28px;margin-bottom:6px;">💳</div>
-                כרטיס אשראי
-            </button>
-            <button onclick="closeModal('financialChoiceModal');openBankConnectModal()"
-                style="flex:1;padding:18px 10px;border-radius:18px;border:2px solid #e5e7eb;background:white;cursor:pointer;font-weight:800;font-size:14px;color:#374151;transition:all 0.2s;"
-                ontouchstart="this.style.background='#e0f2fe';this.style.borderColor='#0369a1'" ontouchend="this.style.background='white'">
-                <div style="font-size:28px;margin-bottom:6px;">🏛️</div>
-                בנק
-            </button>
-        </div>
-        <button onclick="closeModal('financialChoiceModal')"
-            style="width:100%;padding:12px;border-radius:14px;border:none;background:#f3f4f6;color:#6b7280;font-weight:700;cursor:pointer;">
-            ✕ סגור
-        </button>
-    </div>
-  </div>
-
-  <!-- ===== CREDIT CARD MODAL ===== -->
-  <div id="creditCardModal" class="modal-overlay no-print">
-    <div class="edit-modal" style="width:92%;max-width:400px;padding:24px;border-radius:24px;margin-top:60px;max-height:85vh;overflow-y:auto;">
-        <h2 style="text-align:center;font-size:1.2rem;font-weight:900;margin-bottom:4px;color:#1e1b4b;">💳 חיבור כרטיס אשראי</h2>
-        <p style="text-align:center;color:#6b7280;font-size:13px;margin-bottom:14px;">בחר חברה והזן פרטי התחברות</p>
-        <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:14px;">
-            <button class="fin-btn" onclick="selectCreditCompany('max',this)">
-                <div style="font-size:22px;">💜</div>Max
-            </button>
-            <button class="fin-btn" onclick="selectCreditCompany('cal',this)">
-                <div style="font-size:22px;">🔵</div>Cal
-            </button>
-            <button class="fin-btn" onclick="selectCreditCompany('leumincard',this)">
-                <div style="font-size:22px;">🟢</div>לאומי קארד
-            </button>
-            <button class="fin-btn" onclick="selectCreditCompany('isracard',this)">
-                <div style="font-size:22px;">🔴</div>ישראכרט
-            </button>
-        </div>
-        <input type="text" id="creditUsername" placeholder="שם משתמש / תעודת זהות"
-            class="w-full border-2 border-gray-100 rounded-xl p-3 bg-gray-50 outline-none" style="margin-bottom:10px;display:block;">
-        <input type="password" id="creditPassword" placeholder="סיסמה"
-            class="w-full border-2 border-gray-100 rounded-xl p-3 bg-gray-50 outline-none" style="margin-bottom:14px;display:block;">
-        <div style="background:#fef9c3;border-radius:12px;padding:10px 14px;font-size:12px;color:#92400e;margin-bottom:14px;text-align:right;">
-            🔒 הפרטים נשלחים ישירות לחברת האשראי ואינם נשמרים
-        </div>
-        <div style="display:flex;gap:10px;">
-            <button onclick="startCreditCardFetch()"
-                style="flex:1;background:linear-gradient(135deg,#7367f0,#9055ff);color:white;padding:14px;border-radius:14px;font-weight:900;font-size:15px;border:none;cursor:pointer;">
-                💳 התחבר ושלוף
-            </button>
-            <button onclick="closeModal('creditCardModal')"
-                style="flex:0 0 50px;background:#f3f4f6;color:#6b7280;padding:14px;border-radius:14px;font-weight:700;border:none;cursor:pointer;">✕</button>
-        </div>
-    </div>
-  </div>
-
-  <!-- ===== BANK CONNECT MODAL ===== -->
-  <div id="bankConnectModal" class="modal-overlay no-print">
-    <div class="edit-modal" style="width:92%;max-width:400px;padding:24px;border-radius:24px;margin-top:60px;max-height:85vh;overflow-y:auto;">
-        <h2 style="text-align:center;font-size:1.2rem;font-weight:900;margin-bottom:4px;color:#1e1b4b;">🏛️ חיבור לבנק</h2>
-        <p style="text-align:center;color:#6b7280;font-size:13px;margin-bottom:14px;">בחר בנק והזן פרטי התחברות</p>
-        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px;">
-            <button class="fin-btn" onclick="selectBank('hapoalim',this)">
-                <div style="font-size:20px;">🔴</div><div style="font-size:11px;">פועלים</div>
-            </button>
-            <button class="fin-btn" onclick="selectBank('leumi',this)">
-                <div style="font-size:20px;">🟢</div><div style="font-size:11px;">לאומי</div>
-            </button>
-            <button class="fin-btn" onclick="selectBank('mizrahi',this)">
-                <div style="font-size:20px;">🟠</div><div style="font-size:11px;">מזרחי</div>
-            </button>
-            <button class="fin-btn" onclick="selectBank('discount',this)">
-                <div style="font-size:20px;">🔵</div><div style="font-size:11px;">דיסקונט</div>
-            </button>
-            <button class="fin-btn" onclick="selectBank('otsarHahayal',this)">
-                <div style="font-size:20px;">🪖</div><div style="font-size:11px;">אוצר החייל</div>
-            </button>
-            <button class="fin-btn" onclick="selectBank('yahav',this)">
-                <div style="font-size:20px;">🟡</div><div style="font-size:11px;">יהב</div>
-            </button>
-            <button class="fin-btn" onclick="selectBank('massad',this)">
-                <div style="font-size:20px;">🏦</div><div style="font-size:11px;">מסד</div>
-            </button>
-            <button class="fin-btn" onclick="selectBank('unionBank',this)">
-                <div style="font-size:20px;">🤝</div><div style="font-size:11px;">איגוד</div>
-            </button>
-            <button class="fin-btn" onclick="selectBank('beinleumi',this)">
-                <div style="font-size:20px;">🌐</div><div style="font-size:11px;">בינלאומי</div>
-            </button>
-        </div>
-        <div id="bankField1Wrap">
-            <input type="text" id="bankField1" placeholder="שם משתמש"
-                class="w-full border-2 border-gray-100 rounded-xl p-3 bg-gray-50 outline-none" style="margin-bottom:10px;display:block;">
-        </div>
-        <input type="password" id="bankConnectPassword" placeholder="סיסמה"
-            class="w-full border-2 border-gray-100 rounded-xl p-3 bg-gray-50 outline-none" style="margin-bottom:10px;display:block;">
-        <div id="bankField2Wrap" style="display:none;">
-            <input type="text" id="bankField2" placeholder=""
-                class="w-full border-2 border-gray-100 rounded-xl p-3 bg-gray-50 outline-none" style="margin-bottom:10px;display:block;">
-        </div>
-        <div id="bankConnectHint" style="background:#e0f2fe;border-radius:12px;padding:10px 14px;font-size:12px;color:#0369a1;margin-bottom:12px;text-align:right;display:none;"></div>
-        <div style="background:#fef9c3;border-radius:12px;padding:10px 14px;font-size:12px;color:#92400e;margin-bottom:14px;text-align:right;">
-            🔒 הפרטים נשלחים ישירות לבנק ואינם נשמרים
-        </div>
-        <div style="display:flex;gap:10px;">
-            <button onclick="startBankFetch()"
-                style="flex:1;background:linear-gradient(135deg,#0ea5e9,#0369a1);color:white;padding:14px;border-radius:14px;font-weight:900;font-size:15px;border:none;cursor:pointer;">
-                🏛️ התחבר ושלוף
-            </button>
-            <button onclick="closeModal('bankConnectModal')"
-                style="flex:0 0 50px;background:#f3f4f6;color:#6b7280;padding:14px;border-radius:14px;font-weight:700;border:none;cursor:pointer;">✕</button>
-        </div>
-    </div>
-  </div>
-
-  <!-- ===== FINANCIAL PROGRESS OVERLAY ===== -->
-  <div id="finProgressOverlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:9999;align-items:center;justify-content:center;backdrop-filter:blur(10px);">
-    <div style="background:white;border-radius:28px;padding:32px 28px;width:88%;max-width:360px;text-align:center;">
-        <div id="finProgressIcon" style="font-size:3rem;margin-bottom:12px;">🔐</div>
-        <div id="finProgressTitle" style="font-size:1.1rem;font-weight:900;color:#1e1b4b;margin-bottom:4px;">מתחבר...</div>
-        <div id="finProgressSub" style="font-size:13px;color:#6b7280;margin-bottom:20px;">אנא המתן</div>
-        <div style="background:#f3f4f6;border-radius:99px;height:8px;overflow:hidden;margin-bottom:20px;">
-            <div id="finProgressBar" style="height:100%;border-radius:99px;background:linear-gradient(90deg,#7367f0,#0ea5e9);width:0%;transition:width 0.5s ease;"></div>
-        </div>
-        <div style="display:flex;justify-content:center;gap:16px;">
-            <div id="finStage1" style="display:flex;flex-direction:column;align-items:center;gap:4px;font-size:11px;color:#9ca3af;">
-                <div id="finDot1" style="width:28px;height:28px;border-radius:50%;background:#f3f4f6;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:12px;">1</div>חיבור
+  <!-- ===== BANK LOGIN MODAL ===== -->
+  <div id="bankLoginModal" class="hidden fixed inset-x-0 top-0 z-[100] flex flex-col" dir="rtl" style="padding-top: env(safe-area-inset-top);">
+    <div class="bg-white rounded-b-3xl p-6 w-full shadow-2xl relative">
+        <div id="bankLoginForm">
+            <button onclick="closeBankModal()" class="absolute top-4 left-4 text-gray-400 text-2xl">&times;</button>
+            <h3 class="text-xl font-bold mb-6 text-center text-gray-800">התחברות מאובטחת</h3>
+            <div class="space-y-4">
+                <select id="bankCompanyId" class="w-full border-2 border-gray-100 rounded-xl p-3 bg-gray-50 outline-none">
+                    <option value="hapoalim">בנק הפועלים</option>
+                    <option value="leumi">בנק לאומי</option>
+                    <option value="discount">בנק דיסקונט</option>
+                    <option value="mizrahi">בנק מזרחי-טפחות</option>
+                    <option value="max">מקס (Max)</option>
+                    <option value="cal">כאל (Cal)</option>
+                    <option value="isracard">ישראכרט</option>
+                </select>
+                <input type="text" id="bankUsername" placeholder="קוד משתמש / ת.ז" class="w-full border-2 border-gray-100 rounded-xl p-3 bg-gray-50 outline-none">
+                <input type="password" id="bankPassword" placeholder="סיסמה" class="w-full border-2 border-gray-100 rounded-xl p-3 bg-gray-50 outline-none">
             </div>
-            <div id="finStage2" style="display:flex;flex-direction:column;align-items:center;gap:4px;font-size:11px;color:#9ca3af;">
-                <div id="finDot2" style="width:28px;height:28px;border-radius:50%;background:#f3f4f6;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:12px;">2</div>שליפה
+            <div class="mt-8 flex gap-3">
+                <button onclick="closeBankModal()" class="flex-1 p-3 rounded-xl border-2 border-gray-100 text-gray-500 font-bold">ביטול</button>
+                <button onclick="startBankSync()" class="flex-1 p-3 rounded-xl bg-indigo-600 text-white font-bold shadow-md">התחבר</button>
             </div>
-            <div id="finStage3" style="display:flex;flex-direction:column;align-items:center;gap:4px;font-size:11px;color:#9ca3af;">
-                <div id="finDot3" style="width:28px;height:28px;border-radius:50%;background:#f3f4f6;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:12px;">3</div>עיבוד
-            </div>
+        </div>
+        <div id="bankLoginLoading" class="hidden text-center py-6">
+            <h3 class="text-lg font-bold text-gray-800 mb-4">מתחבר ומאמת נתונים...</h3>
+            <img src="https://firebasestorage.googleapis.com/v0/b/vplus-pro.appspot.com/o/images%2Fgif1.gif?alt=media&token=c2cb0f94-cdba-4346-95a9-d309f7a79f67" class="w-24 h-24 mx-auto rounded-2xl shadow-lg mb-4" alt="טוען">
         </div>
     </div>
   </div>

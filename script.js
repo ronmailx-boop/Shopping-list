@@ -9345,279 +9345,128 @@ function _addItemByVoice(name) {
 }
 // ========== Bank Sync Functions ==========
 
-
-// ═══════════════════════════════════════════════════════
-// 💰 FINANCIAL MODALS — Credit Card + Bank Scraper
-// ═══════════════════════════════════════════════════════
-
-let selectedCreditCompany = null;
-let selectedBank = null;
-
-const BANK_CONFIG = {
-    hapoalim:     { field1: 'userCode',  field1Label: 'קוד משתמש',    field2: null,  field2Label: '',                     hint: 'קוד המשתמש שלך באינטרנט פועלים' },
-    leumi:        { field1: 'username',  field1Label: 'שם משתמש',      field2: null,  field2Label: '',                     hint: 'שם המשתמש שלך בלאומי דיגיטל' },
-    mizrahi:      { field1: 'username',  field1Label: 'שם משתמש',      field2: null,  field2Label: '',                     hint: '' },
-    discount:     { field1: 'id',        field1Label: 'תעודת זהות',     field2: 'num', field2Label: 'מספר סניף (3 ספרות)', hint: 'נדרש: ת"ז + מספר סניף + סיסמה' },
-    otsarHahayal: { field1: 'username',  field1Label: 'שם משתמש',      field2: null,  field2Label: '',                     hint: '' },
-    yahav:        { field1: 'username',  field1Label: 'שם משתמש',      field2: null,  field2Label: '',                     hint: '' },
-    massad:       { field1: 'username',  field1Label: 'שם משתמש',      field2: null,  field2Label: '',                     hint: '' },
-    unionBank:    { field1: 'username',  field1Label: 'שם משתמש',      field2: null,  field2Label: '',                     hint: '' },
-    beinleumi:    { field1: 'username',  field1Label: 'שם משתמש',      field2: null,  field2Label: '',                     hint: '' },
-};
-
-const BANK_NAMES = {
-    hapoalim: 'פועלים', leumi: 'לאומי', mizrahi: 'מזרחי',
-    discount: 'דיסקונט', otsarHahayal: 'אוצר החייל',
-    yahav: 'יהב', massad: 'מסד', unionBank: 'איגוד', beinleumi: 'בינלאומי'
-};
-
-const CREDIT_NAMES = { max: 'Max', visaCal: 'Cal', leumincard: 'לאומי קארד', isracard: 'ישראכרט' };
-
-// ── Legacy stub (keep pageBank button working) ──
-function openBankModal() { openModal('financialChoiceModal'); }
-function closeBankModal() { closeModal('financialChoiceModal'); }
-function openBankConnectModal() {
-    selectedBank = null;
-    document.getElementById('bankField1').value = '';
-    document.getElementById('bankConnectPassword').value = '';
-    document.getElementById('bankField2').value = '';
-    document.getElementById('bankField2Wrap').style.display = 'none';
-    document.getElementById('bankField1').placeholder = 'שם משתמש';
-    document.getElementById('bankConnectHint').style.display = 'none';
-    document.querySelectorAll('#bankConnectModal .fin-btn').forEach(b => b.classList.remove('selected'));
-    openModal('bankConnectModal');
+function openBankModal() {
+    const modal = document.getElementById('bankLoginModal');
+    if (!modal) return;
+    document.getElementById('bankLoginForm').classList.remove('hidden');
+    document.getElementById('bankLoginLoading').classList.add('hidden');
+    modal.classList.remove('hidden');
 }
 
-// ── Credit company selector ──
-function selectCreditCompany(id, btn) {
-    selectedCreditCompany = id;
-    document.querySelectorAll('#creditCardModal .fin-btn').forEach(b => b.classList.remove('selected'));
-    btn.classList.add('selected');
+function closeBankModal() {
+    const modal = document.getElementById('bankLoginModal');
+    if (modal) modal.classList.add('hidden');
 }
 
-// ── Bank selector ──
-function selectBank(bankId, btn) {
-    selectedBank = bankId;
-    document.querySelectorAll('#bankConnectModal .fin-btn').forEach(b => b.classList.remove('selected'));
-    btn.classList.add('selected');
-    const cfg = BANK_CONFIG[bankId];
-    if (!cfg) return;
-    document.getElementById('bankField1').placeholder = cfg.field1Label;
-    const f2wrap = document.getElementById('bankField2Wrap');
-    const f2 = document.getElementById('bankField2');
-    if (cfg.field2) {
-        f2.placeholder = cfg.field2Label;
-        f2wrap.style.display = 'block';
-    } else {
-        f2wrap.style.display = 'none';
-        f2.value = '';
+async function startBankSync() {
+    const companyId = document.getElementById('bankCompanyId').value;
+    const username  = document.getElementById('bankUsername').value.trim();
+    const password  = document.getElementById('bankPassword').value;
+
+    if (!username || !password) {
+        showNotification('⚠️ יש למלא שם משתמש וסיסמה', 'warning');
+        return;
     }
-    const hint = document.getElementById('bankConnectHint');
-    if (cfg.hint) { hint.textContent = 'ℹ️ ' + cfg.hint; hint.style.display = 'block'; }
-    else { hint.style.display = 'none'; }
-}
 
-// ── Progress helpers ──
-function showFinProgress() {
-    const el = document.getElementById('finProgressOverlay');
-    if (el) { el.style.display = 'flex'; }
-}
-function hideFinProgress() {
-    const el = document.getElementById('finProgressOverlay');
-    if (el) { el.style.display = 'none'; }
-}
-function setFinStage(step, icon, title, sub, pct) {
-    document.getElementById('finProgressIcon').textContent = icon;
-    document.getElementById('finProgressTitle').textContent = title;
-    document.getElementById('finProgressSub').textContent = sub;
-    document.getElementById('finProgressBar').style.width = pct;
-    for (let i = 1; i <= 3; i++) {
-        const dot = document.getElementById('finDot' + i);
-        const stage = document.getElementById('finStage' + i);
-        dot.style.background = i < step ? '#7367f0' : i === step ? '#0ea5e9' : '#f3f4f6';
-        dot.style.color = i <= step ? 'white' : '#9ca3af';
-        dot.textContent = i < step ? '✓' : String(i);
-    }
-}
+    document.getElementById('bankLoginForm').classList.add('hidden');
+    document.getElementById('bankLoginLoading').classList.remove('hidden');
 
-// ── Debug log panel ──
-function showDebugLog(logs) {
-    let panel = document.getElementById('debugLogPanel');
-    if (!panel) {
-        panel = document.createElement('div');
-        panel.id = 'debugLogPanel';
-        panel.style.cssText = 'position:fixed;bottom:0;left:0;right:0;z-index:99999;background:#1a1a2e;color:#e0e0e0;font-family:monospace;font-size:12px;max-height:50vh;overflow-y:auto;border-top:3px solid #e94560;padding:8px;direction:ltr;text-align:left;';
-        const header = document.createElement('div');
-        header.style.cssText = 'display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;';
-        const copyBtn = document.createElement('button');
-        copyBtn.textContent = '📋 העתק';
-        copyBtn.style.cssText = 'background:#0f3460;color:white;border:none;padding:3px 8px;border-radius:4px;margin-left:6px;cursor:pointer;font-size:11px;';
-        copyBtn.onclick = () => { const c = document.getElementById('debugLogContent'); if(c) navigator.clipboard?.writeText(c.innerText).then(()=>alert('הועתק!')); };
-        const closeBtn = document.createElement('button');
-        closeBtn.textContent = '✕';
-        closeBtn.style.cssText = 'background:#e94560;color:white;border:none;padding:3px 8px;border-radius:4px;cursor:pointer;font-size:11px;';
-        closeBtn.onclick = () => { const p = document.getElementById('debugLogPanel'); if(p) p.remove(); };
-        const title = document.createElement('span');
-        title.innerHTML = '🐛 Debug Log';
-        title.style.cssText = 'color:#e94560;font-weight:bold;';
-        const btnWrap = document.createElement('div');
-        btnWrap.appendChild(copyBtn);
-        btnWrap.appendChild(closeBtn);
-        header.appendChild(title);
-        header.appendChild(btnWrap);
-        panel.appendChild(header);
-        const content = document.createElement('div');
-        content.id = 'debugLogContent';
-        panel.appendChild(content);
-        document.body.appendChild(panel);
-    }
-    const content = document.getElementById('debugLogContent');
-    content.innerHTML = logs.map(l => {
-        const color = l.type==='error'?'#ff6b6b':l.type==='warn'?'#ffd93d':l.type==='success'?'#6bcb77':'#a8dadc';
-        return `<div style="color:${color};padding:2px 0;border-bottom:1px solid #333;">${l.icon||'•'} [${l.time}] ${l.msg}</div>`;
-    }).join('');
-    content.scrollTop = content.scrollHeight;
-}
-
-// ── Shared fetch helper ──
-async function runFinancialFetch({ companyId, credentials, modalId, nameLabel }) {
-    const debugLogs = [];
-    const log = (msg, type='info', icon='•') => {
-        debugLogs.push({ msg, type, icon, time: new Date().toLocaleTimeString('he-IL') });
-        showDebugLog(debugLogs);
-    };
-
-    closeModal(modalId);
-    showFinProgress();
+    // ── diagnostics ─────────────────────────────────────────────────────────
+    console.log('🏦 [BankSync] Starting sync');
+    console.log('🏦 [BankSync] companyId:', companyId);
+    console.log('🏦 [BankSync] firebaseFunctions available:', !!window.firebaseFunctions);
+    console.log('🏦 [BankSync] httpsCallable available:', !!window.httpsCallable);
+    console.log('🏦 [BankSync] currentUser:', window.firebaseAuth?.currentUser?.uid || 'NOT LOGGED IN');
+    // ────────────────────────────────────────────────────────────────────────
 
     try {
-        log(`חברה: ${companyId}`, 'info', '🏦');
-        log(`credentials keys: ${Object.keys(credentials).join(', ')}`, 'info', '🔑');
-
-        setFinStage(1, '🔐', 'מתחבר...', 'מאמת פרטי התחברות', '15%');
-        await new Promise(r => setTimeout(r, 3000));
-        setFinStage(2, '📡', 'שולף נתונים...', 'זה לוקח עד דקה', '50%');
-
-        let transactions = [];
-
-        if (window.firebaseApp) {
-            const user = window.firebaseAuth?.currentUser;
-            log(`currentUser: ${user ? user.email : 'null'}`, user ? 'success' : 'error', user ? '👤' : '❌');
-            if (!user) { hideFinProgress(); showNotification('❌ יש להתחבר לחשבון תחילה', 'error'); return; }
-
-            const { getFunctions, httpsCallable } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-functions.js');
-            const functions = getFunctions(window.firebaseApp, 'me-west1');
-            const fetchFn = httpsCallable(functions, 'fetchAccountData', { timeout: 300000 });
-
-            log('שולח קריאה ל-Cloud Function...', 'info', '📡');
-            try {
-                const result = await fetchFn({ companyId, credentials, ...credentials });
-                log(`התקבלו ${result.data?.transactions?.length ?? 0} רשומות`, 'success', '✅');
-                transactions = result.data?.transactions || [];
-            } catch (fnErr) {
-                log(`שגיאת Function: ${fnErr?.message || fnErr?.code}`, 'error', '❌');
-                log(`code: ${fnErr?.code || 'אין'}`, 'error', '🔴');
-                hideFinProgress();
-                showNotification('❌ שגיאה — ראה לוג למטה', 'error');
-                return;
-            }
-        } else {
-            log('אין Firebase — נתוני דמו', 'warn', '⚠️');
-            transactions = [
-                { name: 'דוגמה 1', amount: 100, date: new Date().toLocaleDateString('he-IL') },
-                { name: 'דוגמה 2', amount: 250, date: new Date().toLocaleDateString('he-IL') },
-            ];
+        if (!window.firebaseFunctions || !window.httpsCallable) {
+            throw new Error('Firebase Functions לא אותחל — נסה לרענן את הדף');
         }
 
-        setFinStage(3, '⚙️', 'מעבד נתונים...', 'עוד רגע...', '85%');
-        await new Promise(r => setTimeout(r, 1200));
+        const fetchBankData = window.httpsCallable(window.firebaseFunctions, 'fetchBankData', { timeout: 540000 }); // 540 שניות
+        console.log('🏦 [BankSync] Calling fetchBankData cloud function...');
 
-        document.getElementById('finProgressBar').style.width = '100%';
-        document.getElementById('finProgressIcon').textContent = '✅';
-        document.getElementById('finProgressTitle').textContent = 'הושלם בהצלחה!';
-        document.getElementById('finProgressSub').textContent = 'הנתונים יובאו לרשימה';
-        for (let i = 1; i <= 3; i++) {
-            document.getElementById('finDot' + i).textContent = '✓';
-            document.getElementById('finDot' + i).style.background = '#7367f0';
-            document.getElementById('finDot' + i).style.color = 'white';
-        }
-        await new Promise(r => setTimeout(r, 1000));
-        hideFinProgress();
+        const result = await fetchBankData({ companyId, username, password });
+        console.log('🏦 [BankSync] Success! accounts received:', result?.data?.length);
 
-        if (transactions.length > 0) {
-            importFinancialTransactions(transactions, nameLabel);
-        } else {
-            showNotification('ℹ️ לא נמצאו רשומות', 'warning');
-        }
+        if (!db.bankData) db.bankData = {};
+        db.bankData.accounts  = result.data;
+        db.bankData.lastSync  = Date.now();
+        db.bankData.companyId = companyId;
+        save();
 
+        closeBankModal();
+        showNotification('✅ סנכרון הבנק הצליח!', 'success');
+        renderBankData();
     } catch (err) {
-        log(`שגיאה כללית: ${err.message}`, 'error', '💥');
-        hideFinProgress();
-        showNotification('❌ שגיאה — ראה לוג למטה', 'error');
+        // ── Full error dump ────────────────────────────────────────────────
+        console.error('🔴 [BankSync] ERROR DETAILS:');
+        console.error('  message  :', err.message);
+        console.error('  code     :', err.code);
+        console.error('  details  :', err.details);
+        console.error('  stack    :', err.stack);
+        console.error('  full obj :', JSON.stringify(err, Object.getOwnPropertyNames(err), 2));
+        // ──────────────────────────────────────────────────────────────────
+
+        document.getElementById('bankLoginForm').classList.remove('hidden');
+        document.getElementById('bankLoginLoading').classList.add('hidden');
+
+        // Show detailed error in notification
+        const errMsg = err.code
+            ? `${err.code}: ${err.message}`
+            : (err.message || 'שגיאה לא ידועה');
+        showNotification('❌ שגיאה בסנכרון: ' + errMsg, 'error');
     }
 }
-
-// ── Credit card fetch ──
-async function startCreditCardFetch() {
-    if (!selectedCreditCompany) { showNotification('⚠️ בחר חברת אשראי תחילה', 'warning'); return; }
-    const username = document.getElementById('creditUsername').value.trim();
-    const password = document.getElementById('creditPassword').value.trim();
-    if (!username || !password) { showNotification('⚠️ הזן שם משתמש וסיסמה', 'warning'); return; }
-    await runFinancialFetch({
-        companyId: selectedCreditCompany,
-        credentials: { username, password },
-        modalId: 'creditCardModal',
-        nameLabel: '💳 ' + (CREDIT_NAMES[selectedCreditCompany] || 'אשראי')
-    });
-}
-
-// ── Bank fetch ──
-async function startBankFetch() {
-    if (!selectedBank) { showNotification('⚠️ בחר בנק תחילה', 'warning'); return; }
-    const cfg = BANK_CONFIG[selectedBank];
-    const field1Val = document.getElementById('bankField1').value.trim();
-    const password  = document.getElementById('bankConnectPassword').value.trim();
-    const field2Val = document.getElementById('bankField2').value.trim();
-    if (!field1Val || !password) { showNotification('⚠️ הזן את כל פרטי ההתחברות', 'warning'); return; }
-    if (cfg.field2 && !field2Val) { showNotification('⚠️ ' + cfg.field2Label + ' נדרש', 'warning'); return; }
-    const credentials = { password };
-    credentials[cfg.field1] = field1Val;
-    if (cfg.field2) credentials[cfg.field2] = field2Val;
-    await runFinancialFetch({
-        companyId: selectedBank,
-        credentials,
-        modalId: 'bankConnectModal',
-        nameLabel: '🏛️ ' + (BANK_NAMES[selectedBank] || 'בנק')
-    });
-}
-
-// ── Import transactions to list ──
-function importFinancialTransactions(transactions, nameLabel) {
-    const today = new Date().toLocaleDateString('he-IL');
-    const newId = 'L' + Date.now();
-    const items = transactions.map(t => ({
-        name: t.name || t.description || 'עסקה',
-        price: parseFloat(t.amount || t.price || 0),
-        qty: 1, checked: false, isPaid: true,
-        category: detectCategory(t.name || t.description || ''),
-        note: t.date ? '📅 ' + t.date : '',
-        dueDate: '', paymentUrl: '',
-        lastUpdated: Date.now(),
-        cloudId: 'item_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9)
-    }));
-    db.lists[newId] = { name: nameLabel + ' - ' + today, url: '', budget: 0, isTemplate: false, items };
-    db.currentId = newId;
-    activePage = 'lists';
-    save();
-    showNotification('✅ יובאו ' + items.length + ' רשומות מ' + nameLabel + '!');
-}
-
-// ── Legacy startBankSync stub ──
-async function startBankSync() { startBankFetch(); }
 
 function renderBankData() {
     const container = document.getElementById('bankDataContainer');
     if (!container) return;
-    container.innerHTML = '<div class="text-center text-gray-400 py-10 bg-white rounded-3xl shadow-sm border border-gray-100"><span class="text-5xl block mb-4">🏦</span><p class="font-medium">השתמש בכפתור פיננסי לשליפת נתונים.</p></div>';
-}
 
+    const accounts = db.bankData && db.bankData.accounts;
+    if (!accounts || accounts.length === 0) {
+        container.innerHTML = `
+            <div class="text-center text-gray-400 py-10 bg-white rounded-3xl shadow-sm border border-gray-100">
+                <span class="text-5xl block mb-4">🏦</span>
+                <p class="font-medium">אין נתונים פיננסיים להצגה.</p>
+            </div>`;
+        return;
+    }
+
+    const lastSync = db.bankData.lastSync
+        ? new Date(db.bankData.lastSync).toLocaleString('he-IL') : '';
+
+    let html = `<p class="text-xs text-gray-400 text-center mb-4">עדכון אחרון: ${lastSync}</p>`;
+
+    accounts.forEach(account => {
+        const balance = account.balance != null
+            ? Number(account.balance).toLocaleString('he-IL', { style: 'currency', currency: account.currency || 'ILS' })
+            : '—';
+
+        const txRows = (account.txns || []).slice(0, 20).map(tx => {
+            const sign   = tx.chargedAmount < 0 ? 'text-red-500' : 'text-green-600';
+            const amount = Number(tx.chargedAmount).toLocaleString('he-IL', { style: 'currency', currency: account.currency || 'ILS' });
+            const date   = tx.date ? new Date(tx.date).toLocaleDateString('he-IL') : '';
+            return `
+                <div class="flex justify-between items-center py-2 border-b border-gray-50 last:border-0">
+                    <span class="${sign} font-bold text-sm">${amount}</span>
+                    <div class="text-right">
+                        <p class="text-sm font-medium text-gray-700">${tx.description || ''}</p>
+                        <p class="text-xs text-gray-400">${date}</p>
+                    </div>
+                </div>`;
+        }).join('');
+
+        html += `
+            <div class="bg-white rounded-3xl shadow-sm border border-gray-100 mb-4 overflow-hidden">
+                <div class="bg-gradient-to-r from-indigo-500 to-purple-600 p-4 text-white">
+                    <p class="text-sm font-medium opacity-80">${account.accountNumber || ''}</p>
+                    <p class="text-2xl font-black mt-1">${balance}</p>
+                </div>
+                <div class="p-4">${txRows || '<p class="text-center text-gray-400 text-sm py-4">אין עסקאות</p>'}</div>
+            </div>`;
+    });
+
+    container.innerHTML = html;
+}
