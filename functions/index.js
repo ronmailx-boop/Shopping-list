@@ -195,11 +195,21 @@ exports.fetchBankData = onCall(
             throw new HttpsError('unauthenticated', 'המשתמש לא מחובר');
         }
 
-        const { companyId, username, password } = request.data;
+        let { companyId, username, password } = request.data;
 
         if (!companyId || !username || !password) {
             throw new HttpsError('invalid-argument', 'חסרים שדות: companyId, username, password');
         }
+
+        // Normalize companyId from UI names → israeli-bank-scrapers enum values
+        const companyIdMap = {
+            'max':      'max',
+            'cal':      'cal',
+            'leumi':    'leumincard',
+            'isracard': 'isracard'
+        };
+        companyId = companyIdMap[companyId] || companyId;
+        console.log('🏦 Normalized companyId:', companyId);
 
         // Dynamic import — israeli-bank-scrapers is ESM-only
         let createScraper, chromium;
@@ -276,6 +286,21 @@ exports.fetchBankData = onCall(
             throw new HttpsError(code, msg);
         }
 
-        return scrapeResult.accounts;
+        // Flatten all accounts → transactions array
+        const transactions = [];
+        for (const account of (scrapeResult.accounts || [])) {
+            for (const txn of (account.txns || [])) {
+                transactions.push({
+                    name:   txn.description || txn.memo || 'עסקה',
+                    amount: Math.abs(txn.chargedAmount || txn.originalAmount || 0),
+                    date:   txn.date ? new Date(txn.date).toLocaleDateString('he-IL') : ''
+                });
+            }
+        }
+        console.log(`✅ Returning ${transactions.length} transactions`);
+        return { transactions };
     }
 );
+
+// Alias so client-side call to 'fetchAccountData' also works
+exports.fetchAccountData = exports.fetchBankData;
