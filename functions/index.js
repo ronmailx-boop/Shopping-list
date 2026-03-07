@@ -203,10 +203,21 @@ exports.fetchBankData = onCall(
 
         // Normalize companyId from UI names → israeli-bank-scrapers enum values
         const companyIdMap = {
-            'max':      'max',
-            'cal':      'cal',
-            'leumi':    'leumincard',
-            'isracard': 'isracard'
+            // כרטיסי אשראי
+            'max':            'max',
+            'cal':            'cal',
+            'leumi':          'leumincard',
+            'isracard':       'isracard',
+            // בנקים
+            'hapoalim':       'hapoalim',
+            'leumiBank':      'leumi',
+            'mizrahi':        'mizrahi',
+            'discount':       'discount',
+            'otsarHahayal':   'otsarHahayal',
+            'yahav':          'yahav',
+            'massad':         'massad',
+            'unionBank':      'unionBank',
+            'beinleumi':      'beinleumi',
         };
         companyId = companyIdMap[companyId] || companyId;
         console.log('🏦 Normalized companyId:', companyId);
