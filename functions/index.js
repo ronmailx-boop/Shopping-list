@@ -195,39 +195,11 @@ exports.fetchBankData = onCall(
             throw new HttpsError('unauthenticated', 'המשתמש לא מחובר');
         }
 
-        let { companyId, credentials, username, password } = request.data;
+        const { companyId, username, password } = request.data;
 
-        if (!companyId) {
-            throw new HttpsError('invalid-argument', 'חסר שדה: companyId');
+        if (!companyId || !username || !password) {
+            throw new HttpsError('invalid-argument', 'חסרים שדות: companyId, username, password');
         }
-
-        // Normalize companyId from UI names → israeli-bank-scrapers enum values
-        const companyIdMap = {
-            // כרטיסי אשראי
-            'max':          'max',
-            'cal':          'visaCal',
-            'leumi':        'leumi',        // בנק לאומי
-            'isracard':     'isracard',
-            // בנקים
-            'hapoalim':     'hapoalim',
-            'mizrahi':      'mizrahi',
-            'discount':     'discount',
-            'otsarHahayal': 'otsarHahayal',
-            'yahav':        'yahav',
-            'massad':       'massad',
-            'unionBank':    'unionBank',
-            'beinleumi':    'beinleumi',
-        };
-        companyId = companyIdMap[companyId] || companyId;
-
-        // Use dynamic credentials object if provided, else fallback to legacy username/password
-        if (!credentials) {
-            if (!username || !password) {
-                throw new HttpsError('invalid-argument', 'חסרים פרטי התחברות');
-            }
-            credentials = { username, password };
-        }
-        console.log('🏦 Normalized companyId:', companyId);
 
         // Dynamic import — israeli-bank-scrapers is ESM-only
         let createScraper, chromium;
@@ -279,7 +251,7 @@ exports.fetchBankData = onCall(
         console.log('🏦 Starting scrape for:', companyId);
         let scrapeResult;
         try {
-            scrapeResult = await scraper.scrape(credentials);
+            scrapeResult = await scraper.scrape({ username, password });
         } catch (scrapeErr) {
             console.error('🔴 scraper.scrape() threw:', scrapeErr.message);
             throw new HttpsError('internal', 'שגיאת סריקה: ' + scrapeErr.message);
@@ -291,8 +263,6 @@ exports.fetchBankData = onCall(
 
         if (!scrapeResult.success) {
             console.error('🔴 Scrape failed with errorType:', scrapeResult.errorType);
-            console.error('🔴 errorMessage:', scrapeResult.errorMessage);
-            console.error('🔴 full result keys:', Object.keys(scrapeResult));
             const errorMap = {
                 'InvalidPassword':    ['permission-denied',   'שם משתמש או סיסמה שגויים'],
                 'ChangePassword':     ['permission-denied',   'נדרש לשנות סיסמה באתר הבנק'],
@@ -302,26 +272,10 @@ exports.fetchBankData = onCall(
                 'SessionExpired':     ['unauthenticated',     'הפעלה פגה — נסה שוב'],
                 'Generic':            ['internal',            'שגיאה כללית בסריקה — נסה שוב מאוחר יותר'],
             };
-            const [code, baseMsg] = errorMap[scrapeResult.errorType] || ['internal', `שגיאה: ${scrapeResult.errorType}`];
-            const fullMsg = scrapeResult.errorMessage ? `${baseMsg} | ${scrapeResult.errorMessage}` : baseMsg;
-            throw new HttpsError(code, fullMsg);
+            const [code, msg] = errorMap[scrapeResult.errorType] || ['internal', `שגיאה: ${scrapeResult.errorType}`];
+            throw new HttpsError(code, msg);
         }
 
-        // Flatten all accounts → transactions array
-        const transactions = [];
-        for (const account of (scrapeResult.accounts || [])) {
-            for (const txn of (account.txns || [])) {
-                transactions.push({
-                    name:   txn.description || txn.memo || 'עסקה',
-                    amount: Math.abs(txn.chargedAmount || txn.originalAmount || 0),
-                    date:   txn.date ? new Date(txn.date).toLocaleDateString('he-IL') : ''
-                });
-            }
-        }
-        console.log(`✅ Returning ${transactions.length} transactions`);
-        return { transactions };
+        return scrapeResult.accounts;
     }
 );
-
-// Alias so client-side call to 'fetchAccountData' also works
-exports.fetchAccountData = exports.fetchBankData;
