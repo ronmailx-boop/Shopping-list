@@ -7043,8 +7043,12 @@ async function startCreditCardFetch() {
                 transactions = result.data?.transactions || [];
             } catch (fnErr) {
                 console.warn('Firebase Function error, using demo data:', fnErr);
-                // Fall through to demo data
+                // Fall back to demo transactions
+                transactions = getDemoCreditTransactions(selectedCreditCompany);
             }
+        } else {
+            // No Firebase — use demo data so the UI flow is visible
+            transactions = getDemoCreditTransactions(selectedCreditCompany);
         }
 
         // ── Stage 3: Processing ──
@@ -7080,6 +7084,33 @@ async function startCreditCardFetch() {
         hideCreditProgress();
         showNotification('❌ שגיאה בשליפת הנתונים: ' + (err.message || 'שגיאה לא ידועה'), 'error');
     }
+}
+
+/** Returns realistic demo transactions for the selected credit company */
+function getDemoCreditTransactions(company) {
+    const companyNames = { max: 'Max', cal: 'Cal', leumi: 'לאומי קארד', isracard: 'ישראכרט' };
+    const label = companyNames[company] || 'אשראי';
+    const today = new Date();
+    const fmt = d => d.toLocaleDateString('he-IL');
+
+    const mkDate = daysAgo => {
+        const d = new Date(today);
+        d.setDate(d.getDate() - daysAgo);
+        return fmt(d);
+    };
+
+    return [
+        { name: 'שופרסל',            amount: 312.50, date: mkDate(1)  },
+        { name: 'מקדונלד\'ס',        amount: 87.90,  date: mkDate(2)  },
+        { name: 'YES טלוויזיה',      amount: 229.00, date: mkDate(3)  },
+        { name: 'אמזון',             amount: 156.30, date: mkDate(4)  },
+        { name: 'פנגו חניה',         amount: 42.00,  date: mkDate(5)  },
+        { name: 'כל-בו',             amount: 198.70, date: mkDate(6)  },
+        { name: 'גט טקסי',           amount: 64.00,  date: mkDate(7)  },
+        { name: 'אושר עד',           amount: 275.40, date: mkDate(8)  },
+        { name: 'נטפליקס',           amount: 52.90,  date: mkDate(9)  },
+        { name: 'תחנת דלק פז',       amount: 340.00, date: mkDate(10) },
+    ];
 }
 
 /** Creates a list from credit card transactions */
