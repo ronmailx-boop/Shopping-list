@@ -273,6 +273,8 @@ exports.fetchBankData = onCall(
 
         if (!scrapeResult.success) {
             console.error('🔴 Scrape failed with errorType:', scrapeResult.errorType);
+            console.error('🔴 errorMessage:', scrapeResult.errorMessage);
+            console.error('🔴 full result keys:', Object.keys(scrapeResult));
             const errorMap = {
                 'InvalidPassword':    ['permission-denied',   'שם משתמש או סיסמה שגויים'],
                 'ChangePassword':     ['permission-denied',   'נדרש לשנות סיסמה באתר הבנק'],
@@ -282,8 +284,9 @@ exports.fetchBankData = onCall(
                 'SessionExpired':     ['unauthenticated',     'הפעלה פגה — נסה שוב'],
                 'Generic':            ['internal',            'שגיאה כללית בסריקה — נסה שוב מאוחר יותר'],
             };
-            const [code, msg] = errorMap[scrapeResult.errorType] || ['internal', `שגיאה: ${scrapeResult.errorType}`];
-            throw new HttpsError(code, msg);
+            const [code, baseMsg] = errorMap[scrapeResult.errorType] || ['internal', `שגיאה: ${scrapeResult.errorType}`];
+            const fullMsg = scrapeResult.errorMessage ? `${baseMsg} | ${scrapeResult.errorMessage}` : baseMsg;
+            throw new HttpsError(code, fullMsg);
         }
 
         // Flatten all accounts → transactions array
