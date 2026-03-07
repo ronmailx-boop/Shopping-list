@@ -7126,7 +7126,7 @@ async function startBankFetch() {
 
 function getDemoBankTransactions(bank) {
     const bankNames = {
-        hapoalim: 'פועלים', leumi: 'לאומי', mizrahi: 'מזרחי',
+        hapoalim: 'פועלים', leumi: 'לאומי', leumiBank: 'לאומי', mizrahi: 'מזרחי',
         discount: 'דיסקונט', otsarHahayal: 'אוצר החייל',
         yahav: 'יהב', massad: 'מסד', unionBank: 'איגוד', beinleumi: 'בינלאומי'
     };
@@ -7145,7 +7145,7 @@ function getDemoBankTransactions(bank) {
 
 function importBankTransactions(transactions) {
     const bankNames = {
-        hapoalim: 'פועלים', leumi: 'לאומי', mizrahi: 'מזרחי',
+        hapoalim: 'פועלים', leumi: 'לאומי', leumiBank: 'לאומי', mizrahi: 'מזרחי',
         discount: 'דיסקונט', otsarHahayal: 'אוצר החייל',
         yahav: 'יהב', massad: 'מסד', unionBank: 'איגוד', beinleumi: 'בינלאומי'
     };
