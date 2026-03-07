@@ -30,7 +30,7 @@
         body {
             font-family: system-ui, sans-serif;
             background: linear-gradient(135deg, #f4f7fa 0%, #e8ecf3 100%);
-            padding-bottom: 240px;
+            padding-bottom: 200px;
             min-height: 100vh;
             transition: background 0.3s;
             margin: 0;
@@ -45,10 +45,19 @@
             display: flex;
             flex-direction: column;
             transition: transform 0.2s, box-shadow 0.2s;
+            overflow-wrap: break-word;
+            word-wrap: break-word;
+            word-break: break-word;
         }
 
         .item-card:active {
             transform: scale(0.98);
+        }
+        
+        /* Handle long URLs and text */
+        .item-card a {
+            word-break: break-all;
+            overflow-wrap: break-word;
         }
 
         .item-number {
@@ -77,15 +86,85 @@
             right: 0;
             background: linear-gradient(135deg, #7367f0 0%, #9055ff 100%);
             z-index: 1000;
-            padding: 15px 15px 35px 15px;
+            padding: 0;
             border-radius: 35px 35px 0 0;
             box-shadow: 0 -10px 25px rgba(0, 0, 0, 0.15);
             transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-            cursor: pointer;
         }
-
         .bottom-bar.minimized {
             transform: translateY(calc(100% - 8px));
+        }
+
+        /* Fixed tabs strip above bottom bar */
+        .bottom-tabs-strip {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            z-index: 999;
+            display: flex;
+            gap: 10px;
+            padding: 8px 15px 10px 15px;
+            background: transparent;
+            pointer-events: none;
+            transition: bottom 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .bottom-tabs-strip .tab-btn {
+            pointer-events: all;
+            flex: 1;
+            box-shadow: 0 4px 14px rgba(115, 103, 240, 0.25);
+        }
+
+        /* When bottom bar is visible, push the strip up */
+        .bottom-tabs-strip {
+            bottom: 130px;
+        }
+
+        /* When bottom bar is minimized, bring strip down */
+        .bottom-tabs-strip.bar-minimized {
+            bottom: 14px;
+        }
+
+        /* ── Voice Action Buttons ── */
+        .voice-action-btn {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 3px;
+            background: rgba(255,255,255,0.15);
+            border: 1.5px solid rgba(255,255,255,0.3);
+            border-radius: 14px;
+            padding: 7px 10px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            min-width: 54px;
+        }
+        .voice-action-btn:active {
+            transform: scale(0.93);
+            background: rgba(255,255,255,0.25);
+        }
+        .voice-action-icon {
+            font-size: 18px;
+            line-height: 1;
+        }
+        .voice-action-label {
+            font-size: 10px;
+            font-weight: 800;
+            color: rgba(255,255,255,0.9);
+            white-space: nowrap;
+        }
+        .voice-action-recording {
+            background: rgba(255,255,255,0.9) !important;
+            border-color: white !important;
+            animation: voiceActionPulse 0.8s ease-in-out infinite;
+        }
+        .voice-action-recording .voice-action-label {
+            color: #7367f0 !important;
+        }
+        @keyframes voiceActionPulse {
+            0%,100% { box-shadow: 0 0 0 0 rgba(255,255,255,0.4); }
+            50%      { box-shadow: 0 0 0 6px rgba(255,255,255,0.0); }
         }
 
         .tab-btn {
@@ -175,6 +254,250 @@
             font-size: 1.15rem;
         }
 
+        /* ===== QUICK ADD MODAL ===== */
+        .quick-add-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 10px;
+            padding: 0 2px;
+        }
+        .quick-add-title {
+            font-size: 1.1rem;
+            font-weight: 800;
+            color: #1e1b4b;
+            margin: 0;
+        }
+        .continuous-toggle-wrap {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            cursor: pointer;
+            user-select: none;
+        }
+        .continuous-toggle-label {
+            font-size: 0.7rem;
+            font-weight: 700;
+            color: #94a3b8;
+            transition: color 0.2s;
+            white-space: nowrap;
+        }
+        .continuous-toggle-wrap.active .continuous-toggle-label {
+            color: #7367f0;
+        }
+        .toggle-switch {
+            position: relative;
+            width: 38px;
+            height: 22px;
+            flex-shrink: 0;
+        }
+        .toggle-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+            position: absolute;
+        }
+        .toggle-track {
+            position: absolute;
+            inset: 0;
+            background: #e2e8f0;
+            border-radius: 999px;
+            transition: background 0.25s;
+            cursor: pointer;
+        }
+        .toggle-track::after {
+            content: '';
+            position: absolute;
+            top: 3px;
+            right: 3px;
+            width: 16px;
+            height: 16px;
+            background: white;
+            border-radius: 50%;
+            transition: transform 0.25s, box-shadow 0.25s;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.2);
+        }
+        .toggle-switch input:checked + .toggle-track {
+            background: linear-gradient(135deg, #7367f0, #9055ff);
+        }
+        .toggle-switch input:checked + .toggle-track::after {
+            transform: translateX(-16px);
+        }
+        .price-qty-row {
+            display: flex;
+            gap: 8px;
+        }
+        .price-qty-row .modal-input {
+            flex: 1;
+        }
+        .advanced-drawer {
+            overflow: hidden;
+            max-height: 0;
+            transition: max-height 0.35s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s ease;
+            opacity: 0;
+        }
+        .advanced-drawer.open {
+            max-height: 600px;
+            opacity: 1;
+        }
+        .advanced-toggle-btn {
+            width: 100%;
+            background: #f8f7ff;
+            border: 2px solid #e0e7ff;
+            border-radius: 14px;
+            padding: 9px 14px;
+            font-size: 0.8rem;
+            font-weight: 700;
+            color: #7367f0;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            margin-bottom: 8px;
+            transition: background 0.2s;
+        }
+        .advanced-toggle-btn:active { background: #ede9fe; }
+        .advanced-toggle-btn .adv-arrow {
+            transition: transform 0.3s;
+            display: inline-block;
+        }
+        .advanced-toggle-btn.open .adv-arrow {
+            transform: rotate(180deg);
+        }
+        .add-item-btn { transition: background 0.2s, transform 0.15s; }
+        .add-item-btn:active { transform: scale(0.97); }
+
+        /* ===== CONTEXT BAR - list selector ===== */
+        .context-bar {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            margin-bottom: 8px;
+            padding: 6px 10px;
+            background: #f0eeff;
+            border-radius: 12px;
+            border: 1.5px solid #ddd6fe;
+            position: relative;
+        }
+        .context-bar-label {
+            font-size: 0.7rem;
+            font-weight: 700;
+            color: #9ca3af;
+            white-space: nowrap;
+            flex-shrink: 0;
+        }
+        .context-list-btn {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 4px;
+            background: white;
+            border: 1.5px solid #c4b5fd;
+            border-radius: 8px;
+            padding: 4px 10px;
+            cursor: pointer;
+            transition: background 0.15s, border-color 0.15s;
+            min-width: 0;
+        }
+        .context-list-btn:active { background: #f5f3ff; }
+        .context-list-name {
+            font-size: 0.82rem;
+            font-weight: 800;
+            color: #7367f0;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 140px;
+        }
+        .context-list-arrow {
+            font-size: 0.65rem;
+            color: #a78bfa;
+            flex-shrink: 0;
+            transition: transform 0.2s;
+        }
+        .context-list-btn.open .context-list-arrow {
+            transform: rotate(180deg);
+        }
+        /* Dropdown */
+        .list-dropdown {
+            position: absolute;
+            top: calc(100% + 4px);
+            left: 0;
+            right: 0;
+            background: white;
+            border-radius: 14px;
+            border: 1.5px solid #e0e7ff;
+            box-shadow: 0 8px 24px rgba(115,103,240,0.15);
+            z-index: 9999;
+            overflow: hidden;
+            max-height: 0;
+            opacity: 0;
+            transition: max-height 0.28s cubic-bezier(0.4,0,0.2,1), opacity 0.2s ease;
+        }
+        .list-dropdown.open {
+            max-height: 280px;
+            opacity: 1;
+        }
+        .list-dropdown-scroll {
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        .list-dropdown-item {
+            padding: 10px 14px;
+            font-size: 0.85rem;
+            font-weight: 700;
+            color: #374151;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            border-bottom: 1px solid #f3f4f6;
+            transition: background 0.12s;
+        }
+        .list-dropdown-item:last-child { border-bottom: none; }
+        .list-dropdown-item:active { background: #f5f3ff; }
+        .list-dropdown-item.active {
+            background: #f0eeff;
+            color: #7367f0;
+        }
+        .list-dropdown-item.active::before { content: '✓'; font-size: 0.75rem; }
+        .list-dropdown-item:not(.active)::before { content: ''; width: 12px; display: inline-block; }
+        .list-dropdown-new {
+            padding: 8px 10px;
+            border-top: 2px solid #e0e7ff;
+            background: #f8f7ff;
+        }
+        .list-dropdown-new-row {
+            display: flex;
+            gap: 6px;
+            align-items: center;
+        }
+        .list-dropdown-new-input {
+            flex: 1;
+            border: 1.5px solid #c4b5fd;
+            border-radius: 8px;
+            padding: 6px 10px;
+            font-size: 0.82rem;
+            font-weight: 700;
+            outline: none;
+            background: white;
+            color: #1e1b4b;
+        }
+        .list-dropdown-new-input:focus { border-color: #7367f0; }
+        .list-dropdown-new-btn {
+            background: linear-gradient(135deg, #7367f0, #9055ff);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            padding: 6px 12px;
+            font-size: 0.8rem;
+            font-weight: 800;
+            cursor: pointer;
+            white-space: nowrap;
+        }
+
         .app-header {
             background: white;
             padding: 10px 20px;
@@ -187,6 +510,12 @@
             top: 0;
             z-index: 2000;
             height: 60px;
+            overflow: hidden;
+        }
+
+        .app-header h1 {
+            flex-shrink: 0;
+            white-space: nowrap;
         }
 
         .header-controls {
@@ -205,9 +534,10 @@
             justify-content: center;
         }
 
+        /* ── Notification Bell ── */
         .notification-bell {
-            width: 40px;
-            height: 40px;
+            width: 42px;
+            height: 42px;
             background: linear-gradient(135deg, #f59e0b 0%, #fb923c 100%);
             border-radius: 50%;
             display: flex;
@@ -216,74 +546,179 @@
             color: white;
             font-size: 20px;
             cursor: pointer;
-            box-shadow: 0 4px 8px rgba(245, 158, 11, 0.3);
-            transition: transform 0.2s;
+            box-shadow: 0 4px 12px rgba(245, 158, 11, 0.4);
+            transition: transform 0.2s, box-shadow 0.2s;
             position: relative;
             flex-shrink: 0;
         }
+        .notification-bell:active { transform: scale(0.92); }
 
-        .notification-bell:active {
-            transform: scale(0.95);
-        }
-
+        /* ── Badge ── */
         .notification-badge {
             position: absolute;
-            top: -4px;
-            right: -4px;
-            background: #ef4444;
+            top: -7px;
+            right: -7px;
+            background: linear-gradient(135deg, #ff3b30 0%, #ff2d55 100%);
             color: white;
-            border-radius: 50%;
-            width: 20px;
-            height: 20px;
+            border-radius: 12px;
+            min-width: 22px;
+            height: 22px;
+            padding: 0 5px;
             display: flex;
             align-items: center;
             justify-content: center;
             font-size: 11px;
-            font-weight: bold;
-            border: 2px solid white;
+            font-weight: 900;
+            border: 2.5px solid white;
+            box-shadow: 0 2px 8px rgba(255,45,85,0.55);
+            animation: badge-pop 0.35s cubic-bezier(0.34,1.56,0.64,1);
+        }
+        @keyframes badge-pop {
+            0%   { transform: scale(0); }
+            100% { transform: scale(1); }
         }
 
+        /* ── Notification Center Modal (centered) ── */
+        #notificationCenterModal.active {
+            align-items: center;
+            padding-top: 0;
+            z-index: 21000; /* above wizard card (19000) */
+        }
+        #notificationCenterModal .nc-modal-inner {
+            width: 92%;
+            max-width: 420px;
+            background: #f8f7ff;
+            border-radius: 28px;
+            overflow: hidden;
+            box-shadow: 0 24px 60px rgba(115,103,240,0.22), 0 8px 24px rgba(0,0,0,0.15);
+            max-height: 85vh;
+            display: flex;
+            flex-direction: column;
+        }
+        #notificationCenterModal .nc-header {
+            background: linear-gradient(135deg, #7367f0 0%, #9055ff 100%);
+            padding: 18px 20px 16px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-shrink: 0;
+        }
+        #notificationCenterModal .nc-title {
+            color: white;
+            font-size: 1.1rem;
+            font-weight: 800;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        #notificationCenterModal .nc-clear-all {
+            background: linear-gradient(135deg, #ff3b30 0%, #ff2d55 100%);
+            color: white;
+            border: none;
+            border-radius: 20px;
+            padding: 7px 14px;
+            font-size: 0.78rem;
+            font-weight: 800;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            box-shadow: 0 3px 10px rgba(255,45,85,0.45);
+            transition: transform 0.15s, box-shadow 0.15s;
+        }
+        #notificationCenterModal .nc-clear-all:active {
+            transform: scale(0.95);
+            box-shadow: 0 1px 6px rgba(255,45,85,0.3);
+        }
+        #notificationCenterModal .nc-body {
+            overflow-y: auto;
+            flex: 1;
+            padding: 14px 14px 8px;
+        }
+        #notificationCenterModal .nc-footer {
+            padding: 10px 14px 16px;
+            flex-shrink: 0;
+            background: #f8f7ff;
+        }
+        #notificationCenterModal .nc-close-btn {
+            width: 100%;
+            background: white;
+            border: 2px solid #e5e1ff;
+            color: #7367f0;
+            border-radius: 16px;
+            padding: 12px;
+            font-size: 0.95rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: background 0.15s;
+        }
+        #notificationCenterModal .nc-close-btn:active { background: #f0eeff; }
+
+        /* ── Notification Card Wrapper (for swipe) ── */
+        .nc-card-wrap {
+            position: relative;
+            margin-bottom: 10px;
+            border-radius: 18px;
+            overflow: hidden;
+        }
+        .nc-swipe-bg {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.4rem;
+            font-weight: 800;
+            color: white;
+            border-radius: 18px;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.15s;
+        }
+        .nc-swipe-bg.reveal { opacity: 1; }
+        .nc-swipe-bg.left-swipe  { background: linear-gradient(90deg, #ff3b30, #ff2d55); justify-content: flex-start; padding-right: 24px; }
+        .nc-swipe-bg.right-swipe { background: linear-gradient(270deg, #ff3b30, #ff2d55); justify-content: flex-end;  padding-left: 24px; }
+
+        /* ── Individual Notification Card ── */
         .notification-item {
             background: white;
-            border-radius: 15px;
-            padding: 12px;
-            margin-bottom: 10px;
+            border-radius: 18px;
+            padding: 14px 16px 12px;
             cursor: pointer;
-            transition: all 0.2s;
-            border: 2px solid transparent;
+            border: 1.5px solid #ede9ff;
+            box-shadow: 0 2px 10px rgba(115,103,240,0.07);
+            transition: transform 0.05s;
+            position: relative;
+            z-index: 1;
+            user-select: none;
+            will-change: transform;
         }
-
-        .notification-item:hover {
-            border-color: #7367f0;
-            box-shadow: 0 4px 12px rgba(115, 103, 240, 0.2);
-        }
-
-        .notification-item.overdue {
-            border-left: 4px solid #ef4444;
-        }
-
-        .notification-item.soon {
-            border-left: 4px solid #f97316;
-        }
-
-        .notification-item.upcoming {
-            border-left: 4px solid #3b82f6;
-        }
+        .notification-item.overdue  { border-right: 5px solid #ff3b30; }
+        .notification-item.soon     { border-right: 5px solid #ff9500; }
+        .notification-item.upcoming { border-right: 5px solid #3b82f6; }
 
         .notification-item-title {
-            font-weight: bold;
-            margin-bottom: 4px;
+            font-weight: 800;
+            font-size: 1rem;
+            color: #1a1a2e;
+            margin-bottom: 5px;
         }
-
         .notification-item-date {
-            font-size: 0.85em;
+            font-size: 0.82em;
             color: #6b7280;
+            margin-bottom: 3px;
         }
-
         .notification-item-list {
-            font-size: 0.8em;
-            color: #9ca3af;
-            margin-top: 4px;
+            font-size: 0.75em;
+            color: #a78bfa;
+            font-weight: 600;
+        }
+        .nc-swipe-hint {
+            text-align: center;
+            color: #c4b5fd;
+            font-size: 0.72rem;
+            padding: 4px 0 6px;
+            letter-spacing: 0.03em;
         }
 
         .item-card.highlight-item {
@@ -471,25 +906,539 @@
             }
         }
 
-        .notification {
-            position: fixed;
-            top: 70px;
-            right: 20px;
-            background: white;
-            padding: 15px 20px;
-            border-radius: 15px;
-            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
-            z-index: 9000;
-            transform: translateX(400px);
-            transition: transform 0.3s ease;
+        /* ╔═══════════════════════════════════════════════════════╗
+           ║        🧙 WIZARD MODE — FULL SCREEN EXPERIENCE        ║
+           ╚═══════════════════════════════════════════════════════╝ */
+
+        /* ── Wizard toggle button ── */
+        .wizard-btn {
+            display: flex; align-items: center; gap: 5px;
+            padding: 5px 12px; border-radius: 20px; font-size: 0.75rem;
+            font-weight: 800; cursor: pointer; border: none;
+            transition: all 0.25s cubic-bezier(0.34,1.56,0.64,1);
+            background: linear-gradient(135deg,#f3f0ff 0%,#ede9fe 100%);
+            color: #7367f0; border: 1.5px solid #c4b5fd; letter-spacing: 0.3px;
+        }
+        .wizard-btn.wizard-bottom-btn {
+            background: transparent; color: rgba(255,255,255,0.85);
+            border: 2px solid rgba(255,255,255,0.4);
+            font-size: 0.75rem; font-weight: 800; padding: 6px 18px;
+            border-radius: 999px; box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+            letter-spacing: 0.5px;
+        }
+        .wizard-btn.wizard-bottom-btn.wizard-active {
+            background: rgba(255,255,255,0.15) !important;
+            color: white !important;
+            border: 2px solid rgba(255,255,255,0.9) !important;
+            box-shadow: 0 0 0 3px rgba(255,255,255,0.25), 0 4px 18px rgba(255,255,255,0.15) !important;
+            animation: wizBtnPulse 2s ease-in-out infinite;
+        }
+        /* Active state for new oval wizard button */
+        #wizardModeBtn.wizard-active {
+            background: rgba(255,255,255,0.25) !important;
+            border: 1.5px solid rgba(255,255,255,0.6) !important;
+            box-shadow: 0 0 0 3px rgba(255,255,255,0.2), 0 4px 20px rgba(255,255,255,0.15) !important;
+            animation: wizBtnPulse 2s ease-in-out infinite;
+        }
+        #wizardModeBtn.wizard-active #wizardBtnText::before {
+            content: '● ';
+            color: #7367f0;
+            font-size: 10px;
+        }
+        @keyframes wizBtnPulse {
+            0%,100% { box-shadow: 0 0 0 3px rgba(255,255,255,0.25), 0 4px 18px rgba(255,255,255,0.15); }
+            50%      { box-shadow: 0 0 0 6px rgba(255,255,255,0.12), 0 4px 22px rgba(255,255,255,0.25); }
         }
 
-        .notification.show {
-            transform: translateX(0);
+        /* ── Wizard sheet (legacy, kept for compat) ── */
+        .wizard-sheet-overlay { display: none; position: fixed; inset: 0;
+            background: rgba(0,0,0,0.5); z-index: 8000; backdrop-filter: blur(4px);
+            align-items: flex-end; justify-content: center; }
+        .wizard-sheet-overlay.active { display: flex; }
+        .wizard-sheet { width: 100%; max-width: 480px; background: white;
+            border-radius: 30px 30px 0 0; padding: 0 0 40px 0;
+            transform: translateY(100%);
+            transition: transform 0.4s cubic-bezier(0.34,1.2,0.64,1); overflow: hidden; }
+        .wizard-sheet-overlay.active .wizard-sheet { transform: translateY(0); }
+        .wizard-header { background: linear-gradient(135deg,#7367f0 0%,#9055ff 100%);
+            padding: 20px 24px 18px; display: flex; align-items: center; justify-content: space-between; }
+        .wizard-title { color: white; font-size: 1.1rem; font-weight: 800; }
+        .wizard-step-dots { display: flex; gap: 6px; }
+        .wizard-dot { width: 8px; height: 8px; border-radius: 50%; background: rgba(255,255,255,0.35); transition: all 0.3s; }
+        .wizard-dot.active { background: white; width: 22px; border-radius: 4px; }
+        .wizard-dot.done { background: rgba(255,255,255,0.7); }
+        .wizard-body { padding: 24px 24px 16px; direction: rtl; }
+        .wizard-question { font-size: 1.25rem; font-weight: 800; color: #1e1b4b; margin-bottom: 6px; line-height: 1.3; }
+        .wizard-hint { font-size: 0.82rem; color: #94a3b8; margin-bottom: 18px; }
+        .wizard-input { width: 100%; padding: 14px 18px; border: 2px solid #e0e7ff; border-radius: 18px;
+            font-size: 1.1rem; font-weight: 700; text-align: right; outline: none;
+            background: #f8f7ff; color: #1e1b4b; transition: border-color 0.2s, box-shadow 0.2s; margin-bottom: 12px; }
+        .wizard-input:focus { border-color: #7367f0; box-shadow: 0 0 0 3px rgba(115,103,240,0.12); background: white; }
+        .wizard-actions { display: flex; gap: 10px; margin-top: 8px; }
+        .wizard-next-btn { flex: 1; padding: 14px; border-radius: 18px; border: none;
+            background: linear-gradient(135deg,#7367f0 0%,#9055ff 100%); color: white;
+            font-size: 1rem; font-weight: 800; cursor: pointer;
+            transition: transform 0.15s, box-shadow 0.15s; box-shadow: 0 4px 14px rgba(115,103,240,0.35); }
+        .wizard-next-btn:active { transform: scale(0.97); }
+        .wizard-skip-btn { padding: 14px 20px; border-radius: 18px; border: 2px solid #e2e8f0;
+            background: white; color: #94a3b8; font-size: 0.9rem; font-weight: 700; cursor: pointer; transition: all 0.15s; }
+        .wizard-skip-btn:active { background: #f8fafc; }
+        .wizard-voice-btn { width: 52px; height: 52px; border-radius: 50%; border: none;
+            background: linear-gradient(135deg,#7367f0,#9055ff); color: white; font-size: 1.4rem;
+            cursor: pointer; display: flex; align-items: center; justify-content: center;
+            box-shadow: 0 4px 14px rgba(115,103,240,0.4); transition: transform 0.2s; flex-shrink: 0; }
+        .wizard-voice-btn:active { transform: scale(0.92); }
+        .wizard-voice-btn.recording { animation: voicePulse 0.8s infinite;
+            background: linear-gradient(135deg,#ef4444,#dc2626); }
+        @keyframes voicePulse {
+            0%,100% { box-shadow: 0 4px 14px rgba(239,68,68,0.4); }
+            50%      { box-shadow: 0 4px 28px rgba(239,68,68,0.7); transform: scale(1.05); }
         }
+        .wizard-input-row { display: flex; gap: 10px; align-items: center; }
+        .wizard-input-row .wizard-input { margin-bottom: 0; flex: 1; }
+        .wizard-summary { background: #f8f7ff; border-radius: 18px; padding: 16px 18px;
+            margin-bottom: 14px; border: 2px solid #e0e7ff; }
+        .wizard-summary-row { display: flex; justify-content: space-between; align-items: center;
+            padding: 4px 0; font-size: 0.9rem; color: #475569; border-bottom: 1px solid #f1f5f9; }
+        .wizard-summary-row:last-child { border-bottom: none; }
+        .wizard-summary-row strong { color: #1e1b4b; font-weight: 800; }
+        .wizard-close-btn { background: rgba(255,255,255,0.2); border: none; color: white;
+            width: 32px; height: 32px; border-radius: 50%; font-size: 1.1rem; cursor: pointer;
+            display: flex; align-items: center; justify-content: center; }
+        .wizard-emoji { font-size: 2.5rem; text-align: center; margin-bottom: 10px; }
+        .wizard-date-row { display: flex; gap: 8px; margin-bottom: 12px; }
+        .wizard-date-row input { flex: 1; padding: 12px 14px; border: 2px solid #e0e7ff;
+            border-radius: 14px; font-size: 0.9rem; font-weight: 600; outline: none;
+            background: #f8f7ff; color: #1e1b4b; }
+        .wizard-date-row input:focus { border-color: #7367f0; }
+        .wizard-list-mode-picker { display: flex; flex-direction: column; gap: 10px; margin-bottom: 12px; }
+        .wizard-list-option { display: flex; align-items: center; gap: 14px; padding: 14px 18px; }
+        .wizard-list-option-icon { font-size: 1.6rem; }
+        .wizard-list-option-text { font-weight: 700; color: #1e1b4b; font-size: 0.95rem; }
+        .wizard-list-option-sub { font-size: 0.75rem; color: #94a3b8; }
+
+
+        /* ╔═══════════════════════════════════════════════════════╗
+           ║     🌟 WIZARD FULL-SCREEN CARD OVERLAY — NEW          ║
+           ╚═══════════════════════════════════════════════════════╝ */
+
+        #wizCardOverlay {
+            position: fixed;
+            inset: 0;
+            z-index: 19000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+        #wizCardOverlay.wiz-active {
+            pointer-events: auto;
+            opacity: 1;
+        }
+
+        /* Animated background blobs */
+        #wizCardOverlay .wiz-bg {
+            position: absolute;
+            inset: 0;
+            overflow: hidden;
+        }
+        .wiz-blob {
+            position: absolute;
+            border-radius: 50%;
+            filter: blur(60px);
+            opacity: 0.18;
+            animation: wiz-blob-drift 8s ease-in-out infinite alternate;
+        }
+        .wiz-blob-1 { width: 400px; height: 400px; background: #7367f0; top: -100px; left: -100px; animation-delay: 0s; }
+        .wiz-blob-2 { width: 300px; height: 300px; background: #9055ff; bottom: -80px; right: -60px; animation-delay: -3s; }
+        .wiz-blob-3 { width: 250px; height: 250px; background: #06b6d4; top: 40%; left: 60%; animation-delay: -5s; }
+        @keyframes wiz-blob-drift {
+            0%   { transform: translate(0,0)    scale(1); }
+            100% { transform: translate(30px,20px) scale(1.15); }
+        }
+
+        .wiz-backdrop {
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(135deg,
+                rgba(25,20,60,0.85) 0%,
+                rgba(115,103,240,0.75) 50%,
+                rgba(144,85,255,0.8) 100%
+            );
+            backdrop-filter: blur(18px);
+        }
+
+        /* ── The card itself ── */
+        .wiz-card {
+            position: relative;
+            z-index: 1;
+            width: 100%;
+            max-width: 360px;
+            transform: scale(0.82) translateY(40px);
+            opacity: 0;
+            transition: transform 0.45s cubic-bezier(0.34,1.4,0.64,1), opacity 0.3s ease;
+        }
+        .wiz-card.wiz-card-in {
+            transform: scale(1) translateY(0);
+            opacity: 1;
+        }
+        .wiz-card.wiz-card-out {
+            transform: scale(0.88) translateY(-30px);
+            opacity: 0;
+            transition: transform 0.28s ease-in, opacity 0.22s ease-in;
+        }
+
+        .wiz-card-glass {
+            background: rgba(255,255,255,0.1);
+            backdrop-filter: blur(30px);
+            border: 1px solid rgba(255,255,255,0.18);
+            border-radius: 32px;
+            padding: 36px 28px 28px;
+            box-shadow:
+                0 40px 80px rgba(0,0,0,0.4),
+                0 0 0 1px rgba(255,255,255,0.08),
+                inset 0 1px 0 rgba(255,255,255,0.25);
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* Decorative arc in corner */
+        .wiz-card-glass::before {
+            content: '';
+            position: absolute;
+            top: -80px; right: -80px;
+            width: 220px; height: 220px;
+            border-radius: 50%;
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+        .wiz-card-glass::after {
+            content: '';
+            position: absolute;
+            bottom: -60px; left: -60px;
+            width: 160px; height: 160px;
+            border-radius: 50%;
+            background: rgba(255,255,255,0.04);
+        }
+
+        /* Phase pill: BEFORE / AFTER */
+        .wiz-phase-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 5px 14px;
+            border-radius: 999px;
+            font-size: 0.7rem;
+            font-weight: 900;
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+            margin-bottom: 22px;
+        }
+        .wiz-phase-before {
+            background: rgba(251,191,36,0.2);
+            color: #fbbf24;
+            border: 1px solid rgba(251,191,36,0.35);
+        }
+        .wiz-phase-after {
+            background: rgba(34,197,94,0.2);
+            color: #4ade80;
+            border: 1px solid rgba(34,197,94,0.3);
+        }
+        .wiz-phase-dot {
+            width: 6px; height: 6px; border-radius: 50%;
+            background: currentColor;
+            animation: wiz-phase-blink 1.2s ease-in-out infinite;
+        }
+        @keyframes wiz-phase-blink {
+            0%,100% { opacity: 1; }
+            50%      { opacity: 0.3; }
+        }
+
+        /* Big emoji */
+        .wiz-emoji-wrap {
+            text-align: center;
+            margin-bottom: 18px;
+        }
+        .wiz-big-emoji {
+            display: inline-block;
+            font-size: 5rem;
+            line-height: 1;
+            animation: wiz-emoji-bounce 0.6s cubic-bezier(0.34,1.56,0.64,1) both;
+            filter: drop-shadow(0 8px 24px rgba(0,0,0,0.3));
+        }
+        @keyframes wiz-emoji-bounce {
+            0%  { transform: scale(0) rotate(-15deg); }
+            100%{ transform: scale(1) rotate(0deg); }
+        }
+
+        /* Title */
+        .wiz-card-title {
+            font-size: 1.4rem;
+            font-weight: 900;
+            color: white;
+            text-align: center;
+            margin-bottom: 12px;
+            line-height: 1.25;
+            text-shadow: 0 2px 12px rgba(0,0,0,0.3);
+        }
+
+        /* Divider */
+        .wiz-divider {
+            height: 1px;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+            margin: 14px 0;
+        }
+
+        /* Body text */
+        .wiz-card-body {
+            color: rgba(255,255,255,0.88);
+            font-size: 0.92rem;
+            line-height: 1.6;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        /* Tip box */
+        .wiz-tip-box {
+            background: rgba(255,255,255,0.08);
+            border: 1px solid rgba(255,255,255,0.14);
+            border-radius: 18px;
+            padding: 12px 16px;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            text-align: right;
+        }
+        .wiz-tip-icon { font-size: 1.2rem; flex-shrink: 0; margin-top: 1px; }
+        .wiz-tip-text { font-size: 0.82rem; color: rgba(255,255,255,0.75); line-height: 1.45; }
+
+        /* Action buttons row */
+        .wiz-card-actions {
+            display: flex;
+            gap: 10px;
+        }
+        .wiz-btn-primary {
+            flex: 1;
+            padding: 15px;
+            border: none;
+            border-radius: 20px;
+            background: white;
+            color: #7367f0;
+            font-size: 0.95rem;
+            font-weight: 900;
+            cursor: pointer;
+            box-shadow: 0 6px 20px rgba(0,0,0,0.25);
+            transition: transform 0.15s, box-shadow 0.15s;
+            letter-spacing: 0.2px;
+        }
+        .wiz-btn-primary:active {
+            transform: scale(0.97);
+            box-shadow: 0 3px 10px rgba(0,0,0,0.2);
+        }
+        .wiz-btn-secondary {
+            padding: 15px 18px;
+            border: 1.5px solid rgba(255,255,255,0.3);
+            border-radius: 20px;
+            background: transparent;
+            color: rgba(255,255,255,0.7);
+            font-size: 0.88rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+        .wiz-btn-secondary:active { background: rgba(255,255,255,0.08); }
+
+        /* Progress dots */
+        .wiz-progress-dots {
+            display: flex;
+            justify-content: center;
+            gap: 6px;
+            margin-top: 18px;
+        }
+        .wiz-prog-dot {
+            width: 6px; height: 6px; border-radius: 50%;
+            background: rgba(255,255,255,0.25);
+            transition: all 0.3s;
+        }
+        .wiz-prog-dot.active {
+            background: white;
+            width: 20px;
+            border-radius: 3px;
+        }
+
+        /* ── WELCOME OVERLAY ── */
+        #wizWelcomeOverlay {
+            position: fixed; inset: 0; z-index: 20000;
+            display: flex; align-items: center; justify-content: center; padding: 24px;
+            background: linear-gradient(135deg,rgba(25,20,60,0.9) 0%,rgba(115,103,240,0.88) 60%,rgba(144,85,255,0.9) 100%);
+            backdrop-filter: blur(20px);
+            opacity: 0; transition: opacity 0.35s ease;
+        }
+        #wizWelcomeOverlay.wiz-welcome-visible { opacity: 1; }
+
+        .wiz-welcome-card {
+            position: relative; background: rgba(255,255,255,0.1);
+            backdrop-filter: blur(30px);
+            border: 1px solid rgba(255,255,255,0.18);
+            border-radius: 36px; padding: 40px 28px 32px;
+            max-width: 320px; width: 100%; text-align: center;
+            box-shadow: 0 40px 80px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.25);
+            overflow: hidden;
+            animation: welcomeCardPop 0.55s cubic-bezier(0.34,1.4,0.64,1) both;
+        }
+        @keyframes welcomeCardPop {
+            0%   { transform: scale(0.6) rotate(-3deg); opacity:0; }
+            100% { transform: scale(1) rotate(0deg);   opacity:1; }
+        }
+
+        /* Floating stars on welcome */
+        .wiz-star { position: absolute; color: rgba(255,255,255,0.7); font-size: 0.85rem; opacity: 0;
+            animation: starAppear 3s ease-in-out infinite; }
+        .wiz-star-1  { top:8%;  left:6%;  animation-delay:0s; }   .wiz-star-2  { top:12%; left:82%; animation-delay:0.3s; }
+        .wiz-star-3  { top:22%; left:14%; animation-delay:0.6s; }  .wiz-star-4  { top:18%; left:70%; animation-delay:0.9s; }
+        .wiz-star-5  { top:35%; left:4%;  animation-delay:1.2s; }  .wiz-star-6  { top:40%; left:90%; animation-delay:1.5s; }
+        .wiz-star-7  { top:55%; left:10%; animation-delay:0.4s; }  .wiz-star-8  { top:60%; left:78%; animation-delay:0.7s; }
+        .wiz-star-9  { top:72%; left:20%; animation-delay:1.0s; }  .wiz-star-10 { top:78%; left:85%; animation-delay:1.3s; }
+        .wiz-star-11 { top:85%; left:5%;  animation-delay:0.2s; }  .wiz-star-12 { top:90%; left:60%; animation-delay:0.8s; }
+        .wiz-star-13 { top:5%;  left:45%; animation-delay:0.5s; }  .wiz-star-14 { top:30%; left:50%; animation-delay:1.1s; }
+        .wiz-star-15 { top:50%; left:50%; animation-delay:1.6s; }  .wiz-star-16 { top:65%; left:40%; animation-delay:0.35s; }
+        .wiz-star-17 { top:75%; left:55%; animation-delay:1.4s; }  .wiz-star-18 { top:92%; left:35%; animation-delay:0.95s; }
+        @keyframes starAppear {
+            0%,100%{ opacity:0;   transform:scale(0.5) rotate(0deg); }
+            50%    { opacity:0.75; transform:scale(1) rotate(20deg); }
+        }
+
+        .wiz-welcome-inner { position: relative; z-index: 1; }
+        .wiz-welcome-emoji { display: flex; justify-content: center; margin-bottom: 14px;
+            animation: wizEmojiBounce 0.7s cubic-bezier(0.34,1.56,0.64,1) 0.2s both; }
+        @keyframes wizEmojiBounce {
+            0%  { transform: scale(0) rotate(-20deg); }
+            100%{ transform: scale(1) rotate(0); }
+        }
+        .wiz-welcome-title { font-size: 1.6rem; font-weight: 900; color: white;
+            margin-bottom: 8px; text-shadow: 0 2px 16px rgba(0,0,0,0.3); }
+        .wiz-welcome-sub { font-size: 0.88rem; color: rgba(255,255,255,0.75);
+            line-height: 1.5; margin-bottom: 22px; }
+        .wiz-welcome-features { background: rgba(255,255,255,0.08);
+            border: 1px solid rgba(255,255,255,0.14);
+            border-radius: 20px; padding: 14px 16px; margin-bottom: 24px;
+            display: flex; flex-direction: column; gap: 10px; text-align: right; }
+        .wiz-feat { display: flex; align-items: center; gap: 10px;
+            font-size: 0.87rem; color: rgba(255,255,255,0.9); font-weight: 600; }
+        .wiz-welcome-btn { width: 100%; padding: 16px;
+            background: white; color: #7367f0; border: none;
+            border-radius: 22px; font-size: 1.05rem; font-weight: 900; cursor: pointer;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.25); transition: transform 0.15s; }
+        .wiz-welcome-btn:active { transform: scale(0.97); }
+
+
+
+
+        .toast-bar {
+            position: sticky;
+            top: 60px;
+            z-index: 1500;
+            height: 0;
+            overflow: visible;
+            pointer-events: none;
+        }
+
+        .toast-inner {
+            pointer-events: none;
+            margin: 0 0 0 0;
+            padding: 0 16px;
+            transform: translateY(-100%);
+            opacity: 0;
+            transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.25s ease;
+            will-change: transform, opacity;
+        }
+
+        .toast-inner.toast-visible {
+            transform: translateY(0);
+            opacity: 1;
+            pointer-events: all;
+        }
+
+        .toast-content {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 16px;
+            border-radius: 0 0 20px 20px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.18);
+            font-size: 0.88rem;
+            font-weight: 700;
+            color: white;
+            min-height: 42px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .toast-content::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(90deg, rgba(255,255,255,0.12) 0%, transparent 60%);
+            pointer-events: none;
+        }
+
+        .toast-icon {
+            font-size: 1.1rem;
+            flex-shrink: 0;
+            filter: drop-shadow(0 1px 2px rgba(0,0,0,0.2));
+        }
+
+        .toast-text {
+            flex: 1;
+            line-height: 1.3;
+        }
+
+        .toast-progress {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            height: 3px;
+            background: rgba(255,255,255,0.45);
+            border-radius: 2px;
+            animation: toastProgress 4s linear forwards;
+        }
+
+        .toast-undo-btn {
+            background: rgba(255,255,255,0.22);
+            border: 1.5px solid rgba(255,255,255,0.45);
+            color: white;
+            padding: 5px 14px;
+            border-radius: 20px;
+            font-weight: 800;
+            font-size: 0.78rem;
+            cursor: pointer;
+            transition: background 0.2s, transform 0.15s;
+            flex-shrink: 0;
+            backdrop-filter: blur(4px);
+        }
+
+        .toast-undo-btn:active {
+            transform: scale(0.93);
+            background: rgba(255,255,255,0.35);
+        }
+
+        @keyframes toastProgress {
+            from { width: 100%; }
+            to { width: 0%; }
+        }
+
+        .toast-success { background: linear-gradient(135deg, #7367f0 0%, #9055ff 100%); }
+        .toast-warning { background: linear-gradient(135deg, #f59e0b 0%, #f97316 100%); }
+        .toast-error   { background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); }
+        .toast-check   { background: linear-gradient(135deg, #7367f0 0%, #9055ff 100%); }
+        .toast-delete  { background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); }
 
         .undo-notification button:hover {
-            background: #f3f4f6 !important;
+            background: rgba(255,255,255,0.35) !important;
             transform: scale(1.05);
         }
 
@@ -577,12 +1526,36 @@
             background: #dcfce7 !important;
             color: #15803d !important;
             border-color: #86efac !important;
+            min-width: 82px;
+            justify-content: center;
         }
 
         .cloud-btn-disconnected {
             background: #f3f4f6;
             color: #6b7280;
             border-color: #e5e7eb;
+            min-width: 82px;
+            justify-content: center;
+        }
+
+        .cloud-btn-syncing {
+            background: #fef3c7 !important;
+            color: #92400e !important;
+            border-color: #fde68a !important;
+            min-width: 82px;
+            justify-content: center;
+            animation: cloudPulse 2s ease-in-out infinite;
+        }
+
+        @keyframes cloudPulse {
+            0%, 100% {
+                opacity: 1;
+                transform: scale(1);
+            }
+            50% {
+                opacity: 0.85;
+                transform: scale(0.98);
+            }
         }
 
         /* Bank Import Button Styles */
@@ -669,47 +1642,71 @@
             background: #fff !important;
         }
         
+        /* ── Urgent Alert Modal — ממורכז ומעוצב ── */
+        #urgentAlertModal.modal-overlay {
+            align-items: center !important;
+            justify-content: center !important;
+            padding: 16px;
+        }
+
         .urgent-alert-modal {
             background-color: #ffffff !important;
-            border-radius: 30px;
-            padding: 25px;
+            border-radius: 24px;
+            padding: 20px 20px 16px;
             text-align: center;
             color: #333;
             border: 3px solid #ef4444;
-            box-shadow: 0 20px 50px rgba(239, 68, 68, 0.4);
-            max-height: 80vh;
+            box-shadow: 0 20px 50px rgba(239, 68, 68, 0.35);
+            width: 100%;
+            max-width: 380px;
+            max-height: 92vh;
             overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 0;
         }
         
         .urgent-alert-header {
-            font-size: 3em;
-            margin-bottom: 10px;
+            font-size: 2.2em;
+            margin-bottom: 4px;
+            line-height: 1;
         }
         
         .urgent-alert-title {
-            font-size: 1.5rem;
+            font-size: 1.4rem;
             font-weight: bold;
             color: #ef4444;
-            margin-bottom: 15px;
+            margin: 0 0 4px;
+        }
+
+        .urgent-alert-subtitle {
+            color: #6b7280;
+            font-size: 0.88rem;
+            margin: 0 0 12px;
         }
         
         .urgent-items-list {
             text-align: right;
-            margin: 20px 0;
-            padding: 15px;
+            margin: 0 0 12px;
+            padding: 12px;
             background: #fef2f2;
-            border-radius: 15px;
-            max-height: 300px;
+            border-radius: 14px;
+            max-height: 30vh;
             overflow-y: auto;
+            flex-shrink: 1;
         }
         
         .urgent-item {
-            padding: 10px;
+            padding: 10px 12px;
             margin-bottom: 8px;
             background: white;
             border-radius: 10px;
             border-right: 4px solid #ef4444;
-            font-size: 0.95rem;
+            font-size: 0.9rem;
+        }
+
+        .urgent-item:last-child {
+            margin-bottom: 0;
         }
         
         .urgent-item-name {
@@ -719,25 +1716,26 @@
         
         .urgent-item-date {
             color: #ef4444;
-            font-size: 0.85rem;
-            margin-top: 3px;
+            font-size: 0.8rem;
+            margin-top: 2px;
         }
         
         .urgent-buttons {
             display: flex;
             flex-direction: column;
-            gap: 10px;
-            margin-top: 20px;
+            gap: 8px;
+            flex-shrink: 0;
         }
         
         .urgent-btn {
-            padding: 15px;
-            border-radius: 15px;
+            padding: 13px 8px;
+            border-radius: 14px;
             font-weight: bold;
-            font-size: 1rem;
+            font-size: 0.92rem;
             cursor: pointer;
             border: none;
-            transition: transform 0.2s, box-shadow 0.2s;
+            transition: transform 0.15s, box-shadow 0.15s;
+            line-height: 1.2;
         }
         
         .urgent-btn:active {
@@ -843,7 +1841,7 @@
         .hero-wide-btn {
             background: linear-gradient(135deg, #7367f0 0%, #9055ff 100%);
             width: 100%;
-            padding: 18px 24px;
+            padding: 12px 20px;
             border-radius: 20px;
             display: flex;
             align-items: center;
@@ -902,28 +1900,10 @@
             font-weight: 700; 
             color: #4b5563; 
         }
-
-        /* ===== Credit Card Connection Styles ===== */
-        .credit-modal {
-            background: white;
-            border-radius: 30px;
-            padding: 28px 24px;
-            width: 92%;
-            max-width: 420px;
-            margin-top: 20px;
-            box-shadow: 0 25px 60px rgba(0,0,0,0.3);
-        }
-
-        .credit-company-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 10px;
-            margin: 16px 0;
-        }
-
-        .credit-company-btn {
-            padding: 14px 10px;
-            border-radius: 16px;
+    
+        .fin-btn {
+            padding: 12px 8px;
+            border-radius: 14px;
             border: 2px solid #e5e7eb;
             background: white;
             cursor: pointer;
@@ -933,153 +1913,40 @@
             transition: all 0.2s;
             text-align: center;
         }
-
-        .credit-company-btn:hover {
+        .fin-btn:active { transform: scale(0.96); }
+        .fin-btn.selected {
             border-color: #7367f0;
-            background: #f5f3ff;
-            transform: scale(1.03);
-        }
-
-        .credit-company-btn.selected {
-            border-color: #7367f0;
-            background: linear-gradient(135deg, #7367f0, #9055ff);
+            background: linear-gradient(135deg,#7367f0,#9055ff);
             color: white;
-            box-shadow: 0 4px 14px rgba(115,103,240,0.4);
+            box-shadow: 0 4px 14px rgba(115,103,240,0.35);
         }
 
-        /* Progress overlay */
-        #creditProgressOverlay {
-            display: none;
-            position: fixed;
-            inset: 0;
-            background: rgba(0,0,0,0.85);
-            z-index: 9999;
-            align-items: center;
-            justify-content: center;
-            backdrop-filter: blur(10px);
-        }
-
-        #creditProgressOverlay.active {
-            display: flex;
-        }
-
-        .credit-progress-card {
-            background: white;
-            border-radius: 30px;
-            padding: 36px 30px;
-            width: 88%;
-            max-width: 360px;
-            text-align: center;
-            box-shadow: 0 30px 80px rgba(0,0,0,0.4);
-        }
-
-        .credit-progress-icon {
-            font-size: 52px;
-            margin-bottom: 12px;
-            animation: iconBounce 1.2s ease-in-out infinite;
-        }
-
-        @keyframes iconBounce {
-            0%, 100% { transform: translateY(0); }
-            50% { transform: translateY(-8px); }
-        }
-
-        .credit-progress-title {
-            font-size: 20px;
-            font-weight: 900;
-            color: #1f2937;
-            margin-bottom: 6px;
-        }
-
-        .credit-progress-subtitle {
-            font-size: 14px;
-            color: #6b7280;
-            margin-bottom: 28px;
-        }
-
-        .credit-progress-bar-wrap {
-            background: #f3f4f6;
-            border-radius: 20px;
-            height: 12px;
-            overflow: hidden;
-            margin-bottom: 24px;
-        }
-
-        .credit-progress-bar-fill {
-            height: 100%;
-            border-radius: 20px;
-            background: linear-gradient(90deg, #7367f0, #9055ff, #c084fc);
-            transition: width 1.2s cubic-bezier(0.4,0,0.2,1);
-            background-size: 200% 100%;
-            animation: shimmer 1.8s linear infinite;
-        }
-
-        @keyframes shimmer {
-            0% { background-position: 200% 0; }
-            100% { background-position: -200% 0; }
-        }
-
-        .credit-stage-list {
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-            text-align: right;
-        }
-
-        .credit-stage-item {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            padding: 10px 14px;
-            border-radius: 14px;
-            background: #f9fafb;
-            font-size: 14px;
-            font-weight: 600;
-            color: #9ca3af;
-            transition: all 0.4s ease;
-        }
-
-        .credit-stage-item.active {
-            background: linear-gradient(135deg, #ede9fe, #ddd6fe);
-            color: #5b21b6;
-        }
-
-        .credit-stage-item.done {
-            background: #dcfce7;
-            color: #15803d;
-        }
-
-        .stage-dot {
-            width: 24px;
-            height: 24px;
-            border-radius: 50%;
-            background: #e5e7eb;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 12px;
-            flex-shrink: 0;
-            transition: all 0.4s ease;
-        }
-
-        .credit-stage-item.active .stage-dot {
-            background: #7367f0;
-            color: white;
-            animation: pulse 1s ease-in-out infinite;
-        }
-
-        .credit-stage-item.done .stage-dot {
-            background: #22c55e;
-            color: white;
-        }
-
-        @keyframes pulse {
-            0%, 100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(115,103,240,0.4); }
-            50% { transform: scale(1.1); box-shadow: 0 0 0 6px rgba(115,103,240,0); }
-        }
-    </style>
+        </style>
 
     <script>
+        // ─── Helper: trigger urgent alert modal safely (waits for app to be ready) ───
+        function _triggerUrgentAlertWhenReady(notifData) {
+            // Store in sessionStorage so the app can read it once fully loaded
+            try {
+                sessionStorage.setItem('vplus_pending_notif', JSON.stringify(notifData || {}));
+            } catch(e) {}
+
+            // Also attempt to call directly if functions already loaded
+            function tryShow() {
+                if (typeof _forceShowAfterNotificationClick !== 'undefined' && typeof checkUrgentPayments === 'function') {
+                    _forceShowAfterNotificationClick = true;
+                    // If notifData has an itemName, pass it along
+                    if (notifData && notifData.itemName) {
+                        window._notifClickItemName = notifData.itemName;
+                    }
+                    checkUrgentPayments();
+                } else {
+                    setTimeout(tryShow, 300);
+                }
+            }
+            setTimeout(tryShow, 600);
+        }
+
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
                 navigator.serviceWorker.register('sw.js')
@@ -1089,6 +1956,29 @@
                     .catch(error => {
                         console.log('SW registration failed:', error);
                     });
+
+                // ── בדוק URL param — מגיע כשנפתח חלון חדש מלחיצה על התראה ──
+                const urlParams = new URLSearchParams(window.location.search);
+                const notifParam = urlParams.get('vplus_notif');
+                if (notifParam) {
+                    try {
+                        const notifData = JSON.parse(decodeURIComponent(notifParam));
+                        console.log('[App] Opened from notification click:', notifData);
+                        _triggerUrgentAlertWhenReady(notifData);
+                    } catch(e) {
+                        console.error('[App] Error parsing notif param:', e);
+                    }
+                    // נקה את ה-URL בלי לטעון מחדש
+                    history.replaceState({}, '', '/');
+                }
+            });
+
+            // ── האזנה להודעות מ-SW (כשהאפליקציה פתוחה ומיוקדת) ──
+            navigator.serviceWorker.addEventListener('message', event => {
+                console.log('[App] Message from SW:', event.data);
+                if (event.data?.type === 'SHOW_URGENT_ALERT') {
+                    _triggerUrgentAlertWhenReady(event.data?.data || {});
+                }
             });
         }
     </script>
@@ -1196,6 +2086,7 @@
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
         import { getAuth, signInWithPopup, GoogleAuthProvider, getRedirectResult, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
         import { getFirestore, doc, setDoc, onSnapshot, getDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        import { getFunctions, httpsCallable } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-functions.js";
 
         try {
             const firebaseConfig = { 
@@ -1234,6 +2125,10 @@
             window.setDoc = setDoc;
             window.onSnapshot = onSnapshot;
             window.getDoc = getDoc;
+
+            const functions = getFunctions(app, 'me-west1');
+            window.firebaseFunctions = functions;
+            window.httpsCallable = httpsCallable;
 
             console.log('✅ Firebase initialized successfully');
 
@@ -1322,7 +2217,7 @@ ${error.message}
         </h1>
 
         <div class="header-controls">
-            <div id="cloudBtn" onclick="loginWithGoogle()"
+            <div id="cloudBtn"
                 class="cloud-btn-disconnected px-3 py-1 rounded-full text-[10px] font-bold border flex items-center gap-1 cursor-pointer transition-all">
                 <span id="cloudSyncText">סנכרון ענן</span>
                 <div id="cloudIndicator" class="w-2 h-2 bg-gray-400 rounded-full"></div>
@@ -1359,59 +2254,56 @@ ${error.message}
         </div>
     </div>
 
+    <!-- ===== TOAST BAR ===== -->
+    <div class="toast-bar no-print" id="toastBar">
+        <div class="toast-inner" id="toastInner">
+            <div class="toast-content toast-success" id="toastContent">
+                <span class="toast-icon" id="toastIcon">✅</span>
+                <span class="toast-text" id="toastText"></span>
+                <button class="toast-undo-btn" id="toastUndoBtn" style="display:none;" onclick="handleToastUndo()">↩ ביטול</button>
+                <div class="toast-progress" id="toastProgress"></div>
+            </div>
+        </div>
+    </div>
+
     <div class="max-w-md mx-auto p-4 no-print">
-        <div class="flex gap-3 mb-6">
-            <div id="tabLists" onclick="showPage('lists')" class="tab-btn">הרשימה שלי</div>
-            <div id="tabSummary" onclick="showPage('summary')" class="tab-btn">הרשימות שלי</div>
-            <div id="tabStats" onclick="showPage('stats')" class="tab-btn">📊 סטטיסטיקות</div>
+        <div class="flex gap-3 mb-6" style="display:none!important;">
+            <div id="tabStats" onclick="showPage('stats')" class="tab-btn">סטטיסטיקות 📊</div>
+            <div id="tabBank" onclick="openModal('financialChoiceModal')" class="tab-btn whitespace-nowrap">פיננסי 💰</div>
         </div>
 
         <div id="pageLists">
             <!-- NEW FLOATING PILLS SECTION -->
             <div class="mb-6 px-1">
                 
-                <div class="flex justify-between items-end mb-3">
-                    <h2 class="text-sm font-bold text-slate-400 uppercase tracking-wider">פעולות מהירות</h2>
-                </div>
-
-                <button onclick="openModal('newListModal')" class="hero-wide-btn group">
+                <button onclick="wizardMode ? openWizard('newList') : openModal('newListModal')" class="hero-wide-btn group">
                     <div class="flex items-center gap-3">
-                        <div class="bg-white/20 w-10 h-10 rounded-xl flex items-center justify-center backdrop-blur-sm group-active:scale-90 transition-transform">
+                        <div class="bg-white/20 w-9 h-9 rounded-xl flex items-center justify-center backdrop-blur-sm group-active:scale-90 transition-transform">
                             <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"></path></svg>
                         </div>
                         <div class="text-right">
                             <span class="block text-xl font-black leading-none tracking-tight text-white">רשימה חדשה</span>
                         </div>
                     </div>
-                    <div class="text-white/80 text-sm font-medium">צור ידנית ➔</div>
+                    <div class="text-white/80 text-sm font-medium"></div>
                 </button>
 
                 <div class="pills-container">
                     
-                    <button onclick="openModal('importModal')" class="action-pill">
+                    <button onclick="openManualImport()" class="action-pill">
                         <span class="pill-icon">📋</span>
                         <span class="pill-text">הדבק</span>
                     </button>
 
-                    <label for="excel-upload" class="action-pill">
+                    <label for="excel-upload" class="action-pill" onclick="if(wizardMode){event.preventDefault();wiz('excelBtn','before',()=>document.getElementById('excel-upload').click());}">
                         <span class="pill-icon">📊</span>
                         <span class="pill-text">Excel</span>
                     </label>
 
-                    <label for="bankFileInput" class="action-pill">
+                    <label for="bankFileInput" class="action-pill" onclick="if(wizardMode){event.preventDefault();wiz('bankBtn','before',()=>document.getElementById('bankFileInput').click());}">
                         <span class="pill-icon">🏦</span>
                         <span class="pill-text">בנק</span>
                     </label>
-
-                    <button onclick="openBankModal()" class="action-pill" style="background: linear-gradient(135deg, #0ea5e9 0%, #0369a1 100%); border-color: #0369a1;">
-                        <span class="pill-icon">🏛️</span>
-                        <span class="pill-text" style="color: white;">בנק</span>
-                    </button>
-
-                    <button onclick="openCreditCardModal()" class="action-pill" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-color: #764ba2;">
-                        <span class="pill-icon">💳</span>
-                        <span class="pill-text" style="color: white;">פיננסי</span>
-                    </button>
 
                 </div>
                 
@@ -1434,40 +2326,45 @@ ${error.message}
                 </div>
             </div>
             <div class="category-separator">
-                <div class="flex justify-between items-center px-2">
-                    <button onclick="shareNative('list')" class="text-white opacity-90">
-                        <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <!-- שם הרשימה בלבד בחלק העליון -->
+                <div class="text-center px-2">
+                    <div id="listNameDisplay" class="text-2xl font-black"
+                        style="word-break:break-word;white-space:normal;text-align:center;"
+                        onclick="openModal('editListNameModal')"></div>
+                    <div id="itemCountDisplay"
+                        class="text-[10px] font-bold opacity-80 uppercase tracking-wider mt-0.5">0 מוצרים</div>
+                </div>
+                <div id="statusTag" class="text-[10px] font-bold mt-2 opacity-80 text-center">נעול</div>
+
+                <!-- שורה אחת: שיתוף + תרגום + מיון + תבנית -->
+                <div style="display:flex;gap:6px;align-items:center;justify-content:center;flex-wrap:wrap;margin-top:6px;">
+                    <button onclick="shareNative('list')" class="text-white opacity-90"
+                        style="background:rgba(255,255,255,0.2);border-radius:50px;padding:5px 10px;display:flex;align-items:center;justify-content:center;transition:all 0.2s;">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z">
-                            </path>
+                                d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"/>
                         </svg>
                     </button>
-                    <button onclick="openModal('translateModal')" class="text-white opacity-90" title="תרגם רשימה">
-                        <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <button onclick="openModal('translateModal')" class="text-white opacity-90"
+                        style="background:rgba(255,255,255,0.2);border-radius:50px;padding:5px 10px;display:flex;align-items:center;justify-content:center;transition:all 0.2s;">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                d="M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9h7M11 21l5-10 5 10M12.751 5C11.783 10.77 8.07 15.61 3 18.129">
-                            </path>
+                                d="M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9h7M11 21l5-10 5 10M12.751 5C11.783 10.77 8.07 15.61 3 18.129"/>
                         </svg>
                     </button>
-                    <div class="flex-1 text-center">
-                        <div id="listNameDisplay" class="text-2xl font-black truncate"
-                            onclick="openModal('editListNameModal')"></div>
-                        <div id="itemCountDisplay"
-                            class="text-[10px] font-bold opacity-80 uppercase tracking-wider mt-0.5">0 מוצרים</div>
-                    </div>
-                    <button onclick="toggleTemplateMode()" class="text-white opacity-90">
-                        <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <button onclick="toggleCategorySorting()" id="categorySortBtn"
+                        class="text-[10px] font-bold bg-white/20 hover:bg-white/30 text-white py-1 px-3 rounded-full transition">
+                        <span id="categorySortText">🔤 מיון לפי קטגוריות</span>
+                    </button>
+                    <button onclick="toggleTemplateMode()" class="text-white opacity-90"
+                        style="background:rgba(255,255,255,0.2);border-radius:50px;padding:5px 10px;display:flex;align-items:center;justify-content:center;transition:all 0.2s;">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2">
-                            </path>
+                                d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
                         </svg>
                     </button>
                 </div>
-                <div id="statusTag" class="text-[10px] font-bold mt-2 opacity-80 text-center">נעול</div>
-                <button onclick="toggleCategorySorting()" id="categorySortBtn"
-                    class="text-[10px] font-bold mt-1 bg-white/20 hover:bg-white/30 text-white py-1 px-3 rounded-full transition">
-                    <span id="categorySortText">🔤 מיון לפי קטגוריות</span>
-                </button>
+
                 <div id="budgetWarning"
                     class="hidden text-[10px] font-bold mt-2 bg-red-500 text-white py-1 px-3 rounded-full inline-block">
                     ⚠️ חריגה מתקציב!</div>
@@ -1476,6 +2373,19 @@ ${error.message}
         </div>
 
         <div id="pageSummary" class="hidden">
+            <!-- כפתורי סטטיסטיקות ופיננסי -->
+            <div style="display:flex;gap:8px;margin-bottom:14px;">
+                <button onclick="showPage('stats')"
+                    style="flex:1;height:40px;border-radius:14px;background:white;border:none;font-size:13px;font-weight:800;color:#7367f0;cursor:pointer;box-shadow:0 2px 10px rgba(115,103,240,0.15);transition:all 0.2s;"
+                    ontouchstart="this.style.transform='scale(0.96)'" ontouchend="this.style.transform='scale(1)'">
+                    📊 סטטיסטיקות
+                </button>
+                <button onclick="openModal('financialChoiceModal')"
+                    style="flex:1;height:40px;border-radius:14px;background:linear-gradient(135deg,#7367f0,#0ea5e9);border:none;font-size:13px;font-weight:800;color:white;cursor:pointer;box-shadow:0 2px 10px rgba(115,103,240,0.25);transition:all 0.2s;"
+                    ontouchstart="this.style.transform='scale(0.96)'" ontouchend="this.style.transform='scale(1)'">
+                    💰 פיננסי
+                </button>
+            </div>
             <div
                 class="bg-white rounded-2xl p-4 mb-4 shadow-sm border border-gray-100 flex items-center gap-3 select-all-container">
                 <input type="checkbox" id="selectAllLists" onchange="toggleSelectAll(this.checked)"
@@ -1494,7 +2404,27 @@ ${error.message}
 
         <div id="pageStats" class="hidden">
             <div class="stat-card">
-                <h3 class="text-xl font-bold mb-4" id="monthlyStatsTitle">📊 סטטיסטיקות חודשיות</h3>
+                <h3 class="text-xl font-bold mb-3" id="monthlyStatsTitle">📊 סטטיסטיקות חודשיות</h3>
+
+                <!-- Month Navigator -->
+                <div style="display:flex; align-items:center; justify-content:space-between;
+                            background:#f0eeff; border-radius:14px; padding:8px 12px; margin-bottom:14px;">
+                    <button onclick="navigateMonth(-1)"
+                        style="background:white; border:1.5px solid #c4b5fd; border-radius:10px;
+                               width:36px; height:36px; font-size:1.1rem; cursor:pointer; color:#7367f0; font-weight:900;">
+                        &#8250;
+                    </button>
+                    <div style="text-align:center;">
+                        <div id="currentMonthLabel" style="font-weight:800; font-size:1rem; color:#1e1b4b;"></div>
+                        <div id="currentMonthVsPrev" style="font-size:0.7rem; color:#9ca3af; margin-top:1px;"></div>
+                    </div>
+                    <button onclick="navigateMonth(1)" id="nextMonthBtn"
+                        style="background:white; border:1.5px solid #c4b5fd; border-radius:10px;
+                               width:36px; height:36px; font-size:1.1rem; cursor:pointer; color:#7367f0; font-weight:900;">
+                        &#8249;
+                    </button>
+                </div>
+
                 <div class="mb-4">
                     <div class="flex justify-between mb-2">
                         <span class="font-bold" id="monthlyExpensesLabel">הוצאות החודש</span>
@@ -1541,109 +2471,280 @@ ${error.message}
         </div>
     </div>
 
-    <!-- Floating Toggle Button -->
-    <div id="floatingToggle" class="floating-toggle-btn no-print" onclick="toggleBottomBar()">
-        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M19 9l-7 7-7-7"></path>
-        </svg>
+    <div class="bottom-bar text-white no-print" id="smartBottomBar" style="padding:12px 14px 20px;display:flex;flex-direction:column;gap:8px;">
+
+        <!-- שורה 1: ניווט -->
+        <div style="display:flex;gap:8px;">
+            <div id="tabLists" onclick="showPage('lists')"
+                style="flex:1;height:44px;border-radius:14px;background:rgba(255,255,255,0.16);font-size:15px;font-weight:800;color:white;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all 0.2s;">
+                הרשימה שלי
+            </div>
+            <div id="tabSummary" onclick="showPage('summary')"
+                style="flex:1;height:44px;border-radius:14px;background:rgba(255,255,255,0.16);font-size:15px;font-weight:800;color:white;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all 0.2s;">
+                הרשימות שלי
+            </div>
+        </div>
+
+        <!-- שורה 2: מדריך | פלוס | גרירה -->
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;align-items:center;">
+
+            <button id="wizardModeBtn" onclick="toggleWizardMode()"
+                style="height:52px;border-radius:16px;background:rgba(255,255,255,0.13);border:1px solid rgba(255,255,255,0.2);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;cursor:pointer;transition:all 0.2s;"
+                ontouchstart="this.style.transform='scale(0.93)'" ontouchend="this.style.transform='scale(1)'">
+                <span style="font-size:18px;line-height:1;">✨</span>
+                <span id="wizardBtnText" style="font-size:10px;font-weight:800;color:rgba(255,255,255,0.92);">מדריך</span>
+            </button>
+
+            <button onclick="handlePlusBtn(event)"
+                style="width:62px;height:62px;justify-self:center;border-radius:50%;background:#22c55e;border:3px solid rgba(255,255,255,0.35);display:flex;align-items:center;justify-content:center;box-shadow:0 6px 20px rgba(34,197,94,0.5);cursor:pointer;transition:transform 0.2s;animation:smartPlusPulse 2.4s ease-out infinite;"
+                ontouchstart="this.style.transform='scale(0.9)'" ontouchend="this.style.transform='scale(1)'">
+                <svg width="30" height="30" fill="none" stroke="white" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.8" d="M12 5v14M5 12h14"/>
+                </svg>
+            </button>
+
+            <button id="mainLockBtn" onclick="toggleLock()"
+                style="height:52px;border-radius:16px;background:rgba(255,255,255,0.13);border:1px solid rgba(255,255,255,0.2);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;cursor:pointer;transition:all 0.2s;"
+                ontouchstart="this.style.transform='scale(0.93)'" ontouchend="this.style.transform='scale(1)'">
+                <svg id="lockIconSvg" width="18" height="18" fill="none" stroke="white" viewBox="0 0 24 24">
+                    <path id="lockIconPath" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
+                </svg>
+                <span style="font-size:10px;font-weight:800;color:rgba(255,255,255,0.92);">גרירה</span>
+            </button>
+
+        </div>
+
+        <!-- שורה 3: פעולות / נתונים (מתחלף בגלילה) -->
+        <div id="barActionsRow" style="display:flex;gap:8px;">
+
+            <button id="bottomAddBtn"
+                onclick="if(_voiceActionActive){ startVoiceAction('tobuy'); } else if(wizardMode){ wiz('voiceTobuy','before',()=>startVoiceAction('tobuy')); } else { startVoiceAction('tobuy'); }"
+                style="flex:1;height:52px;border-radius:16px;background:rgba(255,255,255,0.13);border:1px solid rgba(255,255,255,0.2);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;cursor:pointer;transition:all 0.2s;"
+                ontouchstart="this.style.transform='scale(0.93)'" ontouchend="this.style.transform='scale(1)'">
+                <div style="position:relative;width:20px;height:20px;display:flex;align-items:center;justify-content:center;">
+                    <svg width="18" height="18" fill="none" stroke="white" stroke-width="1.8" viewBox="0 0 24 24">
+                        <rect x="9" y="2" width="6" height="11" rx="3" fill="rgba(255,255,255,0.2)" stroke="white" stroke-width="1.8"/>
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M19 10a7 7 0 01-14 0M12 19v3M9 22h6"/>
+                    </svg>
+                    <div style="position:absolute;top:-4px;right:-6px;width:13px;height:13px;border-radius:50%;background:#22c55e;display:flex;align-items:center;justify-content:center;border:1.5px solid rgba(115,103,240,0.8);font-size:8px;font-weight:900;color:white;">+</div>
+                </div>
+                <span style="font-size:10px;font-weight:800;color:rgba(255,255,255,0.92);">הוספה</span>
+            </button>
+
+            <button onclick="wizardMode ? openWizard('completeList') : openModal('confirmModal')"
+                style="flex:1;height:52px;border-radius:16px;background:#ef4444;border:none;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;cursor:pointer;transition:all 0.2s;box-shadow:0 4px 14px rgba(239,68,68,0.4);"
+                ontouchstart="this.style.transform='scale(0.93)'" ontouchend="this.style.transform='scale(1)'">
+                <svg width="20" height="20" fill="none" stroke="white" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/>
+                </svg>
+                <span style="font-size:10px;font-weight:800;color:white;">סיום רשימה</span>
+            </button>
+
+            <button id="bottomDoneBtn"
+                onclick="if(_voiceActionActive){ startVoiceAction('bought'); } else if(wizardMode){ wiz('voiceBought','before',()=>startVoiceAction('bought')); } else { startVoiceAction('bought'); }"
+                style="flex:1;height:52px;border-radius:16px;background:rgba(255,255,255,0.13);border:1px solid rgba(255,255,255,0.2);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;cursor:pointer;transition:all 0.2s;"
+                ontouchstart="this.style.transform='scale(0.93)'" ontouchend="this.style.transform='scale(1)'">
+                <div style="position:relative;width:20px;height:20px;display:flex;align-items:center;justify-content:center;">
+                    <svg width="18" height="18" fill="none" stroke="white" stroke-width="1.8" viewBox="0 0 24 24">
+                        <rect x="9" y="2" width="6" height="11" rx="3" fill="rgba(255,255,255,0.2)" stroke="white" stroke-width="1.8"/>
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M19 10a7 7 0 01-14 0M12 19v3M9 22h6"/>
+                    </svg>
+                    <div style="position:absolute;top:-4px;right:-6px;width:13px;height:13px;border-radius:50%;background:#22c55e;display:flex;align-items:center;justify-content:center;border:1.5px solid rgba(115,103,240,0.8);font-size:8px;font-weight:900;color:white;">✓</div>
+                </div>
+                <span style="font-size:10px;font-weight:800;color:rgba(255,255,255,0.92);">בוצע</span>
+            </button>
+
+        </div>
+
+        <!-- שורת נתונים — מוצגת בגלילה -->
+        <div id="barStatsRow" style="display:none;gap:8px;">
+            <div style="flex:1;height:52px;border-radius:16px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;">
+                <span style="font-size:9px;font-weight:700;color:rgba(255,255,255,0.58);" id="paidInListLabel">שולם ברשימה</span>
+                <span style="font-size:17px;font-weight:900;color:#86efac;line-height:1.2;">₪<span id="displayPaid">0.00</span></span>
+            </div>
+            <div style="flex:1;height:52px;border-radius:16px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;">
+                <span style="font-size:9px;font-weight:700;color:rgba(255,255,255,0.58);" id="remainingToPayLabel">נשאר לשלם</span>
+                <span style="font-size:17px;font-weight:900;color:#fcd34d;line-height:1.2;">₪<span id="displayLeft">0.00</span></span>
+            </div>
+            <div style="flex:1;height:52px;border-radius:16px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;">
+                <span style="font-size:9px;font-weight:700;color:rgba(255,255,255,0.58);" id="totalListLabel">סה"כ רשימה</span>
+                <span style="font-size:17px;font-weight:900;color:white;line-height:1.2;">₪<span id="displayTotal">0.00</span></span>
+            </div>
+        </div>
+
+        <!-- mainLockBtn מוסתר — תאימות עם script.js -->
+        <button id="mainLockBtnHidden" style="display:none;"></button>
+
     </div>
 
-    <div class="bottom-bar text-white no-print" onclick="toggleBottomBar()">
-        <div class="flex items-center justify-between mb-4">
-            <div class="flex-1 text-center">
-                <div class="text-[10px] opacity-70" id="totalListLabel">סה"כ רשימה</div>
-                <div class="text-xl font-bold">₪<span id="displayTotal">0.00</span></div>
-            </div>
-            <div class="flex-shrink-0 flex gap-3">
-                <button onclick="event.stopPropagation(); openModal('inputForm')"
-                    class="w-16 h-16 bg-green-500 rounded-full flex items-center justify-center shadow-2xl border-4 border-white/20 text-white text-4xl font-bold">+</button>
-            </div>
-            <div class="flex-1 text-center">
-                <div class="text-[10px] opacity-70" id="paidInListLabel">שולם ברשימה</div>
-                <div class="text-xl font-bold">₪<span id="displayPaid">0.00</span></div>
-            </div>
-        </div>
-        <div class="flex items-center justify-between gap-4">
-            <button id="mainLockBtn" onclick="event.stopPropagation(); toggleLock()" class="bottom-circle-btn bg-blue-600">
-                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path id="lockIconPath" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                        d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z">
-                    </path>
-                </svg>
-            </button>
-            <div class="text-center flex-1">
-                <div class="text-[10px] opacity-70" id="remainingToPayLabel">נשאר לשלם</div>
-                <div class="text-2xl font-black text-orange-300">₪<span id="displayLeft">0.00</span></div>
-            </div>
-            <button onclick="event.stopPropagation(); openModal('confirmModal')" class="bottom-circle-btn bg-red-500">
-                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"></path>
-                </svg>
-            </button>
-        </div>
-    </div>
+    <style>
+        @keyframes smartPlusPulse {
+            0%   { box-shadow: 0 0 0 0   rgba(34,197,94,0.65), 0 6px 20px rgba(34,197,94,0.5); }
+            70%  { box-shadow: 0 0 0 14px rgba(34,197,94,0),   0 6px 20px rgba(34,197,94,0.5); }
+            100% { box-shadow: 0 0 0 0   rgba(34,197,94,0),   0 6px 20px rgba(34,197,94,0.5); }
+        }
+        @keyframes barFadeIn {
+            from { opacity: 0; transform: translateY(4px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+
+    <script>
+        var _smartBarOpen = false;
+        // ═══ בר קבוע — לוגיקת גלילה ועדכון טאבים ═══
+
+        var _scrollTimer = null;
+        var _isScrolling = false;
+
+        // החלפת שורת פעולות ↔ נתונים בגלילה
+        window.addEventListener('scroll', function() {
+            if (!_isScrolling) {
+                _isScrolling = true;
+                var actions = document.getElementById('barActionsRow');
+                var stats   = document.getElementById('barStatsRow');
+                if (actions) actions.style.display = 'none';
+                if (stats)   { stats.style.display = 'flex'; stats.style.animation = 'barFadeIn 0.2s ease'; }
+            }
+            clearTimeout(_scrollTimer);
+            _scrollTimer = setTimeout(function() {
+                _isScrolling = false;
+                var actions = document.getElementById('barActionsRow');
+                var stats   = document.getElementById('barStatsRow');
+                if (stats)   stats.style.display = 'none';
+                if (actions) { actions.style.display = 'flex'; actions.style.animation = 'barFadeIn 0.2s ease'; }
+            }, 800);
+        }, { passive: true });
+
+        function updateNavPill(page) {
+            var activeStyle   = 'flex:1;height:44px;border-radius:14px;background:white;font-size:15px;font-weight:900;color:#7367f0;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all 0.2s;box-shadow:0 3px 10px rgba(0,0,0,0.12);';
+            var inactiveStyle = 'flex:1;height:44px;border-radius:14px;background:rgba(255,255,255,0.16);font-size:15px;font-weight:800;color:white;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all 0.2s;';
+            var tl = document.getElementById('tabLists');
+            var ts = document.getElementById('tabSummary');
+            if (tl) tl.style.cssText = (page === 'lists')   ? activeStyle : inactiveStyle;
+            if (ts) ts.style.cssText = (page === 'summary') ? activeStyle : inactiveStyle;
+        }
+
+        // stub functions לתאימות עם קוד קיים
+        function openSmartBar() {}
+        function toggleSmartBar() {}
+        function updateExpandedTabs(page) { updateNavPill(page); }
+        var _smartBarOpen = true;
+    </script>
 
     <div id="printArea" class="hidden"></div>
 
     <!-- Modals -->
     <div id="inputForm" class="modal-overlay no-print">
         <div class="edit-modal" style="position: relative;">
-            <h2 id="addItemModalTitle">הוספת מוצר</h2>
 
-            <!-- Voice Input Button - Top Right Corner -->
-            <button onclick="startVoiceInput()" id="voiceBtn"
-                class="absolute top-4 left-4 w-12 h-12 bg-purple-500 rounded-full flex items-center justify-center shadow-lg border-2 border-white/30 text-white hover:bg-purple-600 transition-all hover:scale-110"
-                style="z-index: 10;" title="הקלט קולי">
-                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                        d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z">
-                    </path>
-                </svg>
-            </button>
+            <!-- Header: title + continuous toggle -->
+            <div class="quick-add-header">
+                <label class="continuous-toggle-wrap" id="continuousToggleWrap" onclick="event.stopPropagation(); toggleContinuousMode()">
+                    <span class="continuous-toggle-label" id="continuousLabel">⚡ הוספה רציפה</span>
+                    <label class="toggle-switch" onclick="event.stopPropagation()">
+                        <input type="checkbox" id="continuousToggle" onchange="toggleContinuousMode()">
+                        <span class="toggle-track"></span>
+                    </label>
+                </label>
+                <h2 class="quick-add-title" id="addItemModalTitle">הוספת מוצר</h2>
+            </div>
 
-            <div style="position: relative;">
-                <input type="text" id="itemName" placeholder="שם המוצר" class="modal-input" autocomplete="off">
-                <div id="autocompleteContainer" class="autocomplete-container"></div>
-            </div>
-            <input type="number" id="itemPrice" inputmode="decimal" placeholder="מחיר" class="modal-input">
-            <input type="number" id="itemQty" placeholder="כמות" class="modal-input" value="1" min="1">
-            <div style="margin-bottom: 5px;">
-                <label class="text-sm font-bold text-gray-600 block text-center mb-1">📅 תאריך יעד</label>
-                <input type="date" id="itemDueDate" class="modal-input">
-            </div>
-            <input type="url" id="itemPaymentUrl" placeholder="🔗 קישור לתשלום (אופציונלי)" class="modal-input">
-            <input type="text" id="itemNotes" placeholder="📝 הערות (אופציונלי)" class="modal-input">
-            <select id="itemCategory" class="modal-input">
-                <option value="">בחר קטגוריה (אופציונלי)</option>
-                <option value="פירות וירקות">🥬 פירות וירקות</option>
-                <option value="בשר ודגים">🥩 בשר ודגים</option>
-                <option value="חלב וביצים">🥛 חלב וביצים</option>
-                <option value="לחם ומאפים">🍞 לחם ומאפים</option>
-                <option value="שימורים">🥫 שימורים</option>
-                <option value="חטיפים">🍪 חטיפים</option>
-                <option value="משקאות">🥤 משקאות</option>
-                <option value="ניקיון">🧹 ניקיון</option>
-                <option value="היגיינה">🧴 היגיינה</option>
-                <option value="אחר">📦 אחר</option>
-            </select>
-            <div style="margin-bottom: 5px;">
-                <label class="text-sm font-bold text-gray-600 block text-center mb-1">🔔 התראה מראש</label>
-                <div class="flex gap-2">
-                    <input type="number" id="itemReminderValue" placeholder="מספר" class="modal-input" min="0" style="flex: 1;">
-                    <select id="itemReminderUnit" class="modal-input" style="flex: 1;">
-                        <option value="">בחר יחידה</option>
-                        <option value="minutes">דקות</option>
-                        <option value="hours">שעות</option>
-                        <option value="days">ימים</option>
-                        <option value="weeks">שבועות</option>
-                    </select>
+            <!-- Context bar: which list -->
+            <div class="context-bar" id="contextBar">
+                <span class="context-bar-label">➕ מתווסף אל:</span>
+                <button class="context-list-btn" id="contextListBtn" onclick="event.stopPropagation(); toggleListDropdown()">
+                    <span class="context-list-name" id="contextListName">...</span>
+                    <span class="context-list-arrow">▾</span>
+                </button>
+                <!-- Dropdown -->
+                <div class="list-dropdown" id="listDropdown">
+                    <div class="list-dropdown-scroll" id="listDropdownScroll"></div>
+                    <div class="list-dropdown-new">
+                        <div class="list-dropdown-new-row">
+                            <input class="list-dropdown-new-input" id="newListFromDropdown"
+                                placeholder="+ שם רשימה חדשה"
+                                onclick="event.stopPropagation()"
+                                onkeydown="if(event.key==='Enter'){event.stopPropagation();createListFromDropdown();}">
+                            <button class="list-dropdown-new-btn" onclick="event.stopPropagation(); createListFromDropdown()">צור ✓</button>
+                        </div>
+                    </div>
                 </div>
             </div>
-            <div class="flex gap-3">
-                <button class="bg-green-500 text-white flex-1 py-4 rounded-xl font-bold shadow-md"
-                    onclick="event.stopPropagation(); addItemToList(event);">הוסף</button>
-                <button class="bg-gray-100 text-gray-500 flex-1 py-4 rounded-xl font-bold"
-                    onclick="event.stopPropagation(); closeModal('inputForm');">ביטול</button>
+
+            <!-- Name field with embedded mic button -->
+            <div style="position: relative;">
+                <input type="text" id="itemName" placeholder="שם המוצר" class="modal-input" autocomplete="off"
+                    style="padding-left: 48px;">
+                <button onclick="event.stopPropagation(); startVoiceInput()" id="voiceBtn"
+                    title="הקלט קולי"
+                    style="position:absolute; left:6px; top:50%; transform:translateY(-50%);
+                           width:36px; height:36px; border-radius:50%; border:none;
+                           background:linear-gradient(135deg,#9055ff,#7367f0);
+                           color:white; display:flex; align-items:center; justify-content:center;
+                           cursor:pointer; box-shadow:0 2px 8px rgba(115,103,240,0.4);
+                           transition:transform 0.2s, box-shadow 0.2s; flex-shrink:0;">
+                    <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z"/>
+                    </svg>
+                </button>
+                <div id="autocompleteContainer" class="autocomplete-container"></div>
+            </div>
+
+            <!-- Price + Qty side by side -->
+            <div class="price-qty-row">
+                <input type="number" id="itemPrice" inputmode="decimal" placeholder="💰 מחיר" class="modal-input">
+                <input type="number" id="itemQty" placeholder="🔢 כמות" class="modal-input" value="1" min="1">
+            </div>
+
+            <!-- Advanced drawer toggle button -->
+            <button class="advanced-toggle-btn" id="advancedToggleBtn" onclick="event.stopPropagation(); toggleAdvancedDrawer()">
+                <span>⚙️ פרטים נוספים</span>
+                <span class="adv-arrow">▾</span>
+            </button>
+
+            <!-- Advanced drawer -->
+            <div class="advanced-drawer" id="advancedDrawer">
+                <label class="text-sm font-bold text-gray-600 block text-center mb-1">📅 תאריך ושעת יעד</label>
+                <input type="date" id="itemDueDate" class="modal-input">
+                <input type="time" id="itemDueTime" class="modal-input">
+                <input type="url" id="itemPaymentUrl" placeholder="🔗 קישור לתשלום (אופציונלי)" class="modal-input">
+                <input type="text" id="itemNotes" placeholder="📝 הערות (אופציונלי)" class="modal-input">
+                <select id="itemCategory" class="modal-input">
+                    <option value="">בחר קטגוריה (אופציונלי)</option>
+                    <option value="פירות וירקות">🥬 פירות וירקות</option>
+                    <option value="בשר ודגים">🥩 בשר ודגים</option>
+                    <option value="חלב וביצים">🥛 חלב וביצים</option>
+                    <option value="לחם ומאפים">🍞 לחם ומאפים</option>
+                    <option value="שימורים">🥫 שימורים</option>
+                    <option value="חטיפים">🍪 חטיפים</option>
+                    <option value="משקאות">🥤 משקאות</option>
+                    <option value="ניקיון">🧹 ניקיון</option>
+                    <option value="היגיינה">🧴 היגיינה</option>
+                    <option value="אחר">📦 אחר</option>
+                </select>
+                <div style="margin-bottom: 8px;">
+                    <label class="text-sm font-bold text-gray-600 block text-center mb-1">🔔 צור התראה לפני</label>
+                    <div class="flex gap-2">
+                        <input type="number" id="itemReminderValue" placeholder="מספר" class="modal-input" min="0" style="flex: 1;">
+                        <select id="itemReminderUnit" class="modal-input" style="flex: 1;">
+                            <option value="minutes" selected>דקות</option>
+                            <option value="hours">שעות</option>
+                            <option value="days">ימים</option>
+                            <option value="weeks">שבועות</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Action buttons -->
+            <div class="flex gap-3" style="margin-top: 4px;">
+                <button class="bg-green-500 text-white flex-1 py-4 rounded-xl font-bold shadow-md add-item-btn"
+                    id="addItemBtn"
+                    onclick="event.stopPropagation(); addItemToList(event);">הוסף ✓</button>
+                <button class="bg-gray-100 text-gray-500 py-4 px-6 rounded-xl font-bold"
+                    onclick="event.stopPropagation(); closeModal('inputForm');">סגור</button>
             </div>
         </div>
     </div>
@@ -1741,18 +2842,14 @@ ${error.message}
         <div class="edit-modal">
             <h2>📝 עריכת פריט</h2>
             <input type="text" id="editItemName" class="modal-input" placeholder="שם הפריט">
-            <div style="margin-bottom: 5px;">
-                <label class="text-sm font-bold text-gray-600 block text-center mb-1">📅 תאריך יעד</label>
-                <input type="date" id="editItemDueDate" class="modal-input">
-            </div>
+            <input type="date" id="editItemDueDate" class="modal-input" placeholder="תאריך יעד">
             <input type="url" id="editItemPaymentUrl" class="modal-input" placeholder="🔗 קישור לתשלום (אופציונלי)">
             <div style="margin-bottom: 5px;">
-                <label class="text-sm font-bold text-gray-600 block text-center mb-1">🔔 התראה מראש</label>
+                <label class="text-sm font-bold text-gray-600 block text-center mb-1">🔔 צור התראה לפני</label>
                 <div class="flex gap-2">
                     <input type="number" id="editItemReminderValue" placeholder="מספר" class="modal-input" min="0" style="flex: 1;">
                     <select id="editItemReminderUnit" class="modal-input" style="flex: 1;">
-                        <option value="">בחר יחידה</option>
-                        <option value="minutes">דקות</option>
+                        <option value="minutes" selected>דקות</option>
                         <option value="hours">שעות</option>
                         <option value="days">ימים</option>
                         <option value="weeks">שבועות</option>
@@ -1770,12 +2867,20 @@ ${error.message}
 
     <!-- Notification Center Modal -->
     <div id="notificationCenterModal" class="modal-overlay no-print">
-        <div class="edit-modal" style="max-height: 80vh;">
-            <h2>🔔 מרכז התראות</h2>
-            <div id="notificationsList" style="max-height: 500px; overflow-y: auto; margin-top: 15px;">
+        <div class="nc-modal-inner">
+            <div class="nc-header">
+                <div class="nc-title">🔔 מרכז התראות</div>
+                <button class="nc-clear-all" id="clearAllNotifsBtn" onclick="dismissAllNotifications()" style="display:none;">
+                    🗑️ נקה הכל
+                </button>
             </div>
-            <button class="bg-gray-100 w-full py-4 rounded-xl font-bold mt-3"
-                onclick="closeModal('notificationCenterModal')">סגור</button>
+            <div class="nc-body">
+                <div class="nc-swipe-hint" id="ncSwipeHint" style="display:none;">← החלק למחיקה →</div>
+                <div id="notificationsList"></div>
+            </div>
+            <div class="nc-footer">
+                <button class="nc-close-btn" onclick="closeModal('notificationCenterModal')">סגור</button>
+            </div>
         </div>
     </div>
 
@@ -1951,16 +3056,29 @@ ${error.message}
         <div class="urgent-alert-modal">
             <div class="urgent-alert-header">⚠️</div>
             <h2 class="urgent-alert-title">התראות חשובות!</h2>
-            <p style="color: #6b7280; margin-bottom: 15px;">יש לך פריטים הדורשים תשומת לב</p>
+            <p class="urgent-alert-subtitle">יש לך פריטים הדורשים תשומת לב</p>
             <div class="urgent-items-list" id="urgentItemsList">
                 <!-- Urgent items will be inserted here -->
             </div>
             <div class="urgent-buttons">
-                <button class="urgent-btn urgent-btn-snooze" onclick="snoozeUrgentAlert(4)">
-                    ⏰ הזכר לי בעוד 4 שעות
-                </button>
-                <button class="urgent-btn urgent-btn-tomorrow" onclick="snoozeUrgentAlert(24)">
-                    📅 הזכר לי מחר
+                <!-- Hours row -->
+                <div style="display:flex; gap:8px;">
+                    <button class="urgent-btn urgent-btn-snooze" style="flex:1;"
+                        onclick="snoozeUrgentAlert(1*60*60*1000)">⏰ שעה</button>
+                    <button class="urgent-btn urgent-btn-snooze" style="flex:1;"
+                        onclick="snoozeUrgentAlert(2*60*60*1000)">⏰ 2 שעות</button>
+                    <button class="urgent-btn urgent-btn-snooze" style="flex:1;"
+                        onclick="snoozeUrgentAlert(4*60*60*1000)">⏰ 4 שעות</button>
+                </div>
+                <!-- Days row -->
+                <div style="display:flex; gap:8px;">
+                    <button class="urgent-btn urgent-btn-tomorrow" style="flex:1;"
+                        onclick="snoozeUrgentAlert(1*24*60*60*1000)">📅 מחר</button>
+                    <button class="urgent-btn urgent-btn-tomorrow" style="flex:1;"
+                        onclick="snoozeUrgentAlert(2*24*60*60*1000)">📅 יומיים</button>
+                </div>
+                <button class="urgent-btn" onclick="openCustomSnooze()" style="background:#8b5cf6; color:white;">
+                    ⚙️ מותאם אישית
                 </button>
                 <button class="urgent-btn urgent-btn-close" onclick="closeUrgentAlert()">
                     ✕ סגור
@@ -1969,155 +3087,123 @@ ${error.message}
         </div>
     </div>
 
-    <!-- ===== Credit Card Connection Modal ===== -->
+    <!-- Clipboard Import Modal -->
+    <div id="clipboardImportModal" class="modal-overlay no-print">
+        <div class="edit-modal">
+            <h2>ייבוא רשימה מטקסט</h2>
+            <p class="text-sm text-gray-600 mb-2">הדבק טקסט מואוטסאפ או כל רשימה</p>
+            
+            <!-- Auto-open toggle -->
+            <div style="display:flex; align-items:center; justify-content:center; gap:8px; margin-bottom:12px;
+                        background:#f8f7ff; border-radius:12px; padding:8px 14px; border:1.5px solid #e0e7ff;">
+                <span style="font-size:0.75rem; font-weight:700; color:#7367f0;">פתיחה אוטומטית</span>
+                <label class="toggle-switch" onclick="event.stopPropagation()">
+                    <input type="checkbox" id="clipboardAutoOpenToggle" checked onchange="toggleClipboardAutoOpen()">
+                    <span class="toggle-track"></span>
+                </label>
+                <span id="clipboardAutoOpenLabel" style="font-size:0.72rem; font-weight:600; color:#94a3b8; min-width:60px;">מופעל</span>
+            </div>
 
-    <!-- ===== Bank Modal ===== -->
-    <div id="bankModal" class="modal-overlay no-print">
-        <div class="credit-modal" style="max-height:90vh; overflow-y:auto;">
-            <h2 style="text-align:center; font-size:1.3rem; font-weight:900; margin-bottom:4px;">🏛️ חיבור לבנק</h2>
-            <p style="text-align:center; color:#6b7280; font-size:13px; margin-bottom:12px;">בחר בנק והזן פרטי התחברות</p>
-
-            <div class="credit-company-grid" style="grid-template-columns: repeat(3, 1fr); gap:8px; margin-bottom:14px;">
-                <button class="credit-company-btn" onclick="selectBank('hapoalim', this)">
-                    <div style="font-size:20px;">🔴</div><div style="font-size:11px;">פועלים</div>
-                </button>
-                <button class="credit-company-btn" onclick="selectBank('leumi', this)">
-                    <div style="font-size:20px;">🟢</div><div style="font-size:11px;">לאומי</div>
-                </button>
-                <button class="credit-company-btn" onclick="selectBank('mizrahi', this)">
-                    <div style="font-size:20px;">🟠</div><div style="font-size:11px;">מזרחי</div>
-                </button>
-                <button class="credit-company-btn" onclick="selectBank('discount', this)">
-                    <div style="font-size:20px;">🔵</div><div style="font-size:11px;">דיסקונט</div>
-                </button>
-                <button class="credit-company-btn" onclick="selectBank('otsarHahayal', this)">
-                    <div style="font-size:20px;">🪖</div><div style="font-size:11px;">אוצר החייל</div>
-                </button>
-                <button class="credit-company-btn" onclick="selectBank('yahav', this)">
-                    <div style="font-size:20px;">🟡</div><div style="font-size:11px;">יהב</div>
-                </button>
-                <button class="credit-company-btn" onclick="selectBank('massad', this)">
-                    <div style="font-size:20px;">🏦</div><div style="font-size:11px;">מסד</div>
-                </button>
-                <button class="credit-company-btn" onclick="selectBank('unionBank', this)">
-                    <div style="font-size:20px;">🤝</div><div style="font-size:11px;">איגוד</div>
-                </button>
-                <button class="credit-company-btn" onclick="selectBank('beinleumi', this)">
-                    <div style="font-size:20px;">🌐</div><div style="font-size:11px;">בינלאומי</div>
+            <div id="clipboardDetectedType" class="mb-3 p-3 bg-indigo-50 rounded-xl text-center">
+                <p class="text-sm text-gray-600 mb-1">סוג רשימה מזוהה:</p>
+                <p id="detectedTypeName" class="font-bold text-indigo-600">🛒 רשימת קניות</p>
+                <button onclick="changeDetectedType()" class="text-xs text-indigo-500 underline mt-1">
+                    שנה סוג
                 </button>
             </div>
 
-            <!-- Dynamic fields — change per bank -->
-            <div id="bankFieldsContainer">
-                <input type="text" id="bankField1" placeholder="שם משתמש"
-                    class="modal-input" style="margin-bottom:10px;">
-                <input type="password" id="bankPassword" placeholder="סיסמה"
-                    class="modal-input" style="margin-bottom:10px;">
-                <input type="text" id="bankField2" placeholder=""
-                    class="modal-input" style="margin-bottom:10px; display:none;">
-            </div>
-
-            <div id="bankHint" style="background:#e0f2fe; border-radius:12px; padding:10px 14px; font-size:12px; color:#0369a1; margin-bottom:12px; text-align:right; display:none;"></div>
-
-            <div style="background:#fef9c3; border-radius:12px; padding:10px 14px; font-size:12px; color:#92400e; margin-bottom:16px; text-align:right;">
-                🔒 הפרטים נשלחים ישירות לבנק ואינם נשמרים אצלנו
-            </div>
+            <textarea id="clipboardImportText" 
+                      class="modal-input" 
+                      rows="8" 
+                      oninput="updateDetectedTypeFromInput()"
+                      placeholder="הדבק כאן טקסט לייבוא..."></textarea>
 
             <div class="flex gap-3">
-                <button onclick="startBankFetch()"
-                    style="flex:1; background:linear-gradient(135deg,#0ea5e9,#0369a1); color:white; padding:14px; border-radius:14px; font-weight:900; font-size:15px; border:none; cursor:pointer;">
-                    🏛️ התחבר ושלוף נתונים
+                <button class="bg-green-500 text-white flex-1 py-4 rounded-xl font-bold"
+                        onclick="acceptClipboardImport()">
+                    ייבא
                 </button>
-                <button onclick="closeModal('bankModal')"
-                    style="flex:0 0 56px; background:#f3f4f6; color:#6b7280; padding:14px; border-radius:14px; font-weight:700; border:none; cursor:pointer;">
-                    ✕
+                <button class="bg-gray-100 flex-1 py-4 rounded-xl font-bold"
+                        onclick="dismissClipboardImport()">
+                    ביטול
                 </button>
             </div>
         </div>
     </div>
 
-    <div id="creditCardModal" class="modal-overlay no-print">
-        <div class="credit-modal">
-            <h2 style="text-align:center; font-size:1.3rem; font-weight:900; margin-bottom:4px;">💳 חיבור כרטיס אשראי</h2>
-            <p style="text-align:center; color:#6b7280; font-size:13px; margin-bottom:4px;">בחר חברת אשראי והזן פרטי התחברות</p>
-
-            <!-- Company Selector -->
-            <div class="credit-company-grid">
-                <button class="credit-company-btn" onclick="selectCreditCompany('max', this)">
-                    <div style="font-size:22px;">💜</div>
-                    Max
-                </button>
-                <button class="credit-company-btn" onclick="selectCreditCompany('cal', this)">
-                    <div style="font-size:22px;">🔵</div>
-                    Cal
-                </button>
-                <button class="credit-company-btn" onclick="selectCreditCompany('leumi', this)">
-                    <div style="font-size:22px;">🟢</div>
-                    לאומי קארד
-                </button>
-                <button class="credit-company-btn" onclick="selectCreditCompany('isracard', this)">
-                    <div style="font-size:22px;">🔴</div>
-                    ישראכרט
-                </button>
+    <!-- Custom Snooze Modal -->
+    <div id="customSnoozeModal" class="modal-overlay no-print">
+        <div class="edit-modal">
+            <h2>⚙️ דחיית התראה - מותאם אישית</h2>
+            <p class="text-sm text-gray-600 mb-4">בחר מתי תרצה שנזכיר לך שוב</p>
+            <div style="margin-bottom: 5px;">
+                <label class="text-sm font-bold text-gray-600 block text-center mb-1">הזכר לי בעוד:</label>
+                <div class="flex gap-2">
+                    <input type="number" id="customSnoozeValue" placeholder="מספר" class="modal-input" min="1" value="1" style="flex: 1;">
+                    <select id="customSnoozeUnit" class="modal-input" style="flex: 1;">
+                        <option value="minutes">דקות</option>
+                        <option value="hours" selected>שעות</option>
+                        <option value="days">ימים</option>
+                    </select>
+                </div>
             </div>
-
-            <!-- Credentials -->
-            <input type="text" id="creditUsername"
-                placeholder="שם משתמש / תעודת זהות"
-                class="modal-input" autocomplete="username"
-                style="margin-bottom:10px;">
-            <input type="password" id="creditPassword"
-                placeholder="סיסמה"
-                class="modal-input" autocomplete="current-password"
-                style="margin-bottom:16px;">
-
-            <div style="background:#fef9c3; border-radius:12px; padding:10px 14px; font-size:12px; color:#92400e; margin-bottom:16px; text-align:right;">
-                🔒 הפרטים נשלחים ישירות לחברת האשראי ואינם נשמרים אצלנו
-            </div>
-
             <div class="flex gap-3">
-                <button onclick="startCreditCardFetch()"
-                    style="flex:1; background:linear-gradient(135deg,#7367f0,#9055ff); color:white; padding:14px; border-radius:14px; font-weight:900; font-size:15px; border:none; cursor:pointer;">
-                    💳 התחבר ושלוף נתונים
+                <button class="bg-purple-500 text-white flex-1 py-4 rounded-xl font-bold"
+                    onclick="applyCustomSnooze()">
+                    ✓ אישור
                 </button>
-                <button onclick="closeModal('creditCardModal')"
-                    style="flex:0 0 56px; background:#f3f4f6; color:#6b7280; padding:14px; border-radius:14px; font-weight:700; border:none; cursor:pointer;">
-                    ✕
+                <button class="bg-gray-100 flex-1 py-4 rounded-xl font-bold"
+                    onclick="closeModal('customSnoozeModal')">
+                    ביטול
                 </button>
             </div>
         </div>
     </div>
 
-    <!-- ===== Credit Card Progress Overlay ===== -->
-    <div id="creditProgressOverlay">
-        <div class="credit-progress-card">
-            <div class="credit-progress-icon" id="progressIcon">🔐</div>
-            <div class="credit-progress-title" id="progressTitle">מתחבר לחברת האשראי...</div>
-            <div class="credit-progress-subtitle" id="progressSubtitle">אנא המתן, זה עשוי לקחת עד דקה</div>
-
-            <!-- Progress Bar -->
-            <div class="credit-progress-bar-wrap">
-                <div class="credit-progress-bar-fill" id="creditProgressBar" style="width:5%"></div>
+    <!-- Edit Reminder Modal -->
+    <div id="editReminderModal" class="modal-overlay no-print">
+        <div class="edit-modal">
+            <h2>✏️ עריכת התראה</h2>
+            <p class="text-sm text-gray-600 mb-2">ערוך את התאריך, השעה וההתראה</p>
+            
+            <label class="text-sm font-bold text-gray-600 block text-center mb-1">שם המוצר</label>
+            <input type="text" id="editItemName" class="modal-input" readonly style="background: #f3f4f6;">
+            
+            <div id="currentReminderInfo" style="display:none; background:#eef2ff; color:#4f46e5; border-radius:10px; padding:8px 12px; text-align:center; font-size:13px; font-weight:bold; margin: 8px 0;"></div>
+            
+            <label class="text-sm font-bold text-gray-600 block text-center mb-1 mt-2">📅 תאריך יעד</label>
+            <input type="date" id="editItemDueDate" class="modal-input">
+            
+            <label class="text-sm font-bold text-gray-600 block text-center mb-1 mt-2">🕐 שעת יעד</label>
+            <input type="time" id="editItemDueTime" class="modal-input">
+            
+            <div style="margin-top: 10px; margin-bottom: 5px;">
+                <label class="text-sm font-bold text-gray-600 block text-center mb-1">🔔 צור התראה לפני</label>
+                <div class="flex gap-2">
+                    <input type="number" id="editItemReminderValue" placeholder="מספר" class="modal-input" min="0" style="flex: 1;">
+                    <select id="editItemReminderUnit" class="modal-input" style="flex: 1;">
+                        <option value="minutes" selected>דקות</option>
+                        <option value="hours">שעות</option>
+                        <option value="days">ימים</option>
+                        <option value="weeks">שבועות</option>
+                    </select>
+                </div>
             </div>
-
-            <!-- Stage List -->
-            <div class="credit-stage-list">
-                <div class="credit-stage-item" id="stage1">
-                    <div class="stage-dot" id="dot1">1</div>
-                    <span>מתחבר לחברת האשראי</span>
-                </div>
-                <div class="credit-stage-item" id="stage2">
-                    <div class="stage-dot" id="dot2">2</div>
-                    <span>שולף נתוני עסקאות</span>
-                </div>
-                <div class="credit-stage-item" id="stage3">
-                    <div class="stage-dot" id="dot3">3</div>
-                    <span>מעבד ומייבא נתונים</span>
-                </div>
+            
+            <div class="flex gap-3">
+                <button class="bg-green-500 text-white flex-1 py-4 rounded-xl font-bold"
+                    onclick="saveReminderEdit()">
+                    ✓ שמור
+                </button>
+                <button class="bg-gray-100 flex-1 py-4 rounded-xl font-bold"
+                    onclick="closeModal('editReminderModal')">
+                    ביטול
+                </button>
             </div>
         </div>
     </div>
 
+    <script src="notification-handler.js"></script>
     <script src="script.js"></script>
 
       <!-- Firebase Cloud Messaging SDK -->
@@ -2132,16 +3218,247 @@ ${error.message}
 
   <!-- Push Notifications Handler -->
   <script src="push-notifications.js" type="module"></script>
+
+  <!-- ===== WIZARD FULL-SCREEN CARD OVERLAY ===== -->
+  <div id="wizCardOverlay">
+    <div class="wiz-bg">
+      <div class="wiz-blob wiz-blob-1"></div>
+      <div class="wiz-blob wiz-blob-2"></div>
+      <div class="wiz-blob wiz-blob-3"></div>
+      <div class="wiz-backdrop"></div>
+    </div>
+    <div class="wiz-card" id="wizCard">
+      <div class="wiz-card-glass">
+        <div class="wiz-phase-pill" id="wizPhasePill">
+          <span class="wiz-phase-dot"></span>
+          <span id="wizPhaseLabel">לפני</span>
+        </div>
+        <div class="wiz-emoji-wrap">
+          <span class="wiz-big-emoji" id="wizEmoji">✨</span>
+        </div>
+        <div class="wiz-card-title" id="wizTitle">כותרת</div>
+        <div class="wiz-divider"></div>
+        <div class="wiz-card-body" id="wizBody">תוכן</div>
+        <div class="wiz-tip-box" id="wizTipBox" style="display:none">
+          <span class="wiz-tip-icon" id="wizTipIcon">💡</span>
+          <span class="wiz-tip-text" id="wizTipText"></span>
+        </div>
+        <div class="wiz-card-actions">
+          <button class="wiz-btn-secondary" id="wizSkipBtn" onclick="_wizDismiss()">דלג</button>
+          <button class="wiz-btn-primary" id="wizOkBtn" onclick="_wizDismiss()">הבנתי ✓</button>
+        </div>
+        <div class="wiz-progress-dots" id="wizDots"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== WIZARD WELCOME OVERLAY ===== -->
+  <div id="wizWelcomeOverlay">
+    <div class="wiz-star wiz-star-1">✦</div><div class="wiz-star wiz-star-2">✦</div>
+    <div class="wiz-star wiz-star-3">✦</div><div class="wiz-star wiz-star-4">✦</div>
+    <div class="wiz-star wiz-star-5">✦</div><div class="wiz-star wiz-star-6">✦</div>
+    <div class="wiz-star wiz-star-7">✦</div><div class="wiz-star wiz-star-8">✦</div>
+    <div class="wiz-star wiz-star-9">✦</div><div class="wiz-star wiz-star-10">✦</div>
+    <div class="wiz-star wiz-star-11">✦</div><div class="wiz-star wiz-star-12">✦</div>
+    <div class="wiz-star wiz-star-13">✦</div><div class="wiz-star wiz-star-14">✦</div>
+    <div class="wiz-star wiz-star-15">✦</div><div class="wiz-star wiz-star-16">✦</div>
+    <div class="wiz-star wiz-star-17">✦</div><div class="wiz-star wiz-star-18">✦</div>
+    <div class="wiz-welcome-card">
+      <div class="wiz-welcome-inner">
+        <div class="wiz-welcome-emoji"><img src="data:image/png;base64,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" style="width:90px;height:90px;border-radius:22px;margin-bottom:14px;box-shadow:0 8px 28px rgba(0,0,0,0.25);" alt="VPlus"></div>
+        <div class="wiz-welcome-title">מצב מדריך הופעל!</div>
+        <div class="wiz-welcome-sub">כל פעולה תלווה בהסבר ויזואלי<br>פשוט וברור — בדיוק כשצריך.</div>
+        <div class="wiz-welcome-features">
+          <div class="wiz-feat"><span>✨</span> הסבר לפני כל פעולה</div>
+          <div class="wiz-feat"><span>✅</span> אישור אחרי כל פעולה</div>
+          <div class="wiz-feat"><span>💡</span> טיפים ועצות בזמן אמת</div>
+          <div class="wiz-feat"><span>🎯</span> מתאים לכל כפתור</div>
+        </div>
+        <button class="wiz-welcome-btn" onclick="_wizCloseWelcome()">בואו נתחיל ✨</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== LEGACY WIZARD SHEET (kept for compat) ===== -->
+  <div class="wizard-sheet-overlay no-print" id="wizardOverlay" onclick="wizardOverlayClick(event)" style="display:none;">
+    <div class="wizard-sheet" id="wizardSheet">
+      <div class="wizard-header">
+        <div><div class="wizard-title" id="wizardTitle">✨ Wizard</div></div>
+        <div style="display:flex;align-items:center;gap:12px;">
+          <div class="wizard-step-dots" id="wizardDots2"></div>
+          <button class="wizard-close-btn" onclick="closeWizard()">✕</button>
+        </div>
+      </div>
+      <div class="wizard-body" id="wizardBody"></div>
+    </div>
+  </div>
+
+
+  <!-- ===== BANK PAGE ===== -->
+  <div id="pageBank" class="hidden max-w-md mx-auto p-4">
+    <div class="mb-6">
+        <button onclick="openBankModal()" class="w-full bg-gradient-to-r from-indigo-500 to-purple-600 shadow-lg rounded-2xl p-4 text-white">
+            <div class="flex items-center gap-3">
+                <div class="bg-white/20 w-12 h-12 rounded-xl flex items-center justify-center backdrop-blur-sm"><span class="text-2xl">🔄</span></div>
+                <div class="text-right">
+                    <span class="block text-xl font-black">סנכרון חכם מהבנק</span>
+                    <span class="text-white/80 text-sm font-medium">יבוא יתרות והוצאות באבטחה מלאה</span>
+                </div>
+            </div>
+        </button>
+    </div>
+    <div id="bankDataContainer" class="mt-4">
+        <div class="text-center text-gray-400 py-10 bg-white rounded-3xl shadow-sm border border-gray-100">
+            <span class="text-5xl block mb-4">🏦</span>
+            <p class="font-medium">אין נתונים פיננסיים להצגה.</p>
+        </div>
+    </div>
+  </div>
+
+  <!-- ===== FINANCIAL CHOICE MODAL ===== -->
+  <div id="financialChoiceModal" class="modal-overlay no-print">
+    <div class="edit-modal" style="width:90%;max-width:380px;padding:28px 24px;border-radius:24px;margin-top:80px;">
+        <h2 style="text-align:center;font-size:1.25rem;font-weight:900;margin-bottom:6px;color:#1e1b4b;">💰 חיבור פיננסי</h2>
+        <p style="text-align:center;color:#6b7280;font-size:13px;margin-bottom:20px;">בחר את סוג החיבור</p>
+        <div style="display:flex;gap:12px;margin-bottom:16px;">
+            <button onclick="closeModal('financialChoiceModal');openModal('creditCardModal')"
+                style="flex:1;padding:18px 10px;border-radius:18px;border:2px solid #e5e7eb;background:white;cursor:pointer;font-weight:800;font-size:14px;color:#374151;transition:all 0.2s;"
+                ontouchstart="this.style.background='#f5f3ff';this.style.borderColor='#7367f0'" ontouchend="this.style.background='white'">
+                <div style="font-size:28px;margin-bottom:6px;">💳</div>
+                כרטיס אשראי
+            </button>
+            <button onclick="closeModal('financialChoiceModal');openBankConnectModal()"
+                style="flex:1;padding:18px 10px;border-radius:18px;border:2px solid #e5e7eb;background:white;cursor:pointer;font-weight:800;font-size:14px;color:#374151;transition:all 0.2s;"
+                ontouchstart="this.style.background='#e0f2fe';this.style.borderColor='#0369a1'" ontouchend="this.style.background='white'">
+                <div style="font-size:28px;margin-bottom:6px;">🏛️</div>
+                בנק
+            </button>
+        </div>
+        <button onclick="closeModal('financialChoiceModal')"
+            style="width:100%;padding:12px;border-radius:14px;border:none;background:#f3f4f6;color:#6b7280;font-weight:700;cursor:pointer;">
+            ✕ סגור
+        </button>
+    </div>
+  </div>
+
+  <!-- ===== CREDIT CARD MODAL ===== -->
+  <div id="creditCardModal" class="modal-overlay no-print">
+    <div class="edit-modal" style="width:92%;max-width:400px;padding:24px;border-radius:24px;margin-top:60px;max-height:85vh;overflow-y:auto;">
+        <h2 style="text-align:center;font-size:1.2rem;font-weight:900;margin-bottom:4px;color:#1e1b4b;">💳 חיבור כרטיס אשראי</h2>
+        <p style="text-align:center;color:#6b7280;font-size:13px;margin-bottom:14px;">בחר חברה והזן פרטי התחברות</p>
+        <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:14px;">
+            <button class="fin-btn" onclick="selectCreditCompany('max',this)">
+                <div style="font-size:22px;">💜</div>Max
+            </button>
+            <button class="fin-btn" onclick="selectCreditCompany('cal',this)">
+                <div style="font-size:22px;">🔵</div>Cal
+            </button>
+            <button class="fin-btn" onclick="selectCreditCompany('leumincard',this)">
+                <div style="font-size:22px;">🟢</div>לאומי קארד
+            </button>
+            <button class="fin-btn" onclick="selectCreditCompany('isracard',this)">
+                <div style="font-size:22px;">🔴</div>ישראכרט
+            </button>
+        </div>
+        <input type="text" id="creditUsername" placeholder="שם משתמש / תעודת זהות"
+            class="w-full border-2 border-gray-100 rounded-xl p-3 bg-gray-50 outline-none" style="margin-bottom:10px;display:block;">
+        <input type="password" id="creditPassword" placeholder="סיסמה"
+            class="w-full border-2 border-gray-100 rounded-xl p-3 bg-gray-50 outline-none" style="margin-bottom:14px;display:block;">
+        <div style="background:#fef9c3;border-radius:12px;padding:10px 14px;font-size:12px;color:#92400e;margin-bottom:14px;text-align:right;">
+            🔒 הפרטים נשלחים ישירות לחברת האשראי ואינם נשמרים
+        </div>
+        <div style="display:flex;gap:10px;">
+            <button onclick="startCreditCardFetch()"
+                style="flex:1;background:linear-gradient(135deg,#7367f0,#9055ff);color:white;padding:14px;border-radius:14px;font-weight:900;font-size:15px;border:none;cursor:pointer;">
+                💳 התחבר ושלוף
+            </button>
+            <button onclick="closeModal('creditCardModal')"
+                style="flex:0 0 50px;background:#f3f4f6;color:#6b7280;padding:14px;border-radius:14px;font-weight:700;border:none;cursor:pointer;">✕</button>
+        </div>
+    </div>
+  </div>
+
+  <!-- ===== BANK CONNECT MODAL ===== -->
+  <div id="bankConnectModal" class="modal-overlay no-print">
+    <div class="edit-modal" style="width:92%;max-width:400px;padding:24px;border-radius:24px;margin-top:60px;max-height:85vh;overflow-y:auto;">
+        <h2 style="text-align:center;font-size:1.2rem;font-weight:900;margin-bottom:4px;color:#1e1b4b;">🏛️ חיבור לבנק</h2>
+        <p style="text-align:center;color:#6b7280;font-size:13px;margin-bottom:14px;">בחר בנק והזן פרטי התחברות</p>
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px;">
+            <button class="fin-btn" onclick="selectBank('hapoalim',this)">
+                <div style="font-size:20px;">🔴</div><div style="font-size:11px;">פועלים</div>
+            </button>
+            <button class="fin-btn" onclick="selectBank('leumi',this)">
+                <div style="font-size:20px;">🟢</div><div style="font-size:11px;">לאומי</div>
+            </button>
+            <button class="fin-btn" onclick="selectBank('mizrahi',this)">
+                <div style="font-size:20px;">🟠</div><div style="font-size:11px;">מזרחי</div>
+            </button>
+            <button class="fin-btn" onclick="selectBank('discount',this)">
+                <div style="font-size:20px;">🔵</div><div style="font-size:11px;">דיסקונט</div>
+            </button>
+            <button class="fin-btn" onclick="selectBank('otsarHahayal',this)">
+                <div style="font-size:20px;">🪖</div><div style="font-size:11px;">אוצר החייל</div>
+            </button>
+            <button class="fin-btn" onclick="selectBank('yahav',this)">
+                <div style="font-size:20px;">🟡</div><div style="font-size:11px;">יהב</div>
+            </button>
+            <button class="fin-btn" onclick="selectBank('massad',this)">
+                <div style="font-size:20px;">🏦</div><div style="font-size:11px;">מסד</div>
+            </button>
+            <button class="fin-btn" onclick="selectBank('unionBank',this)">
+                <div style="font-size:20px;">🤝</div><div style="font-size:11px;">איגוד</div>
+            </button>
+            <button class="fin-btn" onclick="selectBank('beinleumi',this)">
+                <div style="font-size:20px;">🌐</div><div style="font-size:11px;">בינלאומי</div>
+            </button>
+        </div>
+        <div id="bankField1Wrap">
+            <input type="text" id="bankField1" placeholder="שם משתמש"
+                class="w-full border-2 border-gray-100 rounded-xl p-3 bg-gray-50 outline-none" style="margin-bottom:10px;display:block;">
+        </div>
+        <input type="password" id="bankConnectPassword" placeholder="סיסמה"
+            class="w-full border-2 border-gray-100 rounded-xl p-3 bg-gray-50 outline-none" style="margin-bottom:10px;display:block;">
+        <div id="bankField2Wrap" style="display:none;">
+            <input type="text" id="bankField2" placeholder=""
+                class="w-full border-2 border-gray-100 rounded-xl p-3 bg-gray-50 outline-none" style="margin-bottom:10px;display:block;">
+        </div>
+        <div id="bankConnectHint" style="background:#e0f2fe;border-radius:12px;padding:10px 14px;font-size:12px;color:#0369a1;margin-bottom:12px;text-align:right;display:none;"></div>
+        <div style="background:#fef9c3;border-radius:12px;padding:10px 14px;font-size:12px;color:#92400e;margin-bottom:14px;text-align:right;">
+            🔒 הפרטים נשלחים ישירות לבנק ואינם נשמרים
+        </div>
+        <div style="display:flex;gap:10px;">
+            <button onclick="startBankFetch()"
+                style="flex:1;background:linear-gradient(135deg,#0ea5e9,#0369a1);color:white;padding:14px;border-radius:14px;font-weight:900;font-size:15px;border:none;cursor:pointer;">
+                🏛️ התחבר ושלוף
+            </button>
+            <button onclick="closeModal('bankConnectModal')"
+                style="flex:0 0 50px;background:#f3f4f6;color:#6b7280;padding:14px;border-radius:14px;font-weight:700;border:none;cursor:pointer;">✕</button>
+        </div>
+    </div>
+  </div>
+
+  <!-- ===== FINANCIAL PROGRESS OVERLAY ===== -->
+  <div id="finProgressOverlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:9999;align-items:center;justify-content:center;backdrop-filter:blur(10px);">
+    <div style="background:white;border-radius:28px;padding:32px 28px;width:88%;max-width:360px;text-align:center;">
+        <div id="finProgressIcon" style="font-size:3rem;margin-bottom:12px;">🔐</div>
+        <div id="finProgressTitle" style="font-size:1.1rem;font-weight:900;color:#1e1b4b;margin-bottom:4px;">מתחבר...</div>
+        <div id="finProgressSub" style="font-size:13px;color:#6b7280;margin-bottom:20px;">אנא המתן</div>
+        <div style="background:#f3f4f6;border-radius:99px;height:8px;overflow:hidden;margin-bottom:20px;">
+            <div id="finProgressBar" style="height:100%;border-radius:99px;background:linear-gradient(90deg,#7367f0,#0ea5e9);width:0%;transition:width 0.5s ease;"></div>
+        </div>
+        <div style="display:flex;justify-content:center;gap:16px;">
+            <div id="finStage1" style="display:flex;flex-direction:column;align-items:center;gap:4px;font-size:11px;color:#9ca3af;">
+                <div id="finDot1" style="width:28px;height:28px;border-radius:50%;background:#f3f4f6;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:12px;">1</div>חיבור
+            </div>
+            <div id="finStage2" style="display:flex;flex-direction:column;align-items:center;gap:4px;font-size:11px;color:#9ca3af;">
+                <div id="finDot2" style="width:28px;height:28px;border-radius:50%;background:#f3f4f6;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:12px;">2</div>שליפה
+            </div>
+            <div id="finStage3" style="display:flex;flex-direction:column;align-items:center;gap:4px;font-size:11px;color:#9ca3af;">
+                <div id="finDot3" style="width:28px;height:28px;border-radius:50%;background:#f3f4f6;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:12px;">3</div>עיבוד
+            </div>
+        </div>
+    </div>
+  </div>
+
 </body>
-
 </html>
-
-
-
-
-
-
-
-
-
-
