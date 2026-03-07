@@ -273,7 +273,6 @@ exports.fetchBankData = onCall(
 
         if (!scrapeResult.success) {
             console.error('🔴 Scrape failed with errorType:', scrapeResult.errorType);
-                        console.error('🔴 Scrape errorMessage:', scrapeResult.errorMessage);
             const errorMap = {
                 'InvalidPassword':    ['permission-denied',   'שם משתמש או סיסמה שגויים'],
                 'ChangePassword':     ['permission-denied',   'נדרש לשנות סיסמה באתר הבנק'],
@@ -281,7 +280,7 @@ exports.fetchBankData = onCall(
                 'TwoFactorRetrieval': ['failed-precondition', 'נדרש קוד אימות דו-שלבי'],
                 'Timeout':            ['deadline-exceeded',   'פסק הזמן חלף — נסה שוב'],
                 'SessionExpired':     ['unauthenticated',     'הפעלה פגה — נסה שוב'],
-                            'Generic':           ['internal',          `שגיאה כללית בסריקה: ${scrapeResult.errorMessage || 'נסה שוב מאוחר יותר'}`],
+                'Generic':            ['internal',            'שגיאה כללית בסריקה — נסה שוב מאוחר יותר'],
             };
             const [code, msg] = errorMap[scrapeResult.errorType] || ['internal', `שגיאה: ${scrapeResult.errorType}`];
             throw new HttpsError(code, msg);
@@ -304,4 +303,4 @@ exports.fetchBankData = onCall(
 );
 
 // Alias so client-side call to 'fetchAccountData' also works
-// fetchAccountData is now served directly as fetchBankData (Gen 2 onCall, me-west1)
+exports.fetchAccountData = exports.fetchBankData;
