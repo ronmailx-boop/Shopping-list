@@ -136,22 +136,9 @@ exports.testNotification = functions.https.onRequest(async (req, res) => {
 
 // ─── sendPush: שולח FCM לtoken יחיד ─────────────────────────────────────────
 async function sendPush(token, { title, body, data }) {
-    // FCM data חייב להיות strings בלבד
-    const stringData = {};
-    Object.entries(data || {}).forEach(([k, v]) => {
-        stringData[k] = String(v ?? '');
-    });
-
     const message = {
         notification: { title, body },
-        data: stringData,
-        android: {
-            notification: {
-                icon:              'icon_96',
-                sound:             'default',
-                notificationCount: 1,
-            }
-        },
+        data: data || {},
         webpush: {
             notification: {
                 icon:              '/icon-96.png',
@@ -159,6 +146,7 @@ async function sendPush(token, { title, body, data }) {
                 vibrate:           [300, 100, 300, 100, 300],
                 requireInteraction: true,
                 renotify:          true,
+                // כפתורי snooze מובנים בהתראה
                 actions: [
                     { action: 'snooze-10', title: '⏰ דחה 10 דק׳' },
                     { action: 'snooze-60', title: '⏰ דחה שעה'    }
