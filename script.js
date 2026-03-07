@@ -7002,6 +7002,185 @@ function hideCreditProgress() {
     document.getElementById('creditProgressOverlay').classList.remove('active');
 }
 
+
+// ═══════════════════════════════════════════════
+// 🏛️  BANK SCRAPER — Israeli Banks
+// ═══════════════════════════════════════════════
+
+let selectedBank = null;
+
+function openBankModal() {
+    selectedBank = null;
+    document.getElementById('bankUsername').value = '';
+    document.getElementById('bankPassword').value = '';
+    document.querySelectorAll('#bankModal .credit-company-btn').forEach(b => b.classList.remove('selected'));
+    openModal('bankModal');
+}
+
+function selectBank(bankId, btn) {
+    selectedBank = bankId;
+    document.querySelectorAll('#bankModal .credit-company-btn').forEach(b => b.classList.remove('selected'));
+    btn.classList.add('selected');
+}
+
+async function startBankFetch() {
+    const debugLogs = [];
+    const log = (msg, type = 'info', icon = '•') => {
+        const time = new Date().toLocaleTimeString('he-IL');
+        debugLogs.push({ msg, type, icon, time });
+        showDebugLog(debugLogs);
+    };
+
+    if (!selectedBank) {
+        showNotification('⚠️ בחר בנק תחילה', 'warning');
+        return;
+    }
+    const username = document.getElementById('bankUsername').value.trim();
+    const password = document.getElementById('bankPassword').value.trim();
+    if (!username || !password) {
+        showNotification('⚠️ הזן שם משתמש וסיסמה', 'warning');
+        return;
+    }
+
+    closeModal('bankModal');
+    showCreditProgress();
+
+    try {
+        log(`בנק נבחר: ${selectedBank}`, 'info', '🏛️');
+        log(`window.firebaseApp: ${!!window.firebaseApp}`, 'info', '🔥');
+
+        setCreditStage(1, { icon: '🔐', title: 'מתחבר לבנק...', sub: 'מאמת פרטי התחברות' });
+        await delay(3000);
+        setCreditStage(2, { icon: '📡', title: 'שולף נתוני חשבון...', sub: 'טוען תנועות — זה לוקח רגע' });
+
+        let transactions = [];
+
+        if (window.firebaseApp) {
+            const user = window.firebaseAuth?.currentUser;
+            log(`currentUser: ${user ? user.email : 'null — לא מחובר!'}`, user ? 'success' : 'error', user ? '👤' : '❌');
+
+            if (!user) {
+                hideCreditProgress();
+                showNotification('❌ יש להתחבר לחשבון לפני שליפת נתוני בנק', 'error');
+                return;
+            }
+
+            log('טוען firebase-functions...', 'info', '📦');
+            const { getFunctions, httpsCallable } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-functions.js');
+            log('firebase-functions נטען', 'success', '✅');
+
+            const functions = getFunctions(window.firebaseApp, 'me-west1');
+            const fetchBankData = httpsCallable(functions, 'fetchAccountData', { timeout: 300000 });
+
+            log('שולח קריאה ל-Cloud Function...', 'info', '📡');
+            try {
+                const result = await fetchBankData({
+                    companyId: selectedBank,
+                    username,
+                    password
+                });
+                log(`התקבלו ${result.data?.transactions?.length ?? 0} תנועות`, 'success', '✅');
+                transactions = result.data?.transactions || [];
+            } catch (fnErr) {
+                log(`שגיאת Function: ${fnErr?.message || fnErr?.code || JSON.stringify(fnErr)}`, 'error', '❌');
+                log(`code: ${fnErr?.code || 'אין'}`, 'error', '🔴');
+                hideCreditProgress();
+                showNotification('❌ שגיאת בנק — ראה לוג למטה', 'error');
+                return;
+            }
+        } else {
+            log('firebaseApp לא קיים — נתוני דמו', 'warn', '⚠️');
+            transactions = getDemoBankTransactions(selectedBank);
+        }
+
+        setCreditStage(3, { icon: '⚙️', title: 'מעבד תנועות...', sub: 'בונה רשימה מהתנועות שלך' });
+        await delay(1500);
+
+        document.getElementById('creditProgressBar').style.width = '100%';
+        for (let i = 1; i <= 3; i++) {
+            const el  = document.getElementById('stage' + i);
+            const dot = document.getElementById('dot' + i);
+            el.classList.remove('active');
+            el.classList.add('done');
+            dot.textContent = '✓';
+        }
+        document.getElementById('progressIcon').textContent  = '✅';
+        document.getElementById('progressTitle').textContent  = 'הושלם בהצלחה!';
+        document.getElementById('progressSubtitle').textContent = 'הנתונים יובאו לרשימה';
+
+        await delay(1200);
+        hideCreditProgress();
+
+        if (transactions.length > 0) {
+            importBankTransactions(transactions);
+        } else {
+            showNotification('ℹ️ לא נמצאו תנועות', 'warning');
+        }
+
+    } catch (err) {
+        log(`שגיאה כללית: ${err.message || err}`, 'error', '💥');
+        hideCreditProgress();
+        showNotification('❌ שגיאה בשליפת נתוני בנק — ראה לוג למטה', 'error');
+    }
+}
+
+function getDemoBankTransactions(bank) {
+    const bankNames = {
+        hapoalim: 'פועלים', leumi: 'לאומי', mizrahi: 'מזרחי',
+        discount: 'דיסקונט', otsarHahayal: 'אוצר החייל',
+        yahav: 'יהב', massad: 'מסד', unionBank: 'איגוד', beinleumi: 'בינלאומי'
+    };
+    const today = new Date();
+    const fmt = d => d.toLocaleDateString('he-IL');
+    const mkDate = daysAgo => { const d = new Date(today); d.setDate(d.getDate() - daysAgo); return fmt(d); };
+    return [
+        { name: 'משכורת',        amount: 12000, date: mkDate(5)  },
+        { name: 'שכירות',        amount: 4500,  date: mkDate(3)  },
+        { name: 'חשמל',          amount: 380,   date: mkDate(7)  },
+        { name: 'מים',           amount: 120,   date: mkDate(10) },
+        { name: 'ביטוח לאומי',   amount: 650,   date: mkDate(2)  },
+        { name: 'הוראת קבע סלולר', amount: 199, date: mkDate(8)  },
+    ];
+}
+
+function importBankTransactions(transactions) {
+    const bankNames = {
+        hapoalim: 'פועלים', leumi: 'לאומי', mizrahi: 'מזרחי',
+        discount: 'דיסקונט', otsarHahayal: 'אוצר החייל',
+        yahav: 'יהב', massad: 'מסד', unionBank: 'איגוד', beinleumi: 'בינלאומי'
+    };
+    const bank = bankNames[selectedBank] || 'בנק';
+    const today = new Date().toLocaleDateString('he-IL');
+    const newId = 'L' + Date.now();
+
+    const items = transactions.map(t => ({
+        name: t.name || t.description || 'תנועה',
+        price: parseFloat(t.amount || t.price || 0),
+        qty: 1,
+        checked: false,
+        isPaid: true,
+        category: detectCategory(t.name || t.description || ''),
+        note: t.date ? '📅 ' + t.date : '',
+        dueDate: '',
+        paymentUrl: '',
+        lastUpdated: Date.now(),
+        cloudId: 'item_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9)
+    }));
+
+    db.lists[newId] = {
+        name: '🏛️ ' + bank + ' - ' + today,
+        url: '',
+        budget: 0,
+        isTemplate: false,
+        items
+    };
+    db.currentId = newId;
+    activePage = 'lists';
+    save();
+    showNotification('✅ יובאו ' + items.length + ' תנועות מבנק ' + bank + '!');
+}
+
+
 // ── In-App Debug Logger ──
 function showDebugLog(logs) {
     let panel = document.getElementById('debugLogPanel');
