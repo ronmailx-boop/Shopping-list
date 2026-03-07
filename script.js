@@ -7048,7 +7048,7 @@ async function startCreditCardFetch() {
                 const errMsg = fnErr?.message || fnErr?.code || JSON.stringify(fnErr);
                 showNotification('⚠️ שגיאת Function: ' + errMsg, 'warning');
                 // Fall back to demo transactions
-                transactions = getDemoCreditTransactions(selectedCreditCompany);
+                    throw fnErr;
             }
         } else {
             // No Firebase — use demo data so the UI flow is visible
