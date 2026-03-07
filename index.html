@@ -902,6 +902,181 @@
             font-weight: 700; 
             color: #4b5563; 
         }
+
+        /* ===== Credit Card Connection Styles ===== */
+        .credit-modal {
+            background: white;
+            border-radius: 30px;
+            padding: 28px 24px;
+            width: 92%;
+            max-width: 420px;
+            margin-top: 20px;
+            box-shadow: 0 25px 60px rgba(0,0,0,0.3);
+        }
+
+        .credit-company-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin: 16px 0;
+        }
+
+        .credit-company-btn {
+            padding: 14px 10px;
+            border-radius: 16px;
+            border: 2px solid #e5e7eb;
+            background: white;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 700;
+            color: #374151;
+            transition: all 0.2s;
+            text-align: center;
+        }
+
+        .credit-company-btn:hover {
+            border-color: #7367f0;
+            background: #f5f3ff;
+            transform: scale(1.03);
+        }
+
+        .credit-company-btn.selected {
+            border-color: #7367f0;
+            background: linear-gradient(135deg, #7367f0, #9055ff);
+            color: white;
+            box-shadow: 0 4px 14px rgba(115,103,240,0.4);
+        }
+
+        /* Progress overlay */
+        #creditProgressOverlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.85);
+            z-index: 9999;
+            align-items: center;
+            justify-content: center;
+            backdrop-filter: blur(10px);
+        }
+
+        #creditProgressOverlay.active {
+            display: flex;
+        }
+
+        .credit-progress-card {
+            background: white;
+            border-radius: 30px;
+            padding: 36px 30px;
+            width: 88%;
+            max-width: 360px;
+            text-align: center;
+            box-shadow: 0 30px 80px rgba(0,0,0,0.4);
+        }
+
+        .credit-progress-icon {
+            font-size: 52px;
+            margin-bottom: 12px;
+            animation: iconBounce 1.2s ease-in-out infinite;
+        }
+
+        @keyframes iconBounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-8px); }
+        }
+
+        .credit-progress-title {
+            font-size: 20px;
+            font-weight: 900;
+            color: #1f2937;
+            margin-bottom: 6px;
+        }
+
+        .credit-progress-subtitle {
+            font-size: 14px;
+            color: #6b7280;
+            margin-bottom: 28px;
+        }
+
+        .credit-progress-bar-wrap {
+            background: #f3f4f6;
+            border-radius: 20px;
+            height: 12px;
+            overflow: hidden;
+            margin-bottom: 24px;
+        }
+
+        .credit-progress-bar-fill {
+            height: 100%;
+            border-radius: 20px;
+            background: linear-gradient(90deg, #7367f0, #9055ff, #c084fc);
+            transition: width 1.2s cubic-bezier(0.4,0,0.2,1);
+            background-size: 200% 100%;
+            animation: shimmer 1.8s linear infinite;
+        }
+
+        @keyframes shimmer {
+            0% { background-position: 200% 0; }
+            100% { background-position: -200% 0; }
+        }
+
+        .credit-stage-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            text-align: right;
+        }
+
+        .credit-stage-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 14px;
+            border-radius: 14px;
+            background: #f9fafb;
+            font-size: 14px;
+            font-weight: 600;
+            color: #9ca3af;
+            transition: all 0.4s ease;
+        }
+
+        .credit-stage-item.active {
+            background: linear-gradient(135deg, #ede9fe, #ddd6fe);
+            color: #5b21b6;
+        }
+
+        .credit-stage-item.done {
+            background: #dcfce7;
+            color: #15803d;
+        }
+
+        .stage-dot {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background: #e5e7eb;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            flex-shrink: 0;
+            transition: all 0.4s ease;
+        }
+
+        .credit-stage-item.active .stage-dot {
+            background: #7367f0;
+            color: white;
+            animation: pulse 1s ease-in-out infinite;
+        }
+
+        .credit-stage-item.done .stage-dot {
+            background: #22c55e;
+            color: white;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(115,103,240,0.4); }
+            50% { transform: scale(1.1); box-shadow: 0 0 0 6px rgba(115,103,240,0); }
+        }
     </style>
 
     <script>
@@ -1227,6 +1402,11 @@ ${error.message}
                         <span class="pill-icon">🏦</span>
                         <span class="pill-text">בנק</span>
                     </label>
+
+                    <button onclick="openCreditCardModal()" class="action-pill" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-color: #764ba2;">
+                        <span class="pill-icon">💳</span>
+                        <span class="pill-text" style="color: white;">פיננסי</span>
+                    </button>
 
                 </div>
                 
@@ -1780,6 +1960,89 @@ ${error.message}
                 <button class="urgent-btn urgent-btn-close" onclick="closeUrgentAlert()">
                     ✕ סגור
                 </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== Credit Card Connection Modal ===== -->
+    <div id="creditCardModal" class="modal-overlay no-print">
+        <div class="credit-modal">
+            <h2 style="text-align:center; font-size:1.3rem; font-weight:900; margin-bottom:4px;">💳 חיבור כרטיס אשראי</h2>
+            <p style="text-align:center; color:#6b7280; font-size:13px; margin-bottom:4px;">בחר חברת אשראי והזן פרטי התחברות</p>
+
+            <!-- Company Selector -->
+            <div class="credit-company-grid">
+                <button class="credit-company-btn" onclick="selectCreditCompany('max', this)">
+                    <div style="font-size:22px;">💜</div>
+                    Max
+                </button>
+                <button class="credit-company-btn" onclick="selectCreditCompany('cal', this)">
+                    <div style="font-size:22px;">🔵</div>
+                    Cal
+                </button>
+                <button class="credit-company-btn" onclick="selectCreditCompany('leumi', this)">
+                    <div style="font-size:22px;">🟢</div>
+                    לאומי קארד
+                </button>
+                <button class="credit-company-btn" onclick="selectCreditCompany('isracard', this)">
+                    <div style="font-size:22px;">🔴</div>
+                    ישראכרט
+                </button>
+            </div>
+
+            <!-- Credentials -->
+            <input type="text" id="creditUsername"
+                placeholder="שם משתמש / תעודת זהות"
+                class="modal-input" autocomplete="username"
+                style="margin-bottom:10px;">
+            <input type="password" id="creditPassword"
+                placeholder="סיסמה"
+                class="modal-input" autocomplete="current-password"
+                style="margin-bottom:16px;">
+
+            <div style="background:#fef9c3; border-radius:12px; padding:10px 14px; font-size:12px; color:#92400e; margin-bottom:16px; text-align:right;">
+                🔒 הפרטים נשלחים ישירות לחברת האשראי ואינם נשמרים אצלנו
+            </div>
+
+            <div class="flex gap-3">
+                <button onclick="startCreditCardFetch()"
+                    style="flex:1; background:linear-gradient(135deg,#7367f0,#9055ff); color:white; padding:14px; border-radius:14px; font-weight:900; font-size:15px; border:none; cursor:pointer;">
+                    💳 התחבר ושלוף נתונים
+                </button>
+                <button onclick="closeModal('creditCardModal')"
+                    style="flex:0 0 56px; background:#f3f4f6; color:#6b7280; padding:14px; border-radius:14px; font-weight:700; border:none; cursor:pointer;">
+                    ✕
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== Credit Card Progress Overlay ===== -->
+    <div id="creditProgressOverlay">
+        <div class="credit-progress-card">
+            <div class="credit-progress-icon" id="progressIcon">🔐</div>
+            <div class="credit-progress-title" id="progressTitle">מתחבר לחברת האשראי...</div>
+            <div class="credit-progress-subtitle" id="progressSubtitle">אנא המתן, זה עשוי לקחת עד דקה</div>
+
+            <!-- Progress Bar -->
+            <div class="credit-progress-bar-wrap">
+                <div class="credit-progress-bar-fill" id="creditProgressBar" style="width:5%"></div>
+            </div>
+
+            <!-- Stage List -->
+            <div class="credit-stage-list">
+                <div class="credit-stage-item" id="stage1">
+                    <div class="stage-dot" id="dot1">1</div>
+                    <span>מתחבר לחברת האשראי</span>
+                </div>
+                <div class="credit-stage-item" id="stage2">
+                    <div class="stage-dot" id="dot2">2</div>
+                    <span>שולף נתוני עסקאות</span>
+                </div>
+                <div class="credit-stage-item" id="stage3">
+                    <div class="stage-dot" id="dot3">3</div>
+                    <span>מעבד ומייבא נתונים</span>
+                </div>
             </div>
         </div>
     </div>

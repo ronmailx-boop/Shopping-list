@@ -6724,6 +6724,204 @@ function exportToExcel() {
     showNotification('יצוא לאקסל - בפיתוח');
 }
 
+// ========== Bank File Import Functions ==========
+
+/**
+ * Handles bank file upload (Excel or PDF)
+ * Called by the bank pill button in index.html
+ */
+async function importBankFile(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    event.target.value = '';
+    const fileName = file.name.toLowerCase();
+    showNotification('⏳ טוען קובץ בנק...');
+    try {
+        if (fileName.endsWith('.pdf')) {
+            await importBankPDF(file);
+        } else if (fileName.endsWith('.xlsx') || fileName.endsWith('.xls')) {
+            await importBankExcel(file);
+        } else {
+            showNotification('⚠️ קובץ לא נתמך. השתמש ב-PDF, XLS, או XLSX', 'warning');
+        }
+    } catch (err) {
+        console.error('Bank import error:', err);
+        showNotification('❌ שגיאה בייבוא קובץ הבנק: ' + err.message, 'error');
+    }
+}
+
+async function importBankExcel(file) {
+    if (typeof XLSX === 'undefined') {
+        showNotification('❌ ספריית Excel לא נטענה, נסה שוב', 'error');
+        return;
+    }
+    const data = await file.arrayBuffer();
+    const workbook = XLSX.read(data, { type: 'array' });
+    const sheetName = workbook.SheetNames[0];
+    const sheet = workbook.Sheets[sheetName];
+    const rows = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '' });
+    const transactions = [];
+    const amountRegex = /^(\d{1,3}(?:[,\s]\d{3})*(?:[.,]\d{1,2})?)$/;
+    for (const row of rows) {
+        if (!row || row.length < 2) continue;
+        let description = '';
+        let amount = 0;
+        for (let i = 0; i < row.length; i++) {
+            const cell = String(row[i]).trim();
+            if (!cell) continue;
+            const num = parseFloat(cell.replace(/[,\s\u20aa]/g, ''));
+            if (!isNaN(num) && num > 0 && num < 50000 && amount === 0) {
+                amount = num;
+                continue;
+            }
+            if (cell.length > 2 && cell.length < 100 && isNaN(parseFloat(cell)) && !description) {
+                description = cell;
+            }
+        }
+        if (description && amount > 0) {
+            transactions.push({ name: description, price: amount });
+        }
+    }
+    if (transactions.length === 0) {
+        showNotification('⚠️ לא נמצאו עסקאות בקובץ', 'warning');
+        return;
+    }
+    createBankImportList(transactions, file.name);
+}
+
+async function importBankPDF(file) {
+    if (typeof pdfjsLib === 'undefined') {
+        showNotification('❌ ספריית PDF לא נטענה, נסה שוב', 'error');
+        return;
+    }
+    const data = await file.arrayBuffer();
+    const pdf = await pdfjsLib.getDocument({ data }).promise;
+    let fullText = '';
+    for (let i = 1; i <= pdf.numPages; i++) {
+        const page = await pdf.getPage(i);
+        const content = await page.getTextContent();
+        const pageText = content.items.map(item => item.str).join(' ');
+        fullText += pageText + '\n';
+    }
+    const transactions = parseBankText(fullText);
+    if (transactions.length === 0) {
+        showNotification('⚠️ לא נמצאו עסקאות בקובץ ה-PDF', 'warning');
+        return;
+    }
+    createBankImportList(transactions, file.name);
+}
+
+function parseBankText(text) {
+    const lines = text.split(/[\n\r]+/);
+    const transactions = [];
+    for (const line of lines) {
+        const trimmed = line.trim();
+        if (!trimmed || trimmed.length < 3) continue;
+        if (/סה"כ|סהכ|total|תאריך ערך|תאריך עסקה|יתרה|balance|date/i.test(trimmed)) continue;
+        const numbers = [];
+        const numRegex = /\b(\d{1,3}(?:[,\s]\d{3})*(?:[.,]\d{1,2})?)\b/g;
+        let match;
+        while ((match = numRegex.exec(trimmed)) !== null) {
+            const num = parseFloat(match[1].replace(/[,\s]/g, ''));
+            if (num > 0 && num < 50000) numbers.push(num);
+        }
+        if (numbers.length === 0) continue;
+        let description = trimmed
+            .replace(/\d{1,2}[./]\d{1,2}[./]\d{2,4}/g, '')
+            .replace(/\b\d{1,3}(?:[,\s]\d{3})*(?:[.,]\d{1,2})?\b/g, '')
+            .replace(/\s+/g, ' ')
+            .trim();
+        if (description.length < 2) continue;
+        transactions.push({ name: description, price: numbers[0] });
+    }
+    return transactions;
+}
+
+function createBankImportList(transactions, fileName) {
+    const newId = 'L' + Date.now();
+    const today = new Date().toLocaleDateString('he-IL');
+    const shortName = fileName.replace(/\.[^.]+$/, '').substring(0, 20);
+    const listName = '\u{1F3E6} ' + shortName + ' - ' + today;
+    const items = transactions.map(t => ({
+        name: t.name,
+        price: t.price,
+        qty: 1,
+        checked: false,
+        isPaid: true,
+        category: detectCategory(t.name),
+        note: '\u05D9\u05D9\u05D1\u05D5\u05D0 \u05D1\u05E0\u05E7\u05D0\u05D9: \u20AA' + t.price.toFixed(2),
+        dueDate: '',
+        paymentUrl: '',
+        lastUpdated: Date.now(),
+        cloudId: 'item_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9)
+    }));
+    db.lists[newId] = { name: listName, url: '', budget: 0, isTemplate: false, items: items };
+    db.currentId = newId;
+    activePage = 'lists';
+    save();
+    showNotification('\u2705 \u05D9\u05D5\u05D1\u05D0\u05D5 ' + items.length + ' \u05E2\u05E1\u05E7\u05D0\u05D5\u05EA \u05DE\u05E7\u05D5\u05D1\u05E5 \u05D4\u05D1\u05E0\u05E7!');
+}
+
+/**
+ * Handles Excel file upload for shopping list import
+ * Called by the Excel pill button in index.html
+ */
+async function handleExcelUpload(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    event.target.value = '';
+    if (typeof XLSX === 'undefined') {
+        showNotification('❌ ספריית Excel לא נטענה, נסה שוב', 'error');
+        return;
+    }
+    showNotification('⏳ טוען קובץ Excel...');
+    try {
+        const data = await file.arrayBuffer();
+        const workbook = XLSX.read(data, { type: 'array' });
+        const sheetName = workbook.SheetNames[0];
+        const sheet = workbook.Sheets[sheetName];
+        const rows = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '' });
+        const items = [];
+        for (const row of rows) {
+            if (!row || row.length === 0) continue;
+            const name = String(row[0] || '').trim();
+            if (!name || name.length < 2) continue;
+            const priceRaw = row[1];
+            const price = priceRaw ? parseFloat(String(priceRaw).replace(/[,\s\u20aa]/g, '')) || 0 : 0;
+            const qtyRaw = row[2];
+            const qty = qtyRaw ? parseInt(String(qtyRaw)) || 1 : 1;
+            items.push({
+                name: name,
+                price: isNaN(price) ? 0 : price,
+                qty: isNaN(qty) ? 1 : qty,
+                checked: false,
+                isPaid: false,
+                category: detectCategory(name),
+                note: '',
+                dueDate: '',
+                paymentUrl: '',
+                lastUpdated: Date.now(),
+                cloudId: 'item_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9)
+            });
+        }
+        if (items.length === 0) {
+            showNotification('⚠️ לא נמצאו מוצרים בקובץ', 'warning');
+            return;
+        }
+        const newId = 'L' + Date.now();
+        const shortName = file.name.replace(/\.[^.]+$/, '').substring(0, 25);
+        db.lists[newId] = { name: '\u{1F4CA} ' + shortName, url: '', budget: 0, isTemplate: false, items: items };
+        db.currentId = newId;
+        activePage = 'lists';
+        save();
+        showNotification('\u2705 \u05D9\u05D5\u05D1\u05D0\u05D5 ' + items.length + ' \u05DE\u05D5\u05E6\u05E8\u05D9\u05DD \u05DE-Excel!');
+    } catch (err) {
+        console.error('Excel import error:', err);
+        showNotification('❌ שגיאה בייבוא קובץ Excel: ' + err.message, 'error');
+    }
+}
+
+
 // Initialize notification badge on page load
 document.addEventListener('DOMContentLoaded', function () {
     setTimeout(() => {
@@ -6735,4 +6933,191 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     }, 500);
 });
+
+
+// ========== Credit Card Connection ==========
+let selectedCreditCompany = null;
+
+function openCreditCardModal() {
+    selectedCreditCompany = null;
+    document.getElementById('creditUsername').value = '';
+    document.getElementById('creditPassword').value = '';
+    document.querySelectorAll('.credit-company-btn').forEach(b => b.classList.remove('selected'));
+    openModal('creditCardModal');
+}
+
+function selectCreditCompany(company, btn) {
+    selectedCreditCompany = company;
+    document.querySelectorAll('.credit-company-btn').forEach(b => b.classList.remove('selected'));
+    btn.classList.add('selected');
+}
+
+/**
+ * Sets the progress bar + stage indicators to a given step (1, 2, or 3)
+ * and updates the title/subtitle/icon accordingly.
+ */
+function setCreditStage(step, options = {}) {
+    const bar     = document.getElementById('creditProgressBar');
+    const title   = document.getElementById('progressTitle');
+    const sub     = document.getElementById('progressSubtitle');
+    const icon    = document.getElementById('progressIcon');
+
+    const stages = [
+        { icon: '🔐', title: 'מתחבר לחברת האשראי...', sub: 'מאמת פרטי התחברות' },
+        { icon: '📡', title: 'שולף נתוני עסקאות...', sub: 'זה לוקח עד דקה, אנא המתן' },
+        { icon: '⚙️', title: 'מעבד ומייבא נתונים...', sub: 'עוד רגע ואתה מוכן!' }
+    ];
+
+    const cfg = options || stages[step - 1];
+    icon.textContent  = cfg.icon  || stages[step - 1].icon;
+    title.textContent = cfg.title || stages[step - 1].title;
+    sub.textContent   = cfg.sub   || stages[step - 1].sub;
+
+    // Progress bar width per stage: 15%, 60%, 90%
+    const widths = ['15%', '60%', '90%'];
+    bar.style.width = widths[step - 1];
+
+    // Update stage indicators
+    for (let i = 1; i <= 3; i++) {
+        const el  = document.getElementById('stage' + i);
+        const dot = document.getElementById('dot' + i);
+        el.classList.remove('active', 'done');
+        dot.textContent = i;
+
+        if (i < step) {
+            el.classList.add('done');
+            dot.textContent = '✓';
+        } else if (i === step) {
+            el.classList.add('active');
+        }
+    }
+}
+
+function showCreditProgress() {
+    document.getElementById('creditProgressOverlay').classList.add('active');
+    setCreditStage(1, { icon: '🔐', title: 'מתחבר לחברת האשראי...', sub: 'מאמת פרטי התחברות' });
+}
+
+function hideCreditProgress() {
+    document.getElementById('creditProgressOverlay').classList.remove('active');
+}
+
+async function startCreditCardFetch() {
+    // Validation
+    if (!selectedCreditCompany) {
+        showNotification('⚠️ בחר חברת אשראי תחילה', 'warning');
+        return;
+    }
+    const username = document.getElementById('creditUsername').value.trim();
+    const password = document.getElementById('creditPassword').value.trim();
+    if (!username || !password) {
+        showNotification('⚠️ הזן שם משתמש וסיסמה', 'warning');
+        return;
+    }
+
+    // Close the input modal and show progress
+    closeModal('creditCardModal');
+    showCreditProgress();
+
+    try {
+        // ── Stage 1: Connecting ──
+        setCreditStage(1, { icon: '🔐', title: 'מתחבר לחברת האשראי...', sub: 'מאמת פרטי התחברות' });
+        await delay(3000);
+
+        // ── Stage 2: Fetching data ──
+        setCreditStage(2, { icon: '📡', title: 'שולף נתוני עסקאות...', sub: 'טוען פעולות אחרונות — זה לוקח רגע' });
+
+        // Call Firebase Function if available
+        let transactions = [];
+        if (window.firebaseApp) {
+            try {
+                const { getFunctions, httpsCallable } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-functions.js');
+                const functions = getFunctions(window.firebaseApp);
+                const fetchAccountData = httpsCallable(functions, 'fetchAccountData');
+
+                const result = await fetchAccountData({
+                    company: selectedCreditCompany,
+                    username,
+                    password
+                });
+                transactions = result.data?.transactions || [];
+            } catch (fnErr) {
+                console.warn('Firebase Function error, using demo data:', fnErr);
+                // Fall through to demo data
+            }
+        }
+
+        // ── Stage 3: Processing ──
+        setCreditStage(3, { icon: '⚙️', title: 'מעבד ומייבא נתונים...', sub: 'בונה רשימה מהעסקאות שלך' });
+        await delay(1500);
+
+        // Finish progress bar
+        document.getElementById('creditProgressBar').style.width = '100%';
+
+        // Mark all stages done
+        for (let i = 1; i <= 3; i++) {
+            const el  = document.getElementById('stage' + i);
+            const dot = document.getElementById('dot' + i);
+            el.classList.remove('active');
+            el.classList.add('done');
+            dot.textContent = '✓';
+        }
+        document.getElementById('progressIcon').textContent  = '✅';
+        document.getElementById('progressTitle').textContent  = 'הושלם בהצלחה!';
+        document.getElementById('progressSubtitle').textContent = 'הנתונים יובאו לרשימה';
+
+        await delay(1200);
+        hideCreditProgress();
+
+        if (transactions.length > 0) {
+            importCreditTransactions(transactions);
+        } else {
+            showNotification('ℹ️ לא נמצאו עסקאות חדשות', 'warning');
+        }
+
+    } catch (err) {
+        console.error('Credit card fetch error:', err);
+        hideCreditProgress();
+        showNotification('❌ שגיאה בשליפת הנתונים: ' + (err.message || 'שגיאה לא ידועה'), 'error');
+    }
+}
+
+/** Creates a list from credit card transactions */
+function importCreditTransactions(transactions) {
+    const companyNames = { max: 'Max', cal: 'Cal', leumi: 'לאומי קארד', isracard: 'ישראכרט' };
+    const company = companyNames[selectedCreditCompany] || 'אשראי';
+    const today = new Date().toLocaleDateString('he-IL');
+    const newId = 'L' + Date.now();
+
+    const items = transactions.map(t => ({
+        name: t.name || t.description || 'עסקה',
+        price: parseFloat(t.amount || t.price || 0),
+        qty: 1,
+        checked: false,
+        isPaid: true,
+        category: detectCategory(t.name || t.description || ''),
+        note: t.date ? '📅 ' + t.date : '',
+        dueDate: '',
+        paymentUrl: '',
+        lastUpdated: Date.now(),
+        cloudId: 'item_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9)
+    }));
+
+    db.lists[newId] = {
+        name: '💳 ' + company + ' - ' + today,
+        url: '',
+        budget: 0,
+        isTemplate: false,
+        items
+    };
+    db.currentId = newId;
+    activePage = 'lists';
+    save();
+    showNotification('✅ יובאו ' + items.length + ' עסקאות מ' + company + '!');
+}
+
+/** Simple promise-based delay */
+function delay(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+}
 

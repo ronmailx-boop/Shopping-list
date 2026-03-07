@@ -44,9 +44,33 @@ self.addEventListener('activate', event => {
 
 // Fetch Strategy: Network First, then Cache
 self.addEventListener('fetch', event => {
+  // Only handle GET requests — the Cache API does NOT support PUT with non-GET methods.
+  // Firebase Functions calls are POST requests and must NOT be intercepted/cached.
+  if (event.request.method !== 'GET') {
+    return; // Let the browser handle non-GET requests normally
+  }
+
+  // Also skip caching Firebase / gstatic API calls to avoid CORS / auth issues
+  const url = event.request.url;
+  if (
+    url.includes('firebaseio.com') ||
+    url.includes('firestore.googleapis.com') ||
+    url.includes('cloudfunctions.net') ||
+    url.includes('firebase.googleapis.com') ||
+    url.includes('identitytoolkit.googleapis.com') ||
+    url.includes('securetoken.googleapis.com')
+  ) {
+    return; // Let Firebase calls go through without caching
+  }
+
   event.respondWith(
     fetch(event.request)
       .then(response => {
+        // Only cache successful responses
+        if (!response || response.status !== 200 || response.type === 'opaque') {
+          return response;
+        }
+
         // Clone the response before caching
         const responseToCache = response.clone();
         
