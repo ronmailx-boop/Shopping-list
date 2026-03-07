@@ -112,45 +112,81 @@ async function syncData() {
   }
 }
 
-// Push Notifications (for future budget alerts)
+// ─── Push Notifications ───────────────────────────────────────────────────────
 self.addEventListener('push', event => {
-  const options = {
-    body: event.data ? event.data.text() : 'התראה חדשה מ-Vplus',
-    icon: '/icon-192.png',
-    badge: '/badge-72.png',
-    vibrate: [200, 100, 200],
-    data: {
-      dateOfArrival: Date.now(),
-      primaryKey: 1
-    },
-    actions: [
-      {
-        action: 'open',
-        title: 'פתח',
-        icon: '/check.png'
-      },
-      {
-        action: 'close',
-        title: 'סגור',
-        icon: '/cross.png'
+  let title = 'Vplus Pro';
+  let body  = 'התראה חדשה';
+  let icon  = '/icon-96.png';
+  let badge = '/badge-72.png';
+  let link  = 'https://vplus-pro.web.app';
+  let extraData = {};
+
+  if (event.data) {
+    try {
+      // FCM שולח JSON — מפרסרים אותו
+      const payload = event.data.json();
+
+      // FCM v1: notification object
+      if (payload.notification) {
+        title = payload.notification.title || title;
+        body  = payload.notification.body  || body;
+        icon  = payload.notification.icon  || icon;
       }
+      // FCM legacy / data-only
+      if (payload.data) {
+        if (payload.data.title) title = payload.data.title;
+        if (payload.data.body)  body  = payload.data.body;
+        extraData = payload.data;
+      }
+      // webpush fcmOptions
+      if (payload.fcmOptions && payload.fcmOptions.link) {
+        link = payload.fcmOptions.link;
+      }
+    } catch (e) {
+      // fallback — plain text
+      body = event.data.text();
+    }
+  }
+
+  const options = {
+    body,
+    icon,
+    badge,
+    vibrate:           [300, 100, 300, 100, 300],
+    requireInteraction: true,
+    renotify:           true,
+    data: { link, ...extraData },
+    actions: [
+      { action: 'snooze-10', title: '⏰ דחה 10 דק׳' },
+      { action: 'snooze-60', title: '⏰ דחה שעה'    },
     ]
   };
 
   event.waitUntil(
-    self.registration.showNotification('Vplus Pro', options)
+    self.registration.showNotification(title, options)
   );
 });
 
-// Notification Click Handler
+// ─── Notification Click ────────────────────────────────────────────────────────
 self.addEventListener('notificationclick', event => {
   event.notification.close();
-  
-  if (event.action === 'open') {
-    event.waitUntil(
-      clients.openWindow('/')
-    );
+  const link = event.notification.data?.link || 'https://vplus-pro.web.app';
+
+  if (event.action === 'snooze-10' || event.action === 'snooze-60') {
+    // snooze — just close, the server handles rescheduling
+    return;
   }
+
+  event.waitUntil(
+    clients.matchAll({ type: 'window', includeUncontrolled: true }).then(clientList => {
+      for (const client of clientList) {
+        if (client.url.includes('vplus-pro.web.app') && 'focus' in client) {
+          return client.focus();
+        }
+      }
+      return clients.openWindow(link);
+    })
+  );
 });
 
 
