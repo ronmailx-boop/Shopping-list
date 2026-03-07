@@ -7030,26 +7030,25 @@ async function startCreditCardFetch() {
         // Call Firebase Function if available
         let transactions = [];
         if (window.firebaseApp) {
-            try {
-                const { getFunctions, httpsCallable } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-functions.js');
-                // ⚠️ Must match the region where the function is deployed (me-west1 = Tel Aviv)
-                const functions = getFunctions(window.firebaseApp, 'me-west1');
-                        const fetchAccountData = httpsCallable(functions, 'fetchBankData', { timeout: 300000 });
-
-                const result = await fetchAccountData({
-                    companyId: selectedCreditCompany,   // server expects 'companyId' not 'company'
-                    username,
-                    password
-                });
-                transactions = result.data?.transactions || [];
-            } catch (fnErr) {
-                console.error('Firebase Function error:', fnErr);
-                // Show the real error so we can debug
-                const errMsg = fnErr?.message || fnErr?.code || JSON.stringify(fnErr);
-                showNotification('⚠️ שגיאת Function: ' + errMsg, 'warning');
-                // Fall back to demo transactions
-                    throw fnErr;
+            // ── בדיקת התחברות לפני הקריאה לפונקציה ──
+            const user = window.firebaseAuth?.currentUser;
+            if (!user) {
+                hideCreditProgress();
+                showNotification('❌ יש להתחבר לחשבון לפני שליפת נתוני אשראי', 'error');
+                return;
             }
+
+            const { getFunctions, httpsCallable } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-functions.js');
+            // ⚠️ Must match the region where the function is deployed (me-west1 = Tel Aviv)
+            const functions = getFunctions(window.firebaseApp, 'me-west1');
+            const fetchAccountData = httpsCallable(functions, 'fetchAccountData', { timeout: 300000 });
+
+            const result = await fetchAccountData({
+                companyId: selectedCreditCompany,
+                username,
+                password
+            });
+            transactions = result.data?.transactions || [];
         } else {
             // No Firebase — use demo data so the UI flow is visible
             transactions = getDemoCreditTransactions(selectedCreditCompany);
