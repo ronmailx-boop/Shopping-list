@@ -2376,18 +2376,6 @@ ${error.message}
             <!-- NEW FLOATING PILLS SECTION -->
             <div class="mb-6 px-1">
                 
-                <button onclick="wizardMode ? openWizard('newList') : openModal('newListModal')" class="hero-wide-btn group">
-                    <div class="flex items-center gap-3">
-                        <div class="bg-white/20 w-9 h-9 rounded-xl flex items-center justify-center backdrop-blur-sm group-active:scale-90 transition-transform">
-                            <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"></path></svg>
-                        </div>
-                        <div class="text-right">
-                            <span class="block text-xl font-black leading-none tracking-tight text-white">רשימה חדשה</span>
-                        </div>
-                    </div>
-                    <div class="text-white/80 text-sm font-medium"></div>
-                </button>
-
                 <div class="pills-container">
                     
                     <button onclick="openManualImport()" class="action-pill">
@@ -2554,13 +2542,16 @@ ${error.message}
                 <span id="wizardBtnText" style="font-size:10px;font-weight:800;color:rgba(255,255,255,0.92);">מדריך</span>
             </button>
 
-            <button onclick="handlePlusBtn(event)"
-                style="width:62px;height:62px;justify-self:center;border-radius:50%;background:#22c55e;border:3px solid rgba(255,255,255,0.35);display:flex;align-items:center;justify-content:center;box-shadow:0 6px 20px rgba(34,197,94,0.5);cursor:pointer;transition:transform 0.2s;animation:smartPlusPulse 2.4s ease-out infinite;"
-                ontouchstart="this.style.transform='scale(0.9)'" ontouchend="this.style.transform='scale(1)'">
-                <svg width="30" height="30" fill="none" stroke="white" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.8" d="M12 5v14M5 12h14"/>
-                </svg>
-            </button>
+            <div style="display:flex;flex-direction:column;align-items:center;gap:4px;justify-self:center;">
+                <button onclick="handlePlusBtn(event)"
+                    style="width:62px;height:62px;border-radius:50%;background:#22c55e;border:3px solid rgba(255,255,255,0.35);display:flex;align-items:center;justify-content:center;box-shadow:0 6px 20px rgba(34,197,94,0.5);cursor:pointer;transition:transform 0.2s;animation:smartPlusPulse 2.4s ease-out infinite;"
+                    ontouchstart="this.style.transform='scale(0.9)'" ontouchend="this.style.transform='scale(1)'">
+                    <svg width="30" height="30" fill="none" stroke="white" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.8" d="M12 5v14M5 12h14"/>
+                    </svg>
+                </button>
+                <span id="plusBtnLabel" style="font-size:9px;font-weight:800;color:rgba(255,255,255,0.75);letter-spacing:0.3px;">הוסף מוצר</span>
+            </div>
 
             <button id="mainLockBtn" onclick="toggleLock()"
                 style="height:52px;border-radius:16px;background:rgba(255,255,255,0.13);border:1px solid rgba(255,255,255,0.2);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;cursor:pointer;transition:all 0.2s;"
