@@ -8935,14 +8935,20 @@ function toggleWizardMode() {
     const btn = document.getElementById('wizardModeBtn');
     const txt = document.getElementById('wizardBtnText');
 
+    const panelPill = document.getElementById('wizardPanelPill');
+    const panelTxt  = document.getElementById('wizardPanelText');
     if (wizardMode) {
         if (btn) btn.classList.add('wizard-active');
         if (txt) txt.textContent = 'מדריך';
+        if (panelPill) { panelPill.style.background='#7367f0'; panelPill.style.color='white'; }
+        if (panelTxt) panelTxt.textContent = '✨ פעיל';
         document.body.classList.add('wizard-mode-active');
         _wizShowWelcome();
     } else {
         if (btn) btn.classList.remove('wizard-active');
         if (txt) txt.textContent = 'מדריך';
+        if (panelPill) { panelPill.style.background=''; panelPill.style.color=''; }
+        if (panelTxt) panelTxt.textContent = 'מדריך';
         document.body.classList.remove('wizard-mode-active');
         // Close any open card
         const overlay = document.getElementById('wizCardOverlay');
