@@ -506,8 +506,9 @@
             justify-content: space-between;
             align-items: center;
             box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-            position: sticky;
+            position: fixed;
             top: 0;
+            left: 0; right: 0;
             z-index: 2000;
             height: 60px;
             overflow: hidden;
@@ -882,7 +883,7 @@
             box-shadow: 0 14px 30px rgba(115,103,240,0.18);
             overflow: hidden;
             max-height: 0; opacity: 0;
-            transition: max-height 0.35s cubic-bezier(0.4,0,0.2,1), opacity 0.3s ease;
+            transition: max-height 0.35s cubic-bezier(0.4,0,0.2,1), opacity 0.3s ease, top 0.1s;
         }
         .list-actions-panel.open { max-height: 100px; opacity: 1; }
 
@@ -2410,7 +2411,7 @@ ${error.message}
         </div>
     </div>
 
-    <div class="max-w-md mx-auto p-4 no-print" style="padding-top: 120px;">
+    <div class="max-w-md mx-auto p-4 no-print" style="padding-top: 130px;">
         <div class="flex gap-3 mb-6" style="display:none!important;">
             <div id="tabStats" onclick="showPage('stats')" class="tab-btn">סטטיסטיקות 📊</div>
             <div id="tabBank" onclick="openModal('financialChoiceModal')" class="tab-btn whitespace-nowrap">פיננסי 💰</div>
