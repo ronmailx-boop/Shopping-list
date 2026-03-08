@@ -9682,6 +9682,39 @@ function renderBankData() {
 
 
 
+// ══ LIST NAME BAR — ACTIONS PANEL ══
+let _listPanelOpen = false;
+
+function toggleListActionsPanel() {
+    _listPanelOpen ? closeListActionsPanel() : openListActionsPanel();
+}
+
+function openListActionsPanel() {
+    _listPanelOpen = true;
+    const panel = document.getElementById('listActionsPanel');
+    const arrow = document.getElementById('lnbArrow');
+    if (panel) panel.classList.add('open');
+    if (arrow) arrow.classList.add('open');
+}
+
+function closeListActionsPanel() {
+    _listPanelOpen = false;
+    const panel = document.getElementById('listActionsPanel');
+    const arrow = document.getElementById('lnbArrow');
+    if (panel) panel.classList.remove('open');
+    if (arrow) arrow.classList.remove('open');
+}
+
+// סגירה בלחיצה מחוץ לפאנל
+document.addEventListener('click', function(e) {
+    if (!_listPanelOpen) return;
+    const arrow  = document.getElementById('lnbArrow');
+    const panel  = document.getElementById('listActionsPanel');
+    if (arrow && !arrow.contains(e.target) && panel && !panel.contains(e.target)) {
+        closeListActionsPanel();
+    }
+});
+
 // ── עדכון תווית כפתור + לפי טאב ──
 function _updatePlusBtnLabel() {
     const lbl = document.getElementById('plusBtnLabel');
