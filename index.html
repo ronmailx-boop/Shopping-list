@@ -794,8 +794,9 @@
 
         /* ══ LIST NAME BAR ══ */
         .list-name-bar {
-            position: sticky;
+            position: fixed;
             top: 60px;
+            left: 0; right: 0;
             z-index: 1800;
             background: linear-gradient(135deg, #7367f0 0%, #9055ff 100%);
             padding: 10px 16px;
@@ -808,7 +809,6 @@
             flex-wrap: wrap;
             gap: 4px;
             transition: min-height 0.3s ease, padding 0.3s ease;
-            cursor: pointer;
             -webkit-tap-highlight-color: transparent;
             user-select: none;
         }
@@ -873,8 +873,9 @@
 
         /* ══ LIST ACTIONS PANEL ══ */
         .list-actions-panel {
-            position: sticky;
-            top: 60px;
+            position: fixed;
+            top: 110px;
+            left: 0; right: 0;
             z-index: 1790;
             background: white;
             border-radius: 0 0 22px 22px;
@@ -2409,7 +2410,7 @@ ${error.message}
         </div>
     </div>
 
-    <div class="max-w-md mx-auto p-4 no-print">
+    <div class="max-w-md mx-auto p-4 no-print" style="padding-top: 120px;">
         <div class="flex gap-3 mb-6" style="display:none!important;">
             <div id="tabStats" onclick="showPage('stats')" class="tab-btn">סטטיסטיקות 📊</div>
             <div id="tabBank" onclick="openModal('financialChoiceModal')" class="tab-btn whitespace-nowrap">פיננסי 💰</div>
