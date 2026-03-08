@@ -789,13 +789,83 @@
         }
 
         .category-separator {
-            background: linear-gradient(135deg, #7367f0 0%, #9055ff 100%);
-            color: white;
-            border-radius: 20px;
-            padding: 15px;
-            margin-bottom: 20px;
-            text-align: center;
+            display: none !important;
         }
+
+        /* ══ LIST NAME BAR ══ */
+        .list-name-bar {
+            position: sticky;
+            top: 60px;
+            z-index: 1800;
+            background: linear-gradient(135deg, #7367f0 0%, #9055ff 100%);
+            padding: 10px 16px;
+            min-height: 50px;
+            border-radius: 0 0 22px 22px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            box-shadow: 0 8px 20px rgba(115,103,240,0.35);
+            flex-wrap: wrap;
+            gap: 4px;
+            transition: min-height 0.3s ease, padding 0.3s ease;
+            cursor: pointer;
+            -webkit-tap-highlight-color: transparent;
+            user-select: none;
+        }
+        .list-name-bar.action-shrink {
+            min-height: 50px !important;
+            max-height: 50px;
+            padding: 0 16px;
+            overflow: hidden;
+        }
+        .lnb-name-btn {
+            display: flex; align-items: center; gap: 8px;
+            flex: 1; min-width: 0;
+        }
+        .lnb-name-text {
+            font-size: 15px; font-weight: 900; color: white;
+            letter-spacing: -0.3px;
+            white-space: normal; word-break: break-word;
+            line-height: 1.3;
+        }
+        .lnb-arrow {
+            font-size: 10px; color: rgba(255,255,255,0.7);
+            transition: transform 0.3s ease; flex-shrink: 0;
+        }
+        .lnb-arrow.open { transform: rotate(180deg); }
+        .lnb-count {
+            font-size: 10px; font-weight: 700; color: rgba(255,255,255,0.7);
+            background: rgba(255,255,255,0.15); border-radius: 20px;
+            padding: 2px 9px; flex-shrink: 0;
+        }
+
+        /* ══ LIST ACTIONS PANEL ══ */
+        .list-actions-panel {
+            position: sticky;
+            top: 60px;
+            z-index: 1790;
+            background: white;
+            border-radius: 0 0 22px 22px;
+            box-shadow: 0 14px 30px rgba(115,103,240,0.18);
+            overflow: hidden;
+            max-height: 0; opacity: 0;
+            transition: max-height 0.35s cubic-bezier(0.4,0,0.2,1), opacity 0.3s ease;
+        }
+        .list-actions-panel.open { max-height: 100px; opacity: 1; }
+
+        .list-action-pills {
+            display: flex; gap: 8px; padding: 14px 14px 18px;
+        }
+        .list-action-pill {
+            flex: 1; display: flex; align-items: center; justify-content: center; gap: 5px;
+            background: #f5f3ff; border: 1.5px solid rgba(115,103,240,0.2);
+            border-radius: 50px; padding: 10px 4px;
+            font-size: 11px; font-weight: 800; color: #7367f0;
+            cursor: pointer; white-space: nowrap;
+            transition: all 0.15s; -webkit-tap-highlight-color: transparent;
+        }
+        .list-action-pill:active { background: #ede9fe; transform: scale(0.95); }
+        .list-action-pill svg { width: 17px; height: 17px; flex-shrink: 0; }
 
         .category-badge {
             display: inline-block;
@@ -2254,6 +2324,36 @@ ${error.message}
         </div>
     </div>
 
+    <!-- ===== LIST NAME BAR ===== -->
+    <div class="list-name-bar no-print" id="listNameBar" onclick="toggleListActionsPanel()">
+        <div class="lnb-name-btn">
+            <div class="lnb-name-text" id="listNameDisplay">רשימה</div>
+            <div class="lnb-arrow" id="lnbArrow">▼</div>
+        </div>
+        <div class="lnb-count" id="itemCountDisplay">0 פריטים</div>
+    </div>
+
+    <!-- ===== LIST ACTIONS PANEL ===== -->
+    <div class="list-actions-panel no-print" id="listActionsPanel">
+        <div class="list-action-pills">
+            <div class="list-action-pill" onclick="closeListActionsPanel(); shareNative('list')">
+                <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"/></svg>
+                שיתוף
+            </div>
+            <div class="list-action-pill" onclick="closeListActionsPanel(); openModal('translateModal')">
+                <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9h7M11 21l5-10 5 10M12.751 5C11.783 10.77 8.07 15.61 3 18.129"/></svg>
+                תרגום
+            </div>
+            <div class="list-action-pill" id="categorySortPill" onclick="closeListActionsPanel(); toggleCategorySorting()">
+                <span id="categorySortText">🔤 מיון</span>
+            </div>
+            <div class="list-action-pill" onclick="closeListActionsPanel(); toggleTemplateMode()">
+                <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+                תבנית
+            </div>
+        </div>
+    </div>
+
     <!-- ===== TOAST BAR ===== -->
     <div class="toast-bar no-print" id="toastBar">
         <div class="toast-inner" id="toastInner">
@@ -2325,50 +2425,9 @@ ${error.message}
                         class="absolute left-12 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">✕</button>
                 </div>
             </div>
-            <div class="category-separator">
-                <!-- שם הרשימה בלבד בחלק העליון -->
-                <div class="text-center px-2">
-                    <div id="listNameDisplay" class="text-2xl font-black"
-                        style="word-break:break-word;white-space:normal;text-align:center;"
-                        onclick="openModal('editListNameModal')"></div>
-                    <div id="itemCountDisplay"
-                        class="text-[10px] font-bold opacity-80 uppercase tracking-wider mt-0.5">0 מוצרים</div>
-                </div>
-                <div id="statusTag" class="text-[10px] font-bold mt-2 opacity-80 text-center">נעול</div>
-
-                <!-- שורה אחת: שיתוף + תרגום + מיון + תבנית -->
-                <div style="display:flex;gap:6px;align-items:center;justify-content:center;flex-wrap:wrap;margin-top:6px;">
-                    <button onclick="shareNative('list')" class="text-white opacity-90"
-                        style="background:rgba(255,255,255,0.2);border-radius:50px;padding:5px 10px;display:flex;align-items:center;justify-content:center;transition:all 0.2s;">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"/>
-                        </svg>
-                    </button>
-                    <button onclick="openModal('translateModal')" class="text-white opacity-90"
-                        style="background:rgba(255,255,255,0.2);border-radius:50px;padding:5px 10px;display:flex;align-items:center;justify-content:center;transition:all 0.2s;">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                d="M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9h7M11 21l5-10 5 10M12.751 5C11.783 10.77 8.07 15.61 3 18.129"/>
-                        </svg>
-                    </button>
-                    <button onclick="toggleCategorySorting()" id="categorySortBtn"
-                        class="text-[10px] font-bold bg-white/20 hover:bg-white/30 text-white py-1 px-3 rounded-full transition">
-                        <span id="categorySortText">🔤 מיון לפי קטגוריות</span>
-                    </button>
-                    <button onclick="toggleTemplateMode()" class="text-white opacity-90"
-                        style="background:rgba(255,255,255,0.2);border-radius:50px;padding:5px 10px;display:flex;align-items:center;justify-content:center;transition:all 0.2s;">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
-                        </svg>
-                    </button>
-                </div>
-
-                <div id="budgetWarning"
-                    class="hidden text-[10px] font-bold mt-2 bg-red-500 text-white py-1 px-3 rounded-full inline-block">
-                    ⚠️ חריגה מתקציב!</div>
-            </div>
+            <!-- hidden placeholders for JS compatibility -->
+            <div id="statusTag" style="display:none;"></div>
+            <div id="budgetWarning" class="hidden text-[10px] font-bold mt-2 bg-red-500 text-white py-1 px-3 rounded-full inline-block" style="margin:0 16px;"></div>
             <div id="itemsContainer"></div>
         </div>
 
