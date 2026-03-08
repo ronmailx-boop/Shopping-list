@@ -8906,12 +8906,23 @@ function toggleWizardMode() {
 }
 
 // ── handlePlusBtn ──────────────────────────────────────────────────
+// קונטקסטואלי: הרשימות שלי → רשימה חדשה | הרשימה שלי → הוסף מוצר
 function handlePlusBtn(e) {
     if (e) e.stopPropagation();
-    if (wizardMode) {
-        wiz('plusBtn', 'before', () => openModal('inputForm'));
+    if (activePage === 'summary') {
+        // טאב הרשימות שלי — יצירת רשימה חדשה
+        if (wizardMode) {
+            wiz('newList', 'before', () => openModal('newListModal'));
+        } else {
+            openModal('newListModal');
+        }
     } else {
-        openModal('inputForm');
+        // טאב הרשימה שלי — הוספת מוצר
+        if (wizardMode) {
+            wiz('plusBtn', 'before', () => openModal('inputForm'));
+        } else {
+            openModal('inputForm');
+        }
     }
 }
 
@@ -9622,34 +9633,23 @@ function renderBankData() {
 }
 
 
-// ══ LIST NAME BAR PANEL ══
-let _listPanelOpen = false;
 
-function toggleListActionsPanel() {
-    _listPanelOpen ? closeListActionsPanel() : openListActionsPanel();
+// ── עדכון תווית כפתור + לפי טאב ──
+function _updatePlusBtnLabel() {
+    const lbl = document.getElementById('plusBtnLabel');
+    if (!lbl) return;
+    lbl.textContent = (activePage === 'summary') ? 'רשימה חדשה' : 'הוסף מוצר';
 }
 
-function openListActionsPanel() {
-    _listPanelOpen = true;
-    const panel = document.getElementById('listActionsPanel');
-    const arrow = document.getElementById('lnbArrow');
-    if (panel) panel.classList.add('open');
-    if (arrow) arrow.classList.add('open');
+// Hook into showPage
+const _origShowPage = window.showPage || null;
+if (typeof showPage === 'function') {
+    const __origShowPage = showPage;
+    window.showPage = function(p) {
+        __origShowPage(p);
+        _updatePlusBtnLabel();
+    };
 }
-
-function closeListActionsPanel() {
-    _listPanelOpen = false;
-    const panel = document.getElementById('listActionsPanel');
-    const arrow = document.getElementById('lnbArrow');
-    if (panel) panel.classList.remove('open');
-    if (arrow) arrow.classList.remove('open');
-}
-
-document.addEventListener('click', function(e) {
-    if (!_listPanelOpen) return;
-    const bar = document.getElementById('listNameBar');
-    const panel = document.getElementById('listActionsPanel');
-    if (bar && !bar.contains(e.target) && panel && !panel.contains(e.target)) {
-        closeListActionsPanel();
-    }
-});
+// Init on load
+document.addEventListener('DOMContentLoaded', _updatePlusBtnLabel);
+setTimeout(_updatePlusBtnLabel, 500);
