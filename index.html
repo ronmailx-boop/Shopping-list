@@ -809,6 +809,7 @@
             box-shadow: 0 8px 20px rgba(115,103,240,0.35);
             flex-wrap: wrap;
             gap: 4px;
+            overflow: hidden;
             transition: min-height 0.3s ease, padding 0.3s ease;
             -webkit-tap-highlight-color: transparent;
             user-select: none;
@@ -2359,16 +2360,16 @@ ${error.message}
     </div>
 
     <!-- ===== LIST NAME BAR ===== -->
-    <div class="list-name-bar no-print" id="listNameBar" style="position:relative;overflow:hidden;">
-        <!-- שם — לחיצה עורכת שם | חץ — פותח פאנל פעולות -->
-        <div style="display:flex;align-items:center;gap:8px;flex:1;min-width:0;">
-            <div class="lnb-name-text" id="listNameDisplay"
-                 onclick="event.stopPropagation(); closeListActionsPanel(); openModal('editListNameModal');">רשימה</div>
+    <div class="list-name-bar no-print" id="listNameBar">
+        <!-- שם רשימה — לחיצה לעריכה -->
+        <div class="lnb-name-text" id="listNameDisplay"
+             onclick="event.stopPropagation(); closeListActionsPanel(); openModal('editListNameModal');">רשימה</div>
+        <!-- ספירת פריטים + חץ — בקצה השמאלי, מרוחקים משם הרשימה -->
+        <div style="display:flex;align-items:center;gap:10px;flex-shrink:0;">
+            <div class="lnb-count" id="itemCountDisplay">0 פריטים</div>
             <div class="lnb-arrow" id="lnbArrow"
                  onclick="event.stopPropagation(); toggleListActionsPanel();">▼</div>
         </div>
-        <!-- ספירת פריטים -->
-        <div class="lnb-count" id="itemCountDisplay">0 פריטים</div>
         <!-- Action overlay — toast בתוך הבר -->
         <div class="lnb-action-overlay" id="lnbActionOverlay">
             <div class="lnb-action-msg" id="lnbActionMsg"></div>
