@@ -1572,6 +1572,13 @@ function showNotification(message, type = 'success') {
 }
 
 function _showToast({ message, type = 'success', undoCallback = null, duration = 4000, undoLabel = null }) {
+    // ── אם בטאב הרשימה שלי — הצג בתוך הבר העליון ──
+    const lnbOverlay = document.getElementById('lnbActionOverlay');
+    if (activePage === 'lists' && lnbOverlay) {
+        _showLnbToast({ message, type, undoCallback, duration, undoLabel });
+        return;
+    }
+    // ── אחרת — toast רגיל ──
     const inner = document.getElementById('toastInner');
     const content = document.getElementById('toastContent');
     const iconEl = document.getElementById('toastIcon');
@@ -1580,25 +1587,18 @@ function _showToast({ message, type = 'success', undoCallback = null, duration =
     const progressEl = document.getElementById('toastProgress');
     if (!inner || !content || !textEl) return;
 
-    // ביטול טיימר קודם
     if (_toastTimer) { clearTimeout(_toastTimer); _toastTimer = null; }
-
-    // הסתרה מהירה ואז הצגה מחדש
     inner.classList.remove('toast-visible');
 
     setTimeout(() => {
-        // צבע לפי סוג
         content.className = 'toast-content';
         if (type === 'warning') content.classList.add('toast-warning');
         else if (type === 'error') content.classList.add('toast-error');
         else if (type === 'delete') content.classList.add('toast-delete');
         else content.classList.add('toast-success');
 
-        // אייקון
         const icons = { success: '✅', warning: '⚠️', error: '❌', delete: '🗑️', check: '✅', uncheck: '◻️' };
         iconEl.textContent = icons[type] || '✅';
-
-        // הסר אמוג'י מתחילת הטקסט כדי למנוע כפילות
         textEl.textContent = message.replace(/^[\u{1F300}-\u{1FAFF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}✅⚠️❌🗑️✓☁️📋⭐💾🎤📊↩️✔️◻️]\s*/u, '');
 
         _toastUndoCallback = undoCallback;
@@ -1609,20 +1609,68 @@ function _showToast({ message, type = 'success', undoCallback = null, duration =
             undoBtn.style.display = 'none';
         }
 
-        // progress bar - reset animation
         progressEl.style.animation = 'none';
-        progressEl.offsetHeight; // reflow
+        progressEl.offsetHeight;
         progressEl.style.animation = `toastProgress ${duration}ms linear forwards`;
 
-        // הצג
         inner.classList.add('toast-visible');
-
-        // הסתר אחרי duration
         _toastTimer = setTimeout(() => {
             inner.classList.remove('toast-visible');
             _toastUndoCallback = null;
         }, duration);
     }, inner.classList.contains('toast-visible') ? 120 : 0);
+}
+
+// ── Toast בתוך הבר העליון ──
+let _lnbToastTimer = null;
+let _lnbUndoCallback = null;
+
+function _showLnbToast({ message, type, undoCallback, duration, undoLabel }) {
+    const overlay  = document.getElementById('lnbActionOverlay');
+    const msgEl    = document.getElementById('lnbActionMsg');
+    const undoBtn  = document.getElementById('lnbActionUndo');
+    const progress = document.getElementById('lnbProgress');
+    if (!overlay || !msgEl) return;
+
+    closeListActionsPanel();
+    if (_lnbToastTimer) { clearTimeout(_lnbToastTimer); _lnbToastTimer = null; }
+
+    // סמל לפי סוג
+    const icons = { success: '✅', warning: '⚠️', error: '❌', delete: '🗑️', check: '✅', uncheck: '◻️' };
+    const icon = icons[type] || '✅';
+    const text = message.replace(/^[\u{1F300}-\u{1FAFF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}✅⚠️❌🗑️✓☁️📋⭐💾🎤📊↩️✔️◻️]\s*/u, '');
+    msgEl.innerHTML = '<span style="font-size:16px;flex-shrink:0;">' + icon + '</span><span>' + text + '</span>';
+
+    _lnbUndoCallback = undoCallback;
+    if (undoCallback) {
+        undoBtn.style.display = '';
+        undoBtn.textContent = undoLabel || '↩ ביטול';
+    } else {
+        undoBtn.style.display = 'none';
+    }
+
+    // progress animation
+    if (progress) {
+        progress.style.transition = 'none';
+        progress.style.width = '100%';
+        progress.offsetHeight;
+        progress.style.transition = 'width ' + duration + 'ms linear';
+        progress.style.width = '0%';
+    }
+
+    overlay.classList.add('show');
+
+    _lnbToastTimer = setTimeout(() => {
+        overlay.classList.remove('show');
+        _lnbUndoCallback = null;
+    }, duration);
+}
+
+function handleLnbUndo() {
+    if (_lnbUndoCallback) { _lnbUndoCallback(); _lnbUndoCallback = null; }
+    const overlay = document.getElementById('lnbActionOverlay');
+    if (overlay) overlay.classList.remove('show');
+    if (_lnbToastTimer) { clearTimeout(_lnbToastTimer); _lnbToastTimer = null; }
 }
 
 function handleToastUndo() {
