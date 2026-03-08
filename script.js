@@ -9621,3 +9621,35 @@ function renderBankData() {
     container.innerHTML = '<div class="text-center text-gray-400 py-10 bg-white rounded-3xl shadow-sm border border-gray-100"><span class="text-5xl block mb-4">🏦</span><p class="font-medium">השתמש בכפתור פיננסי לשליפת נתונים.</p></div>';
 }
 
+
+// ══ LIST NAME BAR PANEL ══
+let _listPanelOpen = false;
+
+function toggleListActionsPanel() {
+    _listPanelOpen ? closeListActionsPanel() : openListActionsPanel();
+}
+
+function openListActionsPanel() {
+    _listPanelOpen = true;
+    const panel = document.getElementById('listActionsPanel');
+    const arrow = document.getElementById('lnbArrow');
+    if (panel) panel.classList.add('open');
+    if (arrow) arrow.classList.add('open');
+}
+
+function closeListActionsPanel() {
+    _listPanelOpen = false;
+    const panel = document.getElementById('listActionsPanel');
+    const arrow = document.getElementById('lnbArrow');
+    if (panel) panel.classList.remove('open');
+    if (arrow) arrow.classList.remove('open');
+}
+
+document.addEventListener('click', function(e) {
+    if (!_listPanelOpen) return;
+    const bar = document.getElementById('listNameBar');
+    const panel = document.getElementById('listActionsPanel');
+    if (bar && !bar.contains(e.target) && panel && !panel.contains(e.target)) {
+        closeListActionsPanel();
+    }
+});
