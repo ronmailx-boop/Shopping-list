@@ -9685,12 +9685,21 @@ function renderBankData() {
 // ══ LIST NAME BAR — ACTIONS PANEL ══
 let _listPanelOpen = false;
 
+function _positionActionsPanel() {
+    const bar   = document.getElementById('listNameBar');
+    const panel = document.getElementById('listActionsPanel');
+    if (!bar || !panel) return;
+    const rect = bar.getBoundingClientRect();
+    panel.style.top = rect.bottom + 'px';
+}
+
 function toggleListActionsPanel() {
     _listPanelOpen ? closeListActionsPanel() : openListActionsPanel();
 }
 
 function openListActionsPanel() {
     _listPanelOpen = true;
+    _positionActionsPanel();
     const panel = document.getElementById('listActionsPanel');
     const arrow = document.getElementById('lnbArrow');
     if (panel) panel.classList.add('open');
@@ -9704,6 +9713,22 @@ function closeListActionsPanel() {
     if (panel) panel.classList.remove('open');
     if (arrow) arrow.classList.remove('open');
 }
+
+// עדכון מיקום הפאנל והבר לפי גובה ה-header בפועל
+function _positionListNameBar() {
+    const header = document.querySelector('.app-header');
+    const bar    = document.getElementById('listNameBar');
+    if (!header || !bar) return;
+    const headerBottom = header.getBoundingClientRect().bottom;
+    bar.style.top = headerBottom + 'px';
+    if (_listPanelOpen) _positionActionsPanel();
+}
+
+window.addEventListener('resize', _positionListNameBar);
+document.addEventListener('DOMContentLoaded', () => {
+    setTimeout(_positionListNameBar, 100);
+});
+setTimeout(_positionListNameBar, 300);
 
 // סגירה בלחיצה מחוץ לפאנל
 document.addEventListener('click', function(e) {
