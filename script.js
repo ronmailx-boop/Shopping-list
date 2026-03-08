@@ -1972,8 +1972,8 @@ function render() {
     const _tabSummary = document.getElementById('tabSummary');
     const _tabStats = document.getElementById('tabStats');
     const _tabBank = document.getElementById('tabBank');
-    const _activeTabStyle = 'flex:1;height:36px;background:white;border:none;border-radius:12px;font-size:14px;font-weight:900;color:#7367f0;cursor:pointer;transition:all 0.2s;display:flex;align-items:center;justify-content:center;margin:3px 4px 3px 0;';
-    const _inactiveTabStyle = 'flex:1;height:36px;background:transparent;border:none;font-size:14px;font-weight:800;color:rgba(255,255,255,0.6);cursor:pointer;transition:all 0.2s;display:flex;align-items:center;justify-content:center;margin:3px 4px 3px 0;';
+    const _activeTabStyle = 'flex:1;height:34px;background:white;border:none;border-radius:12px;font-size:14px;font-weight:900;color:#7367f0;cursor:pointer;transition:all 0.2s;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 8px rgba(0,0,0,0.12);';
+    const _inactiveTabStyle = 'flex:1;height:34px;background:transparent;border:none;font-size:14px;font-weight:800;color:rgba(255,255,255,0.6);cursor:pointer;transition:all 0.2s;display:flex;align-items:center;justify-content:center;';
     if (_tabLists)   _tabLists.style.cssText   = activePage === 'lists'   ? _activeTabStyle : _inactiveTabStyle;
     if (_tabSummary) _tabSummary.style.cssText = activePage === 'summary' ? _activeTabStyle : _inactiveTabStyle;
     if (_tabStats)   _tabStats.style.cssText   = activePage === 'stats'   ? _activeTabStyle : _inactiveTabStyle;
