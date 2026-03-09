@@ -2423,32 +2423,8 @@ ${error.message}
         </div>
 
         <div id="pageLists">
-            <!-- NEW FLOATING PILLS SECTION -->
-            <div class="mb-6 px-1">
-                
-                <div class="pills-container">
-                    
-                    <button onclick="openManualImport()" class="action-pill">
-                        <span class="pill-icon">📋</span>
-                        <span class="pill-text">הדבק</span>
-                    </button>
-
-                    <label for="excel-upload" class="action-pill" onclick="if(wizardMode){event.preventDefault();wiz('excelBtn','before',()=>document.getElementById('excel-upload').click());}">
-                        <span class="pill-icon">📊</span>
-                        <span class="pill-text">Excel</span>
-                    </label>
-
-                    <label for="bankFileInput" class="action-pill" onclick="if(wizardMode){event.preventDefault();wiz('bankBtn','before',()=>document.getElementById('bankFileInput').click());}">
-                        <span class="pill-icon">🏦</span>
-                        <span class="pill-text">בנק</span>
-                    </label>
-
-                </div>
-                
-                <input type="file" id="bankFileInput" accept=".xls,.xlsx,.pdf" style="display: none;" onchange="importBankFile(event)">
-                <input type="file" id="excel-upload" accept=".xlsx, .xls" style="display: none;" onchange="handleExcelUpload(event)">
-
-            </div>
+            <input type="file" id="bankFileInput" accept=".xls,.xlsx,.pdf" style="display:none;" onchange="importBankFile(event)">
+            <input type="file" id="excel-upload" accept=".xlsx,.xls" style="display:none;" onchange="handleExcelUpload(event)">
             <!-- END NEW FLOATING PILLS SECTION -->
             <div class="mb-3">
                 <div class="relative">
@@ -2860,17 +2836,49 @@ ${error.message}
     </div>
 
     <div id="newListModal" class="modal-overlay no-print">
-        <div class="edit-modal">
-            <h2>רשימה חדשה</h2>
+        <div class="edit-modal" style="padding:24px 20px 20px;">
+            <h2 style="margin-bottom:20px;">רשימה חדשה</h2>
             <input type="text" id="newListNameInput" placeholder="שם הרשימה" class="modal-input">
             <input type="url" id="newListUrlInput" placeholder="כתובת אתר (אופציונלי)" class="modal-input">
             <input type="number" id="newListBudget" placeholder="תקציב (אופציונלי)" class="modal-input">
-            <div class="flex items-center justify-center gap-2 mb-3">
+            <div class="flex items-center justify-end gap-2 mb-4" style="padding:4px 2px;">
                 <label class="flex items-center gap-2 cursor-pointer">
                     <input type="checkbox" id="newListTemplate" class="w-5 h-5 accent-indigo-600">
                     <span class="text-sm font-bold">⭐ שמור כתבנית</span>
                 </label>
             </div>
+
+            <!-- ייבוא -->
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;">
+                <div style="flex:1;height:1.5px;background:#f3f4f6;border-radius:2px;"></div>
+                <span style="font-size:11px;font-weight:800;color:#c4b5fd;white-space:nowrap;">או ייבא רשימה קיימת מ</span>
+                <div style="flex:1;height:1.5px;background:#f3f4f6;border-radius:2px;"></div>
+            </div>
+            <div style="display:flex;gap:8px;margin-bottom:20px;">
+                <button onclick="event.stopPropagation(); closeModal('newListModal'); openManualImport();"
+                    style="flex:1;height:56px;border-radius:16px;border:1.5px solid #f0eeff;background:#faf9ff;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;cursor:pointer;transition:all 0.15s;"
+                    ontouchstart="this.style.background='#f0edff'" ontouchend="this.style.background='#faf9ff'">
+                    <span style="font-size:20px;line-height:1;">📋</span>
+                    <span style="font-size:10px;font-weight:800;color:#7367f0;">הדבק טקסט</span>
+                </button>
+                <label for="excel-upload-modal"
+                    onclick="if(wizardMode){event.preventDefault();wiz('excelBtn','before',()=>document.getElementById('excel-upload-modal').click());}"
+                    style="flex:1;height:56px;border-radius:16px;border:1.5px solid #f0eeff;background:#faf9ff;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;cursor:pointer;transition:all 0.15s;"
+                    ontouchstart="this.style.background='#f0edff'" ontouchend="this.style.background='#faf9ff'">
+                    <span style="font-size:20px;line-height:1;">📊</span>
+                    <span style="font-size:10px;font-weight:800;color:#7367f0;">Excel</span>
+                </label>
+                <label for="bankFileInput-modal"
+                    onclick="if(wizardMode){event.preventDefault();wiz('bankBtn','before',()=>document.getElementById('bankFileInput-modal').click());}"
+                    style="flex:1;height:56px;border-radius:16px;border:1.5px solid #f0eeff;background:#faf9ff;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;cursor:pointer;transition:all 0.15s;"
+                    ontouchstart="this.style.background='#f0edff'" ontouchend="this.style.background='#faf9ff'">
+                    <span style="font-size:20px;line-height:1;">📄</span>
+                    <span style="font-size:10px;font-weight:800;color:#7367f0;">PDF</span>
+                </label>
+                <input type="file" id="excel-upload-modal" accept=".xlsx,.xls" style="display:none;" onchange="closeModal('newListModal'); handleExcelUpload(event)">
+                <input type="file" id="bankFileInput-modal" accept=".xls,.xlsx,.pdf" style="display:none;" onchange="closeModal('newListModal'); importBankFile(event)">
+            </div>
+
             <div class="flex gap-3">
                 <button class="bg-indigo-600 text-white flex-1 py-4 rounded-xl font-bold shadow-md"
                     onclick="event.stopPropagation(); saveNewList();">צור</button>
