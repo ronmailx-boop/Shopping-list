@@ -817,8 +817,8 @@ function updateUILanguage() {
     const tabSummaryEl = document.getElementById('tabSummary');
     const tabStatsEl = document.getElementById('tabStats');
     const tabBankEl2 = document.getElementById('tabBank');
-    if (tabListsEl) tabListsEl.textContent = t('myList');
-    if (tabSummaryEl) tabSummaryEl.textContent = t('myLists');
+    if (tabListsEl) { var _sp1 = tabListsEl.querySelector('.tab-label-text'); if (_sp1) _sp1.textContent = t('myList'); else tabListsEl.textContent = t('myList'); }
+    if (tabSummaryEl) { var _sp2 = tabSummaryEl.querySelector('.tab-label-text'); if (_sp2) _sp2.textContent = t('myLists'); else tabSummaryEl.textContent = t('myLists'); }
     if (tabStatsEl) tabStatsEl.textContent = t('statistics');
     if (tabBankEl2) tabBankEl2.textContent = '🏦 פיננסי';
 
@@ -1972,20 +1972,10 @@ function render() {
     const _tabSummary = document.getElementById('tabSummary');
     const _tabStats = document.getElementById('tabStats');
     const _tabBank = document.getElementById('tabBank');
-    // SVG tab shape — צבע הטקסט בלבד, הצורה הלבנה מנוהלת ע"י SVG
-    const _activeTabStyle   = 'flex:1;font-size:14px;font-weight:900;color:#7367f0;cursor:pointer;transition:color 0.25s;display:flex;align-items:center;justify-content:center;';
-    const _inactiveTabStyle = 'flex:1;font-size:14px;font-weight:800;color:rgba(255,255,255,0.6);cursor:pointer;transition:color 0.25s;display:flex;align-items:center;justify-content:center;';
-    if (_tabLists)   _tabLists.style.cssText   = activePage === 'lists'   ? _activeTabStyle : _inactiveTabStyle;
-    if (_tabSummary) _tabSummary.style.cssText = activePage === 'summary' ? _activeTabStyle : _inactiveTabStyle;
-    if (_tabStats)   _tabStats.style.cssText   = activePage === 'stats'   ? _activeTabStyle : _inactiveTabStyle;
-    if (_tabBank)    _tabBank.style.cssText     = activePage === 'bank'    ? _activeTabStyle : _inactiveTabStyle;
-    // עדכן SVG tabs
-    var _svgR = document.getElementById('svgTabRight');
-    var _svgL = document.getElementById('svgTabLeft');
-    if (_svgR && _svgL) {
-        _svgR.setAttribute('opacity', activePage === 'summary' ? '1' : '0');
-        _svgL.setAttribute('opacity', activePage === 'lists'   ? '1' : '0');
-    }
+    // SVG tabs — קריאה לפונקציה המרכזית
+    if (typeof updateSvgTabs === 'function') updateSvgTabs();
+    if (_tabStats) _tabStats.style.cssText = activePage === 'stats' ? 'flex:1;height:34px;background:white;border:none;border-radius:12px;font-size:14px;font-weight:900;color:#7367f0;cursor:pointer;display:flex;align-items:center;justify-content:center;' : 'flex:1;height:34px;background:transparent;border:none;font-size:14px;font-weight:800;color:rgba(255,255,255,0.6);cursor:pointer;display:flex;align-items:center;justify-content:center;';
+    if (_tabBank)  _tabBank.style.cssText  = activePage === 'bank'  ? 'flex:1;height:34px;background:white;border:none;border-radius:12px;font-size:14px;font-weight:900;color:#7367f0;cursor:pointer;display:flex;align-items:center;justify-content:center;' : 'flex:1;height:34px;background:transparent;border:none;font-size:14px;font-weight:800;color:rgba(255,255,255,0.6);cursor:pointer;display:flex;align-items:center;justify-content:center;';
 
     // הצג כפתורי קולי רק בטאב "הרשימה שלי"
     const _voiceBoughtBtn = document.getElementById('voiceBoughtBtn');
