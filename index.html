@@ -2546,26 +2546,29 @@ ${error.message}
 
     <div class="bottom-bar text-white no-print" id="smartBottomBar" style="padding:0;display:flex;flex-direction:column;overflow:hidden;">
 
-        <!-- שורת טאבים — SVG מלא כולל טקסט, חסין מפני JS -->
-        <div style="position:relative;height:50px;flex-shrink:0;">
-            <!-- אזורי לחיצה בלתי נראים — נשמרים בשביל תאימות JS -->
-            <div id="tabLists"   onclick="showPage('lists')"   style="position:absolute;top:0;left:50%;right:0;bottom:0;z-index:10;cursor:pointer;"></div>
-            <div id="tabSummary" onclick="showPage('summary')" style="position:absolute;top:0;left:0;width:50%;bottom:0;z-index:10;cursor:pointer;"></div>
-            <!-- SVG — צורה + טקסט, לא נפגע מ-JS -->
-            <svg id="tabShapeSvg" style="position:absolute;top:0;left:0;width:100%;height:100%;z-index:5;pointer-events:none;"
-                 viewBox="0 0 400 50" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
-                <!-- צורה שמאל (הרשימה שלי) -->
-                <path id="svgTabLeft"
-                    d="M 200,0 L 0,0 L 0,50 L 188,50 Q 200,50 200,38 Z"
+        <!-- שורת טאבים — SVG -->
+        <div style="position:relative;height:52px;flex-shrink:0;">
+            <!-- אזורי לחיצה — IDs נשמרים לתאימות JS -->
+            <div id="tabLists"   onclick="showPage('lists')"   style="position:absolute;top:0;left:0;width:50%;bottom:0;z-index:10;cursor:pointer;"></div>
+            <div id="tabSummary" onclick="showPage('summary')" style="position:absolute;top:0;right:0;width:50%;bottom:0;z-index:10;cursor:pointer;"></div>
+            <svg style="position:absolute;top:0;left:0;width:100%;height:100%;z-index:5;pointer-events:none;"
+                 viewBox="0 0 400 52" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
+                <!-- צורה לבנה שמאל — הרשימה שלי (פעיל כברירת מחדל) -->
+                <path id="svgShapeLeft"
+                    d="M 0,0 L 200,0 L 200,40 Q 200,52 188,52 L 0,52 Z"
                     fill="white" opacity="1"/>
-                <!-- צורה ימין (הרשימות שלי) -->
-                <path id="svgTabRight"
-                    d="M 200,0 L 400,0 L 400,50 L 212,50 Q 200,50 200,38 Z"
+                <!-- צורה לבנה ימין — הרשימות שלי -->
+                <path id="svgShapeRight"
+                    d="M 200,0 L 400,0 L 400,52 L 212,52 Q 200,52 200,40 Z"
                     fill="white" opacity="0"/>
-                <!-- טקסט שמאל -->
-                <text id="svgTextLeft"  x="100" y="31" text-anchor="middle" font-family="system-ui,sans-serif" font-size="14" font-weight="900" fill="#7367f0">הרשימה שלי</text>
+                <!-- טקסט שמאל — פעיל=סגול, לא פעיל=לבן -->
+                <text id="svgTextLeft" x="100" y="32" text-anchor="middle"
+                    font-family="system-ui,sans-serif" font-size="15" font-weight="900"
+                    fill="#7367f0">הרשימה שלי</text>
                 <!-- טקסט ימין -->
-                <text id="svgTextRight" x="300" y="31" text-anchor="middle" font-family="system-ui,sans-serif" font-size="14" font-weight="800" fill="rgba(255,255,255,0.6)">הרשימות שלי</text>
+                <text id="svgTextRight" x="300" y="32" text-anchor="middle"
+                    font-family="system-ui,sans-serif" font-size="15" font-weight="800"
+                    fill="rgba(255,255,255,0.65)">הרשימות שלי</text>
             </svg>
         </div>
 
@@ -2698,9 +2701,7 @@ ${error.message}
             }, 800);
         }, { passive: true });
 
-        function updateNavPill(page) {
-            if (typeof updateSvgTabs === 'function') { window.activePage = page; updateSvgTabs(); }
-        }
+        function updateNavPill(page) { updateSvgTabs(page); }
 
         // stub functions לתאימות עם קוד קיים
         function openSmartBar() {}
@@ -3571,38 +3572,42 @@ ${error.message}
 
 
     <script>
-    // SVG tab shape — טקסט וצורה ב-SVG, חסין מפני cssText
-    function updateSvgTabs() {
-        var svgR = document.getElementById('svgTabRight');
-        var svgL = document.getElementById('svgTabLeft');
-        var txR  = document.getElementById('svgTextRight');
-        var txL  = document.getElementById('svgTextLeft');
-        var page = window.activePage || 'lists';
-        if (!svgR || !svgL) return;
+    function updateSvgTabs(page) {
+        page = page || window.activePage || 'lists';
+        var shapeL = document.getElementById('svgShapeLeft');
+        var shapeR = document.getElementById('svgShapeRight');
+        var textL  = document.getElementById('svgTextLeft');
+        var textR  = document.getElementById('svgTextRight');
+        if (!shapeL) return;
         if (page === 'lists') {
-            svgL.setAttribute('opacity','1'); svgR.setAttribute('opacity','0');
-            if (txL) { txL.setAttribute('fill','#7367f0');              txL.setAttribute('font-weight','900'); }
-            if (txR) { txR.setAttribute('fill','rgba(255,255,255,0.6)'); txR.setAttribute('font-weight','800'); }
+            shapeL.setAttribute('opacity','1');
+            shapeR.setAttribute('opacity','0');
+            textL.setAttribute('fill','#7367f0');
+            textL.setAttribute('font-weight','900');
+            textR.setAttribute('fill','rgba(255,255,255,0.65)');
+            textR.setAttribute('font-weight','800');
         } else if (page === 'summary') {
-            svgR.setAttribute('opacity','1'); svgL.setAttribute('opacity','0');
-            if (txR) { txR.setAttribute('fill','#7367f0');              txR.setAttribute('font-weight','900'); }
-            if (txL) { txL.setAttribute('fill','rgba(255,255,255,0.6)'); txL.setAttribute('font-weight','800'); }
+            shapeR.setAttribute('opacity','1');
+            shapeL.setAttribute('opacity','0');
+            textR.setAttribute('fill','#7367f0');
+            textR.setAttribute('font-weight','900');
+            textL.setAttribute('fill','rgba(255,255,255,0.65)');
+            textL.setAttribute('font-weight','800');
         } else {
-            svgR.setAttribute('opacity','0'); svgL.setAttribute('opacity','0');
-            if (txL) txL.setAttribute('fill','rgba(255,255,255,0.6)');
-            if (txR) txR.setAttribute('fill','rgba(255,255,255,0.6)');
+            shapeL.setAttribute('opacity','0');
+            shapeR.setAttribute('opacity','0');
+            textL.setAttribute('fill','rgba(255,255,255,0.65)');
+            textR.setAttribute('fill','rgba(255,255,255,0.65)');
         }
     }
     document.addEventListener('DOMContentLoaded', function() {
-        // Patch render
-        var _origRender = window.render;
-        window.render = function() { if (_origRender) _origRender.apply(this, arguments); updateSvgTabs(); };
-        // Patch showPage
-        var _origShowPage = window.showPage;
-        window.showPage = function(p) { if (_origShowPage) _origShowPage.apply(this, arguments); setTimeout(updateSvgTabs, 10); };
-        setTimeout(updateSvgTabs, 150);
+        setTimeout(function(){ updateSvgTabs(window.activePage || 'lists'); }, 200);
+        var _orig = window.showPage;
+        window.showPage = function(p) {
+            if (_orig) _orig.apply(this, arguments);
+            setTimeout(function(){ updateSvgTabs(p); }, 10);
+        };
     });
     </script>
-
 </body>
 </html>
