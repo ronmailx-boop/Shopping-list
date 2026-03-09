@@ -108,5 +108,12 @@
   ],
   "prefer_related_applications": false,
   "related_applications": [],
-  "gcm_sender_id": "103953800507"
+  "gcm_sender_id": "103953800507",
+  "splash_pages": [
+    {
+      "src": "./splash.png",
+      "sizes": "1080x1920",
+      "type": "image/png"
+    }
+  ]
 }
