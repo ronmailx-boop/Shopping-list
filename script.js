@@ -8891,6 +8891,26 @@ function _wizForceClose() {
     if (card) { card.classList.remove('wiz-card-in'); card.classList.remove('wiz-card-out'); }
 }
 
+function _wizSkip() {
+    // סגור את כרטיס המדריך
+    _wizDismiss();
+    // המתן לאנימציית הסגירה ואז כבה מדריך + toast
+    setTimeout(() => {
+        if (wizardMode) {
+            wizardMode = false;
+            localStorage.setItem('wizardMode', 'false');
+            document.body.classList.remove('wizard-mode-active');
+            const btn = document.getElementById('wizardModeBtn');
+            if (btn) btn.classList.remove('wizard-active');
+            const panelPill = document.getElementById('wizardPanelPill');
+            const panelTxt  = document.getElementById('wizardPanelText');
+            if (panelPill) { panelPill.style.background=''; panelPill.style.color=''; }
+            if (panelTxt) panelTxt.textContent = 'מדריך';
+            _showToast({ message: '✨ מדריך כובה', type: 'success', duration: 3000 });
+        }
+    }, 320);
+}
+
 function _wizDismiss() {
     clearTimeout(_wizAutoTimer);
     const overlay = document.getElementById('wizCardOverlay');
