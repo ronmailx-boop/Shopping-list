@@ -818,6 +818,7 @@ function updateUILanguage() {
     const tabStatsEl = document.getElementById('tabStats');
     const tabBankEl2 = document.getElementById('tabBank');
     // SVG handles tab text
+    if (typeof updateSvgTabs==='function') updateSvgTabs(activePage);
     if (tabStatsEl) tabStatsEl.textContent = t('statistics');
     if (tabBankEl2) tabBankEl2.textContent = '🏦 פיננסי';
 
@@ -1971,12 +1972,11 @@ function render() {
     const _tabSummary = document.getElementById('tabSummary');
     const _tabStats = document.getElementById('tabStats');
     const _tabBank = document.getElementById('tabBank');
-    // SVG tabs
-    if (typeof updateSvgTabs === 'function') updateSvgTabs(activePage);
+    if (typeof updateSvgTabs==='function') updateSvgTabs(activePage);
     const _activeTabStyle   = 'flex:1;height:34px;background:white;border:none;border-radius:12px;font-size:14px;font-weight:900;color:#7367f0;cursor:pointer;transition:all 0.2s;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 8px rgba(0,0,0,0.12);';
     const _inactiveTabStyle = 'flex:1;height:34px;background:transparent;border:none;font-size:14px;font-weight:800;color:rgba(255,255,255,0.6);cursor:pointer;transition:all 0.2s;display:flex;align-items:center;justify-content:center;';
-    if (_tabStats) _tabStats.style.cssText = activePage === 'stats' ? _activeTabStyle : _inactiveTabStyle;
-    if (_tabBank)  _tabBank.style.cssText  = activePage === 'bank'  ? _activeTabStyle : _inactiveTabStyle;
+    if (_tabStats) _tabStats.style.cssText = activePage==='stats' ? _activeTabStyle : _inactiveTabStyle;
+    if (_tabBank)  _tabBank.style.cssText  = activePage==='bank'  ? _activeTabStyle : _inactiveTabStyle;
 
     // הצג כפתורי קולי רק בטאב "הרשימה שלי"
     const _voiceBoughtBtn = document.getElementById('voiceBoughtBtn');
