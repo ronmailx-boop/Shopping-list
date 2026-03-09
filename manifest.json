@@ -4,7 +4,7 @@
   "description": "אפליקציה מתקדמת לניהול רשימות קניות ותקציב אישי",
   "start_url": "./index.html",
   "display": "standalone",
-  "background_color": "#080614",
+  "background_color": "#4a3fd4",
   "theme_color": "#7367f0",
   "orientation": "portrait",
   "scope": "./",
