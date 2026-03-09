@@ -2546,49 +2546,33 @@ ${error.message}
 
     <div class="bottom-bar text-white no-print" id="smartBottomBar" style="padding:0;display:flex;flex-direction:column;overflow:hidden;">
 
-        <!-- שורת טאבים — SVG -->
+        <!-- שורת טאבים — SVG, ימין=הרשימה שלי שמאל=הרשימות שלי -->
         <div style="position:relative;height:52px;flex-shrink:0;">
-            <!-- אזורי לחיצה — IDs נשמרים לתאימות JS -->
-            <div id="tabLists"   onclick="showPage('lists')"   style="position:absolute;top:0;left:0;width:50%;bottom:0;z-index:10;cursor:pointer;"></div>
-            <div id="tabSummary" onclick="showPage('summary')" style="position:absolute;top:0;right:0;width:50%;bottom:0;z-index:10;cursor:pointer;"></div>
+            <div id="tabLists"   onclick="tapTab('lists')"   style="position:absolute;top:0;right:0;width:50%;bottom:0;z-index:10;cursor:pointer;"></div>
+            <div id="tabSummary" onclick="tapTab('summary')" style="position:absolute;top:0;left:0;width:50%;bottom:0;z-index:10;cursor:pointer;"></div>
             <svg style="position:absolute;top:0;left:0;width:100%;height:100%;z-index:5;pointer-events:none;"
                  viewBox="0 0 400 52" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
-                <!-- צורה לבנה שמאל — הרשימה שלי (פעיל כברירת מחדל) -->
-                <path id="svgShapeLeft"
-                    d="M 0,0 L 200,0 L 200,40 Q 200,52 188,52 L 0,52 Z"
-                    fill="white" opacity="1"/>
-                <!-- צורה לבנה ימין — הרשימות שלי -->
-                <path id="svgShapeRight"
-                    d="M 200,0 L 400,0 L 400,52 L 212,52 Q 200,52 200,40 Z"
-                    fill="white" opacity="0"/>
-                <!-- טקסט שמאל — פעיל=סגול, לא פעיל=לבן -->
-                <text id="svgTextLeft" x="100" y="32" text-anchor="middle"
-                    font-family="system-ui,sans-serif" font-size="15" font-weight="900"
-                    fill="#7367f0">הרשימה שלי</text>
-                <!-- טקסט ימין -->
-                <text id="svgTextRight" x="300" y="32" text-anchor="middle"
-                    font-family="system-ui,sans-serif" font-size="15" font-weight="800"
-                    fill="rgba(255,255,255,0.65)">הרשימות שלי</text>
+                <path id="svgShapeRight" d="M 200,0 L 400,0 L 400,52 L 212,52 Q 200,52 200,40 Z" fill="white" opacity="1"/>
+                <path id="svgShapeLeft"  d="M 0,0 L 200,0 L 200,40 Q 200,52 188,52 L 0,52 Z"    fill="white" opacity="0"/>
+                <text id="svgTextRight" x="300" y="32" text-anchor="middle" font-family="system-ui,sans-serif" font-size="15" font-weight="900" fill="#7367f0">הרשימה שלי</text>
+                <text id="svgTextLeft"  x="100" y="32" text-anchor="middle" font-family="system-ui,sans-serif" font-size="15" font-weight="800" fill="rgba(255,255,255,0.65)">הרשימות שלי</text>
             </svg>
         </div>
 
         <!-- שורת פעולות ראשית -->
         <div id="barActionsRow" style="display:flex;align-items:center;gap:8px;padding:10px 12px 18px;">
 
-            <!-- בוצע קולי -->
-            <button id="bottomDoneBtn"
-                onclick="if(_voiceActionActive){ startVoiceAction('bought'); } else if(wizardMode){ wiz('voiceBought','before',()=>startVoiceAction('bought')); } else { startVoiceAction('bought'); }"
-                style="flex:1;height:52px;border-radius:18px;background:rgba(255,255,255,0.13);border:1px solid rgba(255,255,255,0.18);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;cursor:pointer;transition:all 0.2s;"
-                ontouchstart="this.style.transform='scale(0.93)'" ontouchend="this.style.transform='scale(1)'">
-                <div style="position:relative;width:20px;height:20px;display:flex;align-items:center;justify-content:center;">
-                    <svg width="18" height="18" fill="none" stroke="white" stroke-width="1.8" viewBox="0 0 24 24">
-                        <rect x="9" y="2" width="6" height="11" rx="3" fill="rgba(255,255,255,0.2)" stroke="white" stroke-width="1.8"/>
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M19 10a7 7 0 01-14 0M12 19v3M9 22h6"/>
+            <!-- + הירוק הגדול — ימין ראשון -->
+            <div style="display:flex;flex-direction:column;align-items:center;gap:4px;flex-shrink:0;">
+                <button onclick="handlePlusBtn(event)"
+                    style="width:62px;height:62px;border-radius:50%;background:#22c55e;border:3px solid rgba(255,255,255,0.35);display:flex;align-items:center;justify-content:center;box-shadow:0 6px 20px rgba(34,197,94,0.5);cursor:pointer;transition:transform 0.2s;animation:smartPlusPulse 2.4s ease-out infinite;"
+                    ontouchstart="this.style.transform='scale(0.9)'" ontouchend="this.style.transform='scale(1)'">
+                    <svg width="30" height="30" fill="none" stroke="white" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.8" d="M12 5v14M5 12h14"/>
                     </svg>
-                    <div style="position:absolute;top:-4px;right:-6px;width:13px;height:13px;border-radius:50%;background:#22c55e;display:flex;align-items:center;justify-content:center;border:1.5px solid rgba(115,103,240,0.8);font-size:8px;font-weight:900;color:white;">✓</div>
-                </div>
-                <span style="font-size:9px;font-weight:800;color:rgba(255,255,255,0.9);">בוצע</span>
-            </button>
+                </button>
+                <span id="plusBtnLabel" style="font-size:9px;font-weight:800;color:rgba(255,255,255,0.75);">הוסף מוצר</span>
+            </div>
 
             <!-- הוספה קולית -->
             <button id="bottomAddBtn"
@@ -2605,17 +2589,20 @@ ${error.message}
                 <span style="font-size:9px;font-weight:800;color:rgba(255,255,255,0.9);">הוספה</span>
             </button>
 
-            <!-- + הירוק הגדול -->
-            <div style="display:flex;flex-direction:column;align-items:center;gap:4px;flex-shrink:0;">
-                <button onclick="handlePlusBtn(event)"
-                    style="width:62px;height:62px;border-radius:50%;background:#22c55e;border:3px solid rgba(255,255,255,0.35);display:flex;align-items:center;justify-content:center;box-shadow:0 6px 20px rgba(34,197,94,0.5);cursor:pointer;transition:transform 0.2s;animation:smartPlusPulse 2.4s ease-out infinite;"
-                    ontouchstart="this.style.transform='scale(0.9)'" ontouchend="this.style.transform='scale(1)'">
-                    <svg width="30" height="30" fill="none" stroke="white" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.8" d="M12 5v14M5 12h14"/>
+            <!-- בוצע קולי -->
+            <button id="bottomDoneBtn"
+                onclick="if(_voiceActionActive){ startVoiceAction('bought'); } else if(wizardMode){ wiz('voiceBought','before',()=>startVoiceAction('bought')); } else { startVoiceAction('bought'); }"
+                style="flex:1;height:52px;border-radius:18px;background:rgba(255,255,255,0.13);border:1px solid rgba(255,255,255,0.18);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;cursor:pointer;transition:all 0.2s;"
+                ontouchstart="this.style.transform='scale(0.93)'" ontouchend="this.style.transform='scale(1)'">
+                <div style="position:relative;width:20px;height:20px;display:flex;align-items:center;justify-content:center;">
+                    <svg width="18" height="18" fill="none" stroke="white" stroke-width="1.8" viewBox="0 0 24 24">
+                        <rect x="9" y="2" width="6" height="11" rx="3" fill="rgba(255,255,255,0.2)" stroke="white" stroke-width="1.8"/>
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M19 10a7 7 0 01-14 0M12 19v3M9 22h6"/>
                     </svg>
-                </button>
-                <span id="plusBtnLabel" style="font-size:9px;font-weight:800;color:rgba(255,255,255,0.75);">הוסף מוצר</span>
-            </div>
+                    <div style="position:absolute;top:-4px;right:-6px;width:13px;height:13px;border-radius:50%;background:#22c55e;display:flex;align-items:center;justify-content:center;border:1.5px solid rgba(115,103,240,0.8);font-size:8px;font-weight:900;color:white;">✓</div>
+                </div>
+                <span style="font-size:9px;font-weight:800;color:rgba(255,255,255,0.9);">בוצע</span>
+            </button>
 
             <!-- סיום רשימה -->
             <button onclick="wizardMode ? openWizard('completeList') : openModal('confirmModal')"
@@ -2701,7 +2688,7 @@ ${error.message}
             }, 800);
         }, { passive: true });
 
-        function updateNavPill(page) { updateSvgTabs(page); }
+        function updateNavPill(page) { if(typeof updateSvgTabs==='function') updateSvgTabs(page); }
 
         // stub functions לתאימות עם קוד קיים
         function openSmartBar() {}
@@ -3572,41 +3559,64 @@ ${error.message}
 
 
     <script>
+    /* ═══ SVG TABS + DOUBLE TAP ═══ */
+    var _activePage = 'lists';
+    var _activeMode = 'buttons'; // 'buttons' | 'stats'
+
     function updateSvgTabs(page) {
-        page = page || window.activePage || 'lists';
-        var shapeL = document.getElementById('svgShapeLeft');
-        var shapeR = document.getElementById('svgShapeRight');
-        var textL  = document.getElementById('svgTextLeft');
-        var textR  = document.getElementById('svgTextRight');
-        if (!shapeL) return;
+        page = page || _activePage;
+        var sR = document.getElementById('svgShapeRight');
+        var sL = document.getElementById('svgShapeLeft');
+        var tR = document.getElementById('svgTextRight');
+        var tL = document.getElementById('svgTextLeft');
+        if (!sR) return;
         if (page === 'lists') {
-            shapeL.setAttribute('opacity','1');
-            shapeR.setAttribute('opacity','0');
-            textL.setAttribute('fill','#7367f0');
-            textL.setAttribute('font-weight','900');
-            textR.setAttribute('fill','rgba(255,255,255,0.65)');
-            textR.setAttribute('font-weight','800');
+            sR.setAttribute('opacity','1'); sL.setAttribute('opacity','0');
+            tR.setAttribute('fill','#7367f0'); tR.setAttribute('font-weight','900');
+            tL.setAttribute('fill','rgba(255,255,255,0.65)'); tL.setAttribute('font-weight','800');
         } else if (page === 'summary') {
-            shapeR.setAttribute('opacity','1');
-            shapeL.setAttribute('opacity','0');
-            textR.setAttribute('fill','#7367f0');
-            textR.setAttribute('font-weight','900');
-            textL.setAttribute('fill','rgba(255,255,255,0.65)');
-            textL.setAttribute('font-weight','800');
+            sL.setAttribute('opacity','1'); sR.setAttribute('opacity','0');
+            tL.setAttribute('fill','#7367f0'); tL.setAttribute('font-weight','900');
+            tR.setAttribute('fill','rgba(255,255,255,0.65)'); tR.setAttribute('font-weight','800');
         } else {
-            shapeL.setAttribute('opacity','0');
-            shapeR.setAttribute('opacity','0');
-            textL.setAttribute('fill','rgba(255,255,255,0.65)');
-            textR.setAttribute('fill','rgba(255,255,255,0.65)');
+            sR.setAttribute('opacity','0'); sL.setAttribute('opacity','0');
+            tR.setAttribute('fill','rgba(255,255,255,0.65)');
+            tL.setAttribute('fill','rgba(255,255,255,0.65)');
         }
     }
+
+    function tapTab(page) {
+        var actions = document.getElementById('barActionsRow');
+        var stats   = document.getElementById('barStatsRow');
+        if (_activePage === page) {
+            // לחיצה שנייה — החלף מצב
+            _activeMode = (_activeMode === 'buttons') ? 'stats' : 'buttons';
+        } else {
+            // לחיצה ראשונה — עבור לטאב, תמיד כפתורים
+            _activePage = page;
+            _activeMode = 'buttons';
+            window.activePage = page;
+            if (typeof showPage === 'function') showPage(page);
+        }
+        // עדכן תצוגה
+        if (_activeMode === 'buttons') {
+            if (actions) { actions.style.display='flex'; actions.style.padding='10px 12px 18px'; }
+            if (stats)   stats.style.display = 'none';
+        } else {
+            if (actions) actions.style.display = 'none';
+            if (stats)   { stats.style.display='flex'; stats.style.padding='10px 12px 18px'; }
+        }
+        updateSvgTabs(_activePage);
+    }
+
     document.addEventListener('DOMContentLoaded', function() {
-        setTimeout(function(){ updateSvgTabs(window.activePage || 'lists'); }, 200);
-        var _orig = window.showPage;
-        window.showPage = function(p) {
-            if (_orig) _orig.apply(this, arguments);
-            setTimeout(function(){ updateSvgTabs(p); }, 10);
-        };
+        // עדכון ראשוני
+        setTimeout(function(){ updateSvgTabs(window.activePage||'lists'); }, 200);
+
+        // ביטול מצב גלילה — barStatsRow לא יופיע בגלילה
+        var _origShowStatsRow = null;
+        // מבטל את ה-scroll listener שמחליף את הבר
+        window.addEventListener('scroll', function(e){ e.stopImmediatePropagation(); }, true);
     });
     </script>
 </body>
