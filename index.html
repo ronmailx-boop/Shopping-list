@@ -2546,16 +2546,27 @@ ${error.message}
 
     <div class="bottom-bar text-white no-print" id="smartBottomBar" style="padding:0;display:flex;flex-direction:column;overflow:hidden;">
 
-        <!-- שורת טאבים — פס עדין בחלק העליון של הבר -->
-        <div style="display:flex;gap:6px;padding:5px 8px;border-bottom:1px solid rgba(255,255,255,0.12);">
-            <div id="tabLists" onclick="showPage('lists')"
-                style="flex:1;height:38px;font-size:14px;font-weight:800;color:rgba(255,255,255,0.6);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all 0.2s;">
-                הרשימה שלי
-            </div>
-            <div id="tabSummary" onclick="showPage('summary')"
-                style="flex:1;height:38px;font-size:14px;font-weight:800;color:rgba(255,255,255,0.6);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all 0.2s;">
-                הרשימות שלי
-            </div>
+        <!-- שורת טאבים — SVG מלא כולל טקסט, חסין מפני JS -->
+        <div style="position:relative;height:50px;flex-shrink:0;">
+            <!-- אזורי לחיצה בלתי נראים — נשמרים בשביל תאימות JS -->
+            <div id="tabLists"   onclick="showPage('lists')"   style="position:absolute;top:0;left:50%;right:0;bottom:0;z-index:10;cursor:pointer;"></div>
+            <div id="tabSummary" onclick="showPage('summary')" style="position:absolute;top:0;left:0;width:50%;bottom:0;z-index:10;cursor:pointer;"></div>
+            <!-- SVG — צורה + טקסט, לא נפגע מ-JS -->
+            <svg id="tabShapeSvg" style="position:absolute;top:0;left:0;width:100%;height:100%;z-index:5;pointer-events:none;"
+                 viewBox="0 0 400 50" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
+                <!-- צורה שמאל (הרשימה שלי) -->
+                <path id="svgTabLeft"
+                    d="M 200,0 L 0,0 L 0,50 L 188,50 Q 200,50 200,38 Z"
+                    fill="white" opacity="1"/>
+                <!-- צורה ימין (הרשימות שלי) -->
+                <path id="svgTabRight"
+                    d="M 200,0 L 400,0 L 400,50 L 212,50 Q 200,50 200,38 Z"
+                    fill="white" opacity="0"/>
+                <!-- טקסט שמאל -->
+                <text id="svgTextLeft"  x="100" y="31" text-anchor="middle" font-family="system-ui,sans-serif" font-size="14" font-weight="900" fill="#7367f0">הרשימה שלי</text>
+                <!-- טקסט ימין -->
+                <text id="svgTextRight" x="300" y="31" text-anchor="middle" font-family="system-ui,sans-serif" font-size="14" font-weight="800" fill="rgba(255,255,255,0.6)">הרשימות שלי</text>
+            </svg>
         </div>
 
         <!-- שורת פעולות ראשית -->
@@ -2688,12 +2699,7 @@ ${error.message}
         }, { passive: true });
 
         function updateNavPill(page) {
-            var activeStyle   = 'flex:1;height:44px;border-radius:14px;background:white;font-size:15px;font-weight:900;color:#7367f0;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all 0.2s;box-shadow:0 3px 10px rgba(0,0,0,0.12);';
-            var inactiveStyle = 'flex:1;height:44px;border-radius:14px;background:rgba(255,255,255,0.16);font-size:15px;font-weight:800;color:white;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all 0.2s;';
-            var tl = document.getElementById('tabLists');
-            var ts = document.getElementById('tabSummary');
-            if (tl) tl.style.cssText = (page === 'lists')   ? activeStyle : inactiveStyle;
-            if (ts) ts.style.cssText = (page === 'summary') ? activeStyle : inactiveStyle;
+            if (typeof updateSvgTabs === 'function') { window.activePage = page; updateSvgTabs(); }
         }
 
         // stub functions לתאימות עם קוד קיים
@@ -3562,6 +3568,41 @@ ${error.message}
         </div>
     </div>
   </div>
+
+
+    <script>
+    // SVG tab shape — טקסט וצורה ב-SVG, חסין מפני cssText
+    function updateSvgTabs() {
+        var svgR = document.getElementById('svgTabRight');
+        var svgL = document.getElementById('svgTabLeft');
+        var txR  = document.getElementById('svgTextRight');
+        var txL  = document.getElementById('svgTextLeft');
+        var page = window.activePage || 'lists';
+        if (!svgR || !svgL) return;
+        if (page === 'lists') {
+            svgL.setAttribute('opacity','1'); svgR.setAttribute('opacity','0');
+            if (txL) { txL.setAttribute('fill','#7367f0');              txL.setAttribute('font-weight','900'); }
+            if (txR) { txR.setAttribute('fill','rgba(255,255,255,0.6)'); txR.setAttribute('font-weight','800'); }
+        } else if (page === 'summary') {
+            svgR.setAttribute('opacity','1'); svgL.setAttribute('opacity','0');
+            if (txR) { txR.setAttribute('fill','#7367f0');              txR.setAttribute('font-weight','900'); }
+            if (txL) { txL.setAttribute('fill','rgba(255,255,255,0.6)'); txL.setAttribute('font-weight','800'); }
+        } else {
+            svgR.setAttribute('opacity','0'); svgL.setAttribute('opacity','0');
+            if (txL) txL.setAttribute('fill','rgba(255,255,255,0.6)');
+            if (txR) txR.setAttribute('fill','rgba(255,255,255,0.6)');
+        }
+    }
+    document.addEventListener('DOMContentLoaded', function() {
+        // Patch render
+        var _origRender = window.render;
+        window.render = function() { if (_origRender) _origRender.apply(this, arguments); updateSvgTabs(); };
+        // Patch showPage
+        var _origShowPage = window.showPage;
+        window.showPage = function(p) { if (_origShowPage) _origShowPage.apply(this, arguments); setTimeout(updateSvgTabs, 10); };
+        setTimeout(updateSvgTabs, 150);
+    });
+    </script>
 
 </body>
 </html>
