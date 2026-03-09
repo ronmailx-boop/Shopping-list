@@ -112,43 +112,74 @@ async function syncData() {
   }
 }
 
-// Push Notifications (for future budget alerts)
+// Push Notifications — FCM payload handler
 self.addEventListener('push', event => {
+  let title = 'Vplus Pro';
+  let body  = 'התראה חדשה';
+  let data  = {};
+
+  if (event.data) {
+    try {
+      const payload = event.data.json();
+      // FCM שולח notification.title / notification.body
+      title = payload.notification?.title || payload.data?.title || title;
+      body  = payload.notification?.body  || payload.data?.body  || body;
+      data  = payload.data || {};
+    } catch (e) {
+      // fallback אם הנתון לא JSON
+      body = event.data.text();
+    }
+  }
+
   const options = {
-    body: event.data ? event.data.text() : 'התראה חדשה מ-Vplus',
-    icon: '/icon-192.png',
-    badge: '/badge-72.png',
-    vibrate: [200, 100, 200],
-    data: {
-      dateOfArrival: Date.now(),
-      primaryKey: 1
-    },
+    body,
+    icon:    '/icon-96.png',
+    badge:   '/icon-96.png',
+    vibrate: [300, 100, 300, 100, 300],
+    data,
+    requireInteraction: true,
     actions: [
-      {
-        action: 'open',
-        title: 'פתח',
-        icon: '/check.png'
-      },
-      {
-        action: 'close',
-        title: 'סגור',
-        icon: '/cross.png'
-      }
+      { action: 'snooze-10', title: '⏰ דחה 10 דק׳' },
+      { action: 'snooze-60', title: '⏰ דחה שעה'    },
+      { action: 'close',     title: '✕ סגור'         }
     ]
   };
 
   event.waitUntil(
-    self.registration.showNotification('Vplus Pro', options)
+    self.registration.showNotification(title, options)
   );
 });
 
 // Notification Click Handler
 self.addEventListener('notificationclick', event => {
   event.notification.close();
-  
-  if (event.action === 'open') {
+
+  if (event.action === 'snooze-10' || event.action === 'snooze-60') {
+    // שלח הודעה לאפליקציה לטיפול ב-snooze
+    const snoozeMs = event.action === 'snooze-10' ? 10 * 60 * 1000 : 60 * 60 * 1000;
     event.waitUntil(
-      clients.openWindow('/')
+      clients.matchAll({ type: 'window' }).then(clientList => {
+        clientList.forEach(client => {
+          client.postMessage({
+            type: 'SNOOZE_REMINDER',
+            data: event.notification.data,
+            snoozeMs
+          });
+        });
+        if (clientList.length === 0) {
+          return clients.openWindow('/');
+        }
+      })
+    );
+  } else {
+    // פתח את האפליקציה
+    event.waitUntil(
+      clients.matchAll({ type: 'window' }).then(clientList => {
+        const focused = clientList.find(c => c.focused);
+        if (focused) return focused.focus();
+        if (clientList.length > 0) return clientList[0].focus();
+        return clients.openWindow('/');
+      })
     );
   }
 });
