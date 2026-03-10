@@ -864,15 +864,19 @@ function showPage(p) {
 
 function toggleCategorySorting() {
     categorySortEnabled = !categorySortEnabled;
-    localStorage.setItem('categorySortEnabled', categorySortEnabled);
+    localStorage.setItem('categorySortEnabled', categorySortEnabled ? 'true' : 'false');
 
     const btn = document.getElementById('categorySortText');
     if (btn) {
-        // Show current active state, not next action
-        btn.textContent = categorySortEnabled ? '🔤 מיון לפי קטגוריות' : '📋 מיון ידני';
+        btn.textContent = categorySortEnabled ? '🔤 מיון לפי קטגוריות פעיל ✅' : '🔤 מיון לפי קטגוריות';
     }
 
-    render();
+    // כאשר מפעילים מיון — ממיין ושומר מחדש
+    if (categorySortEnabled) {
+        db.lists[db.currentId].items = sortItemsByStatusAndCategory(db.lists[db.currentId].items);
+    }
+
+    save(); // save כולל render()
     showNotification(categorySortEnabled ? '✅ מיון לפי קטגוריות מופעל' : '✅ מיון ידני מופעל');
 }
 
@@ -2188,7 +2192,7 @@ function render() {
             // Update category sort button text
             const categorySortText = document.getElementById('categorySortText');
             if (categorySortText) {
-                categorySortText.textContent = categorySortEnabled ? '📋 מיון ידני' : '🔤 מיון לפי קטגוריות';
+                categorySortText.textContent = categorySortEnabled ? '🔤 מיון לפי קטגוריות פעיל ✅' : '🔤 מיון לפי קטגוריות';
             }
 
             if (categorySortEnabled) {
