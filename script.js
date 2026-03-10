@@ -7184,6 +7184,9 @@ function editNotes(idx) {
 
 // Initialize Peace of Mind features on page load
 document.addEventListener('DOMContentLoaded', function() {
+    // טען GitHub Token
+    if (typeof loadGithubToken === 'function') loadGithubToken();
+    updateGithubTokenStatus();
     setTimeout(() => { checkUrgentPayments(); }, 1000);
     checkFirstRunDemo();
 });
@@ -9162,6 +9165,51 @@ function _askDemoBeforeWizard() {
     document.body.appendChild(overlay);
 }
 
+// ── GitHub Token Management ──────────────────────────────────────
+function loadGithubToken() {
+    const token = localStorage.getItem('vplus_github_pat') || '';
+    window.GITHUB_PAT = token;
+    const input = document.getElementById('githubTokenInput');
+    if (input && token) input.value = token;
+    updateGithubTokenStatus();
+}
+
+function saveGithubToken() {
+    const input = document.getElementById('githubTokenInput');
+    if (!input) return;
+    const token = input.value.trim();
+    if (!token) {
+        localStorage.removeItem('vplus_github_pat');
+        window.GITHUB_PAT = '';
+        showNotification('🗑️ Token נמחק');
+    } else if (!token.startsWith('ghp_') && !token.startsWith('github_pat_')) {
+        showNotification('⚠️ Token לא תקין — חייב להתחיל ב-ghp_ או github_pat_', 'warning');
+        return;
+    } else {
+        localStorage.setItem('vplus_github_pat', token);
+        window.GITHUB_PAT = token;
+        showNotification('✅ GitHub Token נשמר!');
+    }
+    updateGithubTokenStatus();
+}
+
+function updateGithubTokenStatus() {
+    const input  = document.getElementById('githubTokenInput');
+    const status = document.getElementById('githubTokenStatus');
+    if (!status) return;
+    const val = (input ? input.value : '') || localStorage.getItem('vplus_github_pat') || '';
+    if (val.startsWith('ghp_') || val.startsWith('github_pat_')) {
+        status.textContent = '✅ מוגדר';
+        status.style.color = '#22c55e';
+    } else if (val.length > 0) {
+        status.textContent = '⚠️ לא תקין';
+        status.style.color = '#f59e0b';
+    } else {
+        status.textContent = '❌ לא מוגדר';
+        status.style.color = '#ef4444';
+    }
+}
+
 function toggleWizardMode() {
     wizardMode = !wizardMode;
     localStorage.setItem('wizardMode', wizardMode ? 'true' : 'false');
@@ -9791,59 +9839,125 @@ async function runFinancialFetch({ companyId, credentials, modalId, nameLabel })
     showFinProgress();
 
     try {
+        const user = window.firebaseAuth?.currentUser;
         log(`חברה: ${companyId}`, 'info', '🏦');
-        log(`credentials keys: ${Object.keys(credentials).join(', ')}`, 'info', '🔑');
+        log(`currentUser: ${user ? user.email : 'null'}`, user ? 'success' : 'error', user ? '👤' : '❌');
+        if (!user) { hideFinProgress(); showNotification('❌ יש להתחבר לחשבון תחילה', 'error'); return; }
 
-        setFinStage(1, '🔐', 'מתחבר...', 'מאמת פרטי התחברות', '15%');
-        await new Promise(r => setTimeout(r, 3000));
-        setFinStage(2, '📡', 'שולף נתונים...', 'זה לוקח עד דקה', '50%');
+        const userId = user.uid;
+        const jobId  = 'job_' + Date.now();
 
-        let transactions = [];
+        setFinStage(1, '🔐', 'שולח לסנכרון...', 'מפעיל GitHub Actions', '15%');
 
-        if (window.firebaseApp) {
-            const user = window.firebaseAuth?.currentUser;
-            log(`currentUser: ${user ? user.email : 'null'}`, user ? 'success' : 'error', user ? '👤' : '❌');
-            if (!user) { hideFinProgress(); showNotification('❌ יש להתחבר לחשבון תחילה', 'error'); return; }
+        // ── שלח ל-GitHub Actions ──────────────────────────────────
+        const GITHUB_TOKEN = window.GITHUB_PAT || '';
+        const REPO         = 'ronmailx-boop/Shopping-list';
 
-            const { getFunctions, httpsCallable } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-functions.js');
-            const functions = getFunctions(window.firebaseApp, 'me-west1');
-            const fetchFn = httpsCallable(functions, 'fetchBankData', { timeout: 300000 });
-
-            log('שולח קריאה ל-Cloud Function...', 'info', '📡');
-            try {
-                // index.js מצפה ל: companyId, username, password
-                const username = credentials.username || credentials.userCode || credentials.id || '';
-                const payload = { companyId, username, password: credentials.password, ...credentials };
-                const result = await fetchFn(payload);
-                log(`תשובה התקבלה`, 'success', '✅');
-                // fetchBankData מחזיר accounts[] — כל account יש transactions[]
-                const accounts = Array.isArray(result.data) ? result.data : [];
-                accounts.forEach(acc => {
-                    if (acc.txns) transactions.push(...acc.txns);
-                });
-                log(`סה"כ ${transactions.length} עסקאות`, 'success', '✅');
-            } catch (fnErr) {
-                log(`שגיאת Function: ${fnErr?.message || fnErr?.code}`, 'error', '❌');
-                log(`code: ${fnErr?.code || 'אין'}`, 'error', '🔴');
-                hideFinProgress();
-                showNotification('❌ שגיאה — ראה לוג למטה', 'error');
-                return;
-            }
-        } else {
-            log('אין Firebase — נתוני דמו', 'warn', '⚠️');
-            transactions = [
-                { name: 'דוגמה 1', amount: 100, date: new Date().toLocaleDateString('he-IL') },
-                { name: 'דוגמה 2', amount: 250, date: new Date().toLocaleDateString('he-IL') },
-            ];
+        if (!GITHUB_TOKEN) {
+            log('⚠️ חסר GITHUB_PAT — עיין בהגדרות', 'error', '❌');
+            hideFinProgress();
+            showNotification('❌ חסר GitHub Token — הגדר GITHUB_PAT', 'error');
+            return;
         }
 
+        const payload = {
+            event_type: 'bank-sync',
+            client_payload: {
+                userId,
+                jobId,
+                companyId,
+                username:  credentials.username  || credentials.userCode || '',
+                password:  credentials.password  || '',
+                userCode:  credentials.userCode  || '',
+                id:        credentials.id        || '',
+                num:       credentials.num       || '',
+            }
+        };
+
+        log('שולח ל-GitHub Actions...', 'info', '🚀');
+        const ghRes = await fetch(`https://api.github.com/repos/${REPO}/dispatches`, {
+            method: 'POST',
+            headers: {
+                'Authorization': `token ${GITHUB_TOKEN}`,
+                'Accept':        'application/vnd.github.v3+json',
+                'Content-Type':  'application/json',
+            },
+            body: JSON.stringify(payload),
+        });
+
+        if (!ghRes.ok) {
+            const errText = await ghRes.text();
+            log(`שגיאת GitHub: ${ghRes.status} — ${errText}`, 'error', '❌');
+            hideFinProgress();
+            showNotification('❌ שגיאת GitHub Actions', 'error');
+            return;
+        }
+
+        log('GitHub Actions הופעל ✅', 'success', '🚀');
+        setFinStage(2, '⏳', 'ממתין לתוצאות...', 'זה לוקח עד 3 דקות', '40%');
+
+        // ── המתן לתוצאות ב-Firestore ─────────────────────────────
+        const { doc, onSnapshot } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js');
+        const jobRef = doc(window.firebaseDb, 'bankSync', userId, 'jobs', jobId);
+
+        const transactions = await new Promise((resolve, reject) => {
+            const TIMEOUT = 5 * 60 * 1000; // 5 דקות
+            let settled = false;
+
+            const timer = setTimeout(() => {
+                if (!settled) { settled = true; unsubscribe(); reject(new Error('timeout')); }
+            }, TIMEOUT);
+
+            const unsubscribe = onSnapshot(jobRef, (snap) => {
+                if (!snap.exists()) return;
+                const data = snap.data();
+                log(`סטטוס: ${data.status}`, 'info', '📊');
+
+                if (data.status === 'running') {
+                    setFinStage(2, '🔐', 'מתחבר לבנק...', 'GitHub Actions פועל', '55%');
+                }
+
+                if (data.status === 'done') {
+                    if (!settled) {
+                        settled = true;
+                        clearTimeout(timer);
+                        unsubscribe();
+                        // חלץ עסקאות מכל החשבונות
+                        const txns = [];
+                        (data.accounts || []).forEach(acc => {
+                            (acc.txns || []).forEach(t => txns.push({
+                                name:   t.description || 'עסקה',
+                                amount: Math.abs(t.amount || 0),
+                                price:  Math.abs(t.amount || 0),
+                                date:   t.date || '',
+                            }));
+                        });
+                        log(`התקבלו ${txns.length} עסקאות ✅`, 'success', '✅');
+                        resolve(txns);
+                    }
+                }
+
+                if (data.status === 'error') {
+                    if (!settled) {
+                        settled = true;
+                        clearTimeout(timer);
+                        unsubscribe();
+                        reject(new Error(data.errorMessage || data.errorType || 'שגיאה'));
+                    }
+                }
+            }, (err) => {
+                if (!settled) { settled = true; clearTimeout(timer); unsubscribe(); reject(err); }
+            });
+        });
+
+        // ── הצג סיום ─────────────────────────────────────────────
         setFinStage(3, '⚙️', 'מעבד נתונים...', 'עוד רגע...', '85%');
-        await new Promise(r => setTimeout(r, 1200));
+        await new Promise(r => setTimeout(r, 800));
 
         document.getElementById('finProgressBar').style.width = '100%';
         document.getElementById('finProgressIcon').textContent = '✅';
         document.getElementById('finProgressTitle').textContent = 'הושלם בהצלחה!';
-        document.getElementById('finProgressSub').textContent = 'הנתונים יובאו לרשימה';
+        document.getElementById('finProgressSub').textContent = `יובאו ${transactions.length} עסקאות`;
         for (let i = 1; i <= 3; i++) {
             document.getElementById('finDot' + i).textContent = '✓';
             document.getElementById('finDot' + i).style.background = '#7367f0';
@@ -9855,13 +9969,14 @@ async function runFinancialFetch({ companyId, credentials, modalId, nameLabel })
         if (transactions.length > 0) {
             importFinancialTransactions(transactions, nameLabel);
         } else {
-            showNotification('ℹ️ לא נמצאו רשומות', 'warning');
+            showNotification('ℹ️ לא נמצאו עסקאות', 'warning');
         }
 
     } catch (err) {
-        log(`שגיאה כללית: ${err.message}`, 'error', '💥');
+        const msg = err.message === 'timeout' ? 'פסק הזמן — נסה שוב' : err.message;
+        log(`שגיאה: ${msg}`, 'error', '💥');
         hideFinProgress();
-        showNotification('❌ שגיאה — ראה לוג למטה', 'error');
+        showNotification('❌ ' + msg, 'error');
     }
 }
 
