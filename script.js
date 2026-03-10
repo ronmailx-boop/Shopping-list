@@ -9901,7 +9901,7 @@ async function runFinancialFetch({ companyId, credentials, modalId, nameLabel })
         const jobRef = doc(window.firebaseDb, 'bankSync', userId, 'jobs', jobId);
 
         const transactions = await new Promise((resolve, reject) => {
-            const TIMEOUT = 5 * 60 * 1000; // 5 דקות
+            const TIMEOUT = 8 * 60 * 1000; // 8 דקות
             let settled = false;
 
             const timer = setTimeout(() => {
@@ -10123,4 +10123,3 @@ if (typeof showPage === 'function') {
 // Init on load
 document.addEventListener('DOMContentLoaded', _updatePlusBtnLabel);
 setTimeout(_updatePlusBtnLabel, 500);
-
