@@ -868,7 +868,7 @@ function toggleCategorySorting() {
 
     const btn = document.getElementById('categorySortText');
     if (btn) {
-        btn.textContent = categorySortEnabled ? '🔤 מיון לפי קטגוריות פעיל ✅' : '🔤 מיון לפי קטגוריות';
+        btn.textContent = categorySortEnabled ? '🔤 מיון ✅' : '🔤 מיון';
     }
 
     // כאשר מפעילים מיון — ממיין ושומר מחדש
@@ -877,7 +877,7 @@ function toggleCategorySorting() {
     }
 
     save(); // save כולל render()
-    showNotification(categorySortEnabled ? '✅ מיון לפי קטגוריות מופעל' : '✅ מיון ידני מופעל');
+    showNotification(categorySortEnabled ? '✅ מיון לפי קטגוריות מופעל' : '✅ מיון ידני מופעל'); render();
 }
 
 // ========== Language Functions ==========
@@ -2192,7 +2192,7 @@ function render() {
             // Update category sort button text
             const categorySortText = document.getElementById('categorySortText');
             if (categorySortText) {
-                categorySortText.textContent = categorySortEnabled ? '🔤 מיון לפי קטגוריות פעיל ✅' : '🔤 מיון לפי קטגוריות';
+                categorySortText.textContent = categorySortEnabled ? '🔤 מיון ✅' : '🔤 מיון';
             }
 
             if (categorySortEnabled) {
