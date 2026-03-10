@@ -868,7 +868,9 @@ function toggleCategorySorting() {
 
     const btn = document.getElementById('categorySortText');
     if (btn) {
-        btn.textContent = categorySortEnabled ? '🔤 מיון ✅' : '🔤 מיון';
+        btn.textContent = '🔤 מיון';
+        var pill = document.getElementById('categorySortPill');
+        if (pill) { pill.style.background = categorySortEnabled ? '#7367f0' : ''; pill.style.color = categorySortEnabled ? 'white' : ''; pill.style.borderColor = categorySortEnabled ? '#7367f0' : ''; }
     }
 
     // כאשר מפעילים מיון — ממיין ושומר מחדש
@@ -2192,7 +2194,9 @@ function render() {
             // Update category sort button text
             const categorySortText = document.getElementById('categorySortText');
             if (categorySortText) {
-                categorySortText.textContent = categorySortEnabled ? '🔤 מיון ✅' : '🔤 מיון';
+                categorySortText.textContent = '🔤 מיון';
+                var pill = document.getElementById('categorySortPill');
+                if (pill) { pill.style.background = categorySortEnabled ? '#7367f0' : ''; pill.style.color = categorySortEnabled ? 'white' : ''; pill.style.borderColor = categorySortEnabled ? '#7367f0' : ''; }
             }
 
             if (categorySortEnabled) {
