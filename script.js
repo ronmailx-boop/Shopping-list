@@ -673,7 +673,8 @@ function exitDemoMode() {
     var banner = document.getElementById('demoBanner');
     if (banner) {
         banner.remove();
-        document.body.style.paddingTop = '';
+        var appHeader = document.querySelector('.top-bar, header, #topBar, [class*="top-bar"]');
+        if (appHeader) appHeader.style.marginTop = '';
     }
     save();
 }
@@ -688,7 +689,9 @@ function showDemoBanner() {
     div.innerHTML = '<span style="font-size:20px;">🎯</span><div style="flex:1;"><div style="font-size:12px;font-weight:900;color:white;">מצב דמו פעיל</div><div style="font-size:10px;color:rgba(255,255,255,0.8);">אלו נתוני דוגמה — חקור בחופשיות!</div></div><button onclick="exitDemoMode()" style="background:rgba(255,255,255,0.25);border:1.5px solid rgba(255,255,255,0.4);color:white;font-size:10px;font-weight:800;padding:5px 14px;border-radius:99px;cursor:pointer;font-family:system-ui,sans-serif;">יציאה מדמו</button>';
     banner.appendChild(div);
     document.body.insertBefore(banner, document.body.firstChild);
-    document.body.style.paddingTop = '48px';
+    // הזזת ה-header הקיים כלפי מטה בלי לשבש layout
+    var appHeader = document.querySelector('.top-bar, header, #topBar, [class*="top-bar"]');
+    if (appHeader) appHeader.style.marginTop = '48px';
 }
 
 function checkFirstRunDemo() {
@@ -2143,16 +2146,15 @@ function render() {
     const container = document.getElementById(activePage === 'lists' ? 'itemsContainer' : activePage === 'summary' ? 'summaryContainer' : null);
     let total = 0, paid = 0;
 
-    const _tabLists = document.getElementById('tabLists');
-    const _tabSummary = document.getElementById('tabSummary');
+    // tabLists ו-tabSummary הם עכשיו hit-areas שקופות מעל SVG — לא נגע בהם
     const _tabStats = document.getElementById('tabStats');
     const _tabBank = document.getElementById('tabBank');
     const _activeTabStyle = 'flex:1;height:34px;background:white;border:none;border-radius:12px;font-size:14px;font-weight:900;color:#7367f0;cursor:pointer;transition:all 0.2s;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 8px rgba(0,0,0,0.12);';
     const _inactiveTabStyle = 'flex:1;height:34px;background:transparent;border:none;font-size:14px;font-weight:800;color:rgba(255,255,255,0.6);cursor:pointer;transition:all 0.2s;display:flex;align-items:center;justify-content:center;';
-    if (_tabLists)   _tabLists.style.cssText   = activePage === 'lists'   ? _activeTabStyle : _inactiveTabStyle;
-    if (_tabSummary) _tabSummary.style.cssText = activePage === 'summary' ? _activeTabStyle : _inactiveTabStyle;
     if (_tabStats)   _tabStats.style.cssText   = activePage === 'stats'   ? _activeTabStyle : _inactiveTabStyle;
     if (_tabBank)    _tabBank.style.cssText     = activePage === 'bank'    ? _activeTabStyle : _inactiveTabStyle;
+    // עדכן SVG tabs
+    if (typeof updateSvgTabs === 'function') updateSvgTabs(activePage);
 
     // הצג כפתורי קולי רק בטאב "הרשימה שלי"
     const _voiceBoughtBtn = document.getElementById('voiceBoughtBtn');
