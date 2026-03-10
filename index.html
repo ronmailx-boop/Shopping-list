@@ -3158,6 +3158,24 @@ ${error.message}
                 📂 שחזר נתונים
             </button>
             <input type="file" id="importDataFile" accept=".json" style="display: none;" onchange="importData(event)">
+            <!-- GitHub Token לסנכרון בנקאי -->
+            <div class="mb-3" id="githubTokenSection">
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+                    <label class="block text-sm font-bold text-gray-700">🔑 GitHub Token (סנכרון בנק)</label>
+                    <span id="githubTokenStatus" style="font-size:11px;font-weight:700;"></span>
+                </div>
+                <div style="display:flex;gap:8px;">
+                    <input type="password" id="githubTokenInput"
+                        placeholder="ghp_xxxxxxxxxxxx"
+                        style="flex:1;padding:10px 14px;border-radius:12px;border:2px solid #e0e7ff;font-size:13px;font-family:monospace;outline:none;"
+                        oninput="updateGithubTokenStatus()">
+                    <button onclick="saveGithubToken()"
+                        style="background:#7367f0;color:white;border:none;border-radius:12px;padding:10px 16px;font-size:13px;font-weight:800;cursor:pointer;white-space:nowrap;">
+                        שמור
+                    </button>
+                </div>
+                <div style="font-size:10px;color:#9ca3af;margin-top:4px;">נשמר על המכשיר שלך בלבד — לא עולה לענן</div>
+            </div>
             <button onclick="closeModal('settingsModal')" class="mt-4 text-gray-400 block w-full">סגור</button>
         </div>
     </div>
