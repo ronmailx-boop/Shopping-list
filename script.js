@@ -548,6 +548,327 @@ function t(key) {
 
 
 // ========== App Data ==========
+
+// ═══════════════════════════════════════════════════════
+//  DEMO MODE — נתוני דמו לפעם הראשונה
+// ═══════════════════════════════════════════════════════
+
+const DEMO_DATA = {
+    currentId: 'demo_L1',
+    selectedInSummary: [],
+    lastActivePage: 'lists',
+    lastSync: 0,
+    stats: { totalSpent: 0, listsCompleted: 0, monthlyData: {} },
+    customCategories: [],
+    categoryMemory: {},
+    history: [],
+    templates: [],
+    lists: {
+        'demo_L1': {
+            name: 'תורים', url: '', budget: 0, isTemplate: false, isDemo: true,
+            items: [
+                { name:'רופא משפחה — ד״ר כהן',    price:0,   qty:1, checked:true,  category:'רפואה',  note:'', dueDate:'', dueTime:'', isPaid:false },
+                { name:'דנטיסט — טיפול שורש',      price:800, qty:1, checked:false, category:'רפואה',  note:'', dueDate:'', dueTime:'', isPaid:false },
+                { name:'בדיקת עיניים',             price:0,   qty:1, checked:false, category:'רפואה',  note:'', dueDate:'', dueTime:'', isPaid:false },
+                { name:'בדיקות דם — קופת חולים',  price:0,   qty:1, checked:true,  category:'רפואה',  note:'', dueDate:'', dueTime:'', isPaid:false },
+                { name:'רופא עור — מרפאה פרטית',  price:350, qty:1, checked:false, category:'רפואה',  note:'', dueDate:'', dueTime:'', isPaid:false },
+            ]
+        },
+        'demo_L2': {
+            name: 'בנק', url: '', budget: 0, isTemplate: false, isDemo: true,
+            items: [
+                { name:'העברת שכר דירה',   price:2000, qty:1, checked:true,  category:'תשלומים', note:'', dueDate:'', dueTime:'', isPaid:false },
+                { name:'עמלת ניהול חשבון', price:25,   qty:1, checked:true,  category:'תשלומים', note:'', dueDate:'', dueTime:'', isPaid:false },
+                { name:'תשלום הלוואה',     price:1200, qty:1, checked:false, category:'תשלומים', note:'', dueDate:'', dueTime:'', isPaid:false },
+                { name:'פתיחת חיסכון',     price:500,  qty:1, checked:false, category:'חיסכון',  note:'', dueDate:'', dueTime:'', isPaid:false },
+                { name:'ביטוח חיים',       price:180,  qty:1, checked:false, category:'ביטוח',   note:'', dueDate:'', dueTime:'', isPaid:false },
+            ]
+        },
+        'demo_L3': {
+            name: 'כרטיס אשראי', url: '', budget: 0, isTemplate: false, isDemo: true,
+            items: [
+                { name:'חיוב Max — חודשי',         price:2340, qty:1, checked:false, category:'תשלומים', note:'', dueDate:'', dueTime:'', isPaid:false },
+                { name:'חיוב Cal — חודשי',         price:1890, qty:1, checked:false, category:'תשלומים', note:'', dueDate:'', dueTime:'', isPaid:false },
+                { name:'ביטול מנוי Netflix',       price:60,   qty:1, checked:true,  category:'מנויים',  note:'', dueDate:'', dueTime:'', isPaid:false },
+                { name:'בדיקת חיובים חריגים',     price:0,    qty:1, checked:true,  category:'אחר',     note:'', dueDate:'', dueTime:'', isPaid:false },
+                { name:'תשלום יתרה ישנה',          price:580,  qty:1, checked:false, category:'תשלומים', note:'', dueDate:'', dueTime:'', isPaid:false },
+            ]
+        },
+        'demo_L4': {
+            name: 'ציוד לבית הספר', url: '', budget: 0, isTemplate: false, isDemo: true,
+            items: [
+                { name:'מחברות × 10',        price:80,  qty:1, checked:true,  category:'ציוד', note:'', dueDate:'', dueTime:'', isPaid:false },
+                { name:'עפרונות וצבעים',    price:45,  qty:1, checked:true,  category:'ציוד', note:'', dueDate:'', dueTime:'', isPaid:false },
+                { name:'תיק גב חדש',        price:280, qty:1, checked:false, category:'ציוד', note:'', dueDate:'', dueTime:'', isPaid:false },
+                { name:'מחשבון מדעי',       price:120, qty:1, checked:false, category:'ציוד', note:'', dueDate:'', dueTime:'', isPaid:false },
+                { name:'סרגל וסט מתמטיקה', price:35,  qty:1, checked:false, category:'ציוד', note:'', dueDate:'', dueTime:'', isPaid:false },
+            ]
+        },
+        'demo_L5': {
+            name: 'קניות', url: '', budget: 0, isTemplate: false, isDemo: true,
+            items: [
+                { name:'לחם ומאפים',       price:35,  qty:1, checked:true,  category:'מזון', note:'', dueDate:'', dueTime:'', isPaid:false },
+                { name:'חלב וגבינות',     price:60,  qty:1, checked:true,  category:'מזון', note:'', dueDate:'', dueTime:'', isPaid:false },
+                { name:'ביצים × 30',      price:28,  qty:1, checked:false, category:'מזון', note:'', dueDate:'', dueTime:'', isPaid:false },
+                { name:'חזה עוף × 2 ק״ג', price:85,  qty:1, checked:false, category:'בשר', note:'', dueDate:'', dueTime:'', isPaid:false },
+                { name:'ירקות ופירות',    price:120, qty:1, checked:false, category:'מזון', note:'', dueDate:'', dueTime:'', isPaid:false },
+            ]
+        },
+        'demo_L6': {
+            name: 'תשלומים שונים', url: '', budget: 0, isTemplate: false, isDemo: true,
+            items: [
+                { name:'ארנונה — רבעון',   price:890, qty:1, checked:false, category:'חשבונות', note:'', dueDate:'', dueTime:'', isPaid:false },
+                { name:'מים — דו-חודשי',  price:280, qty:1, checked:false, category:'חשבונות', note:'', dueDate:'', dueTime:'', isPaid:false },
+                { name:'חשמל — חודשי',    price:420, qty:1, checked:true,  category:'חשבונות', note:'', dueDate:'', dueTime:'', isPaid:false },
+                { name:'גז — מילוי',      price:160, qty:1, checked:true,  category:'חשבונות', note:'', dueDate:'', dueTime:'', isPaid:false },
+                { name:'ועד בית — חודשי', price:700, qty:1, checked:false, category:'חשבונות', note:'', dueDate:'', dueTime:'', isPaid:false },
+            ]
+        },
+        'demo_L7': {
+            name: 'ספורט', url: '', budget: 0, isTemplate: false, isDemo: true,
+            items: [
+                { name:'נעלי ריצה Nike',    price:480, qty:1, checked:false, category:'ביגוד',  note:'', dueDate:'', dueTime:'', isPaid:false },
+                { name:'חולצות ספורט × 3', price:180, qty:1, checked:true,  category:'ביגוד',  note:'', dueDate:'', dueTime:'', isPaid:false },
+                { name:'מנוי חדר כושר',    price:280, qty:1, checked:false, category:'מנויים', note:'', dueDate:'', dueTime:'', isPaid:false },
+                { name:'בקבוק מים 1L',     price:60,  qty:1, checked:true,  category:'ציוד',   note:'', dueDate:'', dueTime:'', isPaid:false },
+                { name:'אוזניות אלחוטיות', price:350, qty:1, checked:false, category:'אלקטרוניקה', note:'', dueDate:'', dueTime:'', isPaid:false },
+            ]
+        },
+        'demo_L8': {
+            name: 'תרופות', url: '', budget: 0, isTemplate: false, isDemo: true,
+            items: [
+                { name:'ויטמין D3 — 3 חודשים', price:65,  qty:1, checked:true,  category:'רפואה', note:'', dueDate:'', dueTime:'', isPaid:false },
+                { name:'אומגה 3',              price:90,  qty:1, checked:false, category:'רפואה', note:'', dueDate:'', dueTime:'', isPaid:false },
+                { name:'מרשם רופא — לאיסוף', price:0,   qty:1, checked:false, category:'רפואה', note:'', dueDate:'', dueTime:'', isPaid:false },
+                { name:'קרם לעור — מרשם',    price:120, qty:1, checked:false, category:'רפואה', note:'', dueDate:'', dueTime:'', isPaid:false },
+                { name:'תרסיס לאלרגיה',      price:45,  qty:1, checked:true,  category:'רפואה', note:'', dueDate:'', dueTime:'', isPaid:false },
+            ]
+        },
+        'demo_L9': {
+            name: 'תיקונים בבית', url: '', budget: 0, isTemplate: false, isDemo: true,
+            items: [
+                { name:'אינסטלטור — דליפה', price:450, qty:1, checked:true,  category:'תיקונים', note:'', dueDate:'', dueTime:'', isPaid:false },
+                { name:'חשמלאי — שקע חדש', price:380, qty:1, checked:false, category:'תיקונים', note:'', dueDate:'', dueTime:'', isPaid:false },
+                { name:'צבע לסלון',         price:800, qty:1, checked:false, category:'צביעה',   note:'', dueDate:'', dueTime:'', isPaid:false },
+                { name:'החלפת מנעול דלת',  price:320, qty:1, checked:false, category:'תיקונים', note:'', dueDate:'', dueTime:'', isPaid:false },
+                { name:'וילונות לסלון',    price:850, qty:1, checked:false, category:'ריהוט',   note:'', dueDate:'', dueTime:'', isPaid:false },
+            ]
+        },
+        'demo_L10': {
+            name: 'מתנות', url: '', budget: 0, isTemplate: false, isDemo: true,
+            items: [
+                { name:'יום הולדת אמא — ספא',  price:400, qty:1, checked:false, category:'מתנות', note:'', dueDate:'', dueTime:'', isPaid:false },
+                { name:'חתונה — מתנה משותפת', price:500, qty:1, checked:true,  category:'מתנות', note:'', dueDate:'', dueTime:'', isPaid:false },
+                { name:'בר מצווה — שי',        price:300, qty:1, checked:false, category:'מתנות', note:'', dueDate:'', dueTime:'', isPaid:false },
+                { name:'חנוכת בית — כלי בית', price:250, qty:1, checked:false, category:'מתנות', note:'', dueDate:'', dueTime:'', isPaid:false },
+                { name:'תינוק חדש — בגדים',   price:200, qty:1, checked:false, category:'מתנות', note:'', dueDate:'', dueTime:'', isPaid:false },
+            ]
+        },
+    }
+};
+
+// התראות דמו
+const DEMO_NOTIFICATIONS = [
+    {
+        id: 'demo_n1', itemName: 'תור לרופא משפחה', listName: 'תורים',
+        dueDate: new Date(Date.now() + 86400000).toISOString().split('T')[0],
+        dueTime: '09:30', type: 'reminder', isDemo: true,
+        title: '⏰ תזכורת: תור לרופא משפחה',
+        body: 'מחר בשעה 09:30',
+        timestamp: Date.now() - 3600000
+    },
+    {
+        id: 'demo_n2', itemName: 'חיוב כרטיס Max', listName: 'כרטיס אשראי',
+        dueDate: new Date(Date.now() + 5*86400000).toISOString().split('T')[0],
+        dueTime: '', type: 'reminder', isDemo: true,
+        title: '⏰ תזכורת: חיוב Max',
+        body: '₪2,340 בעוד 5 ימים',
+        timestamp: Date.now() - 7200000
+    },
+    {
+        id: 'demo_n3', itemName: 'תשלום ארנונה', listName: 'תשלומים שונים',
+        dueDate: new Date(Date.now() + 8*86400000).toISOString().split('T')[0],
+        dueTime: '', type: 'reminder', isDemo: true,
+        title: '⏰ תזכורת: ארנונה',
+        body: '₪890 עד סוף החודש',
+        timestamp: Date.now() - 10800000
+    },
+    {
+        id: 'demo_n4', itemName: 'קניית ציוד לבית הספר', listName: 'ציוד לבית הספר',
+        dueDate: new Date(Date.now() + 12*86400000).toISOString().split('T')[0],
+        dueTime: '', type: 'reminder', isDemo: true,
+        title: '⏰ תזכורת: ציוד לבית הספר',
+        body: 'בעוד 12 ימים — התחלת שנה"ל',
+        timestamp: Date.now() - 14400000
+    },
+    {
+        id: 'demo_n5', itemName: 'תשלום הלוואה לבנק', listName: 'בנק',
+        dueDate: new Date(Date.now() + 18*86400000).toISOString().split('T')[0],
+        dueTime: '', type: 'reminder', isDemo: true,
+        title: '⏰ תזכורת: הלוואה לבנק',
+        body: '₪1,200 ב-1 לחודש',
+        timestamp: Date.now() - 18000000
+    }
+];
+
+let isDemoMode = false;
+
+function loadDemoMode() {
+    isDemoMode = true;
+    localStorage.setItem('vplus_demo_mode', 'true');
+    
+    // טען נתוני דמו ל-db
+    db = JSON.parse(JSON.stringify(DEMO_DATA));
+    localStorage.setItem('BUDGET_FINAL_V28', JSON.stringify(db));
+    
+    // טען התראות דמו
+    const existingNotifs = JSON.parse(localStorage.getItem('vplus_notifications') || '[]');
+    const merged = [...DEMO_NOTIFICATIONS, ...existingNotifs.filter(n => !n.isDemo)];
+    localStorage.setItem('vplus_notifications', JSON.stringify(merged));
+    
+    // הצג באנר דמו
+    showDemoBanner();
+    
+    render();
+    console.log('✅ Demo mode loaded');
+}
+
+function exitDemoMode() {
+    // הסר רשימות דמו
+    Object.keys(db.lists).forEach(id => {
+        if (db.lists[id].isDemo) delete db.lists[id];
+    });
+    // אם נשארנו בלי רשימות — צור רשימה ריקה
+    if (Object.keys(db.lists).length === 0) {
+        db.lists['L1'] = { name:'הרשימה שלי', url:'', budget:0, isTemplate:false, items:[] };
+        db.currentId = 'L1';
+    } else {
+        db.currentId = Object.keys(db.lists)[0];
+    }
+    
+    // הסר התראות דמו
+    const notifs = JSON.parse(localStorage.getItem('vplus_notifications') || '[]');
+    localStorage.setItem('vplus_notifications', JSON.stringify(notifs.filter(n => !n.isDemo)));
+    
+    isDemoMode = false;
+    localStorage.removeItem('vplus_demo_mode');
+    
+    const banner = document.getElementById('demoBanner');
+    if (banner) banner.remove();
+    
+    save();
+    console.log('✅ Demo mode exited');
+}
+
+function showDemoBanner() {
+    if (document.getElementById('demoBanner')) return;
+    const banner = document.createElement('div');
+    banner.id = 'demoBanner';
+    banner.innerHTML = \`
+        <div style="
+            position:fixed; top:0; left:0; right:0; z-index:9000;
+            background:linear-gradient(135deg,#f59e0b,#f97316);
+            padding:10px 16px;
+            display:flex; align-items:center; gap:10px;
+            box-shadow:0 4px 16px rgba(245,158,11,0.4);
+            font-family:system-ui,sans-serif;
+        ">
+            <span style="font-size:20px;">🎯</span>
+            <div style="flex:1;">
+                <div style="font-size:12px;font-weight:900;color:white;">מצב דמו פעיל</div>
+                <div style="font-size:10px;color:rgba(255,255,255,0.8);">אלו נתוני דוגמה — חקור בחופשיות!</div>
+            </div>
+            <button onclick="exitDemoMode()" style="
+                background:rgba(255,255,255,0.25); border:1.5px solid rgba(255,255,255,0.4);
+                color:white; font-size:10px; font-weight:800; padding:5px 14px;
+                border-radius:99px; cursor:pointer; font-family:system-ui,sans-serif;
+            ">יציאה מדמו</button>
+        </div>
+    \`;
+    document.body.insertBefore(banner, document.body.firstChild);
+    
+    // הוסף padding לגוף כדי שהבאנר לא יחסום תוכן
+    document.body.style.paddingTop = (parseInt(document.body.style.paddingTop || 0) + 48) + 'px';
+}
+
+// בדוק אם צריך להפעיל דמו (פעם ראשונה + wizard)
+function checkFirstRunDemo() {
+    const alreadySeen   = localStorage.getItem('vplus_demo_seen');
+    const isDemo        = localStorage.getItem('vplus_demo_mode') === 'true';
+    const hasRealData   = (() => {
+        const saved = localStorage.getItem('BUDGET_FINAL_V28');
+        if (!saved) return false;
+        const d = JSON.parse(saved);
+        return Object.values(d.lists || {}).some(l => l.items && l.items.length > 0 && !l.isDemo);
+    })();
+    
+    if (isDemo) {
+        // המשך דמו מסשן קודם
+        isDemoMode = true;
+        showDemoBanner();
+        return;
+    }
+    
+    if (!alreadySeen && !hasRealData) {
+        // פעם ראשונה + אין נתונים אמיתיים → הצג שאלה
+        setTimeout(() => showDemoPrompt(), 1200);
+    }
+}
+
+function showDemoPrompt() {
+    const overlay = document.createElement('div');
+    overlay.id = 'demoPromptOverlay';
+    overlay.innerHTML = \`
+        <div style="
+            position:fixed; inset:0; z-index:99998;
+            background:rgba(0,0,0,0.6);
+            display:flex; align-items:flex-end;
+            font-family:system-ui,sans-serif;
+        ">
+            <div style="
+                background:white; border-radius:28px 28px 0 0;
+                width:100%; padding:28px 20px 40px;
+                animation:demoSheetIn 0.4s cubic-bezier(0.34,1.56,0.64,1);
+            ">
+                <div style="width:40px;height:4px;background:#e5e7eb;border-radius:99px;margin:0 auto 20px;"></div>
+                <div style="text-align:center;margin-bottom:20px;">
+                    <div style="font-size:48px;margin-bottom:12px;">🎯</div>
+                    <div style="font-size:20px;font-weight:900;color:#1e1b4b;margin-bottom:6px;">ברוך הבא ל-Vplus Pro!</div>
+                    <div style="font-size:13px;color:#6b7280;line-height:1.6;">
+                        רוצה לראות איך האפליקציה נראית<br>עם נתונים אמיתיים לפני שתתחיל?
+                    </div>
+                </div>
+                <div style="display:flex;flex-direction:column;gap:10px;">
+                    <button onclick="document.getElementById('demoPromptOverlay').remove(); localStorage.setItem('vplus_demo_seen','true'); loadDemoMode();" style="
+                        background:linear-gradient(135deg,#7367f0,#9055ff);
+                        color:white; border:none; border-radius:18px;
+                        padding:16px; font-size:15px; font-weight:900;
+                        cursor:pointer; font-family:system-ui,sans-serif;
+                        box-shadow:0 6px 20px rgba(115,103,240,0.4);
+                    ">🎯 כן! הראה לי מצב דמו</button>
+                    <button onclick="document.getElementById('demoPromptOverlay').remove(); localStorage.setItem('vplus_demo_seen','true');" style="
+                        background:#f3f4f6; color:#6b7280; border:none; border-radius:18px;
+                        padding:14px; font-size:14px; font-weight:700;
+                        cursor:pointer; font-family:system-ui,sans-serif;
+                    ">לא תודה, אתחיל עם רשימה ריקה</button>
+                </div>
+            </div>
+        </div>
+        <style>
+            @keyframes demoSheetIn {
+                from { transform: translateY(100%); }
+                to   { transform: translateY(0); }
+            }
+        </style>
+    \`;
+    document.body.appendChild(overlay);
+}
+
+// export לשימוש מבחוץ
+window.loadDemoMode  = loadDemoMode;
+window.exitDemoMode  = exitDemoMode;
+window.isDemoMode    = isDemoMode;
+
 let db = JSON.parse(localStorage.getItem('BUDGET_FINAL_V28')) || {
     currentId: 'L1',
     selectedInSummary: [],
@@ -817,8 +1138,8 @@ function updateUILanguage() {
     const tabSummaryEl = document.getElementById('tabSummary');
     const tabStatsEl = document.getElementById('tabStats');
     const tabBankEl2 = document.getElementById('tabBank');
-    // SVG handles tab text
-    if (typeof updateSvgTabs==='function') updateSvgTabs(activePage);
+    if (tabListsEl) tabListsEl.textContent = t('myList');
+    if (tabSummaryEl) tabSummaryEl.textContent = t('myLists');
     if (tabStatsEl) tabStatsEl.textContent = t('statistics');
     if (tabBankEl2) tabBankEl2.textContent = '🏦 פיננסי';
 
@@ -1972,11 +2293,12 @@ function render() {
     const _tabSummary = document.getElementById('tabSummary');
     const _tabStats = document.getElementById('tabStats');
     const _tabBank = document.getElementById('tabBank');
-    if (typeof updateSvgTabs==='function') updateSvgTabs(activePage);
-    const _activeTabStyle   = 'flex:1;height:34px;background:white;border:none;border-radius:12px;font-size:14px;font-weight:900;color:#7367f0;cursor:pointer;transition:all 0.2s;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 8px rgba(0,0,0,0.12);';
+    const _activeTabStyle = 'flex:1;height:34px;background:white;border:none;border-radius:12px;font-size:14px;font-weight:900;color:#7367f0;cursor:pointer;transition:all 0.2s;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 8px rgba(0,0,0,0.12);';
     const _inactiveTabStyle = 'flex:1;height:34px;background:transparent;border:none;font-size:14px;font-weight:800;color:rgba(255,255,255,0.6);cursor:pointer;transition:all 0.2s;display:flex;align-items:center;justify-content:center;';
-    if (_tabStats) _tabStats.style.cssText = activePage==='stats' ? _activeTabStyle : _inactiveTabStyle;
-    if (_tabBank)  _tabBank.style.cssText  = activePage==='bank'  ? _activeTabStyle : _inactiveTabStyle;
+    if (_tabLists)   _tabLists.style.cssText   = activePage === 'lists'   ? _activeTabStyle : _inactiveTabStyle;
+    if (_tabSummary) _tabSummary.style.cssText = activePage === 'summary' ? _activeTabStyle : _inactiveTabStyle;
+    if (_tabStats)   _tabStats.style.cssText   = activePage === 'stats'   ? _activeTabStyle : _inactiveTabStyle;
+    if (_tabBank)    _tabBank.style.cssText     = activePage === 'bank'    ? _activeTabStyle : _inactiveTabStyle;
 
     // הצג כפתורי קולי רק בטאב "הרשימה שלי"
     const _voiceBoughtBtn = document.getElementById('voiceBoughtBtn');
@@ -7003,6 +7325,9 @@ document.addEventListener('DOMContentLoaded', function() {
     setTimeout(() => {
         checkUrgentPayments();
     }, 1000);
+    
+    // בדוק אם צריך מצב דמו (פעם ראשונה)
+    checkFirstRunDemo();
 });
 
 // Override the original render function to include Peace of Mind display elements
