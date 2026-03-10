@@ -1,1 +1,52 @@
+name: Bank Sync
 
+on:
+  # הפעלה ידנית מהאפליקציה דרך repository_dispatch
+  repository_dispatch:
+    types: [bank-sync]
+
+  # אפשרות להפעיל ידנית מ-GitHub
+  workflow_dispatch:
+    inputs:
+      userId:
+        description: 'Firebase User ID'
+        required: true
+      companyId:
+        description: 'Bank/Credit company ID (leumi, max, etc)'
+        required: true
+
+jobs:
+  scrape:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        run: |
+          cd scripts/bank-sync
+          npm install
+
+      - name: Install Chromium
+        run: npx playwright install chromium
+
+      - name: Run bank scraper
+        env:
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_VPLUS_PRO }}
+          USER_ID: ${{ github.event.client_payload.userId || github.event.inputs.userId }}
+          COMPANY_ID: ${{ github.event.client_payload.companyId || github.event.inputs.companyId }}
+          USERNAME: ${{ github.event.client_payload.username || '' }}
+          PASSWORD: ${{ github.event.client_payload.password || '' }}
+          USER_CODE: ${{ github.event.client_payload.userCode || '' }}
+          ID_NUMBER: ${{ github.event.client_payload.id || '' }}
+          BRANCH_NUMBER: ${{ github.event.client_payload.num || '' }}
+          JOB_ID: ${{ github.event.client_payload.jobId || github.run_id }}
+        run: |
+          cd scripts/bank-sync
+          node scraper.js
