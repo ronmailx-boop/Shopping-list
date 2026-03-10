@@ -995,8 +995,7 @@ function updateUILanguage() {
     const tabSummaryEl = document.getElementById('tabSummary');
     const tabStatsEl = document.getElementById('tabStats');
     const tabBankEl2 = document.getElementById('tabBank');
-    if (tabListsEl) tabListsEl.textContent = t('myList');
-    if (tabSummaryEl) tabSummaryEl.textContent = t('myLists');
+    // SVG tabs — no textContent override
     if (tabStatsEl) tabStatsEl.textContent = t('statistics');
     if (tabBankEl2) tabBankEl2.textContent = '🏦 פיננסי';
 
@@ -9123,6 +9122,38 @@ function _wizShowWelcome() {
 }
 
 // ── Toggle wizard mode ─────────────────────────────────────────────
+
+window._closeDemoPrompt = function() {
+    var el = document.getElementById('demoWizardPrompt');
+    if (el) el.remove();
+};
+
+function _askDemoBeforeWizard() {
+    var hasRealData = Object.values(db.lists).some(function(l){ return l.items && l.items.length > 0 && !l.isDemo; });
+    if (isDemoMode || hasRealData) {
+        // יש כבר נתונים — פתח מדריך ישירות
+        _wizShowWelcome();
+        return;
+    }
+    // שאל על דמו
+    var overlay = document.createElement('div');
+    overlay.id = 'demoWizardPrompt';
+    overlay.style.cssText = 'position:fixed;inset:0;z-index:99998;background:rgba(0,0,0,0.6);display:flex;align-items:flex-end;font-family:system-ui,sans-serif;';
+    var sheet = document.createElement('div');
+    sheet.style.cssText = 'background:white;border-radius:28px 28px 0 0;width:100%;padding:24px 20px 40px;animation:demoSheetIn 0.35s cubic-bezier(0.34,1.56,0.64,1);';
+    sheet.innerHTML = '<div style="width:38px;height:4px;background:#e5e7eb;border-radius:99px;margin:0 auto 18px;"></div>'
+        + '<div style="font-size:44px;text-align:center;margin-bottom:10px;">🎯</div>'
+        + '<div style="font-size:19px;font-weight:900;color:#1e1b4b;text-align:center;margin-bottom:6px;">טרם התחלת להשתמש</div>'
+        + '<div style="font-size:13px;color:#6b7280;text-align:center;line-height:1.6;margin-bottom:20px;">רוצה לטעון 10 רשימות לדוגמה<br>כדי שהמדריך יהיה חי ומעניין יותר?</div>'
+        + '<div style="display:flex;flex-direction:column;gap:10px;">'
+        + '<button onclick="window._closeDemoPrompt();loadDemoMode();_wizShowWelcome();" style="background:linear-gradient(135deg,#7367f0,#9055ff);color:white;border:none;border-radius:18px;padding:16px;font-size:15px;font-weight:900;cursor:pointer;font-family:system-ui,sans-serif;box-shadow:0 6px 20px rgba(115,103,240,0.35);">\uD83C\uDFAF כן, טען נתוני דמו</button>'
+        + '<button onclick="window._closeDemoPrompt();_wizShowWelcome();" style="background:#f3f4f6;color:#6b7280;border:none;border-radius:18px;padding:14px;font-size:14px;font-weight:700;cursor:pointer;font-family:system-ui,sans-serif;">לא תודה, התחל מדריך ריק</button>'
+        + '</div>'
+        + '<style>@keyframes demoSheetIn{from{transform:translateY(100%)}to{transform:translateY(0)}}</style>';
+    overlay.appendChild(sheet);
+    document.body.appendChild(overlay);
+}
+
 function toggleWizardMode() {
     wizardMode = !wizardMode;
     localStorage.setItem('wizardMode', wizardMode ? 'true' : 'false');
@@ -9138,7 +9169,8 @@ function toggleWizardMode() {
         if (panelPill) { panelPill.style.background='#7367f0'; panelPill.style.color='white'; }
         if (panelTxt) panelTxt.textContent = '✨ פעיל';
         document.body.classList.add('wizard-mode-active');
-        _wizShowWelcome();
+        // שאל על דמו לפני פתיחת המדריך
+        _askDemoBeforeWizard();
     } else {
         if (btn) btn.classList.remove('wizard-active');
         if (txt) txt.textContent = 'מדריך';
