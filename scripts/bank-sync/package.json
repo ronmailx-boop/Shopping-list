@@ -1,1 +1,12 @@
+{
+  "name": "vplus-bank-sync",
+  "version": "1.0.0",
+  "description": "Bank scraper for VPlus via GitHub Actions",
+  "main": "scraper.js",
+  "type": "module",
+  "dependencies": {
+    "israeli-bank-scrapers": "^4.0.0",
+    "firebase-admin": "^12.0.0"
+  }
+}
 
