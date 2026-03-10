@@ -48,7 +48,15 @@ try {
         startDate,
         combineInstallments: false,
         showBrowser: false,
-        args: ['--no-sandbox', '--disable-setuid-sandbox'],
+        browserContext: 'persistent',
+        puppeteerConfig: {
+            args: [
+                '--no-sandbox',
+                '--disable-setuid-sandbox',
+                '--disable-dev-shm-usage',
+                '--disable-gpu',
+            ],
+        },
     });
 
     console.log(`⏳ מתחבר ל-${companyId}...`);
