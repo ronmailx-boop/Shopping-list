@@ -43,21 +43,22 @@ try {
     const startDate = new Date();
     startDate.setMonth(startDate.getMonth() - 2); // חודשיים אחורה
 
-    const scraper = createScraper({
+    const executablePath = process.env.PUPPETEER_EXECUTABLE_PATH || undefined;
+    const scraperOptions = {
         companyId,
         startDate,
         combineInstallments: false,
         showBrowser: false,
-        browserContext: 'persistent',
-        puppeteerConfig: {
-            args: [
-                '--no-sandbox',
-                '--disable-setuid-sandbox',
-                '--disable-dev-shm-usage',
-                '--disable-gpu',
-            ],
-        },
-    });
+        args: [
+            '--no-sandbox',
+            '--disable-setuid-sandbox',
+            '--disable-dev-shm-usage',
+            '--disable-gpu',
+        ],
+    };
+    if (executablePath) scraperOptions.executablePath = executablePath;
+
+    const scraper = createScraper(scraperOptions);
 
     console.log(`⏳ מתחבר ל-${companyId}...`);
     const result = await scraper.scrape(credentials);
