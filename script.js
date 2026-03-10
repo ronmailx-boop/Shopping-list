@@ -9807,13 +9807,21 @@ async function runFinancialFetch({ companyId, credentials, modalId, nameLabel })
 
             const { getFunctions, httpsCallable } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-functions.js');
             const functions = getFunctions(window.firebaseApp, 'me-west1');
-            const fetchFn = httpsCallable(functions, 'fetchAccountData', { timeout: 300000 });
+            const fetchFn = httpsCallable(functions, 'fetchBankData', { timeout: 300000 });
 
             log('שולח קריאה ל-Cloud Function...', 'info', '📡');
             try {
-                const result = await fetchFn({ companyId, credentials, ...credentials });
-                log(`התקבלו ${result.data?.transactions?.length ?? 0} רשומות`, 'success', '✅');
-                transactions = result.data?.transactions || [];
+                // index.js מצפה ל: companyId, username, password
+                const username = credentials.username || credentials.userCode || credentials.id || '';
+                const payload = { companyId, username, password: credentials.password, ...credentials };
+                const result = await fetchFn(payload);
+                log(`תשובה התקבלה`, 'success', '✅');
+                // fetchBankData מחזיר accounts[] — כל account יש transactions[]
+                const accounts = Array.isArray(result.data) ? result.data : [];
+                accounts.forEach(acc => {
+                    if (acc.txns) transactions.push(...acc.txns);
+                });
+                log(`סה"כ ${transactions.length} עסקאות`, 'success', '✅');
             } catch (fnErr) {
                 log(`שגיאת Function: ${fnErr?.message || fnErr?.code}`, 'error', '❌');
                 log(`code: ${fnErr?.code || 'אין'}`, 'error', '🔴');
