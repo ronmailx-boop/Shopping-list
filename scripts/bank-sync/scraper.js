@@ -1,4 +1,3 @@
-
 /**
  * VPlus Bank Scraper — רץ דרך GitHub Actions
  * 
@@ -49,6 +48,7 @@ try {
         startDate,
         combineInstallments: false,
         showBrowser: false,
+        args: ['--no-sandbox', '--disable-setuid-sandbox'],
     });
 
     console.log(`⏳ מתחבר ל-${companyId}...`);
