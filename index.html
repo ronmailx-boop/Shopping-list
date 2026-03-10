@@ -2443,9 +2443,13 @@ ${error.message}
         <!-- שם רשימה — לחיצה לעריכה -->
         <div class="lnb-name-text" id="listNameDisplay"
              onclick="event.stopPropagation(); closeListActionsPanel(); openModal('editListNameModal');">רשימה</div>
-        <!-- ספירת פריטים + חץ — בקצה השמאלי, מרוחקים משם הרשימה -->
+        <!-- ספירת פריטים + חיפוש + חץ -->
         <div style="display:flex;align-items:center;gap:10px;flex-shrink:0;">
             <div class="lnb-count" id="itemCountDisplay">0 פריטים</div>
+            <!-- כפתור חיפוש -->
+            <div id="searchIconBtn" onclick="event.stopPropagation();toggleListSearch();" style="width:32px;height:32px;border-radius:50%;background:rgba(255,255,255,0.2);border:1.5px solid rgba(255,255,255,0.3);display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all 0.2s;flex-shrink:0;">
+                <svg width="16" height="16" fill="none" stroke="white" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.35-4.35"/></svg>
+            </div>
             <div class="lnb-arrow" id="lnbArrow"
                  onclick="event.stopPropagation(); toggleListActionsPanel();">▼</div>
         </div>
@@ -2505,17 +2509,13 @@ ${error.message}
             <input type="file" id="bankFileInput" accept=".xls,.xlsx,.pdf" style="display:none;" onchange="importBankFile(event)">
             <input type="file" id="excel-upload" accept=".xlsx,.xls" style="display:none;" onchange="handleExcelUpload(event)">
             <!-- END NEW FLOATING PILLS SECTION -->
-            <div class="mb-3">
-                <div class="relative">
+            <!-- שורת חיפוש — מוסתרת, נפתחת מאייקון בheader -->
+            <div id="listSearchBar" style="overflow:hidden;max-height:0;transition:max-height 0.3s ease,box-shadow 0.3s;background:white;position:sticky;top:var(--lnb-height,58px);z-index:35;box-shadow:none;">
+                <div style="display:flex;align-items:center;gap:10px;padding:10px 14px;">
+                    <svg width="17" height="17" fill="none" stroke="#9ca3af" stroke-width="2" viewBox="0 0 24 24" style="flex-shrink:0;"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.35-4.35"/></svg>
                     <input type="text" id="listSearchInput" oninput="searchInList()" placeholder="חפש מוצר ברשימה..."
-                        class="w-full p-3 pr-12 rounded-2xl border-2 border-indigo-200 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 text-base">
-                    <svg class="w-5 h-5 text-gray-400 absolute left-4 top-1/2 -translate-y-1/2" fill="none"
-                        stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                            d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
-                    </svg>
-                    <button onclick="clearListSearch()"
-                        class="absolute left-12 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">✕</button>
+                        style="flex:1;height:40px;border:2px solid rgba(115,103,240,0.25);border-radius:12px;padding:0 14px;font-size:14px;color:#1e1b4b;background:#f8f7ff;outline:none;direction:rtl;font-family:system-ui,sans-serif;">
+                    <button onclick="toggleListSearch()" style="width:32px;height:32px;border-radius:50%;background:#f3f4f6;border:none;cursor:pointer;font-size:15px;color:#6b7280;display:flex;align-items:center;justify-content:center;">✕</button>
                 </div>
             </div>
             <!-- hidden placeholders for JS compatibility -->
@@ -3687,6 +3687,29 @@ ${error.message}
         }
         updateSvgTabs(_activePage);
     }
+
+    var _listSearchOpen = false;
+    function toggleListSearch() {
+        _listSearchOpen = !_listSearchOpen;
+        var bar = document.getElementById('listSearchBar');
+        var btn = document.getElementById('searchIconBtn');
+        var input = document.getElementById('listSearchInput');
+        if (_listSearchOpen) {
+            bar.style.maxHeight = '62px';
+            bar.style.boxShadow = '0 4px 12px rgba(115,103,240,0.15)';
+            btn.style.background = 'rgba(255,255,255,0.4)';
+            btn.style.borderColor = 'white';
+            setTimeout(function(){ if(input) input.focus(); }, 320);
+        } else {
+            bar.style.maxHeight = '0';
+            bar.style.boxShadow = 'none';
+            btn.style.background = 'rgba(255,255,255,0.2)';
+            btn.style.borderColor = 'rgba(255,255,255,0.3)';
+            if(input) { input.value = ''; }
+            if(typeof searchInList === 'function') searchInList();
+        }
+    }
+    window.toggleListSearch = toggleListSearch;
 
     document.addEventListener('DOMContentLoaded', function() {
         // עדכון ראשוני
