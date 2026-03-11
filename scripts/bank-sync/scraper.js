@@ -157,3 +157,4 @@ function buildCredentials(company) {
             return { username, password };
     }
 }
+
