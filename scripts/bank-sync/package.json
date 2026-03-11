@@ -1,3 +1,8 @@
+מצוין — יש `package.json` ו-`scraper.js` ✅
+
+לחץ על `package.json` ועדכן אותו — החלף את התוכן בזה:
+
+```json
 {
   "name": "vplus-bank-sync",
   "version": "1.0.0",
@@ -5,8 +10,8 @@
   "main": "scraper.js",
   "type": "module",
   "dependencies": {
-    "israeli-bank-scrapers": "^4.0.0",
+    "israeli-bank-scrapers": "latest",
     "firebase-admin": "^12.0.0"
   }
 }
-
+```
