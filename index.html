@@ -2468,6 +2468,15 @@ ${error.message}
                  onclick="event.stopPropagation(); handleLnbUndo();">↩ ביטול</div>
             <div class="lnb-progress" id="lnbProgress"></div>
         </div>
+        <!-- שורת חיפוש — בתוך הבר, נפתחת מאייקון -->
+        <div id="listSearchBar" style="overflow:hidden;max-height:0;transition:max-height 0.3s ease;background:rgba(255,255,255,0.15);margin:0 -0px;">
+            <div style="display:flex;align-items:center;gap:10px;padding:8px 14px;">
+                <svg width="17" height="17" fill="none" stroke="rgba(255,255,255,0.7)" stroke-width="2" viewBox="0 0 24 24" style="flex-shrink:0;"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.35-4.35"/></svg>
+                <input type="text" id="listSearchInput" oninput="searchInList()" placeholder="חפש מוצר ברשימה..."
+                    style="flex:1;height:38px;border:none;border-radius:12px;padding:0 14px;font-size:14px;color:#1e1b4b;background:rgba(255,255,255,0.95);outline:none;direction:rtl;font-family:system-ui,sans-serif;">
+                <button onclick="toggleListSearch()" style="width:32px;height:32px;border-radius:50%;background:rgba(255,255,255,0.2);border:none;cursor:pointer;font-size:15px;color:white;display:flex;align-items:center;justify-content:center;">✕</button>
+            </div>
+        </div>
     </div>
 
     <!-- ===== LIST ACTIONS PANEL ===== -->
@@ -2517,15 +2526,7 @@ ${error.message}
             <input type="file" id="bankFileInput" accept=".xls,.xlsx,.pdf" style="display:none;" onchange="importBankFile(event)">
             <input type="file" id="excel-upload" accept=".xlsx,.xls" style="display:none;" onchange="handleExcelUpload(event)">
             <!-- END NEW FLOATING PILLS SECTION -->
-            <!-- שורת חיפוש — מוסתרת, נפתחת מאייקון בheader -->
-            <div id="listSearchBar" style="overflow:hidden;max-height:0;transition:max-height 0.3s ease,box-shadow 0.3s;background:white;position:sticky;top:var(--lnb-height,58px);z-index:35;box-shadow:none;">
-                <div style="display:flex;align-items:center;gap:10px;padding:10px 14px;">
-                    <svg width="17" height="17" fill="none" stroke="#9ca3af" stroke-width="2" viewBox="0 0 24 24" style="flex-shrink:0;"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.35-4.35"/></svg>
-                    <input type="text" id="listSearchInput" oninput="searchInList()" placeholder="חפש מוצר ברשימה..."
-                        style="flex:1;height:40px;border:2px solid rgba(115,103,240,0.25);border-radius:12px;padding:0 14px;font-size:14px;color:#1e1b4b;background:#f8f7ff;outline:none;direction:rtl;font-family:system-ui,sans-serif;">
-                    <button onclick="toggleListSearch()" style="width:32px;height:32px;border-radius:50%;background:#f3f4f6;border:none;cursor:pointer;font-size:15px;color:#6b7280;display:flex;align-items:center;justify-content:center;">✕</button>
-                </div>
-            </div>
+
             <!-- hidden placeholders for JS compatibility -->
             <div id="statusTag" style="display:none;"></div>
             <div id="budgetWarning" class="hidden text-[10px] font-bold mt-2 bg-red-500 text-white py-1 px-3 rounded-full inline-block" style="margin:0 16px;"></div>
@@ -3552,7 +3553,7 @@ ${error.message}
             <button class="fin-btn" onclick="selectCreditCompany('max',this)">
                 <div style="font-size:22px;">💜</div>Max
             </button>
-            <button class="fin-btn" onclick="selectCreditCompany('visaCal',this)">
+            <button class="fin-btn" onclick="selectCreditCompany('cal',this)">
                 <div style="font-size:22px;">🔵</div>Cal
             </button>
             <button class="fin-btn" onclick="selectCreditCompany('leumincard',this)">
