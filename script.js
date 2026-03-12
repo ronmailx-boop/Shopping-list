@@ -10078,6 +10078,8 @@ function adjustContentPadding() {
     if (bar && container) {
         const barHeight = bar.getBoundingClientRect().height;
         container.style.paddingTop = (barHeight + 16) + 'px';
+        // עדכן CSS variable לשורת החיפוש
+        document.documentElement.style.setProperty('--lnb-height', barHeight + 'px');
     }
 }
 
