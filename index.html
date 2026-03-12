@@ -2636,14 +2636,14 @@ ${error.message}
 
         <!-- שורת טאבים — SVG, ימין=הרשימה שלי שמאל=הרשימות שלי -->
         <div style="position:relative;height:52px;flex-shrink:0;">
-            <div id="tabLists"   onclick="tapTab('lists')"   style="position:absolute;top:0;right:0;width:50%;bottom:0;z-index:10;cursor:pointer;"></div>
-            <div id="tabSummary" onclick="tapTab('summary')" style="position:absolute;top:0;left:0;width:50%;bottom:0;z-index:10;cursor:pointer;"></div>
+            <div id="tabLists"   onclick="tapTab('summary')" style="position:absolute;top:0;right:0;width:50%;bottom:0;z-index:10;cursor:pointer;"></div>
+            <div id="tabSummary" onclick="tapTab('lists')"   style="position:absolute;top:0;left:0;width:50%;bottom:0;z-index:10;cursor:pointer;"></div>
             <svg style="position:absolute;top:0;left:0;width:100%;height:100%;z-index:5;pointer-events:none;"
                  viewBox="0 0 400 52" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
-                <path id="svgShapeRight" d="M 200,0 L 400,0 L 400,52 L 212,52 Q 200,52 200,40 Z" fill="white" opacity="1"/>
-                <path id="svgShapeLeft"  d="M 0,0 L 200,0 L 200,40 Q 200,52 188,52 L 0,52 Z"    fill="white" opacity="0"/>
-                <text id="svgTextRight" x="300" y="32" text-anchor="middle" font-family="system-ui,sans-serif" font-size="15" font-weight="900" fill="#7367f0">הרשימה שלי</text>
-                <text id="svgTextLeft"  x="100" y="32" text-anchor="middle" font-family="system-ui,sans-serif" font-size="15" font-weight="800" fill="rgba(255,255,255,0.65)">הרשימות שלי</text>
+                <path id="svgShapeRight" d="M 200,0 L 400,0 L 400,52 L 212,52 Q 200,52 200,40 Z" fill="white" opacity="0"/>
+                <path id="svgShapeLeft"  d="M 0,0 L 200,0 L 200,40 Q 200,52 188,52 L 0,52 Z"    fill="white" opacity="1"/>
+                <text id="svgTextRight" x="300" y="32" text-anchor="middle" font-family="system-ui,sans-serif" font-size="15" font-weight="800" fill="rgba(255,255,255,0.65)">הרשימה שלי</text>
+                <text id="svgTextLeft"  x="100" y="32" text-anchor="middle" font-family="system-ui,sans-serif" font-size="15" font-weight="900" fill="#7367f0">הרשימות שלי</text>
             </svg>
         </div>
 
@@ -3677,13 +3677,13 @@ ${error.message}
         var tL = document.getElementById('svgTextLeft');
         if (!sR) return;
         if (page === 'lists') {
-            sR.setAttribute('opacity','1'); sL.setAttribute('opacity','0');
-            tR.setAttribute('fill','#7367f0'); tR.setAttribute('font-weight','900');
-            tL.setAttribute('fill','rgba(255,255,255,0.65)'); tL.setAttribute('font-weight','800');
-        } else if (page === 'summary') {
             sL.setAttribute('opacity','1'); sR.setAttribute('opacity','0');
             tL.setAttribute('fill','#7367f0'); tL.setAttribute('font-weight','900');
             tR.setAttribute('fill','rgba(255,255,255,0.65)'); tR.setAttribute('font-weight','800');
+        } else if (page === 'summary') {
+            sR.setAttribute('opacity','1'); sL.setAttribute('opacity','0');
+            tR.setAttribute('fill','#7367f0'); tR.setAttribute('font-weight','900');
+            tL.setAttribute('fill','rgba(255,255,255,0.65)'); tL.setAttribute('font-weight','800');
         } else {
             sR.setAttribute('opacity','0'); sL.setAttribute('opacity','0');
             tR.setAttribute('fill','rgba(255,255,255,0.65)');
