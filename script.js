@@ -2496,7 +2496,7 @@ function render() {
         setTimeout(adjustContentPadding, 50);
         document.getElementById('itemCountDisplay').innerText = `${Object.keys(db.lists).length} רשימות`;
 
-        const searchInput = document.getElementById('searchInput');
+        const searchInput = document.getElementById('listSearchInput') || document.getElementById('searchInput');
         const searchTerm = searchInput ? searchInput.value.toLowerCase() : '';
 
         if (container) {
