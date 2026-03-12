@@ -2502,6 +2502,16 @@ ${error.message}
                 <span id="wizardPanelText">מדריך</span>
             </div>
         </div>
+        <div style="display:flex;gap:8px;padding:0 12px 14px;">
+            <button onclick="closeListActionsPanel(); showPage('stats')"
+                style="flex:1;height:40px;border-radius:14px;background:white;border:none;font-size:13px;font-weight:800;color:#7367f0;cursor:pointer;box-shadow:0 2px 10px rgba(115,103,240,0.15);">
+                📊 סטטיסטיקות
+            </button>
+            <button onclick="closeListActionsPanel(); openModal('financialChoiceModal')"
+                style="flex:1;height:40px;border-radius:14px;background:linear-gradient(135deg,#7367f0,#0ea5e9);border:none;font-size:13px;font-weight:800;color:white;cursor:pointer;box-shadow:0 2px 10px rgba(115,103,240,0.25);">
+                💰 פיננסי
+            </button>
+        </div>
     </div>
 
     <!-- ===== TOAST BAR ===== -->
