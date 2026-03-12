@@ -10133,9 +10133,17 @@ let compactMode = false;
 function toggleCompactMode() {
     compactMode = !compactMode;
     const btn = document.getElementById('compactModeBtn');
+    const bottomBar = document.getElementById('smartBottomBar');
     if (btn) {
         btn.style.background = compactMode ? 'rgba(255,255,255,0.4)' : 'rgba(255,255,255,0.2)';
         btn.style.borderColor = compactMode ? 'white' : 'rgba(255,255,255,0.3)';
+    }
+    if (bottomBar) {
+        if (compactMode) {
+            bottomBar.classList.add('minimized');
+        } else {
+            bottomBar.classList.remove('minimized');
+        }
     }
     render();
 }
