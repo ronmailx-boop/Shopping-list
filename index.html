@@ -2472,7 +2472,7 @@ ${error.message}
         <div id="listSearchBar" style="overflow:hidden;max-height:0;transition:max-height 0.3s ease;background:rgba(255,255,255,0.15);margin:0 -0px;">
             <div style="display:flex;align-items:center;gap:10px;padding:8px 14px;">
                 <svg width="17" height="17" fill="none" stroke="rgba(255,255,255,0.7)" stroke-width="2" viewBox="0 0 24 24" style="flex-shrink:0;"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.35-4.35"/></svg>
-                <input type="text" id="listSearchInput" oninput="searchInList()" placeholder="חפש מוצר ברשימה..."
+                <input type="text" id="listSearchInput" oninput="(typeof activePage!=='undefined'&&activePage==='summary')?render():searchInList()" placeholder="חפש מוצר ברשימה..."
                     style="flex:1;height:38px;border:none;border-radius:12px;padding:0 14px;font-size:14px;color:#1e1b4b;background:rgba(255,255,255,0.95);outline:none;direction:rtl;font-family:system-ui,sans-serif;">
                 <button onclick="toggleListSearch()" style="width:32px;height:32px;border-radius:50%;background:rgba(255,255,255,0.2);border:none;cursor:pointer;font-size:15px;color:white;display:flex;align-items:center;justify-content:center;">✕</button>
             </div>
@@ -3722,18 +3722,23 @@ ${error.message}
         var btn = document.getElementById('searchIconBtn');
         var input = document.getElementById('listSearchInput');
         if (_listSearchOpen) {
+            // שנה placeholder לפי טאב
+            if (input) {
+                input.placeholder = (typeof activePage !== 'undefined' && activePage === 'summary')
+                    ? 'חפש רשימה...' : 'חפש מוצר ברשימה...';
+                input.value = '';
+            }
             bar.style.maxHeight = '62px';
-            bar.style.boxShadow = '0 4px 12px rgba(115,103,240,0.15)';
             btn.style.background = 'rgba(255,255,255,0.4)';
             btn.style.borderColor = 'white';
-            setTimeout(function(){ if(input) input.focus(); }, 320);
+            setTimeout(function(){ if(input) input.focus(); }, 300);
         } else {
             bar.style.maxHeight = '0';
-            bar.style.boxShadow = 'none';
             btn.style.background = 'rgba(255,255,255,0.2)';
             btn.style.borderColor = 'rgba(255,255,255,0.3)';
             if(input) { input.value = ''; }
             if(typeof searchInList === 'function') searchInList();
+            if(typeof render === 'function') render();
         }
     }
     window.toggleListSearch = toggleListSearch;
