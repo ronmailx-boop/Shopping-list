@@ -2186,6 +2186,7 @@ function render() {
         const list = db.lists[db.currentId] || { name: 'רשימה', items: [] };
         document.getElementById('listNameDisplay').innerText = list.name;
         document.getElementById('itemCountDisplay').innerText = `${list.items.length} ${t('items')}`;
+        setTimeout(adjustContentPadding, 50);
 
 
         if (container) {
@@ -2491,6 +2492,9 @@ function render() {
         document.getElementById('pageLists').classList.add('hidden');
         document.getElementById('pageSummary').classList.remove('hidden');
         document.getElementById('pageStats').classList.add('hidden');
+        document.getElementById('listNameDisplay').innerText = 'הרשימות שלי';
+        setTimeout(adjustContentPadding, 50);
+        document.getElementById('itemCountDisplay').innerText = `${Object.keys(db.lists).length} רשימות`;
 
         const searchInput = document.getElementById('searchInput');
         const searchTerm = searchInput ? searchInput.value.toLowerCase() : '';
@@ -10065,6 +10069,16 @@ function importFinancialTransactions(transactions, nameLabel) {
     activePage = 'lists';
     save();
     showNotification('✅ יובאו ' + items.length + ' רשומות מ' + nameLabel + '!');
+}
+
+// ── Dynamic padding for list name bar ──
+function adjustContentPadding() {
+    const bar = document.getElementById('listNameBar');
+    const container = document.querySelector('.max-w-md.mx-auto.p-4.no-print');
+    if (bar && container) {
+        const barHeight = bar.getBoundingClientRect().height;
+        container.style.paddingTop = (barHeight + 16) + 'px';
+    }
 }
 
 // ── Legacy startBankSync stub ──
