@@ -3709,35 +3709,38 @@ ${error.message}
         var actions = document.getElementById('barActionsRow');
         var stats   = document.getElementById('barStatsRow');
         var bottomBar = document.getElementById('smartBottomBar');
-
-        // אם הבר מוקטן — פתח אותו תחילה
-        if (bottomBar && bottomBar.classList.contains('minimized')) {
-            bottomBar.classList.remove('minimized');
-            if (typeof compactMode !== 'undefined') compactMode = false;
-            var compactBtn = document.getElementById('compactModeBtn');
-            if (compactBtn) {
-                compactBtn.style.background = 'rgba(255,255,255,0.2)';
-                compactBtn.style.borderColor = 'rgba(255,255,255,0.3)';
-            }
-        }
+        var isMinimized = bottomBar && bottomBar.classList.contains('minimized');
 
         if (_activePage === page) {
-            // לחיצה שנייה — החלף מצב
-            _activeMode = (_activeMode === 'buttons') ? 'stats' : 'buttons';
+            // לחיצה שנייה על אותו טאב — אם מוקטן פתח, אחרת החלף מצב
+            if (isMinimized) {
+                bottomBar.classList.remove('minimized');
+                if (typeof compactMode !== 'undefined') compactMode = false;
+                var compactBtn = document.getElementById('compactModeBtn');
+                if (compactBtn) {
+                    compactBtn.style.background = 'rgba(255,255,255,0.2)';
+                    compactBtn.style.borderColor = 'rgba(255,255,255,0.3)';
+                }
+            } else {
+                _activeMode = (_activeMode === 'buttons') ? 'stats' : 'buttons';
+            }
         } else {
-            // לחיצה ראשונה — עבור לטאב, תמיד כפתורים
+            // מעבר לטאב אחר — שמור על מצב compact כפי שהוא
             _activePage = page;
             _activeMode = 'buttons';
             window.activePage = page;
             if (typeof showPage === 'function') showPage(page);
         }
-        // עדכן תצוגה
-        if (_activeMode === 'buttons') {
-            if (actions) { actions.style.display='flex'; actions.style.padding='10px 12px 18px'; }
-            if (stats)   stats.style.display = 'none';
-        } else {
-            if (actions) actions.style.display = 'none';
-            if (stats)   { stats.style.display='flex'; stats.style.padding='10px 12px 18px'; }
+
+        // עדכן תצוגה רק אם הבר פתוח
+        if (!isMinimized || !bottomBar.classList.contains('minimized')) {
+            if (_activeMode === 'buttons') {
+                if (actions) { actions.style.display='flex'; actions.style.padding='10px 12px 18px'; }
+                if (stats)   stats.style.display = 'none';
+            } else {
+                if (actions) actions.style.display = 'none';
+                if (stats)   { stats.style.display='flex'; stats.style.padding='10px 12px 18px'; }
+            }
         }
         updateSvgTabs(_activePage);
     }
