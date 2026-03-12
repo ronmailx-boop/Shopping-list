@@ -10100,10 +10100,14 @@ function adjustContentPadding() {
 // ResizeObserver — עוקב אחרי גובה הבר בזמן אמת
 (function initBarObserver() {
     const bar = document.getElementById('listNameBar');
-    if (!bar) { setTimeout(initBarObserver, 200); return; }
+    if (!bar) { setTimeout(initBarObserver, 100); return; }
     const observer = new ResizeObserver(() => adjustContentPadding());
     observer.observe(bar);
     adjustContentPadding();
+    // רץ שוב אחרי טעינת פונטים
+    setTimeout(adjustContentPadding, 100);
+    setTimeout(adjustContentPadding, 400);
+    setTimeout(adjustContentPadding, 800);
 })();
 
 // ── Compact Mode ──
