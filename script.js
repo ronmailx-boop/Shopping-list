@@ -856,7 +856,7 @@ function showPage(p) {
     activePage = p;
     // פתיחת הבר אוטומטית ועדכון טאבי הניווט בבר הפתוח
     if (p === 'lists' || p === 'summary') {
-        if (typeof openSmartBar === 'function') openSmartBar();
+        // שמור מצב compact — אל תפתח את הבר אוטומטית
         if (typeof updateExpandedTabs === 'function') updateExpandedTabs(p);
     }
     save();
@@ -10141,9 +10141,6 @@ function toggleCompactMode() {
     if (bottomBar) {
         if (compactMode) {
             bottomBar.classList.add('minimized');
-            // בminiize mode — לחיצה על הטאבים תפתח את הבר
-            bottomBar.querySelector('[style*="position:relative;height:52px"]') && 
-                bottomBar.querySelector('[style*="position:relative;height:52px"]').setAttribute('data-compact-handle', 'true');
         } else {
             bottomBar.classList.remove('minimized');
         }
