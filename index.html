@@ -3710,14 +3710,14 @@ ${error.message}
         var stats   = document.getElementById('barStatsRow');
         var bottomBar = document.getElementById('smartBottomBar');
 
-        // אם הבר מוקטן — לחיצה על טאב תפתח אותו תחילה
+        // אם הבר מוקטן — פתח אותו תחילה
         if (bottomBar && bottomBar.classList.contains('minimized')) {
             bottomBar.classList.remove('minimized');
             if (typeof compactMode !== 'undefined') compactMode = false;
-            var btn = document.getElementById('compactModeBtn');
-            if (btn) {
-                btn.style.background = 'rgba(255,255,255,0.2)';
-                btn.style.borderColor = 'rgba(255,255,255,0.3)';
+            var compactBtn = document.getElementById('compactModeBtn');
+            if (compactBtn) {
+                compactBtn.style.background = 'rgba(255,255,255,0.2)';
+                compactBtn.style.borderColor = 'rgba(255,255,255,0.3)';
             }
         }
 
