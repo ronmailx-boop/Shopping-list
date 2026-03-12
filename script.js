@@ -2425,6 +2425,20 @@ function render() {
                         div.style.border = '3px solid #f59e0b';
                         div.style.boxShadow = '0 8px 20px rgba(245, 158, 11, 0.3)';
                     }
+                    if (compactMode) {
+                        div.style.padding = '10px 14px';
+                        div.innerHTML = `
+                            <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;">
+                                <div style="display:flex;align-items:center;gap:8px;flex:1;min-width:0;">
+                                    <input type="checkbox" ${item.checked ? 'checked' : ''} onchange="toggleItem(${idx})" class="w-7 h-7 accent-indigo-600" style="flex-shrink:0;">
+                                    <span class="font-bold ${item.checked ? 'line-through text-gray-300' : ''}" style="font-size:15px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
+                                        <span class="item-number">${idx + 1}.</span> ${item.name}
+                                    </span>
+                                </div>
+                                ${item.isGeneralNote ? '' : `<span class="font-black text-indigo-600" style="font-size:15px;flex-shrink:0;">₪${sub.toFixed(2)}</span>`}
+                            </div>
+                        `;
+                    } else {
                     div.innerHTML = `
                         <div class="flex justify-between items-center mb-4">
                             <div class="flex items-center gap-3 flex-1">
@@ -2461,6 +2475,7 @@ function render() {
                             `}
                         </div>
                     `;
+                    }
                     container.appendChild(div);
                 });
             }
@@ -10078,9 +10093,30 @@ function adjustContentPadding() {
     if (bar && container) {
         const barHeight = bar.getBoundingClientRect().height;
         container.style.paddingTop = (barHeight + 16) + 'px';
-        // עדכן CSS variable לשורת החיפוש
         document.documentElement.style.setProperty('--lnb-height', barHeight + 'px');
     }
+}
+
+// ResizeObserver — עוקב אחרי גובה הבר בזמן אמת
+(function initBarObserver() {
+    const bar = document.getElementById('listNameBar');
+    if (!bar) { setTimeout(initBarObserver, 200); return; }
+    const observer = new ResizeObserver(() => adjustContentPadding());
+    observer.observe(bar);
+    adjustContentPadding();
+})();
+
+// ── Compact Mode ──
+let compactMode = false;
+
+function toggleCompactMode() {
+    compactMode = !compactMode;
+    const btn = document.getElementById('compactModeBtn');
+    if (btn) {
+        btn.style.background = compactMode ? 'rgba(255,255,255,0.4)' : 'rgba(255,255,255,0.2)';
+        btn.style.borderColor = compactMode ? 'white' : 'rgba(255,255,255,0.3)';
+    }
+    render();
 }
 
 // ── Legacy startBankSync stub ──
