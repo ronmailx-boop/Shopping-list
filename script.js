@@ -9922,18 +9922,24 @@ async function runFinancialFetch({ companyId, credentials, modalId, nameLabel })
                         settled = true;
                         clearTimeout(timer);
                         unsubscribe();
-                        // חלץ עסקאות מכל החשבונות
-                        const txns = [];
-                        (data.accounts || []).forEach(acc => {
-                            (acc.txns || []).forEach(t => txns.push({
-                                name:   t.description || 'עסקה',
-                                amount: Math.abs(t.amount || 0),
-                                price:  Math.abs(t.amount || 0),
-                                date:   t.date || '',
-                            }));
+                        // כל account → אובייקט נפרד עם מספר כרטיס + עסקאות ממוינות
+                        const accounts = (data.accounts || []).map(acc => {
+                            const txns = (acc.txns || [])
+                                .map(t => ({
+                                    name:   t.description || 'עסקה',
+                                    amount: Math.abs(t.amount || 0),
+                                    price:  Math.abs(t.amount || 0),
+                                    date:   t.date || '',
+                                }))
+                                .sort((a, b) => new Date(b.date) - new Date(a.date));
+                            return {
+                                accountNumber: acc.accountNumber || '',
+                                txns,
+                            };
                         });
-                        log(`התקבלו ${txns.length} עסקאות ✅`, 'success', '✅');
-                        resolve(txns);
+                        const totalTxns = accounts.reduce((s, a) => s + a.txns.length, 0);
+                        log(`התקבלו ${totalTxns} עסקאות ב-${accounts.length} כרטיסים ✅`, 'success', '✅');
+                        resolve(accounts);
                     }
                 }
 
@@ -9967,7 +9973,33 @@ async function runFinancialFetch({ companyId, credentials, modalId, nameLabel })
         hideFinProgress();
 
         if (transactions.length > 0) {
-            importFinancialTransactions(transactions, nameLabel);
+            // כל account+חודש מקבל רשימה נפרדת
+            const MONTHS_HE = ['ינואר','פברואר','מרץ','אפריל','מאי','יוני','יולי','אוגוסט','ספטמבר','אוקטובר','נובמבר','דצמבר'];
+            let totalImported = 0;
+            transactions.forEach(acc => {
+                if (!acc.txns || acc.txns.length === 0) return;
+                const cardSuffix = acc.accountNumber ? ` ${acc.accountNumber}` : '';
+                // קבץ לפי חודש
+                const byMonth = {};
+                acc.txns.forEach(t => {
+                    const d = new Date(t.date);
+                    const key = `${d.getFullYear()}-${d.getMonth()}`;
+                    if (!byMonth[key]) byMonth[key] = { year: d.getFullYear(), month: d.getMonth(), txns: [] };
+                    byMonth[key].txns.push(t);
+                });
+                // מיון מחודש חדש לישן
+                Object.values(byMonth)
+                    .sort((a, b) => b.year !== a.year ? b.year - a.year : b.month - a.month)
+                    .forEach(({ year, month, txns }) => {
+                        const monthLabel = `${MONTHS_HE[month]} ${year}`;
+                        const listName = `${nameLabel}${cardSuffix} - ${monthLabel}`;
+                        // מיין עסקאות מחדש לישן
+                        txns.sort((a, b) => new Date(b.date) - new Date(a.date));
+                        importFinancialTransactions(txns, listName);
+                        totalImported += txns.length;
+                    });
+            });
+            if (totalImported === 0) showNotification('ℹ️ לא נמצאו עסקאות', 'warning');
         } else {
             showNotification('ℹ️ לא נמצאו עסקאות', 'warning');
         }
@@ -10023,7 +10055,7 @@ function importFinancialTransactions(transactions, nameLabel) {
         price: parseFloat(t.amount || t.price || 0),
         qty: 1, checked: false, isPaid: true,
         category: detectCategory(t.name || t.description || ''),
-        note: t.date ? '📅 ' + t.date : '',
+        note: t.date ? '📅 ' + new Date(t.date).toLocaleDateString('he-IL') : '',
         dueDate: '', paymentUrl: '',
         lastUpdated: Date.now(),
         cloudId: 'item_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9)
