@@ -10141,6 +10141,9 @@ function toggleCompactMode() {
     if (bottomBar) {
         if (compactMode) {
             bottomBar.classList.add('minimized');
+            // בminiize mode — לחיצה על הטאבים תפתח את הבר
+            bottomBar.querySelector('[style*="position:relative;height:52px"]') && 
+                bottomBar.querySelector('[style*="position:relative;height:52px"]').setAttribute('data-compact-handle', 'true');
         } else {
             bottomBar.classList.remove('minimized');
         }
