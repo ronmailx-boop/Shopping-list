@@ -10089,11 +10089,13 @@ function importFinancialTransactions(transactions, nameLabel) {
 // ── Dynamic padding for list name bar ──
 function adjustContentPadding() {
     const bar = document.getElementById('listNameBar');
-    const container = document.querySelector('.max-w-md.mx-auto.p-4.no-print');
-    if (bar && container) {
-        const barHeight = bar.getBoundingClientRect().height;
-        container.style.paddingTop = (barHeight + 16) + 'px';
-        document.documentElement.style.setProperty('--lnb-height', barHeight + 'px');
+    const spacer = document.getElementById('barSpacer');
+    if (bar && spacer) {
+        const barRect = bar.getBoundingClientRect();
+        // גובה הבר + מיקומו מהחלק העליון של הדף
+        const totalHeight = barRect.bottom + 8;
+        spacer.style.height = totalHeight + 'px';
+        document.documentElement.style.setProperty('--lnb-height', barRect.height + 'px');
     }
 }
 
