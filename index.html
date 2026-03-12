@@ -94,7 +94,7 @@
             transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
         }
         .bottom-bar.minimized {
-            transform: translateY(calc(100% - 8px));
+            transform: translateY(calc(100% - 52px));
         }
 
         /* Fixed tabs strip above bottom bar */
@@ -3708,6 +3708,19 @@ ${error.message}
     function tapTab(page) {
         var actions = document.getElementById('barActionsRow');
         var stats   = document.getElementById('barStatsRow');
+        var bottomBar = document.getElementById('smartBottomBar');
+
+        // אם הבר מוקטן — לחיצה על טאב תפתח אותו תחילה
+        if (bottomBar && bottomBar.classList.contains('minimized')) {
+            bottomBar.classList.remove('minimized');
+            if (typeof compactMode !== 'undefined') compactMode = false;
+            var btn = document.getElementById('compactModeBtn');
+            if (btn) {
+                btn.style.background = 'rgba(255,255,255,0.2)';
+                btn.style.borderColor = 'rgba(255,255,255,0.3)';
+            }
+        }
+
         if (_activePage === page) {
             // לחיצה שנייה — החלף מצב
             _activeMode = (_activeMode === 'buttons') ? 'stats' : 'buttons';
