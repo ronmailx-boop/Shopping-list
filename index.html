@@ -2888,6 +2888,7 @@ ${error.message}
 
         function openSmartBar() {
             if (typeof compactMode !== 'undefined' && compactMode) return;
+            if (typeof _barState !== 'undefined' && _barState === 2) return;
             var bottomBar = document.getElementById('smartBottomBar');
             if (bottomBar) bottomBar.classList.remove('minimized');
         }
