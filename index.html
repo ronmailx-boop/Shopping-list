@@ -2872,12 +2872,15 @@ ${error.message}
         // ── tapTab ──
         function tapTab(page) {
             _activePage = page;
-            _activeMode = 'buttons';
             window.activePage = page;
             if (typeof showPage === 'function') showPage(page);
             if (typeof render   === 'function') render();
-            // חזור למצב כפתורים בעת מעבר טאב
-            if (_barState !== 0) _barShowState(0, 'r');
+            // במצב ③ (טאבים בלבד) — נשאר במצב, רק מחליף עמוד
+            // במצב ① או ② — חוזר למצב כפתורים
+            if (_barState !== 2) {
+                if (_barState !== 0) _barShowState(0, 'r');
+                _activeMode = 'buttons';
+            }
             updateSvgTabs(_activePage);
         }
 
