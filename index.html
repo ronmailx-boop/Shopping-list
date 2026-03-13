@@ -3712,17 +3712,19 @@ ${error.message}
     function tapTab(page) {
         var actions = document.getElementById('barActionsRow');
         var stats   = document.getElementById('barStatsRow');
-        if (_activePage === page) {
-            // לחיצה שנייה — החלף מצב
-            _activeMode = (_activeMode === 'buttons') ? 'stats' : 'buttons';
-        } else {
-            // לחיצה ראשונה — עבור לטאב, תמיד כפתורים
+
+        if (_activePage !== page) {
+            // מעבר לטאב אחר — תמיד עדכן תצוגה
             _activePage = page;
             _activeMode = 'buttons';
             window.activePage = page;
             if (typeof showPage === 'function') showPage(page);
+            if (typeof render   === 'function') render();
+        } else {
+            // לחיצה על אותו טאב — החלף בין כפתורים לסטטיסטיקות
+            _activeMode = (_activeMode === 'buttons') ? 'stats' : 'buttons';
         }
-        // עדכן תצוגה
+
         if (_activeMode === 'buttons') {
             if (actions) { actions.style.display='flex'; actions.style.padding='10px 12px 18px'; }
             if (stats)   stats.style.display = 'none';
