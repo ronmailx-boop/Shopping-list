@@ -2793,7 +2793,11 @@ ${error.message}
         function updateNavPill(page) { if(typeof updateSvgTabs==='function') updateSvgTabs(page); }
 
         // stub functions לתאימות עם קוד קיים
-        function openSmartBar() {}
+        function openSmartBar() {
+            if (typeof compactMode !== 'undefined' && compactMode) return;
+            var bottomBar = document.getElementById('smartBottomBar');
+            if (bottomBar) bottomBar.classList.remove('minimized');
+        }
         function toggleSmartBar() {}
         function updateExpandedTabs(page) { updateNavPill(page); }
         var _smartBarOpen = true;
@@ -3708,15 +3712,17 @@ ${error.message}
     function tapTab(page) {
         var actions = document.getElementById('barActionsRow');
         var stats   = document.getElementById('barStatsRow');
-
         if (_activePage === page) {
+            // לחיצה שנייה — החלף מצב
             _activeMode = (_activeMode === 'buttons') ? 'stats' : 'buttons';
         } else {
+            // לחיצה ראשונה — עבור לטאב, תמיד כפתורים
             _activePage = page;
             _activeMode = 'buttons';
             window.activePage = page;
             if (typeof showPage === 'function') showPage(page);
         }
+        // עדכן תצוגה
         if (_activeMode === 'buttons') {
             if (actions) { actions.style.display='flex'; actions.style.padding='10px 12px 18px'; }
             if (stats)   stats.style.display = 'none';
