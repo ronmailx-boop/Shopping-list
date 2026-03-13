@@ -854,9 +854,11 @@ function toggleDarkMode() {
 
 function showPage(p) {
     activePage = p;
-    // פתיחת הבר אוטומטית ועדכון טאבי הניווט בבר הפתוח
     if (p === 'lists' || p === 'summary') {
-        if (typeof openSmartBar === 'function') openSmartBar();
+        // פתח בר רק אם לא במצב טאבים-בלבד (state 2) ולא ב-compact
+        if (typeof _barState === 'undefined' || _barState !== 2) {
+            if (typeof openSmartBar === 'function') openSmartBar();
+        }
         if (typeof updateExpandedTabs === 'function') updateExpandedTabs(p);
     }
     save();
@@ -10236,4 +10238,3 @@ if (typeof showPage === 'function') {
 // Init on load
 document.addEventListener('DOMContentLoaded', _updatePlusBtnLabel);
 setTimeout(_updatePlusBtnLabel, 500);
-
