@@ -2648,7 +2648,7 @@ ${error.message}
 
     <div class="bottom-bar text-white no-print" id="smartBottomBar" style="padding:0;display:flex;flex-direction:column;overflow:hidden;">
 
-        <!-- שורת טאבים — SVG, ימין=הרשימה שלי שמאל=הרשימות שלי -->
+        <!-- שורת טאבים — SVG -->
         <div id="barTabsStrip" style="position:relative;height:52px;flex-shrink:0;">
             <div id="tabLists"   onclick="tapTab('summary')" style="position:absolute;top:0;right:0;width:50%;bottom:0;z-index:10;cursor:pointer;"></div>
             <div id="tabSummary" onclick="tapTab('lists')"   style="position:absolute;top:0;left:0;width:50%;bottom:0;z-index:10;cursor:pointer;"></div>
@@ -2661,10 +2661,17 @@ ${error.message}
             </svg>
         </div>
 
-        <!-- שורת פעולות ראשית -->
-        <div id="barActionsRow" style="display:flex;align-items:center;gap:8px;padding:10px 12px 18px;">
+        <!-- Pill indicator — 3 נקודות -->
+        <div class="bar-pill-wrap" id="barPillWrap" onclick="barNextState()">
+            <div class="bar-pill-dot active" id="barDot0"></div>
+            <div class="bar-pill-dot" id="barDot1"></div>
+            <div class="bar-pill-dot" id="barDot2"></div>
+        </div>
 
-            <!-- + הירוק הגדול — ימין ראשון -->
+        <!-- מצב 0: כפתורי פעולה -->
+        <div id="barActionsRow" style="display:flex;align-items:center;gap:8px;padding:8px 12px 18px;">
+
+            <!-- + הירוק הגדול -->
             <div style="display:flex;flex-direction:column;align-items:center;gap:4px;flex-shrink:0;">
                 <button onclick="handlePlusBtn(event)"
                     style="width:62px;height:62px;border-radius:50%;background:#22c55e;border:3px solid rgba(255,255,255,0.35);display:flex;align-items:center;justify-content:center;box-shadow:0 6px 20px rgba(34,197,94,0.5);cursor:pointer;transition:transform 0.2s;animation:smartPlusPulse 2.4s ease-out infinite;"
@@ -2716,36 +2723,36 @@ ${error.message}
                 <span style="font-size:9px;font-weight:800;color:white;">סיום רשימה</span>
             </button>
 
-            <!-- גרירה — hidden, שמור ל-JS -->
+            <!-- hidden buttons — תאימות עם script.js -->
             <button id="mainLockBtn" onclick="toggleLock()" style="display:none;">
                 <svg id="lockIconSvg" width="18" height="18" fill="none" stroke="white" viewBox="0 0 24 24">
                     <path id="lockIconPath" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                         d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
                 </svg>
             </button>
-
-            <!-- מדריך — hidden, שמור ל-JS -->
             <button id="wizardModeBtn" onclick="toggleWizardMode()" style="display:none;">
                 <span id="wizardBtnText">מדריך</span>
             </button>
-
         </div>
 
-        <!-- שורת נתונים — מוצגת בגלילה -->
-        <div id="barStatsRow" style="display:none;gap:8px;">
-            <div style="flex:1;height:52px;border-radius:16px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;">
-                <span style="font-size:9px;font-weight:700;color:rgba(255,255,255,0.58);" id="paidInListLabel">שולם ברשימה</span>
-                <span style="font-size:17px;font-weight:900;color:#86efac;line-height:1.2;">₪<span id="displayPaid">0.00</span></span>
-            </div>
-            <div style="flex:1;height:52px;border-radius:16px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;">
+        <!-- מצב 1: סטטיסטיקות -->
+        <div id="barStatsRow" style="display:none;align-items:center;gap:8px;padding:8px 12px 18px;">
+            <div style="flex:1;height:52px;border-radius:16px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.12);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;">
                 <span style="font-size:9px;font-weight:700;color:rgba(255,255,255,0.58);" id="remainingToPayLabel">נשאר לשלם</span>
                 <span style="font-size:17px;font-weight:900;color:#fcd34d;line-height:1.2;">₪<span id="displayLeft">0.00</span></span>
             </div>
-            <div style="flex:1;height:52px;border-radius:16px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;">
+            <div style="flex:1;height:52px;border-radius:16px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.12);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;">
                 <span style="font-size:9px;font-weight:700;color:rgba(255,255,255,0.58);" id="totalListLabel">סה"כ רשימה</span>
                 <span style="font-size:17px;font-weight:900;color:white;line-height:1.2;">₪<span id="displayTotal">0.00</span></span>
             </div>
+            <div style="flex:1;height:52px;border-radius:16px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.12);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;">
+                <span style="font-size:9px;font-weight:700;color:rgba(255,255,255,0.58);" id="paidInListLabel">שולם ברשימה</span>
+                <span style="font-size:17px;font-weight:900;color:#86efac;line-height:1.2;">₪<span id="displayPaid">0.00</span></span>
+            </div>
         </div>
+
+        <!-- מצב 2: ריק — רק טאבים גלויים -->
+        <div id="barEmptyRow" style="display:none;height:6px;"></div>
 
         <!-- mainLockBtn מוסתר — תאימות עם script.js -->
         <button id="mainLockBtnHidden" style="display:none;"></button>
@@ -2762,37 +2769,120 @@ ${error.message}
             from { opacity: 0; transform: translateY(4px); }
             to   { opacity: 1; transform: translateY(0); }
         }
+        @keyframes slideInL {
+            from { opacity: 0; transform: translateX(20px); }
+            to   { opacity: 1; transform: translateX(0); }
+        }
+        @keyframes slideInR {
+            from { opacity: 0; transform: translateX(-20px); }
+            to   { opacity: 1; transform: translateX(0); }
+        }
+        .bar-slide-l { animation: slideInL 0.25s cubic-bezier(0.4,0,0.2,1); }
+        .bar-slide-r { animation: slideInR 0.25s cubic-bezier(0.4,0,0.2,1); }
+
+        /* Pill indicator */
+        .bar-pill-wrap {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 4px 0 2px;
+            gap: 5px;
+            cursor: pointer;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .bar-pill-dot {
+            width: 7px; height: 7px;
+            border-radius: 50%;
+            background: rgba(255,255,255,0.25);
+            transition: all 0.25s cubic-bezier(0.4,0,0.2,1);
+            flex-shrink: 0;
+        }
+        .bar-pill-dot.active {
+            background: white;
+            transform: scale(1.3);
+            box-shadow: 0 0 6px rgba(255,255,255,0.5);
+        }
     </style>
 
     <script>
-        var _smartBarOpen = false;
-        // ═══ בר קבוע — לוגיקת גלילה ועדכון טאבים ═══
+        // ═══ 3-STATE BAR — pill + swipe ═══
+        var _barState = 0; // 0=כפתורים, 1=סטטיסטיקות, 2=טאבים בלבד
+        var _barTotalStates = 3;
+        var _activePage = 'lists';
+        var _activeMode = 'buttons';
+        var _smartBarOpen = true;
 
-        var _scrollTimer = null;
-        var _isScrolling = false;
+        var _barRows = ['barActionsRow', 'barStatsRow', 'barEmptyRow'];
 
-        // החלפת שורת פעולות ↔ נתונים בגלילה
-        window.addEventListener('scroll', function() {
-            if (!_isScrolling) {
-                _isScrolling = true;
-                var actions = document.getElementById('barActionsRow');
-                var stats   = document.getElementById('barStatsRow');
-                if (actions) actions.style.display = 'none';
-                if (stats)   { stats.style.display = 'flex'; stats.style.animation = 'barFadeIn 0.2s ease'; }
+        function _barShowState(n, dir) {
+            // hide current
+            var prev = _barState;
+            _barState = ((n % _barTotalStates) + _barTotalStates) % _barTotalStates;
+
+            var prevEl = document.getElementById(_barRows[prev]);
+            if (prevEl) prevEl.style.display = 'none';
+
+            var nextEl = document.getElementById(_barRows[_barState]);
+            if (nextEl) {
+                nextEl.style.display = (_barState === 2) ? 'block' : 'flex';
+                nextEl.classList.remove('bar-slide-l', 'bar-slide-r');
+                void nextEl.offsetWidth;
+                nextEl.classList.add(dir === 'l' ? 'bar-slide-l' : 'bar-slide-r');
             }
-            clearTimeout(_scrollTimer);
-            _scrollTimer = setTimeout(function() {
-                _isScrolling = false;
-                var actions = document.getElementById('barActionsRow');
-                var stats   = document.getElementById('barStatsRow');
-                if (stats)   stats.style.display = 'none';
-                if (actions) { actions.style.display = 'flex'; actions.style.animation = 'barFadeIn 0.2s ease'; }
-            }, 800);
-        }, { passive: true });
+
+            // update dots
+            for (var i = 0; i < _barTotalStates; i++) {
+                var dot = document.getElementById('barDot' + i);
+                if (dot) dot.classList.toggle('active', i === _barState);
+            }
+
+            // sync _activeMode for compatibility
+            _activeMode = _barState === 0 ? 'buttons' : 'stats';
+        }
+
+        function barNextState() { _barShowState(_barState + 1, 'l'); }
+        function barPrevState() { _barShowState(_barState - 1, 'r'); }
+
+        // swipe detection
+        var _swStartX = 0, _swStartY = 0;
+        function _addSwipe(elId) {
+            var el = document.getElementById(elId);
+            if (!el) return;
+            el.addEventListener('touchstart', function(e) {
+                _swStartX = e.touches[0].clientX;
+                _swStartY = e.touches[0].clientY;
+            }, { passive: true });
+            el.addEventListener('touchend', function(e) {
+                var dx = _swStartX - e.changedTouches[0].clientX;
+                var dy = Math.abs(_swStartY - e.changedTouches[0].clientY);
+                if (Math.abs(dx) < 30 || dy > 50) return;
+                if (dx > 0) barNextState(); else barPrevState();
+            }, { passive: true });
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            _addSwipe('barTabsStrip');
+            _addSwipe('barPillWrap');
+            _addSwipe('barActionsRow');
+            _addSwipe('barStatsRow');
+            setTimeout(function(){ updateSvgTabs(window.activePage||'lists'); }, 200);
+        });
+
+        // ── tapTab ──
+        function tapTab(page) {
+            _activePage = page;
+            _activeMode = 'buttons';
+            window.activePage = page;
+            if (typeof showPage === 'function') showPage(page);
+            if (typeof render   === 'function') render();
+            // חזור למצב כפתורים בעת מעבר טאב
+            if (_barState !== 0) _barShowState(0, 'r');
+            updateSvgTabs(_activePage);
+        }
 
         function updateNavPill(page) { if(typeof updateSvgTabs==='function') updateSvgTabs(page); }
 
-        // stub functions לתאימות עם קוד קיים
         function openSmartBar() {
             if (typeof compactMode !== 'undefined' && compactMode) return;
             var bottomBar = document.getElementById('smartBottomBar');
@@ -2800,7 +2890,6 @@ ${error.message}
         }
         function toggleSmartBar() {}
         function updateExpandedTabs(page) { updateNavPill(page); }
-        var _smartBarOpen = true;
     </script>
 
     <div id="printArea" class="hidden"></div>
@@ -3712,53 +3801,26 @@ ${error.message}
     function tapTab(page) {
         var actions = document.getElementById('barActionsRow');
         var stats   = document.getElementById('barStatsRow');
-
-        _activePage = page;
-        _activeMode = 'buttons';
-        window.activePage = page;
-        if (typeof showPage === 'function') showPage(page);
-        if (typeof render   === 'function') render();
-
-        if (actions) { actions.style.display='flex'; actions.style.padding='10px 12px 18px'; }
-        if (stats)   stats.style.display = 'none';
-
+        if (_activePage === page) {
+            // לחיצה שנייה — החלף מצב
+            _activeMode = (_activeMode === 'buttons') ? 'stats' : 'buttons';
+        } else {
+            // לחיצה ראשונה — עבור לטאב, תמיד כפתורים
+            _activePage = page;
+            _activeMode = 'buttons';
+            window.activePage = page;
+            if (typeof showPage === 'function') showPage(page);
+        }
+        // עדכן תצוגה
+        if (_activeMode === 'buttons') {
+            if (actions) { actions.style.display='flex'; actions.style.padding='10px 12px 18px'; }
+            if (stats)   stats.style.display = 'none';
+        } else {
+            if (actions) actions.style.display = 'none';
+            if (stats)   { stats.style.display='flex'; stats.style.padding='10px 12px 18px'; }
+        }
         updateSvgTabs(_activePage);
     }
-
-    // ── Swipe על שורת הטאבים לפתיחת סטטיסטיקות ──
-    (function() {
-        var _touchStartY = 0;
-
-        function initTabsSwipe() {
-            var strip = document.getElementById('barTabsStrip');
-            if (!strip) return;
-
-            strip.addEventListener('touchstart', function(e) {
-                _touchStartY = e.touches[0].clientY;
-            }, { passive: true });
-
-            strip.addEventListener('touchend', function(e) {
-                var dy = _touchStartY - e.changedTouches[0].clientY;
-                var actions = document.getElementById('barActionsRow');
-                var stats   = document.getElementById('barStatsRow');
-                if (dy > 30) {
-                    // swipe למעלה — הצג סטטיסטיקות
-                    if (actions) actions.style.display = 'none';
-                    if (stats)   { stats.style.display='flex'; stats.style.padding='10px 12px 18px'; }
-                    _activeMode = 'stats';
-                } else if (dy < -30) {
-                    // swipe למטה — חזור לכפתורים
-                    if (stats)   stats.style.display = 'none';
-                    if (actions) { actions.style.display='flex'; actions.style.padding='10px 12px 18px'; }
-                    _activeMode = 'buttons';
-                }
-            }, { passive: true });
-        }
-
-        document.addEventListener('DOMContentLoaded', function() {
-            setTimeout(initTabsSwipe, 300);
-        });
-    })();
 
     var _listSearchOpen = false;
     function toggleListSearch() {
