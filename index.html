@@ -3681,11 +3681,18 @@ ${error.message}
 
     <script>
     /* ═══ SVG TABS + DOUBLE TAP ═══ */
-    var _activePage = 'lists';
+    // BUG FIX: use window._activePage so showPage() in script.js can keep it in sync.
+    // Also restore the last active page so tapTab doesn't toggle stats-mode on first tap.
+    window._activePage = (function() {
+        try {
+            var saved = JSON.parse(localStorage.getItem('BUDGET_FINAL_V28'));
+            return (saved && saved.lastActivePage) ? saved.lastActivePage : 'lists';
+        } catch(e) { return 'lists'; }
+    })();
     var _activeMode = 'buttons'; // 'buttons' | 'stats'
 
     function updateSvgTabs(page) {
-        page = page || _activePage;
+        page = page || window._activePage;
         var sR = document.getElementById('svgShapeRight');
         var sL = document.getElementById('svgShapeLeft');
         var tR = document.getElementById('svgTextRight');
@@ -3710,25 +3717,16 @@ ${error.message}
         var actions = document.getElementById('barActionsRow');
         var stats   = document.getElementById('barStatsRow');
 
-        // Sync _activePage with the real global activePage.
-        // This fixes the bug where showPage() is called directly (e.g. from a list card click)
-        // which updates the global activePage but NOT _activePage, causing tapTab to think
-        // we're still on the old page and toggle stats instead of navigating.
-        var realPage = (typeof activePage !== 'undefined') ? activePage : _activePage;
-        if (_activePage !== realPage) {
-            _activePage = realPage;
-        }
-
-        // In compact mode the tabs are fixed navigation — always navigate, never toggle stats.
+        // window._activePage is kept in sync by showPage() in script.js —
+        // no manual sync needed here anymore.
         var isCompact = (typeof compactMode !== 'undefined') ? compactMode : false;
-        var alreadyHere = (_activePage === page);
+        var alreadyHere = (window._activePage === page);
 
         if (alreadyHere && !isCompact) {
             _activeMode = (_activeMode === 'buttons') ? 'stats' : 'buttons';
         } else {
-            _activePage = page;
+            window._activePage = page;
             _activeMode = 'buttons';
-            window.activePage = page;
             if (typeof showPage === 'function') showPage(page);
         }
         if (_activeMode === 'buttons') {
@@ -3738,7 +3736,7 @@ ${error.message}
             if (actions) actions.style.display = 'none';
             if (stats)   { stats.style.display='flex'; stats.style.padding='10px 12px 18px'; }
         }
-        updateSvgTabs(_activePage);
+        updateSvgTabs(window._activePage);
     }
 
     var _listSearchOpen = false;
