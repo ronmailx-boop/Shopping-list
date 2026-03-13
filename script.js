@@ -771,6 +771,7 @@ if (!db.categoryMemory) db.categoryMemory = {};
 function save() {
     db.lastActivePage = activePage;
     db.lastSync = Date.now();
+    db.lastSaved = Date.now(); // timestamp לשימוש בהשוואת גרסאות ענן/מקומי
     localStorage.setItem('BUDGET_FINAL_V28', JSON.stringify(db));
     render();
     
@@ -4769,6 +4770,15 @@ function setupFirestoreListener(user) {
                 return;
             }
 
+            // בדיקת timestamps: אם הנתונים המקומיים חדשים יותר — אל תדרוס אותם
+            const cloudSaved = cloudData.lastSaved || cloudData.lastSync || 0;
+            const localSaved = db.lastSaved || db.lastSync || 0;
+            if (localSaved > cloudSaved) {
+                console.log('🔄 נתונים מקומיים חדשים יותר מהענן - מעלה לענן');
+                syncToCloud();
+                return;
+            }
+
             // מיזוג חכם: הענן הוא מקור האמת למחיקות
             if (JSON.stringify(cloudData) !== JSON.stringify(db)) {
                 console.log('🔄 מבצע סנכרון חכם מהענן...');
@@ -7218,11 +7228,22 @@ function editNotes(idx) {
 
 // Initialize Peace of Mind features on page load
 document.addEventListener('DOMContentLoaded', function() {
+    // ── תיקון: נקה wizard state ישן ממשתמשים קיימים ──
+    // אם wizardModeEverSet לא קיים, המשתמש הגיע מגרסה ישנה שהפעילה wizard אוטומטית
+    if (!localStorage.getItem('wizardModeEverSet')) {
+        localStorage.setItem('wizardModeEverSet', 'true');
+        localStorage.removeItem('wizardMode'); // אפס — לא wizard אוטומטי
+    }
+
     // טען GitHub Token
     if (typeof loadGithubToken === 'function') loadGithubToken();
     updateGithubTokenStatus();
     setTimeout(() => { checkUrgentPayments(); }, 1000);
     checkFirstRunDemo();
+
+    // ── וודא ש-render() נקרא לאחר טעינת הדף ──
+    // (Firebase init אסינכרוני — render מהנתונים המקומיים תחילה)
+    if (typeof render === 'function') render();
 });
 
 // Override the original render function to include Peace of Mind display elements
@@ -9511,9 +9532,10 @@ function wizardOverlayClick(e) {
 document.addEventListener('DOMContentLoaded', () => {
     const firstTime = !localStorage.getItem('wizardModeEverSet');
     if (firstTime) {
-        // First launch: auto-enable wizard
+        // First launch: mark as seen but do NOT auto-enable wizard
+        // User must explicitly enable it from settings
         localStorage.setItem('wizardModeEverSet', 'true');
-        localStorage.setItem('wizardMode', 'true');
+        // wizardMode stays false — no localStorage.setItem('wizardMode', 'true')
     }
     if (localStorage.getItem('wizardMode') === 'true') {
         wizardMode = true;
@@ -9522,11 +9544,8 @@ document.addEventListener('DOMContentLoaded', () => {
         if (btn) btn.classList.add('wizard-active');
         if (txt) txt.textContent = 'מדריך';
         document.body.classList.add('wizard-mode-active');
-        // Show welcome on first time
-        if (firstTime) {
-            setTimeout(_wizShowWelcome, 800);
-        }
     } else {
+        wizardMode = false;
         const welcome = document.getElementById('wizWelcomeOverlay');
         if (welcome) welcome.style.display = 'none';
     }
