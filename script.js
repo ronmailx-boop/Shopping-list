@@ -47,16 +47,7 @@ function getReminderMilliseconds(value, unit) {
     return conversions[unit] || 0;
 }
 
-// Compute the nextAlertTime for an item based on its dueDate + dueTime + reminder settings
-function computeNextAlertTime(item) {
-    if (!item.dueDate) return null;
-    if (!item.reminderValue || !item.reminderUnit) return null;
-
-    const timeStr = item.dueTime ? item.dueTime : '09:00';
-    const dueDateMs = new Date(item.dueDate + 'T' + timeStr + ':00').getTime();
-    const reminderMs = getReminderMilliseconds(item.reminderValue, item.reminderUnit);
-    return dueDateMs - reminderMs;
-}
+// computeNextAlertTime is defined in the notification system block below
 
 function formatReminderText(value, unit) {
     if (!value || !unit) return '';
@@ -855,6 +846,11 @@ function toggleDarkMode() {
 
 function showPage(p) {
     activePage = p;
+    // BUG FIX: sync the inline _activePage so tapTab doesn't toggle stats-mode
+    // on the first tap after a page refresh
+    if (typeof window._activePage !== 'undefined') {
+        window._activePage = p;
+    }
     // פתיחת הבר אוטומטית ועדכון טאבי הניווט בבר הפתוח
     if (p === 'lists' || p === 'summary') {
         // שמור מצב compact — אל תפתח את הבר אוטומטית
@@ -5701,10 +5697,15 @@ function parseDate(dateCell) {
 /**
  * Format Date object to DD/MM/YYYY string
  */
+// formatDate is defined below — handles both Date objects and date strings
 function formatDate(date) {
-    const day = String(date.getDate()).padStart(2, '0');
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const year = date.getFullYear();
+    if (!date) return '';
+    // If it's a Date object, convert to ISO string first
+    const dateString = (date instanceof Date) ? date.toISOString().split('T')[0] : date;
+    const d = new Date(dateString);
+    const day = d.getDate().toString().padStart(2, '0');
+    const month = (d.getMonth() + 1).toString().padStart(2, '0');
+    const year = d.getFullYear();
     return `${day}/${month}/${year}`;
 }
 
@@ -7096,26 +7097,8 @@ function goToItemFromAlert(itemName) {
 }
 
 // Format date for display
-function formatDate(dateString) {
-    if (!dateString) return '';
-    const date = new Date(dateString);
-    const day = date.getDate().toString().padStart(2, '0');
-    const month = (date.getMonth() + 1).toString().padStart(2, '0');
-    const year = date.getFullYear();
-    return `${day}/${month}/${year}`;
-}
-
 // Auto-link URLs in notes
-function autoLinkNotes(text) {
-    if (!text) return '';
-    
-    // URL regex pattern
-    const urlPattern = /(https?:\/\/[^\s]+)/g;
-    
-    return text.replace(urlPattern, (url) => {
-        return `<a href="${url}" target="_blank" rel="noopener noreferrer">${url}</a>`;
-    });
-}
+// autoLinkNotes is defined below with styled links
 
 // Toggle item paid status and update badge
 function toggleItemPaid(idx) {
@@ -8528,275 +8511,6 @@ window.addEventListener('focus', function() {
 
 
 
-
-// ========== מערכת תזכורות — נבנתה מחדש ==========
-//
-// ארכיטקטורה נקייה:
-//   nextAlertTime  — מתי תירה ההתראה (ms epoch). snooze = עדכון לעתיד.
-//   alertDismissedAt — מתי סגר המשתמש (= nextAlertTime של אותה פעם).
-//   dismiss לא משנה nextAlertTime — רק מונע popup אוטומטי.
-//   snooze מוחק alertDismissedAt ומגדיר nextAlertTime חדש.
-// ─────────────────────────────────────────────────────────────────
-
-let _reminderTimers = new Map();
-// _forceShowAfterNotificationClick declared above (line 6500)
-
-// ── חישוב זמן ההתראה הטבעי ────────────────────────────────────────
-function computeNextAlertTime(item) {
-    if (!item.dueDate || !item.reminderValue || !item.reminderUnit) return null;
-    const timeStr = item.dueTime || '09:00';
-    const [h, m] = timeStr.split(':');
-    const due = new Date(item.dueDate);
-    due.setHours(parseInt(h), parseInt(m), 0, 0);
-    const reminderMs = getReminderMilliseconds(item.reminderValue, item.reminderUnit);
-    return due.getTime() - reminderMs;
-}
-
-// ── initItemAlertTime: קרא בעת יצירה/עריכה של פריט ───────────────
-function initItemAlertTime(item) {
-    const natural = computeNextAlertTime(item);
-    if (!natural) {
-        item.nextAlertTime = null;
-        return;
-    }
-    const now = Date.now();
-    // אם אין nextAlertTime, או אם שינו את התאריך/תזכורת — אפס
-    if (!item.nextAlertTime || item.nextAlertTime <= now) {
-        item.nextAlertTime = natural;
-        item.alertDismissedAt = null;
-    }
-    // אם יש nextAlertTime בעתיד (snooze) — שמור אותו
-}
-
-// ── snoozeUrgentAlert: דחה את ההתראה ─────────────────────────────
-function snoozeUrgentAlert(ms) {
-    const now = Date.now();
-    const snoozeUntil = now + ms;
-    let count = 0;
-
-    Object.values(db.lists).forEach(list => {
-        (list.items || []).forEach(item => {
-            if (item.checked || item.isPaid || !item.dueDate) return;
-            if (!item.nextAlertTime) return;
-            // snooze פריטים שהתראה שלהם הגיעה (בעבר) — אלה הנוכחיים
-            // גם אם dismissed — snooze מנצח (המשתמש בחר מפורשות)
-            if (item.nextAlertTime > now && !item.alertDismissedAt) return;
-            item.nextAlertTime = snoozeUntil;
-            item.alertDismissedAt = null; // נקה dismiss
-            count++;
-        });
-    });
-
-    if (count === 0) {
-        // fallback: snooze כל פריט עם תזכורת
-        Object.values(db.lists).forEach(list => {
-            (list.items || []).forEach(item => {
-                if (item.checked || item.isPaid || !item.dueDate || !item.reminderValue) return;
-                item.nextAlertTime = snoozeUntil;
-                item.alertDismissedAt = null;
-            });
-        });
-    }
-
-    save();
-    closeModal('urgentAlertModal');
-    _scheduleAllReminders(); // רשום timers חדשים מיד
-
-    const label = ms < 3600000
-        ? Math.round(ms / 60000) + ' דקות'
-        : ms < 86400000 ? Math.round(ms / 3600000) + ' שעות'
-        : Math.round(ms / 86400000) + ' ימים';
-    showNotification('⏰ תוזכר בעוד ' + label, 'info');
-}
-
-// ── closeUrgentAlert: dismiss ─────────────────────────────────────
-function closeUrgentAlert() {
-    const now = Date.now();
-    Object.values(db.lists).forEach(list => {
-        (list.items || []).forEach(item => {
-            if (item.checked || item.isPaid || !item.dueDate) return;
-            const t = item.nextAlertTime;
-            if (!t || t > now) return;
-            if (item.alertDismissedAt && item.alertDismissedAt >= t) return;
-            item.alertDismissedAt = t; // סמן dismissed עבור זמן זה בלבד
-        });
-    });
-    save();
-    closeModal('urgentAlertModal');
-}
-
-// ── checkUrgentPayments: בדוק והצג התראות שהגיעו ─────────────────
-function checkUrgentPayments() {
-    if (!db || !db.lists) return;
-    const now = Date.now();
-    const forceShow = _forceShowAfterNotificationClick;
-    _forceShowAfterNotificationClick = false;
-
-    const alertItems = [];
-    Object.values(db.lists).forEach(list => {
-        (list.items || []).forEach(item => {
-            if (item.checked || item.isPaid || !item.dueDate) return;
-            const t = item.nextAlertTime;
-            if (!t || t > now) return;
-            if (!forceShow && item.alertDismissedAt && item.alertDismissedAt >= t) return;
-            alertItems.push(item);
-        });
-    });
-
-    updateNotificationBadge();
-    if (alertItems.length > 0) showUrgentAlertModal(alertItems);
-}
-
-// updateNotificationBadge defined above (single implementation)
-
-// ── showUrgentAlertModal ──────────────────────────────────────────
-function showUrgentAlertModal(urgentItems) {
-    const modal = document.getElementById('urgentAlertModal');
-    const itemsList = document.getElementById('urgentItemsList');
-    if (!modal || !itemsList) return;
-
-    const today = new Date(); today.setHours(0, 0, 0, 0);
-    const overdue  = urgentItems.filter(i => { const d = new Date(i.dueDate); d.setHours(0,0,0,0); return d < today; });
-    const upcoming = urgentItems.filter(i => { const d = new Date(i.dueDate); d.setHours(0,0,0,0); return d >= today; });
-
-    let html = '';
-
-    if (overdue.length > 0) {
-        html += '<div style="font-weight:bold;color:#ef4444;margin-bottom:10px;">⚠️ באיחור:</div>';
-        overdue.forEach(item => {
-            const esc = (item.name || '').replace(/'/g, "\'");
-            html += `<div class="urgent-item" style="border-right:3px solid #ef4444;cursor:pointer;" onclick="goToItemFromAlert('${esc}')">
-                <div class="urgent-item-name">${item.name}</div>
-                <div class="urgent-item-date">📅 תאריך יעד: ${formatDate(item.dueDate)}</div>
-                <div style="font-size:0.72rem;color:#7367f0;margin-top:4px;">לחץ לצפייה במוצר ←</div>
-            </div>`;
-        });
-    }
-
-    if (upcoming.length > 0) {
-        if (overdue.length > 0) html += '<div style="margin-top:15px;"></div>';
-        html += '<div style="font-weight:bold;color:#3b82f6;margin-bottom:10px;">🔔 תזכורות:</div>';
-        upcoming.forEach(item => {
-            const d = new Date(item.dueDate); d.setHours(0,0,0,0);
-            const days = Math.floor((d - today) / 86400000);
-            const daysText = days === 0 ? 'היום' : days === 1 ? 'מחר' : `בעוד ${days} ימים`;
-            const reminderText = item.reminderValue && item.reminderUnit
-                ? ` (התראה: ${formatReminderText(item.reminderValue, item.reminderUnit)} לפני)` : '';
-            const esc = (item.name || '').replace(/'/g, "\'");
-            html += `<div class="urgent-item" style="border-right:3px solid #3b82f6;cursor:pointer;" onclick="goToItemFromAlert('${esc}')">
-                <div class="urgent-item-name">${item.name}</div>
-                <div class="urgent-item-date">📅 ${formatDate(item.dueDate)} (${daysText})${reminderText}</div>
-                <div style="font-size:0.72rem;color:#7367f0;margin-top:4px;">לחץ לצפייה במוצר ←</div>
-            </div>`;
-        });
-    }
-
-    itemsList.innerHTML = html;
-    modal.classList.add('active');
-}
-
-// ── _scheduleAllReminders: הגדר timers לכל הפריטים ─────────────────
-function _scheduleAllReminders() {
-    _reminderTimers.forEach(id => clearTimeout(id));
-    _reminderTimers.clear();
-
-    if (!db || !db.lists) return;
-    const now = Date.now();
-
-    Object.values(db.lists).forEach(list => {
-        (list.items || []).forEach(item => {
-            if (item.checked || item.isPaid || !item.dueDate || !item.reminderValue) return;
-            if (!item.nextAlertTime) {
-                initItemAlertTime(item);
-                if (!item.nextAlertTime) return;
-            }
-            const t = item.nextAlertTime;
-            if (item.alertDismissedAt && item.alertDismissedAt >= t && t <= now) return; // dismissed
-            const delay = t - now;
-            const key = item.cloudId || item.name;
-            if (delay > 0) {
-                const timerId = setTimeout(() => {
-                    console.log('[Reminder] fired:', item.name);
-                    _firePushNotification(item);
-                    checkUrgentPayments();
-                }, Math.min(delay, 2147483647));
-                _reminderTimers.set(key, timerId);
-                console.log(`[Reminder] scheduled "${item.name}" in ${Math.round(delay/1000)}s`);
-            } else {
-                // הגיע כבר — הצג
-                checkUrgentPayments();
-            }
-        });
-    });
-}
-
-// ── _firePushNotification: שלח push דרך SW ──────────────────────────
-function _firePushNotification(item) {
-    const title = `⏰ תזכורת: ${item.name}`;
-    const dateStr = item.dueDate ? new Date(item.dueDate).toLocaleDateString('he-IL') : '';
-    const timeStr = item.dueTime ? ' בשעה ' + item.dueTime : '';
-    const body = dateStr ? `יעד: ${dateStr}${timeStr}` : 'יש לך תזכורת';
-    const data = { type: 'reminder', itemName: item.name, dueDate: item.dueDate || '', dueTime: item.dueTime || '' };
-
-    if (navigator.serviceWorker && navigator.serviceWorker.controller) {
-        navigator.serviceWorker.controller.postMessage({
-            type: 'SHOW_NOTIFICATION', title, body,
-            tag: 'reminder-' + (item.cloudId || item.name), data
-        });
-    }
-}
-
-// ── initNotificationSystem ───────────────────────────────────────────
-async function initNotificationSystem() {
-    if ('Notification' in window && Notification.permission !== 'denied') {
-        Notification.requestPermission();
-    }
-    _scheduleAllReminders();
-    checkUrgentPayments();
-    // heartbeat — גיבוי לmissed timers
-    setInterval(checkUrgentPayments, 30000);
-}
-
-window.addEventListener('load', () => { setTimeout(initNotificationSystem, 2000); });
-
-// כשנשמר — רשום מחדש
-const _origSave = save;
-save = function() {
-    _origSave.apply(this, arguments);
-    setTimeout(_scheduleAllReminders, 150);
-};
-
-// ── Custom Snooze ─────────────────────────────────────────────────
-function openCustomSnooze() {
-    closeModal('urgentAlertModal');
-    openModal('customSnoozeModal');
-}
-
-function applyCustomSnooze() {
-    const value = parseFloat(document.getElementById('customSnoozeValue').value);
-    const unit  = document.getElementById('customSnoozeUnit').value;
-    if (!value || value <= 0) { showNotification('⚠️ נא להזין מספר חיובי', 'warning'); return; }
-    const ms = unit === 'minutes' ? value * 60000
-             : unit === 'hours'   ? value * 3600000
-             : value * 86400000;
-    snoozeUrgentAlert(ms);
-    closeModal('customSnoozeModal');
-    document.getElementById('customSnoozeValue').value = '1';
-    document.getElementById('customSnoozeUnit').value  = 'hours';
-}
-
-// ── Legacy stubs ──────────────────────────────────────────────────
-function checkAndScheduleNotifications() { _scheduleAllReminders(); }
-function scheduleItemNotification() {}
-function showInAppNotification() {}
-function playNotificationSound() {}
-function showItemNotification() {}
-function checkSnoozeStatus() { return true; }
-function updateAppBadge(count) {
-    if ('setAppBadge' in navigator) {
-        count > 0 ? navigator.setAppBadge(count).catch(()=>{}) : navigator.clearAppBadge().catch(()=>{});
-    }
-}
 
 // ── SW Message Listener ───────────────────────────────────────────
 // flag: מונע מה-startup modal להופיע כשמגיעים מהתראה דרך SW
@@ -10243,12 +9957,12 @@ function _updatePlusBtnLabel() {
     lbl.textContent = (activePage === 'summary') ? 'רשימה חדשה' : 'הוסף מוצר';
 }
 
-// Hook into showPage
+// Hook into showPage — use window.showPage so we always call the latest wrapper
+// BUG FIX: was capturing showPage at definition time, breaking the wizard wrapper chain
 const _origShowPage = window.showPage || null;
-if (typeof showPage === 'function') {
-    const __origShowPage = showPage;
+if (_origShowPage) {
     window.showPage = function(p) {
-        __origShowPage(p);
+        _origShowPage(p);
         _updatePlusBtnLabel();
     };
 }
