@@ -2649,7 +2649,7 @@ ${error.message}
     <div class="bottom-bar text-white no-print" id="smartBottomBar" style="padding:0;display:flex;flex-direction:column;overflow:hidden;">
 
         <!-- שורת טאבים — SVG, ימין=הרשימה שלי שמאל=הרשימות שלי -->
-        <div style="position:relative;height:52px;flex-shrink:0;">
+        <div id="barTabsStrip" style="position:relative;height:52px;flex-shrink:0;">
             <div id="tabLists"   onclick="tapTab('summary')" style="position:absolute;top:0;right:0;width:50%;bottom:0;z-index:10;cursor:pointer;"></div>
             <div id="tabSummary" onclick="tapTab('lists')"   style="position:absolute;top:0;left:0;width:50%;bottom:0;z-index:10;cursor:pointer;"></div>
             <svg style="position:absolute;top:0;left:0;width:100%;height:100%;z-index:5;pointer-events:none;"
@@ -3713,27 +3713,52 @@ ${error.message}
         var actions = document.getElementById('barActionsRow');
         var stats   = document.getElementById('barStatsRow');
 
-        if (_activePage !== page) {
-            // מעבר לטאב אחר — תמיד עדכן תצוגה
-            _activePage = page;
-            _activeMode = 'buttons';
-            window.activePage = page;
-            if (typeof showPage === 'function') showPage(page);
-            if (typeof render   === 'function') render();
-        } else {
-            // לחיצה על אותו טאב — החלף בין כפתורים לסטטיסטיקות
-            _activeMode = (_activeMode === 'buttons') ? 'stats' : 'buttons';
-        }
+        _activePage = page;
+        _activeMode = 'buttons';
+        window.activePage = page;
+        if (typeof showPage === 'function') showPage(page);
+        if (typeof render   === 'function') render();
 
-        if (_activeMode === 'buttons') {
-            if (actions) { actions.style.display='flex'; actions.style.padding='10px 12px 18px'; }
-            if (stats)   stats.style.display = 'none';
-        } else {
-            if (actions) actions.style.display = 'none';
-            if (stats)   { stats.style.display='flex'; stats.style.padding='10px 12px 18px'; }
-        }
+        if (actions) { actions.style.display='flex'; actions.style.padding='10px 12px 18px'; }
+        if (stats)   stats.style.display = 'none';
+
         updateSvgTabs(_activePage);
     }
+
+    // ── Swipe על שורת הטאבים לפתיחת סטטיסטיקות ──
+    (function() {
+        var _touchStartY = 0;
+
+        function initTabsSwipe() {
+            var strip = document.getElementById('barTabsStrip');
+            if (!strip) return;
+
+            strip.addEventListener('touchstart', function(e) {
+                _touchStartY = e.touches[0].clientY;
+            }, { passive: true });
+
+            strip.addEventListener('touchend', function(e) {
+                var dy = _touchStartY - e.changedTouches[0].clientY;
+                var actions = document.getElementById('barActionsRow');
+                var stats   = document.getElementById('barStatsRow');
+                if (dy > 30) {
+                    // swipe למעלה — הצג סטטיסטיקות
+                    if (actions) actions.style.display = 'none';
+                    if (stats)   { stats.style.display='flex'; stats.style.padding='10px 12px 18px'; }
+                    _activeMode = 'stats';
+                } else if (dy < -30) {
+                    // swipe למטה — חזור לכפתורים
+                    if (stats)   stats.style.display = 'none';
+                    if (actions) { actions.style.display='flex'; actions.style.padding='10px 12px 18px'; }
+                    _activeMode = 'buttons';
+                }
+            }, { passive: true });
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            setTimeout(initTabsSwipe, 300);
+        });
+    })();
 
     var _listSearchOpen = false;
     function toggleListSearch() {
