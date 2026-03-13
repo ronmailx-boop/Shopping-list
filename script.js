@@ -10238,3 +10238,26 @@ if (typeof showPage === 'function') {
 // Init on load
 document.addEventListener('DOMContentLoaded', _updatePlusBtnLabel);
 setTimeout(_updatePlusBtnLabel, 500);
+
+// ── Override openSmartBar globally — respect _barState ──
+(function() {
+    var _orig = window.openSmartBar;
+    window.openSmartBar = function() {
+        // אל תפתח אם במצב ③ (טאבים בלבד) או compact mode
+        if (typeof _barState !== 'undefined' && _barState === 2) return;
+        if (typeof compactMode !== 'undefined' && compactMode) return;
+        var bottomBar = document.getElementById('smartBottomBar');
+        if (bottomBar) bottomBar.classList.remove('minimized');
+    };
+})();
+
+// ── Hook render() to enforce bar state ──
+(function() {
+    var _origRender = window.render;
+    if (typeof _origRender === 'function') {
+        window.render = function() {
+            _origRender.apply(this, arguments);
+            if (typeof _enforceBarState === 'function') _enforceBarState();
+        };
+    }
+})();
