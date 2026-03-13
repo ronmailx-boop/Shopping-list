@@ -2841,6 +2841,23 @@ ${error.message}
             _activeMode = _barState === 0 ? 'buttons' : 'stats';
         }
 
+        // ── אכיפת מצב הבר — קורא אחרי כל render/showPage ──
+        function _enforceBarState() {
+            if (_barState === 0) return; // מצב ברירת מחדל — אין מה לאכוף
+            var rows = ['barActionsRow', 'barStatsRow', 'barEmptyRow'];
+            rows.forEach(function(id, idx) {
+                var el = document.getElementById(id);
+                if (!el) return;
+                if (idx === _barState) {
+                    if (el.style.display === 'none') {
+                        el.style.display = (_barState === 2) ? 'block' : 'flex';
+                    }
+                } else {
+                    el.style.display = 'none';
+                }
+            });
+        }
+
         function barNextState() { _barShowState(_barState + 1, 'l'); }
         function barPrevState() { _barShowState(_barState - 1, 'r'); }
 
@@ -2880,6 +2897,8 @@ ${error.message}
             if (_barState !== 2) {
                 if (_barState !== 0) _barShowState(0, 'r');
                 _activeMode = 'buttons';
+            } else {
+                _enforceBarState(); // שמור על מצב ③
             }
             updateSvgTabs(_activePage);
         }
