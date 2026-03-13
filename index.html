@@ -3709,7 +3709,20 @@ ${error.message}
         var actions = document.getElementById('barActionsRow');
         var stats   = document.getElementById('barStatsRow');
 
-        if (_activePage === page) {
+        // Sync _activePage with the real global activePage.
+        // This fixes the bug where showPage() is called directly (e.g. from a list card click)
+        // which updates the global activePage but NOT _activePage, causing tapTab to think
+        // we're still on the old page and toggle stats instead of navigating.
+        var realPage = (typeof activePage !== 'undefined') ? activePage : _activePage;
+        if (_activePage !== realPage) {
+            _activePage = realPage;
+        }
+
+        // In compact mode the tabs are fixed navigation — always navigate, never toggle stats.
+        var isCompact = (typeof compactMode !== 'undefined') ? compactMode : false;
+        var alreadyHere = (_activePage === page);
+
+        if (alreadyHere && !isCompact) {
             _activeMode = (_activeMode === 'buttons') ? 'stats' : 'buttons';
         } else {
             _activePage = page;
