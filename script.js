@@ -856,7 +856,7 @@ function showPage(p) {
     activePage = p;
     // פתיחת הבר אוטומטית ועדכון טאבי הניווט בבר הפתוח
     if (p === 'lists' || p === 'summary') {
-        // שמור מצב compact — אל תפתח את הבר אוטומטית
+        if (typeof openSmartBar === 'function') openSmartBar();
         if (typeof updateExpandedTabs === 'function') updateExpandedTabs(p);
     }
     save();
