@@ -2402,11 +2402,32 @@ ${error.message}
 
 
     <div class="app-header no-print">
-        <h1 class="font-bold text-2xl" style="direction: ltr;">
+        <h1 id="appLogo" class="font-bold text-2xl" style="direction: ltr; cursor: pointer; user-select:none; -webkit-user-select:none;">
             <span style="color: #22c55e !important;">V</span>
             <span class="text-indigo-600">plus</span>
             <span style="font-size: 10px; color: #9055ff; vertical-align: super;">PRO</span>
         </h1>
+        <script>
+        (function() {
+            var pressTimer;
+            var el = document.getElementById('appLogo');
+            function startPress(e) {
+                pressTimer = setTimeout(function() {
+                    var p = document.getElementById('vplus-debug-panel');
+                    if (p) {
+                        p.style.display = (p.style.display === 'none' ? 'block' : 'none');
+                    }
+                }, 800);
+            }
+            function cancelPress() { clearTimeout(pressTimer); }
+            el.addEventListener('touchstart', startPress, { passive: true });
+            el.addEventListener('touchend', cancelPress);
+            el.addEventListener('touchmove', cancelPress);
+            el.addEventListener('mousedown', startPress);
+            el.addEventListener('mouseup', cancelPress);
+            el.addEventListener('mouseleave', cancelPress);
+        })();
+        </script>
 
         <div class="header-controls">
             <div id="cloudBtn"
@@ -2443,24 +2464,7 @@ ${error.message}
                         d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
                 </svg>
             </button>
-            <script>
-            (function() {
-                var lastTap = 0;
-                document.getElementById('gearBtn').addEventListener('click', function(e) {
-                    var now = Date.now();
-                    if (now - lastTap < 350) {
-                        // דאבל-טאפ — toggle debug panel
-                        e.preventDefault();
-                        e.stopImmediatePropagation();
-                        var p = document.getElementById('vplus-debug-panel');
-                        if (p) p.style.display = (p.style.display === 'none' ? 'block' : 'none');
-                        lastTap = 0;
-                    } else {
-                        lastTap = now;
-                    }
-                }, true);
-            })();
-            </script>
+
         </div>
     </div>
 
