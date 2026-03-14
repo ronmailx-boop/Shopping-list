@@ -1,4 +1,4 @@
-const CACHE_NAME = 'vplus-pro-v1.0.1';
+const CACHE_NAME = 'vplus-pro-v1.0.0';
 const urlsToCache = [
   '/',
   '/index.html',

@@ -1,3 +1,4 @@
+// ========== Firebase Configuration ==========
 // Firebase methods are attached to window in index.html
 let unsubscribeSnapshot = null;
 let isSyncing = false;
@@ -9435,7 +9436,7 @@ if (typeof showPage === 'function') {
     _orig.showPage = showPage;
     window.showPage = function(p) {
         if (wizardMode) {
-            const keyMap = { lists:'tabList', summary:'tabLists', stats:'tabStats' };
+            const keyMap = { lists:'tabList', listsMenu:'myLists', allLists:'myLists', stats:'tabStats' };
             const key = keyMap[p];
             if (key) {
                 wiz(key, 'before', () => _orig.showPage(p));
