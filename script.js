@@ -2672,6 +2672,8 @@ function render() {
 
         if (container) {
             container.innerHTML = '';
+            const listKeys = Object.keys(db.lists);
+            if (typeof dbgLog === 'function') dbgLog(`📋 summary loop — ${listKeys.length} רשימות, container=${container.id}, searchTerm="${searchTerm}"`, '#00ffff');
             Object.keys(db.lists).forEach(id => {
                 const l = db.lists[id];
 
@@ -2680,6 +2682,10 @@ function render() {
                 const matchesItems = l.items.some(i => i.name.toLowerCase().includes(searchTerm));
 
                 if (searchTerm && !matchesName && !matchesURL && !matchesItems) return;
+
+                if (typeof dbgLog === 'function' && container.children.length === 0 && id === listKeys[0]) {
+                    dbgLog(`📋 מוסיף רשימה ראשונה: "${l.name}"`, '#00ffff');
+                }
 
                 let lT = 0, lP = 0;
                 l.items.forEach(i => {
@@ -2749,8 +2755,7 @@ function render() {
                 }
                 container.appendChild(div);
             });
-
-            // Add scroll listener to remove highlight for lists
+            if (typeof dbgLog === 'function') dbgLog(`📋 summary סיום — container.children=${container.children.length}`, container.children.length===0?'#ff0000':'#00ffff');
             if (highlightedListId !== null) {
                 const removeHighlight = () => {
                     highlightedListId = null;
