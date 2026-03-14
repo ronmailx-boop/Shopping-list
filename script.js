@@ -6,55 +6,6 @@ let isConnected = false;
 let currentUser = null;
 let syncTimeout = null;
 
-// ========== Notification System ==========
-/**
- * Shows a temporary notification toast message
- * @param {string} message - The message to display
- * @param {number} duration - How long to show the notification in ms (default: 3000)
- */
-function showNotification(message, duration = 3000) {
-    // Create notification element
-    const notification = document.createElement('div');
-    notification.className = 'notification';
-    notification.textContent = message;
-    notification.style.cssText = `
-        position: fixed;
-        top: 70px;
-        right: 20px;
-        background: white;
-        padding: 15px 20px;
-        border-radius: 15px;
-        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
-        z-index: 9000;
-        transform: translateX(400px);
-        transition: transform 0.3s ease;
-        max-width: 300px;
-        word-wrap: break-word;
-    `;
-
-    document.body.appendChild(notification);
-
-    // Trigger animation
-    setTimeout(() => {
-        notification.style.transform = 'translateX(0)';
-    }, 10);
-
-    // Remove after duration
-    setTimeout(() => {
-        notification.style.transform = 'translateX(400px)';
-        setTimeout(() => {
-            if (notification.parentNode) {
-                notification.parentNode.removeChild(notification);
-            }
-        }, 300);
-    }, duration);
-}
-
-
-// ========== Firebase Authentication Functions ==========
-// (Functions loginWithGoogle, updateCloudIndicator, logoutFromCloud, syncToCloud
-//  are defined further below, near the rest of the Firebase/cloud logic)
-
 // ========== Global Variables for Notes Feature ==========
 let currentNoteItemIndex = null;
 
@@ -68,34 +19,55 @@ let deletedItemIndex = null;
 let deleteTimeout = null;
 let undoNotification = null;
 
+// ========== Global Variables for Undo Check Feature ==========
+let lastCheckedItem = null;
+let lastCheckedIdx = null;
+let lastCheckedState = null;
+let undoCheckNotification = null;
+let undoCheckTimeout = null;
+
+// ========== Global Variables for Clipboard Import ==========
+let pendingImportText = null;
+let detectedListType = null;
 
 // ========== Reminder Time Conversion ==========
 function getReminderMilliseconds(value, unit) {
     if (!value || !unit) return 0;
-
+    
     const numValue = parseInt(value);
     if (isNaN(numValue) || numValue <= 0) return 0;
-
+    
     const conversions = {
         'minutes': numValue * 60 * 1000,
         'hours': numValue * 60 * 60 * 1000,
         'days': numValue * 24 * 60 * 60 * 1000,
         'weeks': numValue * 7 * 24 * 60 * 60 * 1000
     };
-
+    
     return conversions[unit] || 0;
+}
+
+// Compute the nextAlertTime for an item based on its dueDate + dueTime + reminder settings
+function computeNextAlertTime(item) {
+    if (!item.dueDate) return null;
+    if (!item.reminderValue || !item.reminderUnit) return null;
+
+    const timeStr = item.dueTime ? item.dueTime : '09:00';
+    const dueDateMs = new Date(item.dueDate + 'T' + timeStr + ':00').getTime();
+    const reminderMs = getReminderMilliseconds(item.reminderValue, item.reminderUnit);
+    return dueDateMs - reminderMs;
 }
 
 function formatReminderText(value, unit) {
     if (!value || !unit) return '';
-
+    
     const units = {
         'minutes': value === '1' ? 'דקה' : 'דקות',
         'hours': value === '1' ? 'שעה' : 'שעות',
         'days': value === '1' ? 'יום' : 'ימים',
         'weeks': value === '1' ? 'שבוע' : 'שבועות'
     };
-
+    
     return `${value} ${units[unit]}`;
 }
 
@@ -576,6 +548,184 @@ function t(key) {
 
 
 // ========== App Data ==========
+
+// ═══════════════════════════════════════════════════════
+//  DEMO MODE — נתוני דמו לפעם הראשונה
+// ═══════════════════════════════════════════════════════
+
+const DEMO_DATA = {
+    currentId: 'demo_L1',
+    selectedInSummary: [],
+    lastActivePage: 'lists',
+    lastSync: 0,
+    stats: { totalSpent: 0, listsCompleted: 0, monthlyData: {} },
+    customCategories: [],
+    categoryMemory: {},
+    history: [],
+    templates: [],
+    lists: {
+        'demo_L1': { name:'תורים', url:'', budget:0, isTemplate:false, isDemo:true, items:[
+            {name:'רופא משפחה — ד״ר כהן',   price:0,   qty:1, checked:true,  category:'רפואה',  note:'', dueDate:'', dueTime:'', isPaid:false},
+            {name:'דנטיסט — טיפול שורש',     price:800, qty:1, checked:false, category:'רפואה',  note:'', dueDate:'', dueTime:'', isPaid:false},
+            {name:'בדיקת עיניים',            price:0,   qty:1, checked:false, category:'רפואה',  note:'', dueDate:'', dueTime:'', isPaid:false},
+            {name:'בדיקות דם — קופת חולים', price:0,   qty:1, checked:true,  category:'רפואה',  note:'', dueDate:'', dueTime:'', isPaid:false},
+            {name:'רופא עור — מרפאה פרטית', price:350, qty:1, checked:false, category:'רפואה',  note:'', dueDate:'', dueTime:'', isPaid:false},
+        ]},
+        'demo_L2': { name:'בנק', url:'', budget:0, isTemplate:false, isDemo:true, items:[
+            {name:'העברת שכר דירה',   price:2000, qty:1, checked:true,  category:'תשלומים', note:'', dueDate:'', dueTime:'', isPaid:false},
+            {name:'עמלת ניהול חשבון', price:25,   qty:1, checked:true,  category:'תשלומים', note:'', dueDate:'', dueTime:'', isPaid:false},
+            {name:'תשלום הלוואה',     price:1200, qty:1, checked:false, category:'תשלומים', note:'', dueDate:'', dueTime:'', isPaid:false},
+            {name:'פתיחת חיסכון',     price:500,  qty:1, checked:false, category:'חיסכון',  note:'', dueDate:'', dueTime:'', isPaid:false},
+            {name:'ביטוח חיים',       price:180,  qty:1, checked:false, category:'ביטוח',   note:'', dueDate:'', dueTime:'', isPaid:false},
+        ]},
+        'demo_L3': { name:'כרטיס אשראי', url:'', budget:0, isTemplate:false, isDemo:true, items:[
+            {name:'חיוב Max — חודשי',     price:2340, qty:1, checked:false, category:'תשלומים', note:'', dueDate:'', dueTime:'', isPaid:false},
+            {name:'חיוב Cal — חודשי',     price:1890, qty:1, checked:false, category:'תשלומים', note:'', dueDate:'', dueTime:'', isPaid:false},
+            {name:'ביטול מנוי Netflix',   price:60,   qty:1, checked:true,  category:'מנויים',  note:'', dueDate:'', dueTime:'', isPaid:false},
+            {name:'בדיקת חיובים חריגים', price:0,    qty:1, checked:true,  category:'אחר',     note:'', dueDate:'', dueTime:'', isPaid:false},
+            {name:'תשלום יתרה ישנה',      price:580,  qty:1, checked:false, category:'תשלומים', note:'', dueDate:'', dueTime:'', isPaid:false},
+        ]},
+        'demo_L4': { name:'ציוד לבית הספר', url:'', budget:0, isTemplate:false, isDemo:true, items:[
+            {name:'מחברות × 10',        price:80,  qty:1, checked:true,  category:'ציוד', note:'', dueDate:'', dueTime:'', isPaid:false},
+            {name:'עפרונות וצבעים',    price:45,  qty:1, checked:true,  category:'ציוד', note:'', dueDate:'', dueTime:'', isPaid:false},
+            {name:'תיק גב חדש',        price:280, qty:1, checked:false, category:'ציוד', note:'', dueDate:'', dueTime:'', isPaid:false},
+            {name:'מחשבון מדעי',       price:120, qty:1, checked:false, category:'ציוד', note:'', dueDate:'', dueTime:'', isPaid:false},
+            {name:'סרגל וסט מתמטיקה', price:35,  qty:1, checked:false, category:'ציוד', note:'', dueDate:'', dueTime:'', isPaid:false},
+        ]},
+        'demo_L5': { name:'קניות', url:'', budget:0, isTemplate:false, isDemo:true, items:[
+            {name:'לחם ומאפים',        price:35,  qty:1, checked:true,  category:'מזון', note:'', dueDate:'', dueTime:'', isPaid:false},
+            {name:'חלב וגבינות',      price:60,  qty:1, checked:true,  category:'מזון', note:'', dueDate:'', dueTime:'', isPaid:false},
+            {name:'ביצים × 30',       price:28,  qty:1, checked:false, category:'מזון', note:'', dueDate:'', dueTime:'', isPaid:false},
+            {name:'חזה עוף × 2 ק״ג', price:85,  qty:1, checked:false, category:'בשר', note:'', dueDate:'', dueTime:'', isPaid:false},
+            {name:'ירקות ופירות',     price:120, qty:1, checked:false, category:'מזון', note:'', dueDate:'', dueTime:'', isPaid:false},
+        ]},
+        'demo_L6': { name:'תשלומים שונים', url:'', budget:0, isTemplate:false, isDemo:true, items:[
+            {name:'ארנונה — רבעון',   price:890, qty:1, checked:false, category:'חשבונות', note:'', dueDate:'', dueTime:'', isPaid:false},
+            {name:'מים — דו-חודשי',  price:280, qty:1, checked:false, category:'חשבונות', note:'', dueDate:'', dueTime:'', isPaid:false},
+            {name:'חשמל — חודשי',    price:420, qty:1, checked:true,  category:'חשבונות', note:'', dueDate:'', dueTime:'', isPaid:false},
+            {name:'גז — מילוי',      price:160, qty:1, checked:true,  category:'חשבונות', note:'', dueDate:'', dueTime:'', isPaid:false},
+            {name:'ועד בית — חודשי', price:700, qty:1, checked:false, category:'חשבונות', note:'', dueDate:'', dueTime:'', isPaid:false},
+        ]},
+        'demo_L7': { name:'ספורט', url:'', budget:0, isTemplate:false, isDemo:true, items:[
+            {name:'נעלי ריצה Nike',    price:480, qty:1, checked:false, category:'ביגוד',      note:'', dueDate:'', dueTime:'', isPaid:false},
+            {name:'חולצות ספורט × 3', price:180, qty:1, checked:true,  category:'ביגוד',      note:'', dueDate:'', dueTime:'', isPaid:false},
+            {name:'מנוי חדר כושר',    price:280, qty:1, checked:false, category:'מנויים',     note:'', dueDate:'', dueTime:'', isPaid:false},
+            {name:'בקבוק מים 1L',     price:60,  qty:1, checked:true,  category:'ציוד',       note:'', dueDate:'', dueTime:'', isPaid:false},
+            {name:'אוזניות אלחוטיות', price:350, qty:1, checked:false, category:'אלקטרוניקה', note:'', dueDate:'', dueTime:'', isPaid:false},
+        ]},
+        'demo_L8': { name:'תרופות', url:'', budget:0, isTemplate:false, isDemo:true, items:[
+            {name:'ויטמין D3 — 3 חודשים', price:65,  qty:1, checked:true,  category:'רפואה', note:'', dueDate:'', dueTime:'', isPaid:false},
+            {name:'אומגה 3',              price:90,  qty:1, checked:false, category:'רפואה', note:'', dueDate:'', dueTime:'', isPaid:false},
+            {name:'מרשם רופא — לאיסוף', price:0,   qty:1, checked:false, category:'רפואה', note:'', dueDate:'', dueTime:'', isPaid:false},
+            {name:'קרם לעור — מרשם',    price:120, qty:1, checked:false, category:'רפואה', note:'', dueDate:'', dueTime:'', isPaid:false},
+            {name:'תרסיס לאלרגיה',      price:45,  qty:1, checked:true,  category:'רפואה', note:'', dueDate:'', dueTime:'', isPaid:false},
+        ]},
+        'demo_L9': { name:'תיקונים בבית', url:'', budget:0, isTemplate:false, isDemo:true, items:[
+            {name:'אינסטלטור — דליפה', price:450, qty:1, checked:true,  category:'תיקונים', note:'', dueDate:'', dueTime:'', isPaid:false},
+            {name:'חשמלאי — שקע חדש', price:380, qty:1, checked:false, category:'תיקונים', note:'', dueDate:'', dueTime:'', isPaid:false},
+            {name:'צבע לסלון',         price:800, qty:1, checked:false, category:'צביעה',   note:'', dueDate:'', dueTime:'', isPaid:false},
+            {name:'החלפת מנעול דלת',  price:320, qty:1, checked:false, category:'תיקונים', note:'', dueDate:'', dueTime:'', isPaid:false},
+            {name:'וילונות לסלון',    price:850, qty:1, checked:false, category:'ריהוט',   note:'', dueDate:'', dueTime:'', isPaid:false},
+        ]},
+        'demo_L10': { name:'מתנות', url:'', budget:0, isTemplate:false, isDemo:true, items:[
+            {name:'יום הולדת אמא — ספא',  price:400, qty:1, checked:false, category:'מתנות', note:'', dueDate:'', dueTime:'', isPaid:false},
+            {name:'חתונה — מתנה משותפת', price:500, qty:1, checked:true,  category:'מתנות', note:'', dueDate:'', dueTime:'', isPaid:false},
+            {name:'בר מצווה — שי',        price:300, qty:1, checked:false, category:'מתנות', note:'', dueDate:'', dueTime:'', isPaid:false},
+            {name:'חנוכת בית — כלי בית', price:250, qty:1, checked:false, category:'מתנות', note:'', dueDate:'', dueTime:'', isPaid:false},
+            {name:'תינוק חדש — בגדים',   price:200, qty:1, checked:false, category:'מתנות', note:'', dueDate:'', dueTime:'', isPaid:false},
+        ]},
+    }
+};
+
+const DEMO_NOTIFICATIONS = [
+    {id:'demo_n1', itemName:'תור לרופא משפחה',        listName:'תורים',           title:'תזכורת: תור לרופא משפחה',    body:'מחר בשעה 09:30',             isDemo:true, timestamp:Date.now()-3600000},
+    {id:'demo_n2', itemName:'חיוב כרטיס Max',          listName:'כרטיס אשראי',    title:'תזכורת: חיוב Max',            body:'2,340 בעוד 5 ימים',           isDemo:true, timestamp:Date.now()-7200000},
+    {id:'demo_n3', itemName:'תשלום ארנונה',            listName:'תשלומים שונים',  title:'תזכורת: ארנונה',              body:'890 עד סוף החודש',            isDemo:true, timestamp:Date.now()-10800000},
+    {id:'demo_n4', itemName:'ציוד לבית הספר',          listName:'ציוד לבית הספר', title:'תזכורת: ציוד לבית הספר',     body:'בעוד 12 ימים — התחלת שנה"ל', isDemo:true, timestamp:Date.now()-14400000},
+    {id:'demo_n5', itemName:'תשלום הלוואה לבנק',       listName:'בנק',             title:'תזכורת: הלוואה לבנק',         body:'1,200 ב-1 לחודש',             isDemo:true, timestamp:Date.now()-18000000},
+];
+
+let isDemoMode = false;
+
+function loadDemoMode() {
+    isDemoMode = true;
+    localStorage.setItem('vplus_demo_mode', 'true');
+    db = JSON.parse(JSON.stringify(DEMO_DATA));
+    localStorage.setItem('BUDGET_FINAL_V28', JSON.stringify(db));
+    const existing = JSON.parse(localStorage.getItem('vplus_notifications') || '[]');
+    localStorage.setItem('vplus_notifications', JSON.stringify([...DEMO_NOTIFICATIONS, ...existing.filter(function(n){ return !n.isDemo; })]));
+    showDemoBanner();
+    render();
+}
+
+function exitDemoMode() {
+    Object.keys(db.lists).forEach(function(id){ if (db.lists[id].isDemo) delete db.lists[id]; });
+    if (Object.keys(db.lists).length === 0) {
+        db.lists['L1'] = {name:'הרשימה שלי', url:'', budget:0, isTemplate:false, items:[]};
+        db.currentId = 'L1';
+    } else {
+        db.currentId = Object.keys(db.lists)[0];
+    }
+    var notifs = JSON.parse(localStorage.getItem('vplus_notifications') || '[]');
+    localStorage.setItem('vplus_notifications', JSON.stringify(notifs.filter(function(n){ return !n.isDemo; })));
+    isDemoMode = false;
+    localStorage.removeItem('vplus_demo_mode');
+    var banner = document.getElementById('demoBanner');
+    if (banner) {
+        banner.remove();
+        var appHeader = document.querySelector('.top-bar, header, #topBar, [class*="top-bar"]');
+        if (appHeader) appHeader.style.marginTop = '';
+    }
+    save();
+}
+
+function showDemoBanner() {
+    if (document.getElementById('demoBanner')) return;
+    var banner = document.createElement('div');
+    banner.id = 'demoBanner';
+    var div = document.createElement('div');
+    div.id = 'demoBannerInner';
+    div.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:9000;background:linear-gradient(135deg,#f59e0b,#f97316);padding:10px 16px;display:flex;align-items:center;gap:10px;box-shadow:0 4px 16px rgba(245,158,11,0.4);font-family:system-ui,sans-serif;';
+    div.innerHTML = '<span style="font-size:20px;">🎯</span><div style="flex:1;"><div style="font-size:12px;font-weight:900;color:white;">מצב דמו פעיל</div><div style="font-size:10px;color:rgba(255,255,255,0.8);">אלו נתוני דוגמה — חקור בחופשיות!</div></div><button onclick="exitDemoMode()" style="background:rgba(255,255,255,0.25);border:1.5px solid rgba(255,255,255,0.4);color:white;font-size:10px;font-weight:800;padding:5px 14px;border-radius:99px;cursor:pointer;font-family:system-ui,sans-serif;">יציאה מדמו</button>';
+    banner.appendChild(div);
+    document.body.insertBefore(banner, document.body.firstChild);
+    // הזזת ה-header הקיים כלפי מטה בלי לשבש layout
+    var appHeader = document.querySelector('.top-bar, header, #topBar, [class*="top-bar"]');
+    if (appHeader) appHeader.style.marginTop = '48px';
+}
+
+function checkFirstRunDemo() {
+    if (localStorage.getItem('vplus_demo_mode') === 'true') {
+        isDemoMode = true;
+        showDemoBanner();
+        return;
+    }
+    var alreadySeen = localStorage.getItem('vplus_demo_seen');
+    var saved = localStorage.getItem('BUDGET_FINAL_V28');
+    var hasRealData = false;
+    if (saved) {
+        var d = JSON.parse(saved);
+        hasRealData = Object.values(d.lists || {}).some(function(l){ return l.items && l.items.length > 0 && !l.isDemo; });
+    }
+    if (!alreadySeen && !hasRealData) {
+        setTimeout(showDemoPrompt, 1200);
+    }
+}
+
+function showDemoPrompt() {
+    var overlay = document.createElement('div');
+    overlay.id = 'demoPromptOverlay';
+    overlay.style.cssText = 'position:fixed;inset:0;z-index:99998;background:rgba(0,0,0,0.6);display:flex;align-items:flex-end;font-family:system-ui,sans-serif;';
+    var sheet = document.createElement('div');
+    sheet.style.cssText = 'background:white;border-radius:28px 28px 0 0;width:100%;padding:28px 20px 40px;animation:demoSheetIn 0.4s cubic-bezier(0.34,1.56,0.64,1);';
+    sheet.innerHTML = '<div style="width:40px;height:4px;background:#e5e7eb;border-radius:99px;margin:0 auto 20px;"></div><div style="text-align:center;margin-bottom:20px;"><div style="font-size:48px;margin-bottom:12px;">🎯</div><div style="font-size:20px;font-weight:900;color:#1e1b4b;margin-bottom:6px;">ברוך הבא ל-Vplus Pro!</div><div style="font-size:13px;color:#6b7280;line-height:1.6;">רוצה לראות איך האפליקציה נראית<br>עם נתונים אמיתיים לפני שתתחיל?</div></div><div style="display:flex;flex-direction:column;gap:10px;"><button onclick="document.getElementById(\'demoPromptOverlay\').remove();localStorage.setItem(\'vplus_demo_seen\',\'true\');loadDemoMode();" style="background:linear-gradient(135deg,#7367f0,#9055ff);color:white;border:none;border-radius:18px;padding:16px;font-size:15px;font-weight:900;cursor:pointer;font-family:system-ui,sans-serif;box-shadow:0 6px 20px rgba(115,103,240,0.4);">🎯 כן! הראה לי מצב דמו</button><button onclick="document.getElementById(\'demoPromptOverlay\').remove();localStorage.setItem(\'vplus_demo_seen\',\'true\');" style="background:#f3f4f6;color:#6b7280;border:none;border-radius:18px;padding:14px;font-size:14px;font-weight:700;cursor:pointer;font-family:system-ui,sans-serif;">לא תודה, אתחיל עם רשימה ריקה</button></div><style>@keyframes demoSheetIn{from{transform:translateY(100%)}to{transform:translateY(0)}}</style>';
+    overlay.appendChild(sheet);
+    document.body.appendChild(overlay);
+}
+
+window.loadDemoMode = loadDemoMode;
+window.exitDemoMode = exitDemoMode;
+
 let db = JSON.parse(localStorage.getItem('BUDGET_FINAL_V28')) || {
     currentId: 'L1',
     selectedInSummary: [],
@@ -623,7 +773,7 @@ function save() {
     db.lastSync = Date.now();
     localStorage.setItem('BUDGET_FINAL_V28', JSON.stringify(db));
     render();
-
+    
     // Update notification badge
     if (typeof updateNotificationBadge === 'function') {
         updateNotificationBadge();
@@ -639,12 +789,46 @@ function save() {
 
 function toggleItem(idx) {
     const item = db.lists[db.currentId].items[idx];
+    const previousState = item.checked;
     item.checked = !item.checked;
+
+    // שמירת מצב לביטול
+    lastCheckedItem = item;
+    lastCheckedIdx = idx;
+    lastCheckedState = previousState;
 
     // מיון דו-שכבתי אוטומטי
     db.lists[db.currentId].items = sortItemsByStatusAndCategory(db.lists[db.currentId].items);
 
     save();
+
+    // הצגת הודעת undo לסימון וי
+    showUndoCheckNotification(item.name, item.checked);
+}
+
+function showUndoCheckNotification(itemName, isChecked) {
+    _showToast({
+        message: `${isChecked ? '✅' : '◻️'} "${itemName}" ${isChecked ? 'סומן' : 'הסימון הוסר'}`,
+        type: 'success',
+        undoCallback: undoCheck,
+        duration: 5000
+    });
+}
+
+function undoCheck() {
+    if (lastCheckedItem === null) return;
+    const items = db.lists[db.currentId].items;
+    const item = items.find(i => i === lastCheckedItem);
+    if (item) {
+        item.checked = lastCheckedState;
+        db.lists[db.currentId].items = sortItemsByStatusAndCategory(items);
+        save();
+        render();
+    }
+    lastCheckedItem = null;
+    lastCheckedIdx = null;
+    lastCheckedState = null;
+    showNotification('✅ הסימון בוטל');
 }
 
 function toggleSum(id) {
@@ -670,21 +854,32 @@ function toggleDarkMode() {
 
 function showPage(p) {
     activePage = p;
+    // פתיחת הבר אוטומטית ועדכון טאבי הניווט בבר הפתוח
+    if (p === 'lists' || p === 'summary') {
+        if (typeof openSmartBar === 'function') openSmartBar();
+        if (typeof updateExpandedTabs === 'function') updateExpandedTabs(p);
+    }
     save();
 }
 
 function toggleCategorySorting() {
     categorySortEnabled = !categorySortEnabled;
-    localStorage.setItem('categorySortEnabled', categorySortEnabled);
+    localStorage.setItem('categorySortEnabled', categorySortEnabled ? 'true' : 'false');
 
     const btn = document.getElementById('categorySortText');
     if (btn) {
-        // Show current active state, not next action
-        btn.textContent = categorySortEnabled ? '🔤 מיון לפי קטגוריות' : '📋 מיון ידני';
+        btn.textContent = '🔤 מיון';
+        var pill = document.getElementById('categorySortPill');
+        if (pill) { pill.style.background = categorySortEnabled ? '#7367f0' : ''; pill.style.color = categorySortEnabled ? 'white' : ''; pill.style.borderColor = categorySortEnabled ? '#7367f0' : ''; }
     }
 
-    render();
-    showNotification(categorySortEnabled ? '✅ מיון לפי קטגוריות מופעל' : '✅ מיון ידני מופעל');
+    // כאשר מפעילים מיון — ממיין ושומר מחדש
+    if (categorySortEnabled) {
+        db.lists[db.currentId].items = sortItemsByStatusAndCategory(db.lists[db.currentId].items);
+    }
+
+    save(); // save כולל render()
+    showNotification(categorySortEnabled ? '✅ מיון לפי קטגוריות מופעל' : '✅ מיון ידני מופעל'); render();
 }
 
 // ========== Language Functions ==========
@@ -802,12 +997,13 @@ function updateUILanguage() {
     if (selectAllLabel) selectAllLabel.textContent = t('selectAll');
 
     // Update tabs
-    const tabs = document.querySelectorAll('.tab-btn');
-    if (tabs.length >= 3) {
-        tabs[0].textContent = t('myList');
-        tabs[1].textContent = t('myLists');
-        tabs[2].textContent = t('statistics');
-    }
+    const tabListsEl = document.getElementById('tabLists');
+    const tabSummaryEl = document.getElementById('tabSummary');
+    const tabStatsEl = document.getElementById('tabStats');
+    const tabBankEl2 = document.getElementById('tabBank');
+    // SVG tabs — no textContent override
+    if (tabStatsEl) tabStatsEl.textContent = t('statistics');
+    if (tabBankEl2) tabBankEl2.textContent = '🏦 פיננסי';
 
     // Update header buttons
     const cloudSyncText = document.getElementById('cloudSyncText');
@@ -1455,16 +1651,7 @@ function createListFromReceipt(items) {
 }
 
 function toggleBottomBar() {
-    const bottomBar = document.querySelector('.bottom-bar');
-    const toggleBtn = document.getElementById('floatingToggle');
-
-    if (bottomBar.classList.contains('minimized')) {
-        bottomBar.classList.remove('minimized');
-        toggleBtn.classList.remove('bar-hidden');
-    } else {
-        bottomBar.classList.add('minimized');
-        toggleBtn.classList.add('bar-hidden');
-    }
+    // הבר החדש משתמש ב-toggleSmartBar — לא עושה כלום כאן
 }
 
 function openModal(id) {
@@ -1477,6 +1664,28 @@ function openModal(id) {
         document.getElementById('itemPrice').value = '';
         document.getElementById('itemQty').value = '1';
         document.getElementById('itemCategory').value = '';
+
+        // Init context bar (which list to add to)
+        initContextBar();
+
+        // Restore continuous mode state
+        const continuous = localStorage.getItem('continuousAdd') === 'true';
+        const toggle = document.getElementById('continuousToggle');
+        const wrap = document.getElementById('continuousToggleWrap');
+        const btn = document.getElementById('addItemBtn');
+        if (toggle) toggle.checked = continuous;
+        if (wrap) wrap.classList.toggle('active', continuous);
+        if (btn) btn.textContent = continuous ? 'הוסף + המשך ➜' : 'הוסף ✓';
+
+        // Pre-fill date/time with current date and time
+        const _now = new Date();
+        const _dateStr = _now.toISOString().split('T')[0];
+        const _timeStr = _now.getHours().toString().padStart(2,'0') + ':' + _now.getMinutes().toString().padStart(2,'0');
+        const _dueDateEl = document.getElementById('itemDueDate');
+        const _dueTimeEl = document.getElementById('itemDueTime');
+        if (_dueDateEl) _dueDateEl.value = _dateStr;
+        if (_dueTimeEl) _dueTimeEl.value = _timeStr;
+
 
         // Update category dropdown with latest custom categories
         updateCategoryDropdown();
@@ -1536,19 +1745,150 @@ function closeModal(id) {
     if (m) m.classList.remove('active');
 }
 
-function showNotification(message, type = 'success') {
-    const notif = document.createElement('div');
-    notif.className = 'notification';
-    notif.style.background = type === 'success' ? '#22c55e' : type === 'warning' ? '#f59e0b' : '#ef4444';
-    notif.style.color = 'white';
-    notif.innerHTML = `<strong>${message}</strong>`;
-    document.body.appendChild(notif);
+// ========== TOAST BAR SYSTEM ==========
+let _toastTimer = null;
+let _toastProgressEl = null;
+let _toastUndoCallback = null;
 
-    setTimeout(() => notif.classList.add('show'), 100);
+function showNotification(message, type = 'success') {
+    _showToast({ message, type });
+}
+
+function _showToast({ message, type = 'success', undoCallback = null, duration = 4000, undoLabel = null }) {
+    // ── אם בטאב הרשימה שלי — הצג בתוך הבר העליון ──
+    const lnbOverlay = document.getElementById('lnbActionOverlay');
+    if (activePage === 'lists' && lnbOverlay) {
+        _showLnbToast({ message, type, undoCallback, duration, undoLabel });
+        return;
+    }
+    // ── אחרת — toast רגיל ──
+    const inner = document.getElementById('toastInner');
+    const content = document.getElementById('toastContent');
+    const iconEl = document.getElementById('toastIcon');
+    const textEl = document.getElementById('toastText');
+    const undoBtn = document.getElementById('toastUndoBtn');
+    const progressEl = document.getElementById('toastProgress');
+    if (!inner || !content || !textEl) return;
+
+    if (_toastTimer) { clearTimeout(_toastTimer); _toastTimer = null; }
+    inner.classList.remove('toast-visible');
+
     setTimeout(() => {
-        notif.classList.remove('show');
-        setTimeout(() => notif.remove(), 300);
-    }, 3000);
+        content.className = 'toast-content';
+        if (type === 'warning') content.classList.add('toast-warning');
+        else if (type === 'error') content.classList.add('toast-error');
+        else if (type === 'delete') content.classList.add('toast-delete');
+        else content.classList.add('toast-success');
+
+        const icons = { success: '✅', warning: '⚠️', error: '❌', delete: '🗑️', check: '✅', uncheck: '◻️' };
+        iconEl.textContent = icons[type] || '✅';
+        textEl.textContent = message.replace(/^[\u{1F300}-\u{1FAFF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}✅⚠️❌🗑️✓☁️📋⭐💾🎤📊↩️✔️◻️]\s*/u, '');
+
+        _toastUndoCallback = undoCallback;
+        if (undoCallback) {
+            undoBtn.style.display = '';
+            undoBtn.textContent = undoLabel || '↩ ביטול';
+        } else {
+            undoBtn.style.display = 'none';
+        }
+
+        progressEl.style.animation = 'none';
+        progressEl.offsetHeight;
+        progressEl.style.animation = `toastProgress ${duration}ms linear forwards`;
+
+        inner.classList.add('toast-visible');
+        _toastTimer = setTimeout(() => {
+            inner.classList.remove('toast-visible');
+            _toastUndoCallback = null;
+        }, duration);
+    }, inner.classList.contains('toast-visible') ? 120 : 0);
+}
+
+// ── Toast בתוך הבר העליון ──
+let _lnbToastTimer = null;
+let _lnbUndoCallback = null;
+
+function _showLnbToast({ message, type, undoCallback, duration, undoLabel }) {
+    const overlay  = document.getElementById('lnbActionOverlay');
+    const msgEl    = document.getElementById('lnbActionMsg');
+    const undoBtn  = document.getElementById('lnbActionUndo');
+    const progress = document.getElementById('lnbProgress');
+    if (!overlay || !msgEl) return;
+
+    closeListActionsPanel();
+    if (_lnbToastTimer) { clearTimeout(_lnbToastTimer); _lnbToastTimer = null; }
+
+    // סמל לפי סוג
+    const icons = { success: '✅', warning: '⚠️', error: '❌', delete: '🗑️', check: '✅', uncheck: '◻️' };
+    const icon = icons[type] || '✅';
+    const text = message.replace(/^[\u{1F300}-\u{1FAFF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}✅⚠️❌🗑️✓☁️📋⭐💾🎤📊↩️✔️◻️]\s*/u, '');
+    msgEl.innerHTML = '<span style="font-size:16px;flex-shrink:0;">' + icon + '</span><span>' + text + '</span>';
+
+    _lnbUndoCallback = undoCallback;
+    if (undoCallback) {
+        undoBtn.style.display = '';
+        undoBtn.textContent = undoLabel || '↩ ביטול';
+    } else {
+        undoBtn.style.display = 'none';
+    }
+
+    // progress animation
+    if (progress) {
+        progress.style.transition = 'none';
+        progress.style.width = '100%';
+        progress.offsetHeight;
+        progress.style.transition = 'width ' + duration + 'ms linear';
+        progress.style.width = '0%';
+    }
+
+    overlay.classList.add('show');
+
+    _lnbToastTimer = setTimeout(() => {
+        overlay.classList.remove('show');
+        _lnbUndoCallback = null;
+    }, duration);
+}
+
+function handleLnbUndo() {
+    if (_lnbUndoCallback) { _lnbUndoCallback(); _lnbUndoCallback = null; }
+    const overlay = document.getElementById('lnbActionOverlay');
+    if (overlay) overlay.classList.remove('show');
+    if (_lnbToastTimer) { clearTimeout(_lnbToastTimer); _lnbToastTimer = null; }
+}
+
+function handleToastUndo() {
+    if (_toastUndoCallback) {
+        _toastUndoCallback();
+        _toastUndoCallback = null;
+    }
+    const inner = document.getElementById('toastInner');
+    if (inner) inner.classList.remove('toast-visible');
+    if (_toastTimer) { clearTimeout(_toastTimer); _toastTimer = null; }
+}
+
+function scrollToListTop() {
+    const container = document.getElementById('itemsContainer');
+    if (container) {
+        const firstItem = container.querySelector('.item-card, .category-separator');
+        if (firstItem) { firstItem.scrollIntoView({ behavior: 'smooth', block: 'start' }); return; }
+    }
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function scrollToCheckedItems() {
+    const separators = document.querySelectorAll('.category-separator');
+    for (const sep of separators) {
+        if (sep.textContent && sep.textContent.includes('הושלמו')) {
+            sep.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            return;
+        }
+    }
+    const allCards = document.querySelectorAll('.item-card');
+    for (const card of allCards) {
+        const checkbox = card.querySelector('input[type="checkbox"]');
+        if (checkbox && checkbox.checked) { card.scrollIntoView({ behavior: 'smooth', block: 'start' }); return; }
+    }
+    showNotification('אין פריטים מסומנים', 'warning');
 }
 
 // ========== Autocomplete Functions ==========
@@ -1723,30 +2063,66 @@ function searchInSummary() {
 // Helper function to generate dueDate and notes HTML
 function generateItemMetadataHTML(item, idx) {
     let html = '';
-
-    // Build dueDate display - NOT clickable itself, parent div handles click
-    if (item.dueDate) {
+    
+    // Build dueDate display — only when a reminder is set
+    if (item.dueDate && (item.reminderValue || (item.nextAlertTime && item.nextAlertTime > Date.now()))) {
         const today = new Date();
         today.setHours(0, 0, 0, 0);
         const dueDate = new Date(item.dueDate);
         dueDate.setHours(0, 0, 0, 0);
-
+        
         const diffTime = dueDate - today;
         const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-
+        
         let dateClass = 'item-duedate-display';
         let dateText = new Date(item.dueDate).toLocaleDateString('he-IL');
-
+        
+        // Add time if exists
+        if (item.dueTime) {
+            dateText += ` ⏰ ${item.dueTime}`;
+        }
+        
         if (diffDays < 0 && !item.checked && !item.isPaid) {
             dateClass += ' overdue';
             dateText += ' (עבר!)';
         } else if (diffDays >= 0 && diffDays <= 3 && !item.checked && !item.isPaid) {
             dateClass += ' soon';
         }
-
-        html += `<div class="${dateClass}">📅 ${dateText}</div>`;
+        
+        // Add edit button for reminder
+        let reminderInfo = '';
+        const now = Date.now();
+        if (item.nextAlertTime && item.nextAlertTime > now) {
+            // יש snooze פעיל — הצג את זמן ה-snooze
+            const snoozeDate = new Date(item.nextAlertTime);
+            const sh = snoozeDate.getHours().toString().padStart(2, '0');
+            const sm = snoozeDate.getMinutes().toString().padStart(2, '0');
+            const msLeft = item.nextAlertTime - now;
+            const minsLeft = Math.round(msLeft / 60000);
+            let timeLeftText = '';
+            if (minsLeft < 60) {
+                timeLeftText = `בעוד ${minsLeft} דקות`;
+            } else {
+                const hoursLeft = Math.floor(minsLeft / 60);
+                const minsRem = minsLeft % 60;
+                timeLeftText = minsRem > 0 ? `בעוד ${hoursLeft}ש' ${minsRem}ד'` : `בעוד ${hoursLeft} שעות`;
+            }
+            reminderInfo = ` 🔔 התראה ${timeLeftText}, ב-${sh}:${sm}`;
+        } else if (item.reminderValue && item.reminderUnit) {
+            const timeStr = item.dueTime || '09:00';
+            const dueDateObj = new Date(item.dueDate + 'T' + timeStr + ':00');
+            const reminderMs = getReminderMilliseconds(item.reminderValue, item.reminderUnit);
+            const reminderTime = new Date(dueDateObj.getTime() - reminderMs);
+            const rh = reminderTime.getHours().toString().padStart(2, '0');
+            const rm = reminderTime.getMinutes().toString().padStart(2, '0');
+            reminderInfo = ` 🔔 התראה בעוד ${formatReminderText(item.reminderValue, item.reminderUnit)} ב-${rh}:${rm}`;
+        }
+        
+        html += `<div style="display: flex; align-items: center; gap: 8px;">
+            <div class="${dateClass}">📅 ${dateText}${reminderInfo}</div>
+        </div>`;
     }
-
+    
     // Build payment URL link - ONLY as clickable icon with stopPropagation
     if (item.paymentUrl && item.paymentUrl.trim()) {
         html += `<div style="display: inline-flex; align-items: center; gap: 6px; margin-top: 4px;">
@@ -1757,17 +2133,17 @@ function generateItemMetadataHTML(item, idx) {
             </a>
         </div>`;
     }
-
+    
     // Build notes display - ONLY if there are actual notes (not URLs from paymentUrl field)
     if (item.note && item.note.trim()) {
         html += `<div class="item-notes-display">📝 ${item.note}</div>`;
     }
-
+    
     // Build paid badge
     if (item.isPaid) {
         html += `<div class="item-paid-badge">✓ שולם</div>`;
     }
-
+    
     return html;
 }
 
@@ -1775,18 +2151,32 @@ function render() {
     const container = document.getElementById(activePage === 'lists' ? 'itemsContainer' : activePage === 'summary' ? 'summaryContainer' : null);
     let total = 0, paid = 0;
 
-    document.getElementById('tabLists').className = `tab-btn ${activePage === 'lists' ? 'tab-active' : ''}`;
-    document.getElementById('tabSummary').className = `tab-btn ${activePage === 'summary' ? 'tab-active' : ''}`;
-    document.getElementById('tabStats').className = `tab-btn ${activePage === 'stats' ? 'tab-active' : ''}`;
+    // tabLists ו-tabSummary הם עכשיו hit-areas שקופות מעל SVG — לא נגע בהם
+    const _tabStats = document.getElementById('tabStats');
+    const _tabBank = document.getElementById('tabBank');
+    const _activeTabStyle = 'flex:1;height:34px;background:white;border:none;border-radius:12px;font-size:14px;font-weight:900;color:#7367f0;cursor:pointer;transition:all 0.2s;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 8px rgba(0,0,0,0.12);';
+    const _inactiveTabStyle = 'flex:1;height:34px;background:transparent;border:none;font-size:14px;font-weight:800;color:rgba(255,255,255,0.6);cursor:pointer;transition:all 0.2s;display:flex;align-items:center;justify-content:center;';
+    if (_tabStats)   _tabStats.style.cssText   = activePage === 'stats'   ? _activeTabStyle : _inactiveTabStyle;
+    if (_tabBank)    _tabBank.style.cssText     = activePage === 'bank'    ? _activeTabStyle : _inactiveTabStyle;
+    // עדכן SVG tabs
+    if (typeof updateSvgTabs === 'function') updateSvgTabs(activePage);
+
+    // הצג כפתורי קולי רק בטאב "הרשימה שלי"
+    const _voiceBoughtBtn = document.getElementById('voiceBoughtBtn');
+    const _voiceTobuyBtn  = document.getElementById('voiceTobuyBtn');
+    const _showVoiceBtns  = activePage === 'lists';
+    if (_voiceBoughtBtn) _voiceBoughtBtn.style.display = _showVoiceBtns ? '' : 'none';
+    if (_voiceTobuyBtn)  _voiceTobuyBtn.style.display  = _showVoiceBtns ? '' : 'none';
 
     const btn = document.getElementById('mainLockBtn');
     const path = document.getElementById('lockIconPath');
     const tag = document.getElementById('statusTag');
-    if (btn && path && tag) {
-        btn.className = `bottom-circle-btn ${isLocked ? 'bg-blue-600' : 'bg-orange-400'}`;
+    if (btn && path) {
+        // לא משנים className — הסגנון המלבני נשמר מה-HTML
+        btn.style.background = isLocked ? 'rgba(255,255,255,0.13)' : 'rgba(249,115,22,0.25)';
         path.setAttribute('d', isLocked ? 'M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z' : 'M8 11V7a4 4 0 118 0m-4 8v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2z');
-        tag.innerText = isLocked ? t('locked') : t('unlocked');
     }
+    if (tag) tag.innerText = isLocked ? t('locked') : t('unlocked');
 
     if (activePage === 'lists') {
         document.getElementById('pageLists').classList.remove('hidden');
@@ -1796,6 +2186,7 @@ function render() {
         const list = db.lists[db.currentId] || { name: 'רשימה', items: [] };
         document.getElementById('listNameDisplay').innerText = list.name;
         document.getElementById('itemCountDisplay').innerText = `${list.items.length} ${t('items')}`;
+        setTimeout(adjustContentPadding, 50);
 
 
         if (container) {
@@ -1804,7 +2195,9 @@ function render() {
             // Update category sort button text
             const categorySortText = document.getElementById('categorySortText');
             if (categorySortText) {
-                categorySortText.textContent = categorySortEnabled ? '📋 מיון ידני' : '🔤 מיון לפי קטגוריות';
+                categorySortText.textContent = '🔤 מיון';
+                var pill = document.getElementById('categorySortPill');
+                if (pill) { pill.style.background = categorySortEnabled ? '#7367f0' : ''; pill.style.color = categorySortEnabled ? 'white' : ''; pill.style.borderColor = categorySortEnabled ? '#7367f0' : ''; }
             }
 
             if (categorySortEnabled) {
@@ -1829,10 +2222,10 @@ function render() {
                 });
 
                 // Build dynamic category order: defaults + custom categories + אחר/כללי at end
-                const customCategoriesInList = Array.from(allCategories).filter(cat =>
+                const customCategoriesInList = Array.from(allCategories).filter(cat => 
                     !defaultOrder.includes(cat) && cat !== 'אחר' && cat !== 'כללי'
                 );
-
+                
                 const categoryOrder = [
                     ...defaultOrder,
                     ...customCategoriesInList,
@@ -1924,12 +2317,14 @@ function render() {
                                     </div>
                                 </div>
                                 <div class="flex justify-between items-center">
+                                    ${item.isGeneralNote ? '' : `
                                     <div class="flex items-center gap-3 bg-gray-50 rounded-xl px-2 py-1 border">
                                         <button onclick="changeQty(${idx}, 1)" class="text-green-500 text-2xl font-bold">+</button>
                                         <span class="font-bold w-6 text-center">${item.qty}</span>
                                         <button onclick="changeQty(${idx}, -1)" class="text-red-500 text-2xl font-bold">-</button>
                                     </div>
                                     <span onclick="openEditTotalModal(${idx})" class="text-2xl font-black text-indigo-600" style="cursor: pointer;">₪${sub.toFixed(2)}</span>
+                                    `}
                                 </div>
                             `;
                             container.appendChild(div);
@@ -1995,12 +2390,14 @@ function render() {
                                         </div>
                                     </div>
                                     <div class="flex justify-between items-center">
+                                        ${item.isGeneralNote ? '' : `
                                         <div class="flex items-center gap-3 bg-gray-50 rounded-xl px-2 py-1 border">
                                             <button onclick="changeQty(${idx}, 1)" class="text-green-500 text-2xl font-bold">+</button>
                                             <span class="font-bold w-6 text-center">${item.qty}</span>
                                             <button onclick="changeQty(${idx}, -1)" class="text-red-500 text-2xl font-bold">-</button>
                                         </div>
                                         <span onclick="openEditTotalModal(${idx})" class="text-2xl font-black text-indigo-600" style="cursor: pointer;">₪${sub.toFixed(2)}</span>
+                                        `}
                                     </div>
                                 `;
                                 container.appendChild(div);
@@ -2028,6 +2425,20 @@ function render() {
                         div.style.border = '3px solid #f59e0b';
                         div.style.boxShadow = '0 8px 20px rgba(245, 158, 11, 0.3)';
                     }
+                    if (compactMode) {
+                        div.style.padding = '10px 14px';
+                        div.innerHTML = `
+                            <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;">
+                                <div style="display:flex;align-items:center;gap:8px;flex:1;min-width:0;">
+                                    <input type="checkbox" ${item.checked ? 'checked' : ''} onchange="toggleItem(${idx})" class="w-7 h-7 accent-indigo-600" style="flex-shrink:0;">
+                                    <span class="font-bold ${item.checked ? 'line-through text-gray-300' : ''}" style="font-size:15px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
+                                        <span class="item-number">${idx + 1}.</span> ${item.name}
+                                    </span>
+                                </div>
+                                ${item.isGeneralNote ? '' : `<span class="font-black text-indigo-600" style="font-size:15px;flex-shrink:0;">₪${sub.toFixed(2)}</span>`}
+                            </div>
+                        `;
+                    } else {
                     div.innerHTML = `
                         <div class="flex justify-between items-center mb-4">
                             <div class="flex items-center gap-3 flex-1">
@@ -2054,14 +2465,17 @@ function render() {
                             </div>
                         </div>
                         <div class="flex justify-between items-center">
+                            ${item.isGeneralNote ? '' : `
                             <div class="flex items-center gap-3 bg-gray-50 rounded-xl px-2 py-1 border">
                                 <button onclick="changeQty(${idx}, 1)" class="text-green-500 text-2xl font-bold">+</button>
                                 <span class="font-bold w-6 text-center">${item.qty}</span>
                                 <button onclick="changeQty(${idx}, -1)" class="text-red-500 text-2xl font-bold">-</button>
                             </div>
                             <span onclick="openEditTotalModal(${idx})" class="text-2xl font-black text-indigo-600" style="cursor: pointer;">₪${sub.toFixed(2)}</span>
+                            `}
                         </div>
                     `;
+                    }
                     container.appendChild(div);
                 });
             }
@@ -2093,8 +2507,11 @@ function render() {
         document.getElementById('pageLists').classList.add('hidden');
         document.getElementById('pageSummary').classList.remove('hidden');
         document.getElementById('pageStats').classList.add('hidden');
+        document.getElementById('listNameDisplay').innerText = 'הרשימות שלי';
+        setTimeout(adjustContentPadding, 50);
+        document.getElementById('itemCountDisplay').innerText = `${Object.keys(db.lists).length} רשימות`;
 
-        const searchInput = document.getElementById('searchInput');
+        const searchInput = document.getElementById('listSearchInput') || document.getElementById('searchInput');
         const searchTerm = searchInput ? searchInput.value.toLowerCase() : '';
 
         if (container) {
@@ -2137,11 +2554,25 @@ function render() {
                     </button>
                 ` : '';
 
+                if (compactMode) {
+                    div.style.padding = '10px 14px';
+                    div.innerHTML = `
+                        <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;">
+                            <div style="display:flex;align-items:center;gap:8px;flex:1;min-width:0;">
+                                <input type="checkbox" ${isSel ? 'checked' : ''} onchange="toggleSum('${id}')" class="w-7 h-7 accent-indigo-600" style="flex-shrink:0;">
+                                <span class="font-bold cursor-pointer" style="font-size:15px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" onclick="selectListAndImport('${id}'); showPage('lists')">
+                                    ${templateBadge}${l.name}
+                                </span>
+                            </div>
+                            <span class="font-black text-indigo-600" style="font-size:15px;flex-shrink:0;">₪${lT.toFixed(2)}</span>
+                        </div>
+                    `;
+                } else {
                 div.innerHTML = `
                     <div class="flex justify-between items-center mb-4">
                         <div class="flex items-center gap-3 flex-1">
                             <input type="checkbox" ${isSel ? 'checked' : ''} onchange="toggleSum('${id}')" class="w-7 h-7 accent-indigo-600">
-                            <div class="flex-1 text-2xl font-bold cursor-pointer" onclick="db.currentId='${id}'; showPage('lists')">
+                            <div class="flex-1 text-2xl font-bold cursor-pointer" onclick="selectListAndImport('${id}'); showPage('lists')">
                                 ${templateBadge}${l.name}
                             </div>
                         </div>
@@ -2159,6 +2590,7 @@ function render() {
                         <span class="text-2xl font-black text-indigo-600">₪${lT.toFixed(2)}</span>
                     </div>
                 `;
+                }
                 container.appendChild(div);
             });
 
@@ -2178,7 +2610,22 @@ function render() {
         document.getElementById('pageLists').classList.add('hidden');
         document.getElementById('pageSummary').classList.add('hidden');
         document.getElementById('pageStats').classList.remove('hidden');
+        const _pbS = document.getElementById('pageBank');
+        if (_pbS) _pbS.classList.add('hidden');
         renderStats();
+    } else if (activePage === 'bank') {
+        document.getElementById('pageLists').classList.add('hidden');
+        document.getElementById('pageSummary').classList.add('hidden');
+        document.getElementById('pageStats').classList.add('hidden');
+        const _pb = document.getElementById('pageBank');
+        if (_pb) _pb.classList.remove('hidden');
+        renderBankData();
+    }
+
+    // Hide pageBank when not on bank tab
+    if (activePage !== 'bank') {
+        const _pbH = document.getElementById('pageBank');
+        if (_pbH) _pbH.classList.add('hidden');
     }
 
     document.getElementById('displayTotal').innerText = total.toFixed(2);
@@ -2188,21 +2635,76 @@ function render() {
 }
 
 // ========== Stats Functions ==========
-function renderStats() {
-    const now = new Date();
-    const monthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+let _statsMonthOffset = 0; // 0 = current month, -1 = last month, etc.
 
-    if (!db.stats.monthlyData[monthKey]) {
-        db.stats.monthlyData[monthKey] = 0;
+function navigateMonth(dir) {
+    const now = new Date();
+    const targetDate = new Date(now.getFullYear(), now.getMonth() + _statsMonthOffset + dir, 1);
+    // Don't go into the future
+    if (targetDate > now) return;
+    _statsMonthOffset += dir;
+    renderStats();
+}
+
+function getSelectedMonthKey() {
+    const now = new Date();
+    const d = new Date(now.getFullYear(), now.getMonth() + _statsMonthOffset, 1);
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+}
+
+function getMonthLabel(key) {
+    const [year, month] = key.split('-');
+    const months = ['ינואר','פברואר','מרץ','אפריל','מאי','יוני','יולי','אוגוסט','ספטמבר','אוקטובר','נובמבר','דצמבר'];
+    return `${months[parseInt(month) - 1]} ${year}`;
+}
+
+function renderStats() {
+    const monthKey = getSelectedMonthKey();
+    const monthlyData = db.stats.monthlyData || {};
+    const monthlyTotal = monthlyData[monthKey] || 0;
+
+    // Month navigator label
+    const labelEl = document.getElementById('currentMonthLabel');
+    if (labelEl) labelEl.textContent = getMonthLabel(monthKey);
+
+    // Comparison vs previous month
+    const now = new Date();
+    const prevDate = new Date(now.getFullYear(), now.getMonth() + _statsMonthOffset - 1, 1);
+    const prevKey = `${prevDate.getFullYear()}-${String(prevDate.getMonth() + 1).padStart(2, '0')}`;
+    const prevTotal = monthlyData[prevKey] || 0;
+    const vsEl = document.getElementById('currentMonthVsPrev');
+    if (vsEl) {
+        if (prevTotal > 0) {
+            const diff = monthlyTotal - prevTotal;
+            const pct = Math.abs(Math.round((diff / prevTotal) * 100));
+            const arrow = diff >= 0 ? '▲' : '▼';
+            const color = diff >= 0 ? '#ef4444' : '#22c55e';
+            vsEl.innerHTML = `<span style="color:${color};">${arrow} ${pct}% לעומת ${getMonthLabel(prevKey)}</span>`;
+        } else {
+            vsEl.textContent = '';
+        }
     }
 
-    const monthlyTotal = db.stats.monthlyData[monthKey] || 0;
-    document.getElementById('monthlyTotal').innerText = `₪${monthlyTotal.toFixed(2)}`;
-    document.getElementById('completedLists').innerText = db.stats.listsCompleted || 0;
+    // Disable next button if at current month
+    const nextBtn = document.getElementById('nextMonthBtn');
+    if (nextBtn) nextBtn.style.opacity = _statsMonthOffset >= 0 ? '0.3' : '1';
 
-    const avgPerList = db.stats.listsCompleted > 0 ? db.stats.totalSpent / db.stats.listsCompleted : 0;
+    // Monthly total
+    document.getElementById('monthlyTotal').innerText = `₪${monthlyTotal.toFixed(2)}`;
+
+    // Completed lists THIS selected month (from history)
+    const completedThisMonth = (db.history || []).filter(e => {
+        const d = new Date(e.completedAt);
+        const k = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+        return k === monthKey;
+    }).length;
+    document.getElementById('completedLists').innerText = completedThisMonth;
+
+    // Average per list this month
+    const avgPerList = completedThisMonth > 0 ? monthlyTotal / completedThisMonth : 0;
     document.getElementById('avgPerList').innerText = `₪${avgPerList.toFixed(0)}`;
 
+    // Progress bar (target 5000)
     const monthlyProgress = Math.min((monthlyTotal / 5000) * 100, 100);
     document.getElementById('monthlyProgress').style.width = `${monthlyProgress}%`;
 
@@ -2212,39 +2714,88 @@ function renderStats() {
 }
 
 function showCompletedListsModal() {
-    if (db.history.length === 0) {
-        showNotification('אין רשימות שהושלמו', 'warning');
+    const monthKey = getSelectedMonthKey();
+    const filtered = (db.history || []).filter(e => {
+        const d = new Date(e.completedAt);
+        const k = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+        return k === monthKey;
+    });
+    if (filtered.length === 0) {
+        showNotification(`אין רשימות שהושלמו ב${getMonthLabel(monthKey)}`, 'warning');
         return;
     }
     openModal('completedListsModal');
+    // Update title to show month
+    const titleEl = document.querySelector('#completedListsModal h2');
+    if (titleEl) titleEl.textContent = `✅ רשימות שהושלמו — ${getMonthLabel(monthKey)}`;
     renderCompletedLists();
 }
 
 function renderCompletedLists() {
     const container = document.getElementById('completedListsContent');
     if (!container) return;
-
     container.innerHTML = '';
 
-    if (db.history.length === 0) {
-        container.innerHTML = '<p class="text-gray-400 text-center py-8">אין רשימות שהושלמו</p>';
+    const monthKey = getSelectedMonthKey();
+    const allEntries = db.history.slice().reverse();
+    // Filter to selected month only
+    const entries = allEntries.filter(e => {
+        const d = new Date(e.completedAt);
+        const k = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+        return k === monthKey;
+    });
+
+    if (entries.length === 0) {
+        container.innerHTML = `<p class="text-gray-400 text-center py-8">אין רשימות שהושלמו ב${getMonthLabel(monthKey)}</p>`;
         return;
     }
 
-    db.history.slice().reverse().forEach((entry, idx) => {
+    entries.forEach((entry) => {
+        // Find real index in db.history for delete/restore
+        const realIdx = db.history.indexOf(entry);
         const div = document.createElement('div');
-        div.className = 'mb-3 p-4 bg-green-50 rounded-xl border border-green-200';
+        div.className = 'mb-4 p-4 bg-green-50 rounded-xl border border-green-200';
         const date = new Date(entry.completedAt);
+
+        let productsList = '<div class="mt-3 mb-3 space-y-1">';
+        entry.items.forEach((item, i) => {
+            const itemTotal = (item.price * item.qty).toFixed(2);
+            productsList += `
+                <div class="flex justify-between items-center text-sm py-1 border-b border-green-200">
+                    <div class="flex items-center gap-2 flex-1 min-w-0">
+                        <span class="text-gray-700 truncate">${i + 1}. ${item.name}</span>
+                        <span class="text-gray-400 text-xs flex-shrink-0">x${item.qty}</span>
+                        <span class="text-indigo-600 font-bold flex-shrink-0">₪${itemTotal}</span>
+                    </div>
+                    <button onclick="openRestoreItemPicker(${realIdx}, ${i}, 'completed')"
+                        class="flex-shrink-0 mr-1 text-[10px] font-bold bg-white border border-indigo-300 text-indigo-600 rounded-lg px-2 py-1 whitespace-nowrap">
+                        + הוסף לרשימה
+                    </button>
+                </div>`;
+        });
+        productsList += '</div>';
 
         div.innerHTML = `
             <div class="flex justify-between items-center mb-2">
-                <span class="font-bold text-green-800">✅ ${entry.name}</span>
-                <span class="text-xs text-green-600">${date.toLocaleDateString('he-IL')}</span>
+                <span class="font-bold text-green-800 text-base">✅ ${entry.name}</span>
+                <div class="flex items-center gap-2">
+                    <span class="text-xs text-green-600">${date.toLocaleDateString('he-IL')}</span>
+                    <button onclick="confirmDeleteHistory(${realIdx}, 'completed')"
+                        style="background:#fee2e2; border:none; border-radius:8px; padding:4px 8px;
+                               font-size:0.7rem; font-weight:800; color:#ef4444; cursor:pointer;">
+                        🗑️ מחק
+                    </button>
+                </div>
             </div>
-            <div class="flex justify-between items-center">
+            <div class="flex justify-between items-center mb-2">
                 <span class="text-sm text-green-700">${entry.items.length} מוצרים</span>
-                <span class="text-green-600 font-black text-lg">₪${entry.total.toFixed(2)}</span>
+                <span class="text-green-700 font-black text-lg">₪${entry.total.toFixed(2)}</span>
             </div>
+            ${productsList}
+            <button onclick="restoreFromHistory(${realIdx}, 'completed')"
+                class="mt-2 w-full bg-indigo-600 text-white py-2 rounded-lg text-sm font-bold">
+                📋 שחזר רשימה שלמה
+            </button>
         `;
         container.appendChild(div);
     });
@@ -2255,49 +2806,58 @@ function renderMonthlyChart() {
     if (!ctx) return;
 
     const monthlyData = db.stats.monthlyData || {};
-    const sortedKeys = Object.keys(monthlyData).sort();
-    const last6Months = sortedKeys.slice(-6);
+    const selectedKey = getSelectedMonthKey();
 
-    const labels = last6Months.map(key => {
-        const [year, month] = key.split('-');
-        return `${month}/${year.slice(2)}`;
-    });
+    // Show up to 6 months ending at selected month
+    const allKeys = Object.keys(monthlyData).sort();
+    const selectedIdx = allKeys.indexOf(selectedKey);
+    // Take up to 6 months up to and including selected
+    const endIdx = selectedIdx >= 0 ? selectedIdx : allKeys.length - 1;
+    const startIdx = Math.max(0, endIdx - 5);
+    const displayKeys = allKeys.slice(startIdx, endIdx + 1);
 
-    const data = last6Months.map(key => monthlyData[key] || 0);
+    // Also include selected month even if no data yet
+    if (!displayKeys.includes(selectedKey)) displayKeys.push(selectedKey);
 
-    if (monthlyChart) {
-        monthlyChart.destroy();
-    }
+    const labels = displayKeys.map(k => getMonthLabel(k).split(' ')[0] + ' ' + k.split('-')[0].slice(2));
+    const data = displayKeys.map(k => monthlyData[k] || 0);
+    const bgColors = displayKeys.map(k =>
+        k === selectedKey ? 'rgba(115, 103, 240, 0.35)' : 'rgba(115, 103, 240, 0.08)'
+    );
+    const borderColors = displayKeys.map(k =>
+        k === selectedKey ? '#7367f0' : '#c4b5fd'
+    );
+
+    if (monthlyChart) monthlyChart.destroy();
 
     monthlyChart = new Chart(ctx, {
-        type: 'line',
+        type: 'bar',
         data: {
-            labels: labels,
+            labels,
             datasets: [{
-                label: 'הוצאות חודשיות',
-                data: data,
-                borderColor: '#7367f0',
-                backgroundColor: 'rgba(115, 103, 240, 0.1)',
-                tension: 0.4,
-                fill: true
+                label: 'הוצאות',
+                data,
+                backgroundColor: bgColors,
+                borderColor: borderColors,
+                borderWidth: 2,
+                borderRadius: 8,
             }]
         },
         options: {
             responsive: true,
             maintainAspectRatio: true,
             plugins: {
-                legend: {
-                    display: false
+                legend: { display: false },
+                tooltip: {
+                    callbacks: {
+                        label: ctx => `₪${ctx.parsed.y.toFixed(0)}`
+                    }
                 }
             },
             scales: {
                 y: {
                     beginAtZero: true,
-                    ticks: {
-                        callback: function (value) {
-                            return '₪' + value;
-                        }
-                    }
+                    ticks: { callback: v => '₪' + v }
                 }
             }
         }
@@ -2512,37 +3072,48 @@ function renderHistory() {
     }
 
     db.history.slice().reverse().forEach((entry, idx) => {
+        const realIdx = db.history.length - 1 - idx;
         const div = document.createElement('div');
         div.className = 'mb-4 p-4 bg-gray-50 rounded-xl border border-gray-200';
         const date = new Date(entry.completedAt);
 
-        // Product list
         let productsList = '<div class="mt-3 mb-3 space-y-1">';
         entry.items.forEach((item, i) => {
             const itemTotal = (item.price * item.qty).toFixed(2);
             productsList += `
                 <div class="flex justify-between items-center text-sm py-1 border-b border-gray-200">
-                    <span class="text-gray-700">${i + 1}. ${item.name} ${item.category ? '(' + item.category + ')' : ''}</span>
-                    <div class="flex gap-2 items-center">
-                        <span class="text-gray-500">x${item.qty}</span>
-                        <span class="text-indigo-600 font-bold">₪${itemTotal}</span>
+                    <div class="flex items-center gap-2 flex-1 min-w-0">
+                        <span class="text-gray-700 truncate">${i + 1}. ${item.name} ${item.category ? '(' + item.category + ')' : ''}</span>
+                        <span class="text-gray-500 flex-shrink-0">x${item.qty}</span>
+                        <span class="text-indigo-600 font-bold flex-shrink-0">₪${itemTotal}</span>
                     </div>
-                </div>
-            `;
+                    <button onclick="openRestoreItemPicker(${realIdx}, ${i}, 'history')"
+                        class="flex-shrink-0 mr-1 text-[10px] font-bold bg-white border border-indigo-300 text-indigo-600 rounded-lg px-2 py-1 whitespace-nowrap">
+                        + הוסף לרשימה
+                    </button>
+                </div>`;
         });
         productsList += '</div>';
 
         div.innerHTML = `
             <div class="flex justify-between items-center mb-2">
                 <span class="font-bold text-lg">${entry.name}</span>
-                <span class="text-xs text-gray-500">${date.toLocaleDateString('he-IL')}</span>
+                <div class="flex items-center gap-2">
+                    <span class="text-xs text-gray-500">${date.toLocaleDateString('he-IL')}</span>
+                    <button onclick="confirmDeleteHistory(${realIdx}, 'history')"
+                        style="background:#fee2e2; border:none; border-radius:8px; padding:4px 8px;
+                               font-size:0.7rem; font-weight:800; color:#ef4444; cursor:pointer;">
+                        🗑️ מחק
+                    </button>
+                </div>
             </div>
             <div class="flex justify-between items-center mb-2">
                 <span class="text-sm text-gray-600">${entry.items.length} מוצרים</span>
                 <span class="text-indigo-600 font-black text-xl">₪${entry.total.toFixed(2)}</span>
             </div>
             ${productsList}
-            <button onclick="restoreFromHistory(${db.history.length - 1 - idx})" class="mt-2 w-full bg-indigo-600 text-white py-2 rounded-lg text-sm font-bold hover:bg-indigo-700 transition">
+            <button onclick="restoreFromHistory(${realIdx}, 'history')"
+                class="mt-2 w-full bg-indigo-600 text-white py-2 rounded-lg text-sm font-bold">
                 📋 שחזר רשימה זו
             </button>
         `;
@@ -2603,28 +3174,296 @@ function createFromTemplate(templateId) {
     showNotification('✅ רשימה נוצרה מתבנית!');
 }
 
-function restoreFromHistory(idx) {
+function restoreFromHistory(idx, source) {
     const entry = db.history[idx];
     if (!entry) return;
 
-    const newId = 'L' + Date.now();
-    db.lists[newId] = {
-        name: entry.name + ' (משוחזר)',
-        url: entry.url || '',
-        budget: 0,
-        isTemplate: false,
-        items: JSON.parse(JSON.stringify(entry.items.map(item => ({
-            ...item,
-            checked: false,
-            cloudId: 'item_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9)
-        }))))
+    // Build list of existing non-template lists
+    const lists = Object.entries(db.lists).filter(([_, l]) => !l.isTemplate);
+    const listsHtml = lists.map(([id, l]) => `
+        <div class="list-dropdown-item" onclick="executeRestoreList('${id}', ${idx}, '${source}')">
+            📋 ${l.name}
+        </div>`).join('');
+
+    // Remove existing picker if any
+    const existing = document.getElementById('restoreListPickerOverlay');
+    if (existing) existing.remove();
+
+    const overlay = document.createElement('div');
+    overlay.id = 'restoreListPickerOverlay';
+    overlay.style.cssText = `
+        position:fixed; inset:0; z-index:9999;
+        display:flex; align-items:center; justify-content:center;
+        background:rgba(0,0,0,0.55); backdrop-filter:blur(4px);
+    `;
+    overlay.innerHTML = `
+        <div style="background:white; border-radius:20px; padding:20px; width:88%; max-width:360px;
+                    box-shadow:0 10px 30px rgba(0,0,0,0.25); direction:rtl;">
+            <div style="font-weight:800; font-size:1rem; color:#1e1b4b; margin-bottom:4px;">
+                📋 שחזור רשימה
+            </div>
+            <div style="font-size:0.8rem; color:#6b7280; margin-bottom:14px;">
+                לאן תרצה לשחזר את "<b>${entry.name}</b>"?
+            </div>
+
+            <!-- Option: new list -->
+            <div style="margin-bottom:10px; padding:10px; background:#f0eeff; border-radius:12px; border:1.5px solid #c4b5fd;">
+                <div style="font-size:0.8rem; font-weight:700; color:#7367f0; margin-bottom:8px;">✨ רשימה חדשה</div>
+                <div style="display:flex; gap:6px;">
+                    <input id="restoreNewListName" 
+                        style="flex:1; border:1.5px solid #c4b5fd; border-radius:8px; padding:7px 10px;
+                               font-size:0.82rem; font-weight:700; outline:none; color:#1e1b4b; background:white;"
+                        placeholder="שם הרשימה החדשה..."
+                        value="${entry.name} (משוחזר)"
+                        onclick="event.stopPropagation()"
+                        onkeydown="if(event.key==='Enter'){event.stopPropagation();executeRestoreList('__new__', ${idx}, '${source}');}">
+                    <button onclick="executeRestoreList('__new__', ${idx}, '${source}')"
+                        style="background:linear-gradient(135deg,#7367f0,#9055ff); color:white; border:none;
+                               border-radius:8px; padding:7px 14px; font-size:0.82rem; font-weight:800; cursor:pointer; white-space:nowrap;">
+                        צור ✓
+                    </button>
+                </div>
+            </div>
+
+            <!-- Option: existing list -->
+            ${lists.length > 0 ? `
+            <div style="font-size:0.78rem; font-weight:700; color:#9ca3af; margin-bottom:6px;">
+                או הוסף לרשימה קיימת:
+            </div>
+            <div style="max-height:180px; overflow-y:auto; border-radius:12px; border:1.5px solid #e0e7ff;">
+                ${listsHtml}
+            </div>` : ''}
+
+            <button onclick="document.getElementById('restoreListPickerOverlay').remove()"
+                style="margin-top:12px; width:100%; padding:10px; border-radius:12px;
+                       background:#f3f4f6; border:none; font-weight:700; color:#6b7280; cursor:pointer;">
+                ביטול
+            </button>
+        </div>
+    `;
+    overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
+    document.body.appendChild(overlay);
+}
+
+function executeRestoreList(targetId, histIdx, source) {
+    const overlay = document.getElementById('restoreListPickerOverlay');
+    const entry = db.history[histIdx];
+    if (!entry) return;
+
+    const restoredItems = JSON.parse(JSON.stringify(entry.items.map(item => ({
+        ...item,
+        checked: false,
+        cloudId: 'item_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9)
+    }))));
+
+    let finalId;
+    if (targetId === '__new__') {
+        // Create new list
+        const nameInput = document.getElementById('restoreNewListName');
+        const name = (nameInput && nameInput.value.trim()) ? nameInput.value.trim() : entry.name + ' (משוחזר)';
+        finalId = 'L' + Date.now();
+        db.lists[finalId] = {
+            name,
+            url: entry.url || '',
+            budget: 0,
+            isTemplate: false,
+            items: restoredItems
+        };
+    } else {
+        // Add items to existing list — insert each before first checked item
+        finalId = targetId;
+        restoredItems.forEach(newItem => {
+            const items = db.lists[finalId].items;
+            const firstChecked = items.findIndex(i => i.checked);
+            if (firstChecked === -1) items.push(newItem);
+            else items.splice(firstChecked, 0, newItem);
+        });
+    }
+
+    db.currentId = finalId;
+    activePage = 'lists';
+    if (overlay) overlay.remove();
+    if (source === 'completed') closeModal('completedListsModal');
+    else closeModal('historyModal');
+    save();
+    render();
+    showNotification('✅ רשימה שוחזרה!');
+}
+
+// ===== DELETE FROM HISTORY WITH CONFIRM + UNDO =====
+let _deletedHistoryEntry = null;
+let _deletedHistoryIdx = null;
+let _deleteHistoryTimeout = null;
+
+function confirmDeleteHistory(idx, source) {
+    const entry = db.history[idx];
+    if (!entry) return;
+
+    // Remove existing confirm overlay
+    const existing = document.getElementById('confirmDeleteHistoryOverlay');
+    if (existing) existing.remove();
+
+    const overlay = document.createElement('div');
+    overlay.id = 'confirmDeleteHistoryOverlay';
+    overlay.style.cssText = `
+        position:fixed; inset:0; z-index:10000;
+        display:flex; align-items:center; justify-content:center;
+        background:rgba(0,0,0,0.55); backdrop-filter:blur(4px);
+    `;
+    overlay.innerHTML = `
+        <div style="background:white; border-radius:20px; padding:22px; width:85%; max-width:340px;
+                    box-shadow:0 10px 30px rgba(0,0,0,0.25); direction:rtl; text-align:center;">
+            <div style="font-size:2rem; margin-bottom:8px;">🗑️</div>
+            <div style="font-weight:800; font-size:1rem; color:#1e1b4b; margin-bottom:6px;">מחיקת רשימה</div>
+            <div style="font-size:0.85rem; color:#6b7280; margin-bottom:18px;">
+                האם אתה בטוח שברצונך למחוק את<br>
+                <strong style="color:#ef4444;">"${entry.name}"</strong>?<br>
+                <span style="font-size:0.75rem;">תהיה לך אפשרות ביטול למשך 5 שניות</span>
+            </div>
+            <div style="display:flex; gap:10px;">
+                <button onclick="executeDeleteHistory(${idx}, '${source}')"
+                    style="flex:1; padding:12px; background:#ef4444; color:white; border:none;
+                           border-radius:12px; font-weight:800; font-size:0.95rem; cursor:pointer;">
+                    מחק
+                </button>
+                <button onclick="document.getElementById('confirmDeleteHistoryOverlay').remove()"
+                    style="flex:1; padding:12px; background:#f3f4f6; color:#6b7280; border:none;
+                           border-radius:12px; font-weight:800; font-size:0.95rem; cursor:pointer;">
+                    ביטול
+                </button>
+            </div>
+        </div>
+    `;
+    overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
+    document.body.appendChild(overlay);
+}
+
+function executeDeleteHistory(idx, source) {
+    // Remove confirm overlay
+    const overlay = document.getElementById('confirmDeleteHistoryOverlay');
+    if (overlay) overlay.remove();
+
+    // Cancel previous pending delete if any
+    if (_deleteHistoryTimeout) { clearTimeout(_deleteHistoryTimeout); _deleteHistoryTimeout = null; }
+
+    // Save backup for undo
+    _deletedHistoryEntry = JSON.parse(JSON.stringify(db.history[idx]));
+    _deletedHistoryIdx = idx;
+
+    // Delete
+    db.history.splice(idx, 1);
+    save();
+
+    // Refresh whichever modal is open
+    if (source === 'completed') renderCompletedLists();
+    else renderHistory();
+
+    // Show toast with undo
+    _showToast({
+        message: `🗑️ "${_deletedHistoryEntry.name}" נמחקה`,
+        type: 'delete',
+        undoCallback: undoDeleteHistory,
+        duration: 5000
+    });
+
+    // Finalize after 5s
+    _deleteHistoryTimeout = setTimeout(() => {
+        _deletedHistoryEntry = null;
+        _deletedHistoryIdx = null;
+        _deleteHistoryTimeout = null;
+    }, 5000);
+}
+
+function undoDeleteHistory() {
+    if (_deletedHistoryEntry === null || _deletedHistoryIdx === null) return;
+    if (_deleteHistoryTimeout) { clearTimeout(_deleteHistoryTimeout); _deleteHistoryTimeout = null; }
+
+    // Re-insert at original index
+    db.history.splice(_deletedHistoryIdx, 0, _deletedHistoryEntry);
+    _deletedHistoryEntry = null;
+    _deletedHistoryIdx = null;
+
+    save();
+    // Refresh both (in case either is open)
+    renderCompletedLists();
+    renderHistory();
+    showNotification('✅ הפעולה בוטלה');
+}
+let _restoreItemHistIdx = null;
+let _restoreItemItemIdx = null;
+
+function openRestoreItemPicker(histIdx, itemIdx, source) {
+    _restoreItemHistIdx = histIdx;
+    _restoreItemItemIdx = itemIdx;
+
+    const entry = db.history[histIdx];
+    if (!entry) return;
+    const item = entry.items[itemIdx];
+    if (!item) return;
+
+    // Build list options (non-templates)
+    const lists = Object.entries(db.lists).filter(([_, l]) => !l.isTemplate);
+    let optionsHtml = lists.map(([id, l]) =>
+        `<div class="list-dropdown-item" onclick="restoreSingleItem('${id}')">${l.name}</div>`
+    ).join('');
+
+    // Show a small inline picker via notification-style overlay
+    const existing = document.getElementById('restoreItemPickerOverlay');
+    if (existing) existing.remove();
+
+    const overlay = document.createElement('div');
+    overlay.id = 'restoreItemPickerOverlay';
+    overlay.style.cssText = `
+        position:fixed; inset:0; z-index:9999;
+        display:flex; align-items:center; justify-content:center;
+        background:rgba(0,0,0,0.5); backdrop-filter:blur(4px);
+    `;
+    overlay.innerHTML = `
+        <div style="background:white; border-radius:20px; padding:20px; width:85%; max-width:340px;
+                    box-shadow:0 10px 30px rgba(0,0,0,0.25);">
+            <div style="font-weight:800; font-size:1rem; color:#1e1b4b; margin-bottom:4px; text-align:right;">
+                ➕ הוסף מוצר לרשימה
+            </div>
+            <div style="font-size:0.82rem; color:#7367f0; font-weight:700; margin-bottom:12px; text-align:right;">
+                "${item.name}"
+            </div>
+            <div style="max-height:220px; overflow-y:auto; border-radius:12px; border:1.5px solid #e0e7ff;">
+                ${optionsHtml}
+            </div>
+            <button onclick="document.getElementById('restoreItemPickerOverlay').remove()"
+                style="margin-top:12px; width:100%; padding:10px; border-radius:12px;
+                       background:#f3f4f6; border:none; font-weight:700; color:#6b7280; cursor:pointer;">
+                ביטול
+            </button>
+        </div>
+    `;
+    overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
+    document.body.appendChild(overlay);
+}
+
+function restoreSingleItem(targetListId) {
+    const overlay = document.getElementById('restoreItemPickerOverlay');
+    if (overlay) overlay.remove();
+
+    const entry = db.history[_restoreItemHistIdx];
+    if (!entry) return;
+    const item = entry.items[_restoreItemItemIdx];
+    if (!item) return;
+
+    const newItem = {
+        ...JSON.parse(JSON.stringify(item)),
+        checked: false,
+        cloudId: 'item_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9)
     };
 
-    db.currentId = newId;
-    activePage = 'lists';
-    closeModal('historyModal');
+    const items = db.lists[targetListId].items;
+    const firstCheckedIdx = items.findIndex(i => i.checked);
+    if (firstCheckedIdx === -1) items.push(newItem);
+    else items.splice(firstCheckedIdx, 0, newItem);
+
     save();
-    showNotification('✅ רשימה שוחזרה!');
+    render();
+    showNotification(`✅ "${item.name}" נוסף לרשימה!`);
 }
 
 // תיקון פונקציית סיום רשימה
@@ -2727,13 +3566,118 @@ async function shareNative(type) {
     }
 }
 
+// ===== CONTEXT BAR: LIST SELECTOR =====
+let _targetListId = null; // the list item will be added to
+
+function initContextBar() {
+    _targetListId = db.currentId;
+    updateContextBarDisplay();
+}
+
+function updateContextBarDisplay() {
+    const nameEl = document.getElementById('contextListName');
+    if (!nameEl) return;
+    const list = db.lists[_targetListId];
+    nameEl.textContent = list ? list.name : '—';
+}
+
+function toggleListDropdown() {
+    const dropdown = document.getElementById('listDropdown');
+    const btn = document.getElementById('contextListBtn');
+    if (!dropdown) return;
+    const isOpen = dropdown.classList.toggle('open');
+    btn.classList.toggle('open', isOpen);
+    if (isOpen) {
+        renderListDropdown();
+        // close when clicking outside
+        setTimeout(() => document.addEventListener('click', closeListDropdownOutside), 10);
+    } else {
+        document.removeEventListener('click', closeListDropdownOutside);
+    }
+}
+
+function closeListDropdownOutside(e) {
+    const dropdown = document.getElementById('listDropdown');
+    const bar = document.getElementById('contextBar');
+    if (bar && !bar.contains(e.target)) {
+        closeListDropdown();
+    }
+}
+
+function closeListDropdown() {
+    const dropdown = document.getElementById('listDropdown');
+    const btn = document.getElementById('contextListBtn');
+    if (dropdown) dropdown.classList.remove('open');
+    if (btn) btn.classList.remove('open');
+    document.removeEventListener('click', closeListDropdownOutside);
+}
+
+function renderListDropdown() {
+    const scroll = document.getElementById('listDropdownScroll');
+    if (!scroll) return;
+    // Show only non-template lists
+    const lists = Object.entries(db.lists).filter(([_, l]) => !l.isTemplate);
+    scroll.innerHTML = lists.map(([id, l]) => `
+        <div class="list-dropdown-item ${id === _targetListId ? 'active' : ''}"
+            onclick="event.stopPropagation(); selectTargetList('${id}')">
+            ${l.name}
+        </div>
+    `).join('');
+    // clear new list input
+    const inp = document.getElementById('newListFromDropdown');
+    if (inp) inp.value = '';
+}
+
+function selectTargetList(id) {
+    _targetListId = id;
+    updateContextBarDisplay();
+    closeListDropdown();
+}
+
+function createListFromDropdown() {
+    const inp = document.getElementById('newListFromDropdown');
+    if (!inp) return;
+    const name = inp.value.trim();
+    if (!name) { inp.focus(); return; }
+    const id = 'L' + Date.now();
+    db.lists[id] = { name, url: '', budget: 0, isTemplate: false, items: [] };
+    save();
+    _targetListId = id;
+    updateContextBarDisplay();
+    closeListDropdown();
+    showNotification('✅ רשימה "' + name + '" נוצרה!');
+}
+
+// ===== QUICK ADD: CONTINUOUS MODE =====
+function toggleContinuousMode() {
+    const toggle = document.getElementById('continuousToggle');
+    if (!toggle) return;
+    const isOn = toggle.checked;
+    localStorage.setItem('continuousAdd', isOn);
+    const wrap = document.getElementById('continuousToggleWrap');
+    const btn = document.getElementById('addItemBtn');
+    if (wrap) wrap.classList.toggle('active', isOn);
+    if (btn) btn.textContent = isOn ? 'הוסף + המשך ➜' : 'הוסף ✓';
+}
+
+// ===== QUICK ADD: ADVANCED DRAWER =====
+function toggleAdvancedDrawer() {
+    const drawer = document.getElementById('advancedDrawer');
+    const toggleBtn = document.getElementById('advancedToggleBtn');
+    if (!drawer || !toggleBtn) return;
+    const isOpen = drawer.classList.toggle('open');
+    toggleBtn.classList.toggle('open', isOpen);
+    toggleBtn.querySelector('span:first-child').textContent = isOpen ? '⚙️ הסתר פרטים' : '⚙️ פרטים נוספים';
+}
+
 function addItemToList(event) {
     if (event) event.preventDefault();
-
+    
     const n = document.getElementById('itemName') ? document.getElementById('itemName').value.trim() : '';
     const p = parseFloat(document.getElementById('itemPrice') ? document.getElementById('itemPrice').value : 0) || 0;
     const q = parseInt(document.getElementById('itemQty') ? document.getElementById('itemQty').value : 1) || 1;
     const dueDate = document.getElementById('itemDueDate') ? document.getElementById('itemDueDate').value : '';
+    const dueTime = document.getElementById('itemDueTime') ? document.getElementById('itemDueTime').value : '';
     const paymentUrl = document.getElementById('itemPaymentUrl') ? document.getElementById('itemPaymentUrl').value.trim() : '';
     const notes = document.getElementById('itemNotes') ? document.getElementById('itemNotes').value.trim() : '';
     const reminderValue = document.getElementById('itemReminderValue') ? document.getElementById('itemReminderValue').value : '';
@@ -2770,7 +3714,10 @@ function addItemToList(event) {
             updatePriceInHistory(n, p);
         }
 
-        db.lists[db.currentId].items.push({
+        // Use the selected target list (from context bar)
+        const targetId = (_targetListId && db.lists[_targetListId]) ? _targetListId : db.currentId;
+        
+        const newItem = {
             name: n,
             price: p,
             qty: q,
@@ -2778,13 +3725,28 @@ function addItemToList(event) {
             category: finalCategory,
             note: notes || '',
             dueDate: dueDate || '',
+            dueTime: dueTime || '',
             paymentUrl: paymentUrl || '',
             isPaid: false,
             reminderValue: reminderValue || '',
             reminderUnit: reminderUnit || '',
+            nextAlertTime: null, // will be set below
             lastUpdated: Date.now(),
             cloudId: 'item_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9)
-        });
+        };
+        initItemAlertTime(newItem);
+
+        // Insert before the first checked item (so new item is last among unchecked)
+        const items = db.lists[targetId].items;
+        const firstCheckedIdx = items.findIndex(i => i.checked);
+        if (firstCheckedIdx === -1) {
+            items.push(newItem); // no checked items — add at end
+        } else {
+            items.splice(firstCheckedIdx, 0, newItem); // insert before first checked
+        }
+
+        // Switch to that list so user sees the item they just added
+        db.currentId = targetId;
 
         // איפוס טופס
         if (document.getElementById('itemName')) document.getElementById('itemName').value = '';
@@ -2792,12 +3754,18 @@ function addItemToList(event) {
         if (document.getElementById('itemQty')) document.getElementById('itemQty').value = '1';
         if (document.getElementById('itemCategory')) document.getElementById('itemCategory').value = '';
         if (document.getElementById('itemDueDate')) document.getElementById('itemDueDate').value = '';
+        if (document.getElementById('itemDueTime')) document.getElementById('itemDueTime').value = '';
         if (document.getElementById('itemPaymentUrl')) document.getElementById('itemPaymentUrl').value = '';
         if (document.getElementById('itemNotes')) document.getElementById('itemNotes').value = '';
         if (document.getElementById('itemReminderValue')) document.getElementById('itemReminderValue').value = '';
         if (document.getElementById('itemReminderUnit')) document.getElementById('itemReminderUnit').value = '';
 
-        closeModal('inputForm');
+        const continuous = localStorage.getItem('continuousAdd') === 'true';
+        if (continuous) {
+            setTimeout(() => { const el = document.getElementById('itemName'); if (el) el.focus(); }, 80);
+        } else {
+            closeModal('inputForm');
+        }
         save();
         showNotification('✅ מוצר נוסף!');
         if (typeof checkUrgentPayments === 'function') {
@@ -2819,113 +3787,56 @@ function removeItem(idx) {
     // שמירת הפריט והאינדקס שלו
     deletedItem = JSON.parse(JSON.stringify(db.lists[db.currentId].items[idx]));
     deletedItemIndex = idx;
-
+    
     // מחיקת הפריט
     db.lists[db.currentId].items.splice(idx, 1);
     save();
     render();
-
+    
     // ביטול טיימר קודם אם קיים
-    if (deleteTimeout) {
-        clearTimeout(deleteTimeout);
-    }
+    if (deleteTimeout) { clearTimeout(deleteTimeout); }
+    
+    // הצגת toast עם כפתור undo
+    _showToast({
+        message: `🗑️ "${deletedItem.name}" הוסר`,
+        type: 'delete',
+        undoCallback: undoDelete,
+        duration: 5000
+    });
 
-    // הסרת הודעת ביטול קודמת אם קיימת
-    if (undoNotification) {
-        undoNotification.remove();
-        undoNotification = null;
-    }
-
-    // יצירת הודעה עם כפתור ביטול
-    const notif = document.createElement('div');
-    notif.className = 'notification undo-notification';
-    notif.style.background = '#ef4444';
-    notif.style.color = 'white';
-    notif.style.display = 'flex';
-    notif.style.alignItems = 'center';
-    notif.style.justifyContent = 'space-between';
-    notif.style.gap = '10px';
-
-    const message = document.createElement('span');
-    message.innerHTML = '<strong>🗑️ מוצר הוסר</strong>';
-
-    const undoBtn = document.createElement('button');
-    undoBtn.innerHTML = '<strong>↩️ ביטול</strong>';
-    undoBtn.style.background = 'white';
-    undoBtn.style.color = '#ef4444';
-    undoBtn.style.border = 'none';
-    undoBtn.style.padding = '8px 16px';
-    undoBtn.style.borderRadius = '10px';
-    undoBtn.style.fontWeight = 'bold';
-    undoBtn.style.cursor = 'pointer';
-    undoBtn.style.fontSize = '14px';
-    undoBtn.onclick = undoDelete;
-
-    notif.appendChild(message);
-    notif.appendChild(undoBtn);
-    document.body.appendChild(notif);
-    undoNotification = notif;
-
-    // הצגת ההודעה
-    setTimeout(() => notif.classList.add('show'), 100);
-
-    // טיימר למחיקה סופית אחרי 5 שניות
-    deleteTimeout = setTimeout(() => {
-        finalizeDelete();
-    }, 5000);
+    // טיימר למחיקה סופית
+    deleteTimeout = setTimeout(() => { finalizeDelete(); }, 5000);
 }
 
 function undoDelete() {
     if (deletedItem !== null && deletedItemIndex !== null) {
-        // ביטול הטיימר
-        if (deleteTimeout) {
-            clearTimeout(deleteTimeout);
-            deleteTimeout = null;
-        }
-
-        // החזרת הפריט למיקום המקורי שלו
+        if (deleteTimeout) { clearTimeout(deleteTimeout); deleteTimeout = null; }
         db.lists[db.currentId].items.splice(deletedItemIndex, 0, deletedItem);
-
-        // איפוס המשתנים
         deletedItem = null;
         deletedItemIndex = null;
-
-        // שמירה ורינדור
         save();
         render();
-
-        // הסרת הודעת הביטול
-        if (undoNotification) {
-            undoNotification.classList.remove('show');
-            setTimeout(() => {
-                undoNotification.remove();
-                undoNotification = null;
-            }, 300);
-        }
-
-        // הצגת הודעת אישור
         showNotification('✅ הפעולה בוטלה');
     }
 }
 
 function finalizeDelete() {
-    // מחיקה סופית - איפוס המשתנים
     deletedItem = null;
     deletedItemIndex = null;
     deleteTimeout = null;
-
-    // הסרת ההודעה
-    if (undoNotification) {
-        undoNotification.classList.remove('show');
-        setTimeout(() => {
-            undoNotification.remove();
-            undoNotification = null;
-        }, 300);
-    }
 }
 
 function toggleLock() {
     isLocked = !isLocked;
+    var lockBtn  = document.getElementById('mainLockBtn');
+    var lockPath = document.getElementById('lockIconPath');
+    var lockSvg  = document.getElementById('lockIconSvg');
+    if (lockBtn) {
+        if (lockSvg) lockSvg.setAttribute('stroke', isLocked ? 'white' : '#fb923c');
+        if (lockPath) lockPath.setAttribute('d', isLocked
+            ? 'M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z'
+            : 'M8 11V7a4 4 0 118 0m-4 8v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2z');
+    }
     render();
 }
 
@@ -2947,6 +3858,8 @@ function saveNewList() {
         activePage = 'lists';
         closeModal('newListModal');
         save();
+        if (typeof openSmartBar === 'function') openSmartBar();
+        if (typeof updateExpandedTabs === 'function') updateExpandedTabs('lists');
         showNotification(t ? '⭐ תבנית נוצרה!' : '✅ רשימה נוצרה!');
     }
 }
@@ -3196,7 +4109,7 @@ function saveItemEdit() {
     const newPaymentUrl = document.getElementById('editItemPaymentUrl').value.trim();
     const newReminderValue = document.getElementById('editItemReminderValue') ? document.getElementById('editItemReminderValue').value : '';
     const newReminderUnit = document.getElementById('editItemReminderUnit') ? document.getElementById('editItemReminderUnit').value : '';
-
+    
     if (newName && currentEditIdx !== null) {
         const item = db.lists[db.currentId].items[currentEditIdx];
         item.name = newName;
@@ -3205,28 +4118,30 @@ function saveItemEdit() {
         item.reminderValue = newReminderValue;
         item.reminderUnit = newReminderUnit;
         item.lastUpdated = Date.now();
-
+        // Recompute nextAlertTime whenever item is edited
+        initItemAlertTime(item);
+        
         // שמירה מקומית תחילה
         db.lastActivePage = activePage;
         db.lastSync = Date.now();
         localStorage.setItem('BUDGET_FINAL_V28', JSON.stringify(db));
-
+        
         // רינדור מיידי
         render();
-
+        
         // עדכון תגי התראה
         if (typeof updateNotificationBadge === 'function') {
             updateNotificationBadge();
         }
-
+        
         // סגירת המודל מיד לאחר רינדור
         closeModal('editItemNameModal');
         showNotification('✅ הפריט עודכן!');
-
+        
         if (typeof checkUrgentPayments === 'function') {
             checkUrgentPayments();
         }
-
+        
         // סנכרון לענן ברקע (אסינכרוני)
         if (isConnected && currentUser) {
             if (syncTimeout) clearTimeout(syncTimeout);
@@ -3317,11 +4232,11 @@ function selectCategory(categoryName) {
     if (currentEditIdx !== null) {
         const item = db.lists[db.currentId].items[currentEditIdx];
         item.category = categoryName;
-
+        
         // Update category memory for this product
         if (!db.categoryMemory) db.categoryMemory = {};
         db.categoryMemory[item.name.toLowerCase().trim()] = categoryName;
-
+        
         save();
         showNotification('✓ הקטגוריה עודכנה');
     }
@@ -3332,27 +4247,27 @@ function saveCustomCategory() {
     const customCategory = document.getElementById('customCategoryInput').value.trim();
     if (customCategory && currentEditIdx !== null) {
         const item = db.lists[db.currentId].items[currentEditIdx];
-
+        
         // Update item category
         item.category = customCategory;
-
+        
         // Add to global custom categories if not already there
         if (!db.customCategories) db.customCategories = [];
         if (!db.customCategories.includes(customCategory)) {
             db.customCategories.push(customCategory);
         }
-
+        
         // Update category memory for this product
         if (!db.categoryMemory) db.categoryMemory = {};
         db.categoryMemory[item.name.toLowerCase().trim()] = customCategory;
-
+        
         // Add custom category to CATEGORIES object for color assignment if not exists
         if (!CATEGORIES[customCategory]) {
             // Assign a random color from existing palette or generate new
             const colors = ['#22c55e', '#ef4444', '#3b82f6', '#f59e0b', '#8b5cf6', '#ec4899', '#06b6d4', '#10b981', '#6366f1'];
             CATEGORIES[customCategory] = colors[db.customCategories.length % colors.length];
         }
-
+        
         save();
         showNotification('✓ קטגוריה מותאמת נשמרה');
     }
@@ -3379,9 +4294,9 @@ function renderCustomCategoriesList() {
     db.customCategories.forEach((category, index) => {
         const div = document.createElement('div');
         div.className = 'flex justify-between items-center mb-3 p-4 bg-purple-50 rounded-xl border-2 border-purple-200';
-
+        
         const color = CATEGORIES[category] || '#6b7280';
-
+        
         div.innerHTML = `
             <div class="flex items-center gap-3">
                 <div class="w-4 h-4 rounded-full" style="background-color: ${color}"></div>
@@ -3403,14 +4318,14 @@ let categoryIndexToDelete = null;
 function openDeleteCategoryModal(categoryName, categoryIndex) {
     categoryToDelete = categoryName;
     categoryIndexToDelete = categoryIndex;
-
+    
     const nameDisplay = document.getElementById('categoryToDeleteName');
     if (nameDisplay) {
         nameDisplay.textContent = categoryName;
         const color = CATEGORIES[categoryName] || '#7367f0';
         nameDisplay.style.color = color;
     }
-
+    
     openModal('deleteCategoryModal');
 }
 
@@ -3684,12 +4599,20 @@ function initFirebaseAuth() {
     const cloudBtn = document.getElementById('cloudBtn');
     if (cloudBtn) {
         cloudBtn.onclick = function () {
-            if (currentUser) {
-                // Already logged in, show settings
-                openModal('settingsModal');
+            if (wizardMode) {
+                wiz('cloudBtn', 'before', () => {
+                    if (currentUser) {
+                        openModal('settingsModal');
+                    } else {
+                        loginWithGoogle();
+                    }
+                });
             } else {
-                // Not logged in, trigger login
-                loginWithGoogle();
+                if (currentUser) {
+                    openModal('settingsModal');
+                } else {
+                    loginWithGoogle();
+                }
             }
         };
     }
@@ -3702,6 +4625,12 @@ function loginWithGoogle() {
         return;
     }
 
+    if (!window.googleProvider) {
+        showNotification('⚠️ Google provider לא זמין', 'warning');
+        console.warn('⚠️ Google Provider לא זמין');
+        return;
+    }
+
     // Check if already logged in
     if (window.firebaseAuth.currentUser) {
         showNotification('✅ אתה כבר מחובר', 'success');
@@ -3711,16 +4640,54 @@ function loginWithGoogle() {
     }
 
     console.log('🔐 מתחיל תהליך התחברות Google...');
+    console.log('🔐 Auth:', window.firebaseAuth ? 'זמין' : 'לא זמין');
+    console.log('🔐 Provider:', window.googleProvider ? 'זמין' : 'לא זמין');
     updateCloudIndicator('syncing');
 
-    try {
-        // Trigger Google sign-in redirect
-        window.signInWithPopup(window.firebaseAuth, window.googleProvider);
-        console.log('🔄 מפנה לדף התחברות Google...');
-    } catch (error) {
-        console.error("❌ שגיאת התחברות:", error);
-        showDetailedError('Login', error);
-        updateCloudIndicator('disconnected');
+    // Use signInWithRedirect for GitHub Pages, signInWithPopup for Firebase domains
+    const isGitHubPages = window.location.hostname.includes('github.io');
+    
+    if (isGitHubPages) {
+        // GitHub Pages - use Redirect (Popup is blocked)
+        console.log('🔐 GitHub Pages detected - using Redirect...');
+        showNotification('⏳ מעביר לדף ההתחברות של Google...', 'success');
+        window.signInWithRedirect(window.firebaseAuth, window.googleProvider)
+            .catch((error) => {
+                console.error("❌ שגיאת התחברות:", error);
+                showDetailedError('Login', error);
+                updateCloudIndicator('disconnected');
+            });
+    } else {
+        // Firebase domains - use Popup (faster UX)
+        console.log('🔐 Firebase domain detected - using Popup...');
+        window.signInWithPopup(window.firebaseAuth, window.googleProvider)
+            .then((result) => {
+                console.log('✅ התחברות הצליחה!', result.user.email);
+                showNotification('✅ התחברת בהצלחה!', 'success');
+                currentUser = result.user;
+                isConnected = true;
+                updateCloudIndicator('connected');
+                setupFirestoreListener(result.user);
+            })
+            .catch((error) => {
+                console.error("❌ שגיאת התחברות:", error);
+                console.error("❌ קוד שגיאה:", error.code);
+                console.error("❌ הודעת שגיאה:", error.message);
+                
+                if (error.code === 'auth/popup-closed-by-user') {
+                    console.log('ℹ️ המשתמש סגר את חלון ההתחברות');
+                    showNotification('ℹ️ חלון ההתחברות נסגר', 'warning');
+                } else if (error.code === 'auth/cancelled-popup-request') {
+                    console.log('ℹ️ בקשת popup בוטלה');
+                    showNotification('ℹ️ ההתחברות בוטלה', 'warning');
+                } else if (error.code === 'auth/popup-blocked') {
+                    console.log('⚠️ הדפדפן חסם את חלון ההתחברות');
+                    showNotification('⚠️ הדפדפן חסם את חלון ההתחברות', 'warning');
+                } else {
+                    showDetailedError('Login', error);
+                }
+                updateCloudIndicator('disconnected');
+            });
     }
 }
 
@@ -3770,9 +4737,9 @@ function updateCloudIndicator(status) {
         // Show short status instead of full email to save space
         if (text) text.textContent = "מחובר ✅";
     } else if (status === 'syncing') {
-        // Yellow indicator - syncing in progress
+        // Yellow indicator - syncing in progress with pulse animation
         indicator.className = 'w-2 h-2 bg-yellow-500 rounded-full animate-pulse';
-        cloudBtn.className = 'cloud-btn-disconnected px-3 py-1 rounded-full text-[10px] font-bold border flex items-center gap-1 cursor-pointer transition-all';
+        cloudBtn.className = 'cloud-btn-syncing px-3 py-1 rounded-full text-[10px] font-bold border flex items-center gap-1 cursor-pointer transition-all';
         if (text) text.textContent = "מסנכרן...";
     } else {
         // Red indicator - disconnected state
@@ -3785,17 +4752,12 @@ function updateCloudIndicator(status) {
 function setupFirestoreListener(user) {
     console.log('📡 מגדיר Firestore listener עבור UID:', user.uid);
 
-    // IMPORTANT: collection must match syncToCloud() which saves to 'users'
-    const userDocRef = window.doc(window.firebaseDb, "users", user.uid);
+    const userDocRef = window.doc(window.firebaseDb, "shopping_lists", user.uid);
 
     unsubscribeSnapshot = window.onSnapshot(userDocRef, (docSnap) => {
         if (docSnap.exists()) {
             console.log('☁️ מסמך נמצא בענן');
-            const docData = docSnap.data();
-
-            // syncToCloud saves as { data: db, lastSync, email }
-            // so the actual app data lives in docData.data
-            const cloudData = docData.data || docData;
+            const cloudData = docSnap.data();
 
             // בדיקה: אם הענן ריק אבל יש נתונים מקומיים, העלה אותם לענן
             const cloudIsEmpty = !cloudData.lists || Object.keys(cloudData.lists).length === 0;
@@ -3807,7 +4769,7 @@ function setupFirestoreListener(user) {
                 return;
             }
 
-            // מיזוג חכם: הענן הוא מקור האמת
+            // מיזוג חכם: הענן הוא מקור האמת למחיקות
             if (JSON.stringify(cloudData) !== JSON.stringify(db)) {
                 console.log('🔄 מבצע סנכרון חכם מהענן...');
                 const mergedDb = mergeCloudWithLocal(cloudData, db);
@@ -3830,8 +4792,6 @@ function setupFirestoreListener(user) {
                 localStorage.setItem('BUDGET_FINAL_V28', JSON.stringify(db));
                 render();
                 showNotification('☁️ סונכרן מהענן!', 'success');
-            } else {
-                console.log('☁️ נתונים מסונכרנים - אין שינויים');
             }
         } else {
             console.log('📝 מסמך לא קיים בענן, יוצר חדש...');
@@ -3846,6 +4806,31 @@ function setupFirestoreListener(user) {
     });
 }
 
+
+// ─── normalizeItem: שומר את כל שדות הפריט כולל תזכורות ─────────────────────
+function normalizeItem(item) {
+    return {
+        name: item.name || '',
+        price: item.price || 0,
+        qty: item.qty || 1,
+        checked: item.checked || false,
+        category: item.category || 'אחר',
+        note: item.note || '',
+        dueDate: item.dueDate || '',
+        dueTime: item.dueTime || '',
+        paymentUrl: item.paymentUrl || '',
+        isPaid: item.isPaid || false,
+        lastUpdated: item.lastUpdated || Date.now(),
+        cloudId: item.cloudId || ('item_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9)),
+        // ─ שדות תזכורת — חייבים להישמר! ─
+        reminderValue: item.reminderValue || '',
+        reminderUnit: item.reminderUnit || '',
+        nextAlertTime: item.nextAlertTime || null,
+        alertDismissedAt: item.alertDismissedAt || null,
+        isGeneralNote: item.isGeneralNote || false
+    };
+}
+
 function mergeCloudWithLocal(cloudData, localData) {
     console.log('🔄 מבצע מיזוג חכם בין ענן למקומי...');
 
@@ -3855,19 +4840,7 @@ function mergeCloudWithLocal(cloudData, localData) {
     Object.keys(merged.lists || {}).forEach(listId => {
         if (merged.lists[listId].items) {
             merged.lists[listId].items = merged.lists[listId].items.map(item => {
-                return {
-                    name: item.name || '',
-                    price: item.price || 0,
-                    qty: item.qty || 1,
-                    checked: item.checked || false,
-                    category: item.category || 'אחר',
-                    note: item.note || '',
-                    dueDate: item.dueDate || '',
-                    paymentUrl: item.paymentUrl || '', // Ensure paymentUrl always exists
-                    isPaid: item.isPaid || false,
-                    lastUpdated: item.lastUpdated || Date.now(),
-                    cloudId: item.cloudId || 'item_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9)
-                };
+                return normalizeItem(item);
             });
         }
     });
@@ -3897,37 +4870,11 @@ function mergeCloudWithLocal(cloudData, localData) {
                 // נוסיף לו cloudId ונוסיף אותו
                 localItem.cloudId = 'item_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
                 // Normalize local item as well
-                const normalizedItem = {
-                    name: localItem.name || '',
-                    price: localItem.price || 0,
-                    qty: localItem.qty || 1,
-                    checked: localItem.checked || false,
-                    category: localItem.category || 'אחר',
-                    note: localItem.note || '',
-                    dueDate: localItem.dueDate || '',
-                    paymentUrl: localItem.paymentUrl || '',
-                    isPaid: localItem.isPaid || false,
-                    lastUpdated: localItem.lastUpdated || Date.now(),
-                    cloudId: localItem.cloudId
-                };
-                merged.lists[listId].items.push(normalizedItem);
+                merged.lists[listId].items.push(normalizeItem(localItem));
                 console.log('➕ מוסיף פריט חדש מקומי ללא cloudId:', localItem.name);
             } else if (!cloudItemsMap[localItem.cloudId]) {
                 // פריט עם cloudId שלא קיים בענן - זה פריט חדש שנוסף באופליין
-                const normalizedItem = {
-                    name: localItem.name || '',
-                    price: localItem.price || 0,
-                    qty: localItem.qty || 1,
-                    checked: localItem.checked || false,
-                    category: localItem.category || 'אחר',
-                    note: localItem.note || '',
-                    dueDate: localItem.dueDate || '',
-                    paymentUrl: localItem.paymentUrl || '',
-                    isPaid: localItem.isPaid || false,
-                    lastUpdated: localItem.lastUpdated || Date.now(),
-                    cloudId: localItem.cloudId
-                };
-                merged.lists[listId].items.push(normalizedItem);
+                merged.lists[listId].items.push(normalizeItem(localItem));
                 console.log('➕ מוסיף פריט חדש מאופליין:', localItem.name);
             } else {
                 // פריט קיים גם בענן - עדכן אותו מהענן (הענן מנצח)
@@ -3943,19 +4890,7 @@ function mergeCloudWithLocal(cloudData, localData) {
             merged.lists[listId] = localData.lists[listId];
             // Normalize items in new local list
             if (merged.lists[listId].items) {
-                merged.lists[listId].items = merged.lists[listId].items.map(item => ({
-                    name: item.name || '',
-                    price: item.price || 0,
-                    qty: item.qty || 1,
-                    checked: item.checked || false,
-                    category: item.category || 'אחר',
-                    note: item.note || '',
-                    dueDate: item.dueDate || '',
-                    paymentUrl: item.paymentUrl || '',
-                    isPaid: item.isPaid || false,
-                    lastUpdated: item.lastUpdated || Date.now(),
-                    cloudId: item.cloudId || 'item_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9)
-                }));
+                merged.lists[listId].items = merged.lists[listId].items.map(normalizeItem);
             }
         }
     });
@@ -3969,32 +4904,19 @@ async function syncToCloud() {
         return;
     }
 
-    // Prevent concurrent syncs
-    if (isSyncing) {
-        console.log('⏳ סנכרון כבר מתבצע, מדלג...');
-        return;
-    }
-
-    isSyncing = true;
     console.log('☁️ מסנכרן לענן... UID:', currentUser.uid);
     updateCloudIndicator('syncing');
 
     try {
-        // IMPORTANT: collection 'users' must match setupFirestoreListener
-        const userDocRef = window.doc(window.firebaseDb, "users", currentUser.uid);
-        // Save wrapped as { data: db, ... } to match the read format in setupFirestoreListener
-        await window.setDoc(userDocRef, {
-            data: db,
-            lastSync: Date.now(),
-            email: currentUser.email
-        });
+        const userDocRef = window.doc(window.firebaseDb, "shopping_lists", currentUser.uid);
+        await window.setDoc(userDocRef, db);
         console.log('✅ סנכרון לענן הושלם בהצלחה');
-        showNotification('✅ שמור בענן', 'success');
+        // Removed notification - indicator shows sync status
     } catch (error) {
         console.error("❌ שגיאה בכתיבה לענן:", error);
         showDetailedError('Cloud Sync', error);
     } finally {
-        isSyncing = false;
+        // Return to connected state
         updateCloudIndicator('connected');
     }
 }
@@ -5889,45 +6811,67 @@ if (typeof updateCategoryDropdown === 'function') {
 // ========== Peace of Mind Features ==========
 
 // Check for urgent payments on page load and display alerts
+// flag: כשמגיעים מלחיצה על התראה, נציג גם פריטים שסומנו כ-dismissed
+let _forceShowAfterNotificationClick = false;
+
 function checkUrgentPayments() {
-    const list = db.lists[db.currentId];
-    if (!list || !list.items) return;
-
     const now = Date.now();
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+    const alertItems = [];
 
-    const urgentItems = list.items.filter(item => {
-        if (!item.dueDate || item.isPaid || item.checked) return false;
+    // בדוק אם הגענו מלחיצה על התראה (דרך flag או sessionStorage)
+    let forceShow = _forceShowAfterNotificationClick;
+    _forceShowAfterNotificationClick = false;
 
-        const dueDate = new Date(item.dueDate);
-        dueDate.setHours(0, 0, 0, 0);
+    // קרא גם מ-sessionStorage (מקרה של פתיחת חלון חדש מהתראה)
+    let pendingNotifItemName = window._notifClickItemName || null;
+    window._notifClickItemName = null;
 
-        // בדוק אם התאריך עבר
-        const isOverdue = dueDate <= today;
-
-        // בדוק אם יש להתריע לפי reminderValue ו-reminderUnit
-        if (item.reminderValue && item.reminderUnit) {
-            const reminderTimeMs = getReminderMilliseconds(item.reminderValue, item.reminderUnit);
-            const dueDateMs = dueDate.getTime();
-            const reminderDate = new Date(dueDateMs - reminderTimeMs);
-
-            const isReminderTime = now >= reminderDate.getTime() && now <= dueDateMs + (24 * 60 * 60 * 1000);
-            return isOverdue || isReminderTime;
+    try {
+        const pending = sessionStorage.getItem('vplus_pending_notif');
+        if (pending) {
+            sessionStorage.removeItem('vplus_pending_notif');
+            const notifData = JSON.parse(pending);
+            forceShow = true;
+            if (notifData.itemName) pendingNotifItemName = notifData.itemName;
         }
+    } catch(e) {}
 
-        return isOverdue;
+    Object.keys(db.lists).forEach(listId => {
+        const list = db.lists[listId];
+        list.items.forEach((item, idx) => {
+            if (item.checked || item.isPaid) return;
+            if (!item.dueDate) return;
+
+            // Get the scheduled alert time
+            let alertTime = item.nextAlertTime;
+            if (!alertTime && item.reminderValue && item.reminderUnit) {
+                alertTime = computeNextAlertTime(item);
+                item.nextAlertTime = alertTime; // sync it
+            }
+            if (!alertTime) return;
+
+            // אם הגענו מלחיצה על התראה ספציפית — הצג רק אותה (אם ידועה), אחרת הצג כל שעבר זמנו
+            if (pendingNotifItemName) {
+                // הצג רק הפריט שנלחץ עליו — ללא תלות בזמן
+                if (item.name === pendingNotifItemName) {
+                    alertItems.push({ item, idx, listId });
+                }
+                return;
+            }
+
+            if (now < alertTime) return; // not yet
+
+            // Skip if user dismissed this alert — אלא אם כן הגענו מלחיצה על התראה
+            if (!forceShow && item.alertDismissedAt && item.alertDismissedAt >= alertTime) return;
+
+            alertItems.push({ item, idx, listId });
+        });
     });
 
-    // Update app badge
-    updateAppBadge(urgentItems.length);
+    updateNotificationBadge();
 
-    // Check if modal should be shown
-    if (urgentItems.length > 0) {
-        const shouldShowModal = checkSnoozeStatus();
-        if (shouldShowModal) {
-            showUrgentAlertModal(urgentItems);
-        }
+    if (alertItems.length > 0) {
+        showUrgentAlertModal(alertItems.map(a => a.item));
     }
 }
 
@@ -5946,29 +6890,8 @@ function updateAppBadge(count) {
     }
 }
 
-// Check snooze status to determine if modal should show
-function checkSnoozeStatus() {
-    // Check session storage first (user clicked Close this session)
-    if (sessionStorage.getItem('urgentAlertClosed')) {
-        return false;
-    }
-
-    // Check localStorage for snooze timestamps
-    const snooze4h = localStorage.getItem('urgentSnooze4h');
-    const snoozeTomorrow = localStorage.getItem('urgentSnoozeTomorrow');
-
-    const now = Date.now();
-
-    if (snooze4h && now < parseInt(snooze4h)) {
-        return false;
-    }
-
-    if (snoozeTomorrow && now < parseInt(snoozeTomorrow)) {
-        return false;
-    }
-
-    return true;
-}
+// Legacy - snooze is now per-item via nextAlertTime
+function checkSnoozeStatus() { return true; }
 
 // Show the urgent alert modal with overdue items
 function showUrgentAlertModal(urgentItems) {
@@ -5986,29 +6909,31 @@ function showUrgentAlertModal(urgentItems) {
         dueDate.setHours(0, 0, 0, 0);
         return dueDate < today;
     });
-
+    
     const upcomingItemsFiltered = urgentItems.filter(item => {
         const dueDate = new Date(item.dueDate);
         dueDate.setHours(0, 0, 0, 0);
         return dueDate >= today;
     });
-
+    
     let itemsHTML = '';
-
+    
     // הצגת פריטים באיחור
     if (overdueItemsFiltered.length > 0) {
         itemsHTML += '<div style="font-weight: bold; color: #ef4444; margin-bottom: 10px;">⚠️ באיחור:</div>';
         overdueItemsFiltered.forEach(item => {
             const formattedDate = formatDate(item.dueDate);
+            const escapedName = (item.name || '').replace(/'/g, "\\'");
             itemsHTML += `
-                <div class="urgent-item" style="border-right: 3px solid #ef4444;">
+                <div class="urgent-item" style="border-right: 3px solid #ef4444; cursor:pointer;" onclick="goToItemFromAlert('${escapedName}')">
                     <div class="urgent-item-name">${item.name}</div>
                     <div class="urgent-item-date">📅 תאריך יעד: ${formattedDate}</div>
+                    <div style="font-size:0.72rem; color:#7367f0; margin-top:4px;">לחץ לצפייה במוצר ←</div>
                 </div>
             `;
         });
     }
-
+    
     // הצגת תזכורות עתידיות
     if (upcomingItemsFiltered.length > 0) {
         if (overdueItemsFiltered.length > 0) {
@@ -6021,16 +6946,18 @@ function showUrgentAlertModal(urgentItems) {
             dueDate.setHours(0, 0, 0, 0);
             const daysUntil = Math.floor((dueDate - today) / 86400000);
             const daysText = daysUntil === 0 ? 'היום' : daysUntil === 1 ? 'מחר' : `בעוד ${daysUntil} ימים`;
-
+            
             let reminderText = '';
             if (item.reminderValue && item.reminderUnit) {
                 reminderText = ` (התראה: ${formatReminderText(item.reminderValue, item.reminderUnit)} לפני)`;
             }
-
+            
+            const escapedName = (item.name || '').replace(/'/g, "\\'");
             itemsHTML += `
-                <div class="urgent-item" style="border-right: 3px solid #3b82f6;">
+                <div class="urgent-item" style="border-right: 3px solid #3b82f6; cursor:pointer;" onclick="goToItemFromAlert('${escapedName}')">
                     <div class="urgent-item-name">${item.name}</div>
                     <div class="urgent-item-date">📅 תאריך יעד: ${formattedDate} (${daysText})${reminderText}</div>
+                    <div style="font-size:0.72rem; color:#7367f0; margin-top:4px;">לחץ לצפייה במוצר ←</div>
                 </div>
             `;
         });
@@ -6040,23 +6967,122 @@ function showUrgentAlertModal(urgentItems) {
     modal.classList.add('active');
 }
 
-// Snooze urgent alert for specified hours
-function snoozeUrgentAlert(hours) {
-    const snoozeUntil = Date.now() + (hours * 60 * 60 * 1000);
+// Snooze all currently-alerting items
+function snoozeUrgentAlert(ms) {
+    const now = Date.now();
+    const snoozeUntil = now + ms;
+    let snoozedAny = false;
 
-    if (hours === 4) {
-        localStorage.setItem('urgentSnooze4h', snoozeUntil.toString());
-    } else if (hours === 24) {
-        localStorage.setItem('urgentSnoozeTomorrow', snoozeUntil.toString());
+    Object.keys(db.lists).forEach(listId => {
+        db.lists[listId].items.forEach(item => {
+            if (item.checked || item.isPaid) return;
+            if (!item.dueDate) return;
+
+            const alertTime = item.nextAlertTime || computeNextAlertTime(item);
+            if (!alertTime) return;
+            // snooze פריטים שהתראה שלהם הגיעה (עבר זמנם) — כולל כאלה שסומנו כ-dismissed
+            // המשתמש לחץ בכוונה על snooze, אז זה override
+            if (now < alertTime) return;
+
+            item.nextAlertTime = snoozeUntil;
+            item.alertDismissedAt = null; // נקה dismiss כדי שיופיע שוב
+            snoozedAny = true;
+        });
+    });
+
+    if (!snoozedAny) {
+        // fallback: snooze את כל הפריטים עם dueDate (גם אם alertDismissedAt קיים)
+        Object.keys(db.lists).forEach(listId => {
+            db.lists[listId].items.forEach(item => {
+                if (item.checked || item.isPaid) return;
+                if (!item.dueDate || !item.reminderValue) return;
+                item.nextAlertTime = snoozeUntil;
+                item.alertDismissedAt = null;
+            });
+        });
     }
 
+    save();
+    closeModal('urgentAlertModal');
+    showNotification('⏰ תוזכר שוב בקרוב');
+    // Re-schedule timers so the snoozed time is picked up
+    checkAndScheduleNotifications();
+}
+
+// Close/dismiss urgent alert — mark as dismissed so it won't auto-popup again
+function closeUrgentAlert() {
+    const now = Date.now();
+    Object.keys(db.lists).forEach(listId => {
+        db.lists[listId].items.forEach(item => {
+            if (item.checked || item.isPaid) return;
+            if (!item.dueDate) return;
+
+            const alertTime = item.nextAlertTime || computeNextAlertTime(item);
+            if (!alertTime) return;
+            if (now < alertTime) return;
+            if (item.alertDismissedAt && item.alertDismissedAt >= alertTime) return;
+
+            item.alertDismissedAt = now; // mark dismissed — stays in notification center
+        });
+    });
+    save();
     closeModal('urgentAlertModal');
 }
 
-// Close urgent alert (session-based)
-function closeUrgentAlert() {
-    sessionStorage.setItem('urgentAlertClosed', 'true');
+// Navigate to the specific item from the notification alert
+function goToItemFromAlert(itemName) {
     closeModal('urgentAlertModal');
+
+    // חפש את הפריט בכל הרשימות
+    let foundListId = null;
+    let foundItemIdx = null;
+
+    Object.keys(db.lists).forEach(listId => {
+        db.lists[listId].items.forEach((item, idx) => {
+            if (item.name === itemName && !item.checked && !item.isPaid) {
+                if (!foundListId) {
+                    foundListId = listId;
+                    foundItemIdx = idx;
+                }
+            }
+        });
+    });
+
+    if (foundListId) {
+        // עבור לרשימה הנכונה
+        if (db.currentId !== foundListId) {
+            db.currentId = foundListId;
+            save();
+            render();
+        }
+
+        // גלול לפריט והדגש אותו
+        setTimeout(() => {
+            const cards = document.querySelectorAll('.item-card');
+            // מצא לפי אינדקס בתצוגה (לאחר render)
+            const currentItems = db.lists[foundListId].items;
+            // סינון לפי תצוגה נוכחית (כולל unchecked)
+            let visibleIdx = 0;
+            let targetCard = null;
+            currentItems.forEach((item, i) => {
+                if (i === foundItemIdx) {
+                    targetCard = cards[visibleIdx];
+                }
+                if (!item.checked) visibleIdx++;
+            });
+
+            if (targetCard) {
+                targetCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                targetCard.style.transition = 'box-shadow 0.3s, transform 0.3s';
+                targetCard.style.boxShadow = '0 0 0 3px #7367f0, 0 8px 30px rgba(115,103,240,0.3)';
+                targetCard.style.transform = 'scale(1.02)';
+                setTimeout(() => {
+                    targetCard.style.boxShadow = '';
+                    targetCard.style.transform = '';
+                }, 2000);
+            }
+        }, 350);
+    }
 }
 
 // Format date for display
@@ -6072,10 +7098,10 @@ function formatDate(dateString) {
 // Auto-link URLs in notes
 function autoLinkNotes(text) {
     if (!text) return '';
-
+    
     // URL regex pattern
     const urlPattern = /(https?:\/\/[^\s]+)/g;
-
+    
     return text.replace(urlPattern, (url) => {
         return `<a href="${url}" target="_blank" rel="noopener noreferrer">${url}</a>`;
     });
@@ -6087,7 +7113,7 @@ function toggleItemPaid(idx) {
     if (!list || !list.items[idx]) return;
 
     list.items[idx].isPaid = !list.items[idx].isPaid;
-
+    
     // Also mark as checked when paid
     if (list.items[idx].isPaid) {
         list.items[idx].checked = true;
@@ -6101,14 +7127,14 @@ function toggleItemPaid(idx) {
 function editDueDate(idx) {
     currentEditItemIndex = idx;
     currentEditField = 'dueDate';
-
+    
     const list = db.lists[db.currentId];
     const item = list.items[idx];
-
+    
     // Create inline date input
     const dateDisplay = document.querySelector(`[data-duedate-idx="${idx}"]`);
     if (!dateDisplay) return;
-
+    
     const currentValue = item.dueDate || '';
     const input = document.createElement('input');
     input.type = 'date';
@@ -6118,26 +7144,26 @@ function editDueDate(idx) {
     input.style.width = 'auto';
     input.style.padding = '4px 8px';
     input.style.fontSize = '0.85em';
-
-    input.onchange = function () {
+    
+    input.onchange = function() {
         list.items[idx].dueDate = input.value;
         save();
         checkUrgentPayments();
     };
-
-    input.onblur = function () {
+    
+    input.onblur = function() {
         setTimeout(() => {
             if (input.parentNode) {
                 input.remove();
             }
         }, 200);
     };
-
+    
     dateDisplay.parentNode.insertBefore(input, dateDisplay);
     dateDisplay.style.display = 'none';
     input.focus();
-
-    input.addEventListener('keypress', function (e) {
+    
+    input.addEventListener('keypress', function(e) {
         if (e.key === 'Enter') {
             input.blur();
         }
@@ -6148,14 +7174,14 @@ function editDueDate(idx) {
 function editNotes(idx) {
     currentEditItemIndex = idx;
     currentEditField = 'notes';
-
+    
     const list = db.lists[db.currentId];
     const item = list.items[idx];
-
+    
     // Create inline text input
     const notesDisplay = document.querySelector(`[data-notes-idx="${idx}"]`);
     if (!notesDisplay) return;
-
+    
     const currentValue = item.note || '';
     const input = document.createElement('input');
     input.type = 'text';
@@ -6165,25 +7191,25 @@ function editNotes(idx) {
     input.style.width = '100%';
     input.style.padding = '4px 8px';
     input.style.fontSize = '0.85em';
-
-    input.onchange = function () {
+    
+    input.onchange = function() {
         list.items[idx].note = input.value;
         save();
     };
-
-    input.onblur = function () {
+    
+    input.onblur = function() {
         setTimeout(() => {
             if (input.parentNode) {
                 input.remove();
             }
         }, 200);
     };
-
+    
     notesDisplay.parentNode.insertBefore(input, notesDisplay);
     notesDisplay.style.display = 'none';
     input.focus();
-
-    input.addEventListener('keypress', function (e) {
+    
+    input.addEventListener('keypress', function(e) {
         if (e.key === 'Enter') {
             input.blur();
         }
@@ -6191,44 +7217,45 @@ function editNotes(idx) {
 }
 
 // Initialize Peace of Mind features on page load
-document.addEventListener('DOMContentLoaded', function () {
-    // Check urgent payments after a short delay to ensure data is loaded
-    setTimeout(() => {
-        checkUrgentPayments();
-    }, 1000);
+document.addEventListener('DOMContentLoaded', function() {
+    // טען GitHub Token
+    if (typeof loadGithubToken === 'function') loadGithubToken();
+    updateGithubTokenStatus();
+    setTimeout(() => { checkUrgentPayments(); }, 1000);
+    checkFirstRunDemo();
 });
 
 // Override the original render function to include Peace of Mind display elements
-const originalRender = window.render || function () { };
+const originalRender = window.render || function() {};
 
 // We'll need to modify the render function, but since it's complex,
 // let's add a helper to enhance item rendering
 function enhanceItemHTML(item, idx, originalHTML) {
     let enhanced = originalHTML;
-
+    
     // Add due date display if exists
     if (item.dueDate) {
         const today = new Date();
         today.setHours(0, 0, 0, 0);
         const dueDate = new Date(item.dueDate);
         dueDate.setHours(0, 0, 0, 0);
-
+        
         const isOverdue = dueDate < today && !item.isPaid && !item.checked;
         const dueDateClass = isOverdue ? 'item-duedate-display overdue' : 'item-duedate-display';
-
+        
         const dueDateHTML = `
             <div class="${dueDateClass}" data-duedate-idx="${idx}" onclick="editDueDate(${idx})">
                 📅 ${formatDate(item.dueDate)}${isOverdue ? ' (פג תוקף!)' : ''}
             </div>
         `;
-
+        
         // Insert after category badge
         const categoryPos = enhanced.lastIndexOf('</div>', enhanced.indexOf('item-number'));
         if (categoryPos > -1) {
             enhanced = enhanced.slice(0, categoryPos) + dueDateHTML + enhanced.slice(categoryPos);
         }
     }
-
+    
     // Add notes display if exists
     if (item.note) {
         const linkedNotes = autoLinkNotes(item.note);
@@ -6237,63 +7264,85 @@ function enhanceItemHTML(item, idx, originalHTML) {
                 📝 ${linkedNotes}
             </div>
         `;
-
+        
         // Insert after category badge or due date
         const insertPos = enhanced.lastIndexOf('</div>', enhanced.indexOf('flex justify-between items-center mb-4'));
         if (insertPos > -1) {
             enhanced = enhanced.slice(0, insertPos) + notesHTML + enhanced.slice(insertPos);
         }
     }
-
+    
     return enhanced;
 }
 
 // ========== Notification Center Functions ==========
+// ── dismissed notifications stored in localStorage ────────────────
+function getDismissedNotifications() {
+    try { return JSON.parse(localStorage.getItem('vplus_dismissed_notifs') || '[]'); }
+    catch(e) { return []; }
+}
+function saveDismissedNotifications(arr) {
+    localStorage.setItem('vplus_dismissed_notifs', JSON.stringify(arr));
+}
+function makeNotifKey(listId, itemIdx, dueDateMs) {
+    return `${listId}__${itemIdx}__${dueDateMs}`;
+}
+
 function getNotificationItems() {
     const notificationItems = [];
     const now = Date.now();
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-
+    const dismissed = getDismissedNotifications();
+    
     const threeDaysFromNow = new Date(today);
     threeDaysFromNow.setDate(threeDaysFromNow.getDate() + 3);
-
+    
     Object.keys(db.lists).forEach(listId => {
         const list = db.lists[listId];
         list.items.forEach((item, idx) => {
             if (item.dueDate && !item.checked && !item.isPaid) {
                 const dueDate = new Date(item.dueDate);
                 dueDate.setHours(0, 0, 0, 0);
-
-                // חישוב זמן ההתראה לפי reminderValue ו-reminderUnit
+                
                 let reminderTimeMs = 0;
                 if (item.reminderValue && item.reminderUnit) {
                     reminderTimeMs = getReminderMilliseconds(item.reminderValue, item.reminderUnit);
                 }
-
+                
                 const dueDateMs = dueDate.getTime();
                 const reminderDate = new Date(dueDateMs - reminderTimeMs);
-
+                
                 const isOverdue = dueDate < today;
                 const isReminderTime = reminderTimeMs > 0 && now >= reminderDate.getTime() && now <= dueDateMs + (24 * 60 * 60 * 1000);
                 const shouldNotify = isOverdue || isReminderTime;
 
-                if (shouldNotify || dueDate <= threeDaysFromNow) {
+                // בדוק אם נמחקה ידנית ממרכז ההתראות
+                const notifKey = makeNotifKey(listId, idx, dueDateMs);
+                if (dismissed.includes(notifKey)) return;
+                
+                // הצג במרכז התראות רק אם יש התראה מוגדרת
+                const hasReminder = !!(item.reminderValue && item.reminderUnit) || !!(item.nextAlertTime && item.nextAlertTime > 0);
+                if (!hasReminder) return;
+
+                // הצג את הפריט — יש התראה (לא משנה אם הגיע הזמן עדיין)
+                {
                     const isToday = dueDate.getTime() === today.getTime();
                     const isTomorrow = dueDate.getTime() === new Date(today.getTime() + 86400000).getTime();
-
+                    
                     let urgency = 0;
                     if (isOverdue) urgency = 3;
                     else if (isToday) urgency = 2;
                     else if (isTomorrow) urgency = 1;
                     else urgency = 0;
-
+                    
                     notificationItems.push({
                         item,
                         itemIdx: idx,
                         listId,
                         listName: list.name,
                         dueDate,
+                        dueDateMs,
                         urgency,
                         isOverdue,
                         isToday,
@@ -6306,92 +7355,290 @@ function getNotificationItems() {
             }
         });
     });
-
+    
     notificationItems.sort((a, b) => {
         if (b.urgency !== a.urgency) return b.urgency - a.urgency;
         return a.dueDate - b.dueDate;
     });
-
+    
     return notificationItems;
 }
 
 function updateNotificationBadge() {
     const notificationItems = getNotificationItems();
     const badge = document.getElementById('notificationBadge');
-
-    if (notificationItems.length > 0) {
-        badge.textContent = notificationItems.length;
+    if (!badge) return;
+    const count = notificationItems.length;
+    if (count > 0) {
+        badge.textContent = count > 99 ? '99+' : count;
         badge.style.display = 'flex';
     } else {
         badge.style.display = 'none';
     }
 }
 
+function dismissNotification(listId, itemIdx, dueDateMs, e) {
+    if (e) e.stopPropagation();
+    const key = makeNotifKey(listId, itemIdx, dueDateMs);
+    const dismissed = getDismissedNotifications();
+    if (!dismissed.includes(key)) dismissed.push(key);
+    saveDismissedNotifications(dismissed);
+    updateNotificationBadge();
+    // רענן badge ו-clear-all בלבד, ללא re-render מלא (ה-swipe עצמו מוריד את הקלף)
+    const items = getNotificationItems();
+    const btn = document.getElementById('clearAllNotifsBtn');
+    if (btn) btn.style.display = items.length > 0 ? 'flex' : 'none';
+    const hint = document.getElementById('ncSwipeHint');
+    if (hint) hint.style.display = items.length > 0 ? 'block' : 'none';
+    if (items.length === 0) {
+        const container = document.getElementById('notificationsList');
+        if (container) container.innerHTML = `
+            <div style="text-align:center;padding:40px 20px;">
+                <div style="font-size:3rem;margin-bottom:12px;">🎉</div>
+                <div style="color:#7367f0;font-weight:700;font-size:1rem;">אין התראות כרגע</div>
+                <div style="color:#c4b5fd;font-size:0.82rem;margin-top:6px;">הכל תחת שליטה!</div>
+            </div>`;
+    }
+}
+
+function dismissAllNotifications() {
+    const items = getNotificationItems();
+    const dismissed = getDismissedNotifications();
+    items.forEach(n => {
+        const key = makeNotifKey(n.listId, n.itemIdx, n.dueDateMs);
+        if (!dismissed.includes(key)) dismissed.push(key);
+    });
+    saveDismissedNotifications(dismissed);
+    updateNotificationBadge();
+    openNotificationCenter(); // רענן
+}
+
 function openNotificationCenter() {
+    // If a wizard card is open, forcibly close it before opening notification center
+    if (typeof _wizForceClose === 'function') _wizForceClose();
+
     const notificationItems = getNotificationItems();
-    const container = document.getElementById('notificationsList');
+    const container   = document.getElementById('notificationsList');
+    const clearAllBtn = document.getElementById('clearAllNotifsBtn');
+    const swipeHint   = document.getElementById('ncSwipeHint');
+
+    // Show/hide clear-all button
+    if (clearAllBtn) clearAllBtn.style.display = notificationItems.length > 0 ? 'flex' : 'none';
 
     if (notificationItems.length === 0) {
-        container.innerHTML = '<p class="text-gray-400 text-center py-8">אין התראות כרגע 🎉</p>';
+        if (swipeHint) swipeHint.style.display = 'none';
+        container.innerHTML = `
+            <div style="text-align:center;padding:40px 20px;">
+                <div style="font-size:3rem;margin-bottom:12px;">🎉</div>
+                <div style="color:#7367f0;font-weight:700;font-size:1rem;">אין התראות כרגע</div>
+                <div style="color:#c4b5fd;font-size:0.82rem;margin-top:6px;">הכל תחת שליטה!</div>
+            </div>`;
     } else {
+        if (swipeHint) swipeHint.style.display = 'block';
         container.innerHTML = '';
+
         notificationItems.forEach(notif => {
-            const div = document.createElement('div');
+            // Wrapper for swipe
+            const wrap = document.createElement('div');
+            wrap.className = 'nc-card-wrap';
 
-            // קביעת סוג ההתראה וצבע
+            // Background layers (left & right swipe)
+            wrap.innerHTML = `
+                <div class="nc-swipe-bg left-swipe">🗑️ מחק</div>
+                <div class="nc-swipe-bg right-swipe">🗑️ מחק</div>
+            `;
+
+            // Card
             let notifClass = 'soon';
-            if (notif.isOverdue) {
-                notifClass = 'overdue';
-            } else if (notif.isUpcoming && !notif.isToday) {
-                notifClass = 'upcoming';
-            }
-
-            div.className = `notification-item ${notifClass}`;
-            div.onclick = () => jumpToItem(notif.listId, notif.itemIdx);
+            if (notif.isOverdue) notifClass = 'overdue';
+            else if (notif.isUpcoming && !notif.isToday) notifClass = 'upcoming';
 
             let dateText = '';
             if (notif.isOverdue) {
-                const daysOverdue = Math.floor((new Date().setHours(0, 0, 0, 0) - notif.dueDate) / 86400000);
-                dateText = `⚠️ איחור ${daysOverdue} ${daysOverdue === 1 ? 'יום' : 'ימים'}`;
+                const d = Math.floor((new Date().setHours(0,0,0,0) - notif.dueDate) / 86400000);
+                dateText = `⚠️ איחור ${d} ${d === 1 ? 'יום' : 'ימים'}`;
             } else if (notif.isToday) {
                 dateText = '📅 היום!';
             } else if (notif.isTomorrow) {
                 dateText = '📅 מחר';
             } else {
-                const daysUntil = Math.floor((notif.dueDate - new Date().setHours(0, 0, 0, 0)) / 86400000);
+                const d = Math.floor((notif.dueDate - new Date().setHours(0,0,0,0)) / 86400000);
                 if (notif.isUpcoming && notif.reminderValue && notif.reminderUnit) {
-                    const reminderText = formatReminderText(notif.reminderValue, notif.reminderUnit);
-                    dateText = `🔔 תזכורת ${reminderText} לפני - תאריך יעד בעוד ${daysUntil} ${daysUntil === 1 ? 'יום' : 'ימים'}`;
+                    dateText = `🔔 תזכורת ${formatReminderText(notif.reminderValue, notif.reminderUnit)} לפני — בעוד ${d} ${d === 1 ? 'יום' : 'ימים'}`;
                 } else {
-                    dateText = `📅 בעוד ${daysUntil} ${daysUntil === 1 ? 'יום' : 'ימים'}`;
+                    dateText = `📅 בעוד ${d} ${d === 1 ? 'יום' : 'ימים'}`;
                 }
             }
 
-            div.innerHTML = `
+            const card = document.createElement('div');
+            card.className = `notification-item ${notifClass}`;
+            card.innerHTML = `
                 <div class="notification-item-title">${notif.item.name}</div>
                 <div class="notification-item-date">${dateText}</div>
-                <div class="notification-item-list">רשימה: ${notif.listName}</div>
+                <div class="notification-item-list">📋 ${notif.listName}</div>
             `;
-            container.appendChild(div);
+            card.addEventListener('click', () => jumpToItem(notif.listId, notif.itemIdx));
+
+            wrap.appendChild(card);
+            container.appendChild(wrap);
+
+            // ── Swipe to dismiss ──
+            attachSwipeDismiss(wrap, card, notif);
         });
     }
 
     openModal('notificationCenterModal');
 }
 
+function attachSwipeDismiss(wrap, card, notif) {
+    const THRESHOLD      = 90;   // px to trigger dismiss
+    const DIR_LOCK_PX    = 8;    // px moved before direction is locked
+    const HORIZ_RATIO    = 1.8;  // horizontal must be this times larger than vertical
+
+    let startX = 0, startY = 0;
+    let currentX = 0;
+    let dragging = false;       // touch has started
+    let dirLocked = false;      // direction (horiz/vert) has been decided
+    let isHoriz = false;        // locked as horizontal swipe
+
+    const leftBg  = wrap.querySelector('.left-swipe');
+    const rightBg = wrap.querySelector('.right-swipe');
+
+    function reset() {
+        dragging  = false;
+        dirLocked = false;
+        isHoriz   = false;
+        currentX  = 0;
+    }
+
+    function snapBack() {
+        card.style.transition = 'transform 0.22s cubic-bezier(0.34,1.4,0.64,1)';
+        card.style.transform  = 'translateX(0)';
+        if (leftBg)  { leftBg.style.opacity  = '0'; leftBg.classList.remove('reveal');  }
+        if (rightBg) { rightBg.style.opacity = '0'; rightBg.classList.remove('reveal'); }
+    }
+
+    function onTouchStart(e) {
+        startX   = e.touches[0].clientX;
+        startY   = e.touches[0].clientY;
+        currentX = 0;
+        dragging  = true;
+        dirLocked = false;
+        isHoriz   = false;
+        card.style.transition = 'none';
+    }
+
+    function onTouchMove(e) {
+        if (!dragging) return;
+
+        const dx = e.touches[0].clientX - startX;
+        const dy = e.touches[0].clientY - startY;
+        const absDx = Math.abs(dx);
+        const absDy = Math.abs(dy);
+
+        // Wait until we have enough movement to decide direction
+        if (!dirLocked && (absDx > DIR_LOCK_PX || absDy > DIR_LOCK_PX)) {
+            dirLocked = true;
+            isHoriz   = absDx > absDy * HORIZ_RATIO;
+        }
+
+        if (!dirLocked || !isHoriz) return; // vertical scroll — don't touch the card
+
+        // Horizontal swipe confirmed
+        currentX = dx;
+        card.style.transform = `translateX(${currentX}px)`;
+
+        const ratio = Math.min(absDx / THRESHOLD, 1);
+        if (currentX < 0) {
+            if (leftBg)  { leftBg.classList.add('reveal');    leftBg.style.opacity  = ratio; }
+            if (rightBg) { rightBg.classList.remove('reveal'); rightBg.style.opacity = 0; }
+        } else {
+            if (rightBg) { rightBg.classList.add('reveal');   rightBg.style.opacity = ratio; }
+            if (leftBg)  { leftBg.classList.remove('reveal'); leftBg.style.opacity  = 0; }
+        }
+    }
+
+    function onTouchEnd() {
+        if (!dragging) return;
+        const wasHoriz = isHoriz;
+        const savedX   = currentX;
+        reset();
+
+        if (!wasHoriz) return; // was a scroll — nothing to do
+
+        if (Math.abs(savedX) >= THRESHOLD) {
+            // Dismiss
+            const dir = savedX < 0 ? -1 : 1;
+            card.style.transition = 'transform 0.26s ease, opacity 0.26s ease';
+            card.style.transform  = `translateX(${dir * window.innerWidth}px)`;
+            card.style.opacity    = '0';
+            wrap.style.transition = 'max-height 0.3s ease 0.2s, margin-bottom 0.3s ease 0.2s, opacity 0.3s ease 0.2s';
+            wrap.style.overflow   = 'hidden';
+            setTimeout(() => {
+                wrap.style.maxHeight    = '0';
+                wrap.style.marginBottom = '0';
+                wrap.style.opacity      = '0';
+            }, 50);
+            setTimeout(() => {
+                dismissNotification(notif.listId, notif.itemIdx, notif.dueDateMs, null);
+            }, 380);
+        } else {
+            snapBack();
+        }
+    }
+
+    // Touch events — touchmove is NOT passive so we keep native scroll for vertical
+    card.addEventListener('touchstart',  onTouchStart,  { passive: true });
+    card.addEventListener('touchmove',   onTouchMove,   { passive: true });
+    card.addEventListener('touchend',    onTouchEnd,    { passive: true });
+    card.addEventListener('touchcancel', onTouchEnd,    { passive: true });
+
+    // Mouse (desktop)
+    card.addEventListener('mousedown', e => {
+        startX = e.clientX; startY = e.clientY;
+        currentX = 0; dragging = true; dirLocked = false; isHoriz = false;
+        card.style.transition = 'none';
+        e.preventDefault();
+    });
+    window.addEventListener('mousemove', e => {
+        if (!dragging) return;
+        const dx = e.clientX - startX;
+        const dy = e.clientY - startY;
+        if (!dirLocked && (Math.abs(dx) > DIR_LOCK_PX || Math.abs(dy) > DIR_LOCK_PX)) {
+            dirLocked = true;
+            isHoriz   = Math.abs(dx) > Math.abs(dy) * HORIZ_RATIO;
+        }
+        if (!isHoriz) return;
+        currentX = dx;
+        card.style.transform = `translateX(${currentX}px)`;
+        const ratio = Math.min(Math.abs(dx) / THRESHOLD, 1);
+        if (dx < 0) {
+            if (leftBg)  { leftBg.classList.add('reveal');    leftBg.style.opacity = ratio; }
+            if (rightBg) { rightBg.classList.remove('reveal'); rightBg.style.opacity = 0; }
+        } else {
+            if (rightBg) { rightBg.classList.add('reveal');   rightBg.style.opacity = ratio; }
+            if (leftBg)  { leftBg.classList.remove('reveal'); leftBg.style.opacity = 0; }
+        }
+    });
+    window.addEventListener('mouseup', () => {
+        if (!dragging) return;
+        onTouchEnd();
+    });
+}
+
 function jumpToItem(listId, itemIdx) {
     closeModal('notificationCenterModal');
     db.currentId = listId;
     activePage = 'lists';
-
+    
     setTimeout(() => {
         render();
-
+        
         const itemCard = document.querySelector(`[data-id="${itemIdx}"]`);
         if (itemCard) {
             itemCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
             itemCard.classList.add('highlight-item');
-
+            
             setTimeout(() => {
                 itemCard.classList.remove('highlight-item');
             }, 2000);
@@ -6408,36 +7655,36 @@ function autoLinkNotes(noteText) {
 function toggleVoiceInput() {
     const input = document.getElementById('newItemInput');
     if (!input) return;
-
+    
     if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
         showNotification('הדפדפן לא תומך בזיהוי קולי', 'error');
         return;
     }
-
+    
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     const recognition = new SpeechRecognition();
     recognition.lang = 'he-IL';
     recognition.continuous = false;
-
+    
     const voiceIcon = document.getElementById('voiceIcon');
     voiceIcon.textContent = '⏺️';
-
+    
     recognition.onresult = (event) => {
         const transcript = event.results[0][0].transcript;
         input.value = transcript;
         voiceIcon.textContent = '🎤';
         showNotification('✅ זוהה: ' + transcript);
     };
-
+    
     recognition.onerror = () => {
         voiceIcon.textContent = '🎤';
         showNotification('שגיאה בזיהוי קולי', 'error');
     };
-
+    
     recognition.onend = () => {
         voiceIcon.textContent = '🎤';
     };
-
+    
     try {
         recognition.start();
         showNotification('🎤 מאזין...');
@@ -6450,7 +7697,7 @@ function toggleVoiceInput() {
 function addItem() {
     const input = document.getElementById('newItemInput');
     const name = input.value.trim();
-
+    
     if (name) {
         const category = detectCategory(name);
         db.lists[db.currentId].items.push({
@@ -6466,7 +7713,7 @@ function addItem() {
             lastUpdated: Date.now(),
             cloudId: 'item_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9)
         });
-
+        
         input.value = '';
         save();
         showNotification('✅ ' + name + ' נוסף!');
@@ -6485,9 +7732,27 @@ function createNewList() {
             items: []
         };
         db.currentId = id;
-        save();
+        
+        // Check if there's pending import text
+        if (pendingImportText && detectedListType) {
+            importTextToList(id, pendingImportText, detectedListType);
+        } else {
+            save();
+            render();
+            showNotification('✅ רשימה חדשה נוצרה!');
+        }
+    }
+}
+
+// Select existing list and import pending text if exists
+function selectListAndImport(listId) {
+    db.currentId = listId;
+    
+    // Check if there's pending import text
+    if (pendingImportText && detectedListType) {
+        importTextToList(listId, pendingImportText, detectedListType);
+    } else {
         render();
-        showNotification('✅ רשימה חדשה נוצרה!');
     }
 }
 
@@ -6503,7 +7768,7 @@ function switchTab(tab) {
     const shoppingTab = document.getElementById('shoppingTab');
     const analysisTab = document.getElementById('analysisTab');
     const tabs = document.querySelectorAll('.tab-btn');
-
+    
     if (tab === 'shopping') {
         shoppingTab.style.display = 'block';
         analysisTab.style.display = 'none';
@@ -6521,20 +7786,20 @@ function switchTab(tab) {
 function updateCategoryChart() {
     const list = db.lists[db.currentId];
     if (!list || list.items.length === 0) return;
-
+    
     const categoryTotals = {};
     list.items.forEach(item => {
         const cat = item.category || 'אחר';
         categoryTotals[cat] = (categoryTotals[cat] || 0) + (item.price * item.qty);
     });
-
+    
     const canvas = document.getElementById('categoryChart');
     const ctx = canvas.getContext('2d');
-
+    
     if (window.categoryChartInstance) {
         window.categoryChartInstance.destroy();
     }
-
+    
     window.categoryChartInstance = new Chart(ctx, {
         type: 'doughnut',
         data: {
@@ -6562,435 +7827,2404 @@ function exportToExcel() {
     showNotification('יצוא לאקסל - בפיתוח');
 }
 
-// ========== Bank File Import Functions ==========
+// ========== Clipboard Import Feature ==========
 
-/**
- * Handles bank file upload (Excel or PDF)
- * Called by the bank pill button in index.html
- */
-async function importBankFile(event) {
-    const file = event.target.files[0];
-    if (!file) return;
-    event.target.value = '';
-    const fileName = file.name.toLowerCase();
-    showNotification('⏳ טוען קובץ בנק...');
+// Check clipboard on app open/resume
+async function checkClipboardOnStartup() {
     try {
-        if (fileName.endsWith('.pdf')) {
-            await importBankPDF(file);
-        } else if (fileName.endsWith('.xlsx') || fileName.endsWith('.xls')) {
-            await importBankExcel(file);
-        } else {
-            showNotification('⚠️ קובץ לא נתמך. השתמש ב-PDF, XLS, או XLSX', 'warning');
-        }
-    } catch (err) {
-        console.error('Bank import error:', err);
-        showNotification('❌ שגיאה בייבוא קובץ הבנק: ' + err.message, 'error');
-    }
-}
-
-async function importBankExcel(file) {
-    if (typeof XLSX === 'undefined') {
-        showNotification('❌ ספריית Excel לא נטענה, נסה שוב', 'error');
-        return;
-    }
-    const data = await file.arrayBuffer();
-    const workbook = XLSX.read(data, { type: 'array' });
-    const sheetName = workbook.SheetNames[0];
-    const sheet = workbook.Sheets[sheetName];
-    const rows = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '' });
-    const transactions = [];
-    const amountRegex = /^(\d{1,3}(?:[,\s]\d{3})*(?:[.,]\d{1,2})?)$/;
-    for (const row of rows) {
-        if (!row || row.length < 2) continue;
-        let description = '';
-        let amount = 0;
-        for (let i = 0; i < row.length; i++) {
-            const cell = String(row[i]).trim();
-            if (!cell) continue;
-            const num = parseFloat(cell.replace(/[,\s\u20aa]/g, ''));
-            if (!isNaN(num) && num > 0 && num < 50000 && amount === 0) {
-                amount = num;
-                continue;
-            }
-            if (cell.length > 2 && cell.length < 100 && isNaN(parseFloat(cell)) && !description) {
-                description = cell;
-            }
-        }
-        if (description && amount > 0) {
-            transactions.push({ name: description, price: amount });
-        }
-    }
-    if (transactions.length === 0) {
-        showNotification('⚠️ לא נמצאו עסקאות בקובץ', 'warning');
-        return;
-    }
-    createBankImportList(transactions, file.name);
-}
-
-async function importBankPDF(file) {
-    if (typeof pdfjsLib === 'undefined') {
-        showNotification('❌ ספריית PDF לא נטענה, נסה שוב', 'error');
-        return;
-    }
-    const data = await file.arrayBuffer();
-    const pdf = await pdfjsLib.getDocument({ data }).promise;
-    let fullText = '';
-    for (let i = 1; i <= pdf.numPages; i++) {
-        const page = await pdf.getPage(i);
-        const content = await page.getTextContent();
-        const pageText = content.items.map(item => item.str).join(' ');
-        fullText += pageText + '\n';
-    }
-    const transactions = parseBankText(fullText);
-    if (transactions.length === 0) {
-        showNotification('⚠️ לא נמצאו עסקאות בקובץ ה-PDF', 'warning');
-        return;
-    }
-    createBankImportList(transactions, file.name);
-}
-
-function parseBankText(text) {
-    const lines = text.split(/[\n\r]+/);
-    const transactions = [];
-    for (const line of lines) {
-        const trimmed = line.trim();
-        if (!trimmed || trimmed.length < 3) continue;
-        if (/סה"כ|סהכ|total|תאריך ערך|תאריך עסקה|יתרה|balance|date/i.test(trimmed)) continue;
-        const numbers = [];
-        const numRegex = /\b(\d{1,3}(?:[,\s]\d{3})*(?:[.,]\d{1,2})?)\b/g;
-        let match;
-        while ((match = numRegex.exec(trimmed)) !== null) {
-            const num = parseFloat(match[1].replace(/[,\s]/g, ''));
-            if (num > 0 && num < 50000) numbers.push(num);
-        }
-        if (numbers.length === 0) continue;
-        let description = trimmed
-            .replace(/\d{1,2}[./]\d{1,2}[./]\d{2,4}/g, '')
-            .replace(/\b\d{1,3}(?:[,\s]\d{3})*(?:[.,]\d{1,2})?\b/g, '')
-            .replace(/\s+/g, ' ')
-            .trim();
-        if (description.length < 2) continue;
-        transactions.push({ name: description, price: numbers[0] });
-    }
-    return transactions;
-}
-
-function createBankImportList(transactions, fileName) {
-    const newId = 'L' + Date.now();
-    const today = new Date().toLocaleDateString('he-IL');
-    const shortName = fileName.replace(/\.[^.]+$/, '').substring(0, 20);
-    const listName = '\u{1F3E6} ' + shortName + ' - ' + today;
-    const items = transactions.map(t => ({
-        name: t.name,
-        price: t.price,
-        qty: 1,
-        checked: false,
-        isPaid: true,
-        category: detectCategory(t.name),
-        note: '\u05D9\u05D9\u05D1\u05D5\u05D0 \u05D1\u05E0\u05E7\u05D0\u05D9: \u20AA' + t.price.toFixed(2),
-        dueDate: '',
-        paymentUrl: '',
-        lastUpdated: Date.now(),
-        cloudId: 'item_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9)
-    }));
-    db.lists[newId] = { name: listName, url: '', budget: 0, isTemplate: false, items: items };
-    db.currentId = newId;
-    activePage = 'lists';
-    save();
-    showNotification('\u2705 \u05D9\u05D5\u05D1\u05D0\u05D5 ' + items.length + ' \u05E2\u05E1\u05E7\u05D0\u05D5\u05EA \u05DE\u05E7\u05D5\u05D1\u05E5 \u05D4\u05D1\u05E0\u05E7!');
-}
-
-/**
- * Handles Excel file upload for shopping list import
- * Called by the Excel pill button in index.html
- */
-async function handleExcelUpload(event) {
-    const file = event.target.files[0];
-    if (!file) return;
-    event.target.value = '';
-    if (typeof XLSX === 'undefined') {
-        showNotification('❌ ספריית Excel לא נטענה, נסה שוב', 'error');
-        return;
-    }
-    showNotification('⏳ טוען קובץ Excel...');
-    try {
-        const data = await file.arrayBuffer();
-        const workbook = XLSX.read(data, { type: 'array' });
-        const sheetName = workbook.SheetNames[0];
-        const sheet = workbook.Sheets[sheetName];
-        const rows = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '' });
-        const items = [];
-        for (const row of rows) {
-            if (!row || row.length === 0) continue;
-            const name = String(row[0] || '').trim();
-            if (!name || name.length < 2) continue;
-            const priceRaw = row[1];
-            const price = priceRaw ? parseFloat(String(priceRaw).replace(/[,\s\u20aa]/g, '')) || 0 : 0;
-            const qtyRaw = row[2];
-            const qty = qtyRaw ? parseInt(String(qtyRaw)) || 1 : 1;
-            items.push({
-                name: name,
-                price: isNaN(price) ? 0 : price,
-                qty: isNaN(qty) ? 1 : qty,
-                checked: false,
-                isPaid: false,
-                category: detectCategory(name),
-                note: '',
-                dueDate: '',
-                paymentUrl: '',
-                lastUpdated: Date.now(),
-                cloudId: 'item_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9)
-            });
-        }
-        if (items.length === 0) {
-            showNotification('⚠️ לא נמצאו מוצרים בקובץ', 'warning');
+        // Check if auto-open is disabled by user
+        // Auto-open is OFF by default; only open if user explicitly enabled it
+        if (localStorage.getItem('clipboardAutoOpen') !== 'true') {
+            console.log('Clipboard auto-open not enabled by user');
             return;
         }
-        const newId = 'L' + Date.now();
-        const shortName = file.name.replace(/\.[^.]+$/, '').substring(0, 25);
-        db.lists[newId] = { name: '\u{1F4CA} ' + shortName, url: '', budget: 0, isTemplate: false, items: items };
-        db.currentId = newId;
-        activePage = 'lists';
-        save();
-        showNotification('\u2705 \u05D9\u05D5\u05D1\u05D0\u05D5 ' + items.length + ' \u05DE\u05D5\u05E6\u05E8\u05D9\u05DD \u05DE-Excel!');
-    } catch (err) {
-        console.error('Excel import error:', err);
-        showNotification('❌ שגיאה בייבוא קובץ Excel: ' + err.message, 'error');
+
+        // Check if Clipboard API is available
+        if (!navigator.clipboard || !navigator.clipboard.readText) {
+            console.log('Clipboard API not available in this browser');
+            return;
+        }
+
+        // Read clipboard text
+        const clipboardText = await navigator.clipboard.readText();
+        
+        if (!clipboardText || clipboardText.trim() === '') {
+            console.log('Clipboard is empty');
+            return;
+        }
+
+        console.log('✅ Clipboard text found, length:', clipboardText.length);
+
+        // Get clipboard state from localStorage
+        const clipboardState = JSON.parse(localStorage.getItem('clipboardState') || '{}');
+        const lastText = clipboardState.lastClipboardText || '';
+        const dismissed = clipboardState.clipboardDismissed || false;
+        const imported = clipboardState.clipboardImported || false;
+
+        console.log('Clipboard check - Same text?', clipboardText === lastText, 'Dismissed?', dismissed, 'Imported?', imported);
+
+        // Check if this is new text
+        if (clipboardText === lastText) {
+            // Same text - check if dismissed or imported
+            if (dismissed || imported) {
+                console.log('Skipping - already dismissed or imported');
+                return; // Don't show modal
+            }
+            // Same text but not dismissed/imported - show again
+            console.log('Showing modal for same text (not dismissed/imported)');
+        } else {
+            // New text - reset state
+            console.log('🆕 New clipboard text detected!');
+            clipboardState.lastClipboardText = clipboardText;
+            clipboardState.clipboardDismissed = false;
+            clipboardState.clipboardImported = false;
+            localStorage.setItem('clipboardState', JSON.stringify(clipboardState));
+        }
+
+        // Show import modal
+        showClipboardImportModal(clipboardText);
+
+    } catch (error) {
+        console.log('❌ Clipboard access error:', error.name, error.message);
+        // Silently fail - clipboard access not available or denied
     }
 }
 
+// ===== CLIPBOARD AUTO-OPEN TOGGLE =====
+function toggleClipboardAutoOpen() {
+    const toggle = document.getElementById('clipboardAutoOpenToggle');
+    const label = document.getElementById('clipboardAutoOpenLabel');
+    if (!toggle) return;
+    const isOn = toggle.checked;
+    localStorage.setItem('clipboardAutoOpen', isOn ? 'true' : 'false');
+    if (label) label.textContent = isOn ? 'מופעל' : 'מושבת';
+    if (label) label.style.color = isOn ? '#7367f0' : '#94a3b8';
+}
+
+// Show clipboard import modal
+function showClipboardImportModal(text) {
+    const modal = document.getElementById('clipboardImportModal');
+    const textarea = document.getElementById('clipboardImportText');
+    const detectedTypeDiv = document.getElementById('clipboardDetectedType');
+    const detectedTypeName = document.getElementById('detectedTypeName');
+
+    // Init auto-open toggle state
+    const autoOpen = localStorage.getItem('clipboardAutoOpen') !== 'false';
+    const toggle = document.getElementById('clipboardAutoOpenToggle');
+    const label = document.getElementById('clipboardAutoOpenLabel');
+    if (toggle) toggle.checked = autoOpen;
+    if (label) { label.textContent = autoOpen ? 'מופעל' : 'מושבת'; label.style.color = autoOpen ? '#7367f0' : '#94a3b8'; }
+
+    // Set the text
+    textarea.value = text;
+    pendingImportText = text;
+
+    // Detect list type
+    detectedListType = detectListType(text);
+    
+    // Show detected type
+    const typeNames = {
+        'shopping': '🛒 רשימת קניות',
+        'appointment': '🏥 תור/פגישה',
+        'tasks': '✅ רשימת משימות',
+        'general': '📝 רשימה כללית'
+    };
+    
+    detectedTypeName.textContent = typeNames[detectedListType] || '📝 רשימה כללית';
+    detectedTypeDiv.style.display = 'block';
+
+    // Show modal
+    modal.style.display = 'flex';
+}
+
+// Open manual import - same as clipboard import but allows manual paste
+async function openManualImport() {
+    if (wizardMode) {
+        wiz('pasteBtn', 'before', async () => {
+            await _origOpenManualImport();
+        });
+        return;
+    }
+    await _origOpenManualImport();
+}
+async function _origOpenManualImport() {
+    const modal = document.getElementById('clipboardImportModal');
+    const textarea = document.getElementById('clipboardImportText');
+    const detectedTypeDiv = document.getElementById('clipboardDetectedType');
+    const detectedTypeName = document.getElementById('detectedTypeName');
+
+    // Try to read from clipboard first
+    let clipboardText = '';
+    try {
+        if (navigator.clipboard && navigator.clipboard.readText) {
+            clipboardText = await navigator.clipboard.readText();
+        }
+    } catch (error) {
+        console.log('Could not read clipboard, user will paste manually');
+    }
+
+    // Set the text (empty if clipboard read failed)
+    textarea.value = clipboardText;
+    pendingImportText = clipboardText;
+
+    // Detect list type if we have text
+    if (clipboardText.trim()) {
+        detectedListType = detectListType(clipboardText);
+        
+        const typeNames = {
+            'shopping': '🛒 רשימת קניות',
+            'appointment': '🏥 תור/פגישה',
+            'tasks': '✅ רשימת משימות',
+            'general': '📝 רשימה כללית'
+        };
+        
+        detectedTypeName.textContent = typeNames[detectedListType] || '📝 רשימה כללית';
+        detectedTypeDiv.style.display = 'block';
+    } else {
+        // No text yet - set default
+        detectedListType = 'shopping';
+        detectedTypeName.textContent = '🛒 רשימת קניות';
+        detectedTypeDiv.style.display = 'block';
+    }
+
+    // Show modal
+    modal.style.display = 'flex';
+    
+    // Focus on textarea for easy paste
+    setTimeout(() => {
+        textarea.focus();
+    }, 100);
+}
+
+// Update detected type when user types/pastes in textarea
+function updateDetectedTypeFromInput() {
+    const textarea = document.getElementById('clipboardImportText');
+    const detectedTypeName = document.getElementById('detectedTypeName');
+    const text = textarea.value;
+    
+    if (text.trim()) {
+        pendingImportText = text;
+        detectedListType = detectListType(text);
+        
+        const typeNames = {
+            'shopping': '🛒 רשימת קניות',
+            'appointment': '🏥 תור/פגישה',
+            'tasks': '✅ רשימת משימות',
+            'general': '📝 רשימה כללית'
+        };
+        
+        detectedTypeName.textContent = typeNames[detectedListType] || '📝 רשימה כללית';
+    }
+}
+
+// Detect list type from text
+function detectListType(text) {
+    const lines = text.split('\n').filter(line => line.trim() !== '');
+    
+    // Check for appointment indicators - IMPROVED
+    const appointmentKeywords = [
+        'תור', 'פגישה', 'ד"ר', 'דוקטור', 'רופא', 'מרפאה', 'בית חולים', 'קליניקה',
+        'מכבידנט', 'כללית', 'מאוחדת', 'לאומית', 'פרופ', 'מומחה',
+        'טיפול', 'בדיקה', 'ייעוץ', 'ניתוח', 'צילום', 'אולטרסאונד'
+    ];
+    const hasAppointmentKeyword = appointmentKeywords.some(keyword => text.includes(keyword));
+    
+    // Check for date/time patterns
+    const datePattern = /\d{1,2}[\/\.\-]\d{1,2}[\/\.\-]?\d{0,4}/;
+    const timePattern = /\d{1,2}:\d{2}|בשעה|שעה/;
+    const hasDateTime = datePattern.test(text) || timePattern.test(text);
+    
+    // Check for phone pattern
+    const phonePattern = /0\d{1,2}[\-\s]?\d{3,4}[\-\s]?\d{3,4}|טלפון|טל:|נייד/;
+    const hasPhone = phonePattern.test(text);
+    
+    // Check for URL (common in appointments)
+    const hasUrl = /https?:\/\//.test(text);
+    
+    // Check for address pattern
+    const addressPattern = /רחוב|רח'|כתובת|מיקום|קומה|בניין/;
+    const hasAddress = addressPattern.test(text);
+    
+    // Strong appointment indicators:
+    // 1. Has appointment keyword + date/time
+    // 2. Has date + time + (phone OR url OR address)
+    // 3. Text is relatively short (not a shopping list)
+    const strongAppointment = 
+        (hasAppointmentKeyword && hasDateTime) ||
+        (hasDateTime && hasPhone) ||
+        (hasDateTime && hasUrl) ||
+        (hasDateTime && hasAddress && lines.length <= 10);
+    
+    if (strongAppointment) {
+        return 'appointment';
+    }
+    
+    // Check for shopping list indicators
+    const pricePattern = /\d+\s*ש"ח|₪\s*\d+|\d+\s*שקל/;
+    const hasPrice = pricePattern.test(text);
+    
+    // Check for common shopping items
+    const shoppingKeywords = ['חלב', 'לחם', 'ביצים', 'גבינה', 'יוגורט', 'עגבניות', 'מלפפון', 'בשר', 'עוף', 'דגים'];
+    const shoppingItemCount = shoppingKeywords.filter(keyword => text.includes(keyword)).length;
+    
+    if (hasPrice || shoppingItemCount >= 2 || (lines.length >= 3 && lines.length <= 30 && !hasDateTime)) {
+        return 'shopping';
+    }
+    
+    // Check for tasks indicators
+    const taskKeywords = ['משימה', 'לעשות', 'להשלים', 'לבדוק', 'לקנות', 'להתקשר'];
+    const hasTaskKeyword = taskKeywords.some(keyword => text.includes(keyword));
+    
+    if (hasTaskKeyword && lines.length >= 2) {
+        return 'tasks';
+    }
+    
+    // Default to shopping if multiple lines without clear appointment indicators
+    if (lines.length >= 3 && !hasDateTime) {
+        return 'shopping';
+    }
+    
+    // If very short text with date/time but no other indicators - probably appointment
+    if (lines.length <= 3 && hasDateTime) {
+        return 'appointment';
+    }
+    
+    return 'general';
+}
+
+// Change detected type manually
+function changeDetectedType() {
+    const types = ['shopping', 'appointment', 'tasks', 'general'];
+    const currentIndex = types.indexOf(detectedListType);
+    const nextIndex = (currentIndex + 1) % types.length;
+    detectedListType = types[nextIndex];
+    
+    const typeNames = {
+        'shopping': '🛒 רשימת קניות',
+        'appointment': '🏥 תור/פגישה',
+        'tasks': '✅ רשימת משימות',
+        'general': '📝 רשימה כללית'
+    };
+    
+    document.getElementById('detectedTypeName').textContent = typeNames[detectedListType];
+}
+
+// Accept clipboard import
+function acceptClipboardImport() {
+    // Close modal
+    document.getElementById('clipboardImportModal').style.display = 'none';
+    
+    // Mark as accepted (not imported yet, but user confirmed)
+    const clipboardState = JSON.parse(localStorage.getItem('clipboardState') || '{}');
+    clipboardState.clipboardImported = true;
+    localStorage.setItem('clipboardState', JSON.stringify(clipboardState));
+    
+    // Store pending import (will be used when user selects/creates a list)
+    // pendingImportText and detectedListType are already set globally
+    
+    showNotification('✅ בחר רשימה או צור רשימה חדשה להוספת הפריטים');
+}
+
+// Dismiss clipboard import
+function dismissClipboardImport() {
+    // Close modal
+    document.getElementById('clipboardImportModal').style.display = 'none';
+    
+    // Mark as dismissed in localStorage
+    const clipboardState = JSON.parse(localStorage.getItem('clipboardState') || '{}');
+    clipboardState.clipboardDismissed = true;
+    localStorage.setItem('clipboardState', JSON.stringify(clipboardState));
+    
+    // Clear pending import
+    pendingImportText = null;
+    detectedListType = null;
+}
+
+// Parse and import text to a list
+function importTextToList(listId, text, listType) {
+    if (!text || !listId) return;
+    
+    const list = db.lists[listId];
+    if (!list) return;
+    
+    // Parse based on detected type
+    let items = [];
+    
+    if (listType === 'appointment') {
+        // Parse as single appointment
+        items = parseAppointmentText(text);
+    } else if (listType === 'shopping' || listType === 'tasks') {
+        // Parse as multiple items
+        items = parseShoppingListText(text);
+    } else {
+        // Parse as general list
+        items = parseGeneralListText(text);
+    }
+    
+    // Add items to list
+    items.forEach(item => {
+        list.items.push(item);
+    });
+    
+    // Mark as imported
+    const clipboardState = JSON.parse(localStorage.getItem('clipboardState') || '{}');
+    clipboardState.clipboardImported = true;
+    localStorage.setItem('clipboardState', JSON.stringify(clipboardState));
+    
+    // Clear pending import
+    pendingImportText = null;
+    detectedListType = null;
+    
+    save();
+    render();
+    showNotification(`✅ ${items.length} פריטים נוספו לרשימה!`);
+}
+
+// Parse appointment text
+function parseAppointmentText(text) {
+    const lines = text.split('\n').map(line => line.trim()).filter(line => line !== '');
+    
+    let name = '';
+    let dueDate = '';
+    let dueTime = '';
+    let location = '';
+    let phone = '';
+    let notes = '';
+    let url = '';
+    
+    // Extract URL first (so we can remove it from text)
+    const urlPattern = /(https?:\/\/[^\s]+)/g;
+    const urlMatch = text.match(urlPattern);
+    if (urlMatch) {
+        url = urlMatch[0];
+    }
+    
+    // Extract date - improved patterns
+    // Patterns: DD/MM/YY, DD/MM/YYYY, DD.MM.YY, DD-MM-YY
+    const datePattern = /(\d{1,2})[\/\.\-](\d{1,2})[\/\.\-](\d{2,4})/;
+    const dateMatch = text.match(datePattern);
+    if (dateMatch) {
+        let day = dateMatch[1].padStart(2, '0');
+        let month = dateMatch[2].padStart(2, '0');
+        let year = dateMatch[3];
+        
+        // Handle 2-digit year (26 → 2026)
+        if (year.length === 2) {
+            year = '20' + year;
+        }
+        
+        dueDate = `${year}-${month}-${day}`;
+    }
+    
+    // Extract time - IMPROVED with multiple patterns
+    let timeMatch = text.match(/בשעה\s+(\d{1,2}):(\d{2})/);
+    if (!timeMatch) {
+        timeMatch = text.match(/שעה\s+(\d{1,2}):(\d{2})/);
+    }
+    if (!timeMatch) {
+        timeMatch = text.match(/\s(\d{1,2}):(\d{2})\s/);
+    }
+    if (!timeMatch) {
+        // Try at end of line
+        timeMatch = text.match(/(\d{1,2}):(\d{2})/);
+    }
+    if (timeMatch) {
+        dueTime = `${timeMatch[1].padStart(2, '0')}:${timeMatch[2]}`;
+    }
+    
+    // Extract phone
+    const phonePattern = /(0\d{1,2}[\-\s]?\d{3,4}[\-\s]?\d{3,4})/;
+    const phoneMatch = text.match(phonePattern);
+    if (phoneMatch) {
+        phone = phoneMatch[1];
+    }
+    
+    // Extract name - IMPROVED with better patterns
+    // Pattern 1: "תור ל[שם]" - extract the name after "ל"
+    const namePattern1 = /תור ל(\w+)/;
+    const nameMatch1 = text.match(namePattern1);
+    if (nameMatch1) {
+        const personName = nameMatch1[1];
+        
+        // Also look for clinic/location name
+        const clinicPattern = /(מכבידנט|כללית|מאוחדת|לאומית)[\s\w-]*/;
+        const clinicMatch = text.match(clinicPattern);
+        
+        if (clinicMatch) {
+            name = `תור ל${personName} - ${clinicMatch[0]}`;
+        } else {
+            name = `תור ל${personName}`;
+        }
+    }
+    
+    // Pattern 2: Look for doctor/clinic names if no "תור ל" found
+    if (!name) {
+        for (const line of lines) {
+            if (line.includes('ד"ר') || line.includes('דוקטור') || line.includes('רופא') || 
+                line.includes('פרופ') || line.includes('מרפאה') || line.includes('קליניקה')) {
+                name = line;
+                break;
+            }
+        }
+    }
+    
+    // Pattern 3: Look for specific clinic names
+    if (!name) {
+        const clinicPattern = /(מכבידנט|כללית|מאוחדת|לאומית)[\s\w-]*/;
+        const clinicMatch = text.match(clinicPattern);
+        if (clinicMatch) {
+            name = clinicMatch[0];
+        }
+    }
+    
+    // Default: first line
+    if (!name && lines.length > 0) {
+        name = lines[0];
+    }
+    
+    // Extract location - improved
+    const locationPattern = /(מכבידנט|כללית|מאוחדת|לאומית)[\s\w-]*/;
+    const locationMatch = text.match(locationPattern);
+    if (locationMatch) {
+        location = locationMatch[0];
+    }
+    
+    // Pattern 2: Street/address patterns
+    if (!location) {
+        for (const line of lines) {
+            if (line.includes('רחוב') || line.includes('רח\'') || line.includes('כתובת') || 
+                line.includes('מיקום') || line.includes('ב-') || /\d+\s*\w+/.test(line)) {
+                location = line;
+                break;
+            }
+        }
+    }
+    
+    // Extract doctor/contact person - IMPROVED
+    const doctorPattern = /(?:ל)?גב['׳]?\s+(\w+\s+\w+)|(?:ל)?ד["״]ר\s+(\w+\s+\w+)|(?:ל)?פרופ['׳]?\s+(\w+\s+\w+)/;
+    const doctorMatch = text.match(doctorPattern);
+    let doctorName = '';
+    if (doctorMatch) {
+        doctorName = '👤 ' + doctorMatch[0];
+    }
+    
+    // Build notes from remaining text
+    const noteParts = [];
+    
+    // Add doctor name if found
+    if (doctorName) {
+        noteParts.push(doctorName);
+    }
+    
+    // Add location if found
+    if (location) {
+        noteParts.push('📍 ' + location);
+    }
+    
+    // Add phone if found
+    if (phone) {
+        noteParts.push('☎️ ' + phone);
+    }
+    
+    // Add URL if found
+    if (url) {
+        noteParts.push('🔗 ' + url);
+    }
+    
+    // Add remaining text as notes (filter out already extracted info)
+    for (const line of lines) {
+        const lineClean = line.trim();
+        if (lineClean.length < 3) continue;
+        
+        const isExtracted = 
+            (name && lineClean.includes(name.replace('תור ל', '').replace(' - ', ''))) ||
+            (location && lineClean.includes(location)) ||
+            (phone && lineClean.includes(phone)) ||
+            (url && lineClean.includes(url)) ||
+            (doctorName && lineClean.includes(doctorName.replace('👤 ', ''))) ||
+            (dueTime && lineClean.includes(dueTime)) ||
+            (dateMatch && lineClean.includes(dateMatch[0]));
+        
+        if (!isExtracted) {
+            noteParts.push(lineClean);
+        }
+    }
+    
+    notes = noteParts.join('\n');
+    
+    return [{
+        name: name || 'פגישה',
+        price: 0,
+        qty: 0,  // No quantity for appointments
+        checked: false,
+        category: 'תור/פגישה',
+        note: notes,
+        dueDate: dueDate,
+        dueTime: dueTime,
+        paymentUrl: url,
+        isPaid: false,
+        reminderValue: '',
+        reminderUnit: '',
+        lastUpdated: Date.now(),
+        cloudId: 'item_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9)
+    }];
+}
+
+// Parse shopping list text
+function parseShoppingListText(text) {
+    const lines = text.split('\n').map(line => line.trim()).filter(line => line !== '');
+    const items = [];
+    
+    lines.forEach(line => {
+        if (!line) return;
+        
+        // Try to extract price
+        let price = 0;
+        let name = line;
+        
+        // Pattern: "חלב 12" or "חלב 12 ש"ח" or "חלב ₪12"
+        const pricePattern = /(.+?)\s*[₪]?\s*(\d+(?:\.\d+)?)\s*(?:ש"ח|שקל)?/;
+        const match = line.match(pricePattern);
+        
+        if (match) {
+            name = match[1].trim();
+            price = parseFloat(match[2]) || 0;
+        }
+        
+        // Auto-detect category
+        const category = detectCategory(name) || 'אחר';
+        
+        items.push({
+            name: name,
+            price: price,
+            qty: 1,  // Keep quantity for shopping lists
+            checked: false,
+            category: category,
+            note: '',
+            dueDate: '',
+            dueTime: '',
+            paymentUrl: '',
+            isPaid: false,
+            reminderValue: '',
+            reminderUnit: '',
+            lastUpdated: Date.now(),
+            cloudId: 'item_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9)
+        });
+    });
+    
+    return items;
+}
+
+// Parse general list text
+function parseGeneralListText(text) {
+    // For general lists, keep the entire text as ONE item (like Google Keep)
+    // Don't split into lines - it's a single note/memo
+    
+    return [{
+        name: text.trim(),  // The entire text as one item
+        price: 0,
+        qty: 0,
+        checked: false,
+        category: 'אחר',
+        note: '',
+        dueDate: '',
+        dueTime: '',
+        paymentUrl: '',
+        isPaid: false,
+        reminderValue: '',
+        reminderUnit: '',
+        isGeneralNote: true,  // Mark as general note - hide price/qty in UI
+        lastUpdated: Date.now(),
+        cloudId: 'item_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9)
+    }];
+}
 
 // Initialize notification badge on page load
-document.addEventListener('DOMContentLoaded', function () {
+document.addEventListener('DOMContentLoaded', function() {
+    // Date/time field event listeners
+    const itemDueDateField = document.getElementById('itemDueDate');
+    const itemDueTimeField = document.getElementById('itemDueTime');
+    const editItemDueDateField = document.getElementById('editItemDueDate');
+    const editItemDueTimeField = document.getElementById('editItemDueTime');
+    
+    if (itemDueDateField && itemDueTimeField) {
+        itemDueDateField.addEventListener('change', function() {
+            if (this.value) {
+                itemDueTimeField.style.display = 'block';
+            } else {
+                itemDueTimeField.style.display = 'none';
+                itemDueTimeField.value = '';
+            }
+        });
+    }
+    
+    if (editItemDueDateField && editItemDueTimeField) {
+        editItemDueDateField.addEventListener('change', function() {
+            if (this.value) {
+                editItemDueTimeField.style.display = 'block';
+            } else {
+                editItemDueTimeField.style.display = 'none';
+                editItemDueTimeField.value = '';
+            }
+        });
+    }
+    
     setTimeout(() => {
         if (typeof updateNotificationBadge === 'function') {
             updateNotificationBadge();
         }
-        if (typeof checkUrgentPayments === 'function') {
+        // אם הגענו מלחיצה על התראה (URL param או SW) — דלג על ה-modal האוטומטי,
+        // כי checkNotificationUrlParam יציג בעצמו רק את ההתראה הנוכחית
+        const isFromNotification = new URLSearchParams(window.location.search).get('vplus-action');
+        if (!isFromNotification && !_suppressStartupModal && typeof checkUrgentPayments === 'function') {
             checkUrgentPayments();
         }
+        
+        // Always check clipboard on startup
+        checkClipboardOnStartup();
+    }, 500);
+});
+
+// Check clipboard when app becomes visible (returns from background)
+document.addEventListener('visibilitychange', function() {
+    if (!document.hidden) {
+        // App is visible again
+        console.log('App became visible - checking clipboard');
+        setTimeout(() => {
+            checkClipboardOnStartup();
+        }, 500); // Increased to 500ms for better reliability
+    }
+});
+
+// Also check on window focus (when switching back from another app)
+window.addEventListener('focus', function() {
+    console.log('Window gained focus - checking clipboard');
+    setTimeout(() => {
+        checkClipboardOnStartup();
     }, 500);
 });
 
 
-// ========== Credit Card Connection ==========
-let selectedCreditCompany = null;
 
-function openCreditCardModal() {
-    selectedCreditCompany = null;
-    document.getElementById('creditUsername').value = '';
-    document.getElementById('creditPassword').value = '';
-    document.querySelectorAll('.credit-company-btn').forEach(b => b.classList.remove('selected'));
-    openModal('creditCardModal');
+
+
+// ========== מערכת תזכורות — נבנתה מחדש ==========
+//
+// ארכיטקטורה נקייה:
+//   nextAlertTime  — מתי תירה ההתראה (ms epoch). snooze = עדכון לעתיד.
+//   alertDismissedAt — מתי סגר המשתמש (= nextAlertTime של אותה פעם).
+//   dismiss לא משנה nextAlertTime — רק מונע popup אוטומטי.
+//   snooze מוחק alertDismissedAt ומגדיר nextAlertTime חדש.
+// ─────────────────────────────────────────────────────────────────
+
+let _reminderTimers = new Map();
+// _forceShowAfterNotificationClick declared above (line 6500)
+
+// ── חישוב זמן ההתראה הטבעי ────────────────────────────────────────
+function computeNextAlertTime(item) {
+    if (!item.dueDate || !item.reminderValue || !item.reminderUnit) return null;
+    const timeStr = item.dueTime || '09:00';
+    const [h, m] = timeStr.split(':');
+    const due = new Date(item.dueDate);
+    due.setHours(parseInt(h), parseInt(m), 0, 0);
+    const reminderMs = getReminderMilliseconds(item.reminderValue, item.reminderUnit);
+    return due.getTime() - reminderMs;
 }
 
-function selectCreditCompany(company, btn) {
-    selectedCreditCompany = company;
-    document.querySelectorAll('.credit-company-btn').forEach(b => b.classList.remove('selected'));
+// ── initItemAlertTime: קרא בעת יצירה/עריכה של פריט ───────────────
+function initItemAlertTime(item) {
+    const natural = computeNextAlertTime(item);
+    if (!natural) {
+        item.nextAlertTime = null;
+        return;
+    }
+    const now = Date.now();
+    // אם אין nextAlertTime, או אם שינו את התאריך/תזכורת — אפס
+    if (!item.nextAlertTime || item.nextAlertTime <= now) {
+        item.nextAlertTime = natural;
+        item.alertDismissedAt = null;
+    }
+    // אם יש nextAlertTime בעתיד (snooze) — שמור אותו
+}
+
+// ── snoozeUrgentAlert: דחה את ההתראה ─────────────────────────────
+function snoozeUrgentAlert(ms) {
+    const now = Date.now();
+    const snoozeUntil = now + ms;
+    let count = 0;
+
+    Object.values(db.lists).forEach(list => {
+        (list.items || []).forEach(item => {
+            if (item.checked || item.isPaid || !item.dueDate) return;
+            if (!item.nextAlertTime) return;
+            // snooze פריטים שהתראה שלהם הגיעה (בעבר) — אלה הנוכחיים
+            // גם אם dismissed — snooze מנצח (המשתמש בחר מפורשות)
+            if (item.nextAlertTime > now && !item.alertDismissedAt) return;
+            item.nextAlertTime = snoozeUntil;
+            item.alertDismissedAt = null; // נקה dismiss
+            count++;
+        });
+    });
+
+    if (count === 0) {
+        // fallback: snooze כל פריט עם תזכורת
+        Object.values(db.lists).forEach(list => {
+            (list.items || []).forEach(item => {
+                if (item.checked || item.isPaid || !item.dueDate || !item.reminderValue) return;
+                item.nextAlertTime = snoozeUntil;
+                item.alertDismissedAt = null;
+            });
+        });
+    }
+
+    save();
+    closeModal('urgentAlertModal');
+    _scheduleAllReminders(); // רשום timers חדשים מיד
+
+    const label = ms < 3600000
+        ? Math.round(ms / 60000) + ' דקות'
+        : ms < 86400000 ? Math.round(ms / 3600000) + ' שעות'
+        : Math.round(ms / 86400000) + ' ימים';
+    showNotification('⏰ תוזכר בעוד ' + label, 'info');
+}
+
+// ── closeUrgentAlert: dismiss ─────────────────────────────────────
+function closeUrgentAlert() {
+    const now = Date.now();
+    Object.values(db.lists).forEach(list => {
+        (list.items || []).forEach(item => {
+            if (item.checked || item.isPaid || !item.dueDate) return;
+            const t = item.nextAlertTime;
+            if (!t || t > now) return;
+            if (item.alertDismissedAt && item.alertDismissedAt >= t) return;
+            item.alertDismissedAt = t; // סמן dismissed עבור זמן זה בלבד
+        });
+    });
+    save();
+    closeModal('urgentAlertModal');
+}
+
+// ── checkUrgentPayments: בדוק והצג התראות שהגיעו ─────────────────
+function checkUrgentPayments() {
+    if (!db || !db.lists) return;
+    const now = Date.now();
+    const forceShow = _forceShowAfterNotificationClick;
+    _forceShowAfterNotificationClick = false;
+
+    const alertItems = [];
+    Object.values(db.lists).forEach(list => {
+        (list.items || []).forEach(item => {
+            if (item.checked || item.isPaid || !item.dueDate) return;
+            const t = item.nextAlertTime;
+            if (!t || t > now) return;
+            if (!forceShow && item.alertDismissedAt && item.alertDismissedAt >= t) return;
+            alertItems.push(item);
+        });
+    });
+
+    updateNotificationBadge();
+    if (alertItems.length > 0) showUrgentAlertModal(alertItems);
+}
+
+// updateNotificationBadge defined above (single implementation)
+
+// ── showUrgentAlertModal ──────────────────────────────────────────
+function showUrgentAlertModal(urgentItems) {
+    const modal = document.getElementById('urgentAlertModal');
+    const itemsList = document.getElementById('urgentItemsList');
+    if (!modal || !itemsList) return;
+
+    const today = new Date(); today.setHours(0, 0, 0, 0);
+    const overdue  = urgentItems.filter(i => { const d = new Date(i.dueDate); d.setHours(0,0,0,0); return d < today; });
+    const upcoming = urgentItems.filter(i => { const d = new Date(i.dueDate); d.setHours(0,0,0,0); return d >= today; });
+
+    let html = '';
+
+    if (overdue.length > 0) {
+        html += '<div style="font-weight:bold;color:#ef4444;margin-bottom:10px;">⚠️ באיחור:</div>';
+        overdue.forEach(item => {
+            const esc = (item.name || '').replace(/'/g, "\'");
+            html += `<div class="urgent-item" style="border-right:3px solid #ef4444;cursor:pointer;" onclick="goToItemFromAlert('${esc}')">
+                <div class="urgent-item-name">${item.name}</div>
+                <div class="urgent-item-date">📅 תאריך יעד: ${formatDate(item.dueDate)}</div>
+                <div style="font-size:0.72rem;color:#7367f0;margin-top:4px;">לחץ לצפייה במוצר ←</div>
+            </div>`;
+        });
+    }
+
+    if (upcoming.length > 0) {
+        if (overdue.length > 0) html += '<div style="margin-top:15px;"></div>';
+        html += '<div style="font-weight:bold;color:#3b82f6;margin-bottom:10px;">🔔 תזכורות:</div>';
+        upcoming.forEach(item => {
+            const d = new Date(item.dueDate); d.setHours(0,0,0,0);
+            const days = Math.floor((d - today) / 86400000);
+            const daysText = days === 0 ? 'היום' : days === 1 ? 'מחר' : `בעוד ${days} ימים`;
+            const reminderText = item.reminderValue && item.reminderUnit
+                ? ` (התראה: ${formatReminderText(item.reminderValue, item.reminderUnit)} לפני)` : '';
+            const esc = (item.name || '').replace(/'/g, "\'");
+            html += `<div class="urgent-item" style="border-right:3px solid #3b82f6;cursor:pointer;" onclick="goToItemFromAlert('${esc}')">
+                <div class="urgent-item-name">${item.name}</div>
+                <div class="urgent-item-date">📅 ${formatDate(item.dueDate)} (${daysText})${reminderText}</div>
+                <div style="font-size:0.72rem;color:#7367f0;margin-top:4px;">לחץ לצפייה במוצר ←</div>
+            </div>`;
+        });
+    }
+
+    itemsList.innerHTML = html;
+    modal.classList.add('active');
+}
+
+// ── _scheduleAllReminders: הגדר timers לכל הפריטים ─────────────────
+function _scheduleAllReminders() {
+    _reminderTimers.forEach(id => clearTimeout(id));
+    _reminderTimers.clear();
+
+    if (!db || !db.lists) return;
+    const now = Date.now();
+
+    Object.values(db.lists).forEach(list => {
+        (list.items || []).forEach(item => {
+            if (item.checked || item.isPaid || !item.dueDate || !item.reminderValue) return;
+            if (!item.nextAlertTime) {
+                initItemAlertTime(item);
+                if (!item.nextAlertTime) return;
+            }
+            const t = item.nextAlertTime;
+            if (item.alertDismissedAt && item.alertDismissedAt >= t && t <= now) return; // dismissed
+            const delay = t - now;
+            const key = item.cloudId || item.name;
+            if (delay > 0) {
+                const timerId = setTimeout(() => {
+                    console.log('[Reminder] fired:', item.name);
+                    _firePushNotification(item);
+                    checkUrgentPayments();
+                }, Math.min(delay, 2147483647));
+                _reminderTimers.set(key, timerId);
+                console.log(`[Reminder] scheduled "${item.name}" in ${Math.round(delay/1000)}s`);
+            } else {
+                // הגיע כבר — הצג
+                checkUrgentPayments();
+            }
+        });
+    });
+}
+
+// ── _firePushNotification: שלח push דרך SW ──────────────────────────
+function _firePushNotification(item) {
+    const title = `⏰ תזכורת: ${item.name}`;
+    const dateStr = item.dueDate ? new Date(item.dueDate).toLocaleDateString('he-IL') : '';
+    const timeStr = item.dueTime ? ' בשעה ' + item.dueTime : '';
+    const body = dateStr ? `יעד: ${dateStr}${timeStr}` : 'יש לך תזכורת';
+    const data = { type: 'reminder', itemName: item.name, dueDate: item.dueDate || '', dueTime: item.dueTime || '' };
+
+    if (navigator.serviceWorker && navigator.serviceWorker.controller) {
+        navigator.serviceWorker.controller.postMessage({
+            type: 'SHOW_NOTIFICATION', title, body,
+            tag: 'reminder-' + (item.cloudId || item.name), data
+        });
+    }
+}
+
+// ── initNotificationSystem ───────────────────────────────────────────
+async function initNotificationSystem() {
+    if ('Notification' in window && Notification.permission !== 'denied') {
+        Notification.requestPermission();
+    }
+    _scheduleAllReminders();
+    checkUrgentPayments();
+    // heartbeat — גיבוי לmissed timers
+    setInterval(checkUrgentPayments, 30000);
+}
+
+window.addEventListener('load', () => { setTimeout(initNotificationSystem, 2000); });
+
+// כשנשמר — רשום מחדש
+const _origSave = save;
+save = function() {
+    _origSave.apply(this, arguments);
+    setTimeout(_scheduleAllReminders, 150);
+};
+
+// ── Custom Snooze ─────────────────────────────────────────────────
+function openCustomSnooze() {
+    closeModal('urgentAlertModal');
+    openModal('customSnoozeModal');
+}
+
+function applyCustomSnooze() {
+    const value = parseFloat(document.getElementById('customSnoozeValue').value);
+    const unit  = document.getElementById('customSnoozeUnit').value;
+    if (!value || value <= 0) { showNotification('⚠️ נא להזין מספר חיובי', 'warning'); return; }
+    const ms = unit === 'minutes' ? value * 60000
+             : unit === 'hours'   ? value * 3600000
+             : value * 86400000;
+    snoozeUrgentAlert(ms);
+    closeModal('customSnoozeModal');
+    document.getElementById('customSnoozeValue').value = '1';
+    document.getElementById('customSnoozeUnit').value  = 'hours';
+}
+
+// ── Legacy stubs ──────────────────────────────────────────────────
+function checkAndScheduleNotifications() { _scheduleAllReminders(); }
+function scheduleItemNotification() {}
+function showInAppNotification() {}
+function playNotificationSound() {}
+function showItemNotification() {}
+function checkSnoozeStatus() { return true; }
+function updateAppBadge(count) {
+    if ('setAppBadge' in navigator) {
+        count > 0 ? navigator.setAppBadge(count).catch(()=>{}) : navigator.clearAppBadge().catch(()=>{});
+    }
+}
+
+// ── SW Message Listener ───────────────────────────────────────────
+// flag: מונע מה-startup modal להופיע כשמגיעים מהתראה דרך SW
+let _suppressStartupModal = false;
+
+if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.addEventListener('message', function(event) {
+        const msg = event.data;
+        if (!msg) return;
+
+        if (msg.type === 'NOTIFICATION_ACTION' || msg.type === 'SHOW_URGENT_ALERT') {
+            const action = msg.action || 'show';
+            if (action === 'snooze-10')  { snoozeUrgentAlert(10 * 60 * 1000); return; }
+            if (action === 'snooze-60')  { snoozeUrgentAlert(60 * 60 * 1000); return; }
+            _suppressStartupModal = true; // מנע modal אוטומטי
+            closeModal('urgentAlertModal');
+            _forceShowAfterNotificationClick = true;
+            checkUrgentPayments();
+        }
+
+        if (msg.type === 'ALERT_DATA_RESPONSE') {
+            if (msg.data && msg.data.action) {
+                const action = msg.data.action;
+                if (action === 'snooze-10') { snoozeUrgentAlert(10 * 60 * 1000); return; }
+                if (action === 'snooze-60') { snoozeUrgentAlert(60 * 60 * 1000); return; }
+                _suppressStartupModal = true; // מנע modal אוטומטי
+                closeModal('urgentAlertModal');
+                _forceShowAfterNotificationClick = true;
+                checkUrgentPayments();
+                if (navigator.serviceWorker.controller) {
+                    navigator.serviceWorker.controller.postMessage({ type: 'CLEAR_BADGE' });
+                }
+            }
+        }
+    });
+}
+
+// ── URL Param Handler (כשנפתח מהתראה) ───────────────────────────
+function checkNotificationUrlParam() {
+    const params = new URLSearchParams(window.location.search);
+    const action = params.get('vplus-action');
+    if (action) {
+        window.history.replaceState({}, '', window.location.pathname);
+        setTimeout(() => {
+            if (action === 'snooze-10') { snoozeUrgentAlert(10 * 60 * 1000); return; }
+            if (action === 'snooze-60') { snoozeUrgentAlert(60 * 60 * 1000); return; }
+            closeModal('urgentAlertModal'); // סגור modal ישן שנפתח ב-startup לפני הצגת הנכון
+            _forceShowAfterNotificationClick = true;
+            checkUrgentPayments();
+        }, 1500);
+    } else if (navigator.serviceWorker && navigator.serviceWorker.controller) {
+        navigator.serviceWorker.controller.postMessage({ type: 'GET_ALERT_DATA' });
+    }
+}
+window.addEventListener('load', () => { setTimeout(checkNotificationUrlParam, 1000); });
+
+
+// ║    🧙 VPLUS WIZARD — Full-Screen Cinematic Experience v3        ║
+// ║    כל לחיצה = מסך הסבר מלא, מרהיב, אנימטיבי                    ║
+// ╚══════════════════════════════════════════════════════════════════╝
+
+let wizardMode = false;
+let _wizDismissCallback = null;
+let _wizAutoTimer       = null;
+
+// ── Content library ────────────────────────────────────────────────
+const WIZ = {
+    plusBtn: {
+        emoji:'➕', phase:'before', emojiColor:'#22c55e',
+        title:'הוספת מוצר לרשימה',
+        body:'לחץ את הכפתור הירוק כדי לפתוח את חלון הוספת המוצר.\nתוכל להזין שם, מחיר, כמות וקטגוריה.',
+        tip:'💡 טיפ: הפעל "הוספה רציפה" כדי להוסיף כמה מוצרים ברצף מהיר!',
+    },
+    voiceBought: {
+        emoji:'✅', phase:'before',
+        title:'קניתי — סימון קולי',
+        body:'לחץ ואמור בקול שם של מוצר שכבר קנית.\nהאפליקציה תמצא אותו ברשימה ותסמן אותו כנרכש אוטומטית.\nאם המוצר כבר מסומן — תקבל הודעה שהוא כבר נרכש.',
+        tip:'💡 תוכל לבטל בקלות עם כפתור "ביטול" שיופיע מיד אחרי הסימון.',
+    },
+    voiceTobuy: {
+        emoji:'🛍️', phase:'before',
+        title:'לקנות — חיפוש קולי',
+        body:'לחץ ואמור שם מוצר.\n✅ אם קיים ומסומן — יוחזר למצב לקנות.\n📋 אם קיים ולא נרכש — תקבל הודעה שהוא כבר ממתין.\n➕ אם לא קיים ברשימה — תוצע לך אפשרות להוסיף אותו.',
+        tip:'💡 שימושי כשטעית בסימון, או כשמוצר שגמר צריך לחזור לרשימה.',
+    },
+    plusDone: {
+        emoji:'🎉', phase:'after',
+        title:'מוצר נוסף בהצלחה!',
+        body:'המוצר נוסף לרשימה שלך.\nהסכום הכולל התעדכן אוטומטית.',
+        tip:'💡 לחץ ➕ שוב להוספת מוצר נוסף, או גלול למטה לראות את הרשימה.',
+    },
+    checkItem: {
+        emoji:'✅', phase:'before',
+        title:'סימון מוצר כרכוש',
+        body:'לחץ על הכרטיס כדי לסמן שרכשת את המוצר.\nהמוצר יועבר לרשימת "שולם".',
+        tip:'💡 שינית את דעתך? לחץ שוב כדי לבטל את הסימון.',
+    },
+    checkDone: {
+        emoji:'✅', phase:'after',
+        title:'מוצר סומן!',
+        body:'מצוין! המוצר נרשם כרכישה שבוצעה.\nניתן לבטל בלחיצה נוספת.',
+        tip:'💡 מוצרים מסומנים נספרים ב"שולם" בסרגל התחתון.',
+    },
+    removeItem: {
+        emoji:'🗑️', phase:'before',
+        title:'מחיקת מוצר',
+        body:'המוצר יוסר מהרשימה.\nיש לך 5 שניות לבטל את המחיקה!',
+        tip:'⚠️ לחץ על "בטל" שיופיע למטה כדי לשחזר.',
+    },
+    removeDone: {
+        emoji:'🗑️', phase:'after',
+        title:'מוצר הוסר',
+        body:'המוצר הוסר מהרשימה.\nלחץ "בטל" אם טעית.',
+        tip:'💡 המוצר יכול להופיע בהיסטוריה אם השתמשת בהשלמה רשימה.',
+    },
+    newList: {
+        emoji:'📋', phase:'before',
+        title:'יצירת רשימה חדשה',
+        body:'תוכל לתת שם לרשימה, להגדיר תקציב ולהוסיף קישור לאתר החנות.',
+        tip:'💡 אפשר גם לשמור כתבנית לשימוש עתידי!',
+    },
+    newListDone: {
+        emoji:'🎊', phase:'after',
+        title:'הרשימה נוצרה!',
+        body:'הרשימה החדשה שלך מוכנה.\nעכשיו לחץ ➕ כדי להתחיל להוסיף מוצרים.',
+        tip:'💡 אפשר לעבור בין רשימות מהטאב "הרשימות שלי".',
+    },
+    completeList: {
+        emoji:'🏁', phase:'before',
+        title:'סיום וסגירת רשימה',
+        body:'הרשימה תסומן כהושלמה ותישמר בהיסטוריה שלך.\nתוכל לצפות בה מאוחר יותר.',
+        tip:'💡 רוצה להשתמש בה שוב? שמור אותה כתבנית לפני הסגירה!',
+    },
+    completeDone: {
+        emoji:'🏆', phase:'after',
+        title:'כל הכבוד! הרשימה הושלמה',
+        body:'הרשימה נשמרה בהיסטוריה שלך.\nכל ההוצאות נרשמו בסטטיסטיקות.',
+        tip:'💡 כנס להיסטוריה כדי לצפות בסיכום הרכישות.',
+    },
+    lockBtn: {
+        emoji:'🔒', phase:'before',
+        title:'נעילת הרשימה',
+        body:'הנעילה מונעת שינויים בשוגג.\nשימושי כשהרשימה מוכנה לקנייה.',
+        tip:'💡 לחץ שוב על הכפתור כדי לשחרר את הנעילה.',
+    },
+    lockDone: {
+        emoji:'🔐', phase:'after',
+        title:'הרשימה נעולה',
+        body:'הרשימה כעת מוגנת מפני עריכה בשוגג.\nלחץ שוב להסרת הנעילה.',
+        tip:'💡 בזמן נעילה אפשר עדיין לסמן מוצרים כרכושים.',
+    },
+    bellBtn: {
+        emoji:'🔔', phase:'before',
+        title:'מרכז התראות',
+        body:'כאן מרוכזות כל ההתראות הפעילות שלך.\n🔴 אדום — תאריך היעד עבר, הפריט באיחור.\n🟠 כתום — הפריט דורש תשומת לב היום או מחר.\n🔵 כחול — יש תזכורת שפעילה בימים הקרובים.',
+        tip:'💡 החלק התראה שמאלה או ימינה כדי למחוק אותה.',
+    },
+    cloudBtn: {
+        emoji:'☁️', phase:'before',
+        title:'סנכרון וגיבוי לענן',
+        body:'חבר את האפליקציה לחשבון Google שלך.\nכל הרשימות יגובו אוטומטית בענן ויהיו זמינות מכל מכשיר.\nהנתונים שלך מאובטחים ולא יאבדו גם אם תחליף טלפון.',
+        tip:'💡 הסנכרון מתבצע אוטומטית בכל שינוי — ללא לחיצות נוספות.',
+    },
+    settingsBtn: {
+        emoji:'⚙️', phase:'before',
+        title:'הגדרות האפליקציה',
+        body:'כאן תמצא: שפת ממשק, מצב לילה, סנכרון ענן, ניהול קטגוריות ועוד.',
+        tip:'💡 הפעל מצב לילה לנוחות שימוש בשעות האפלה.',
+    },
+    tabList: {
+        emoji:'🛒', phase:'before',
+        title:'הרשימה הפעילה',
+        body:'הצג את הרשימה הפעילה עם כל הפריטים שלה.\nכאן מתבצעת הקנייה.',
+        tip:'💡 גרור פריטים לסידור מחדש של הרשימה.',
+    },
+    tabLists: {
+        emoji:'📚', phase:'before',
+        title:'כל הרשימות שלך',
+        body:'כאן תמצא את כל הרשימות.\nניתן ליצור, לערוך, למחוק ולבחור רשימה פעילה.',
+        tip:'💡 לחץ ממושך על רשימה לאפשרויות נוספות.',
+    },
+    tabStats: {
+        emoji:'📊', phase:'before',
+        title:'סטטיסטיקות הוצאות',
+        body:'גרפים ותובנות על ההוצאות שלך לפי חודש, קטגוריה וזמן.',
+        tip:'💡 השתמש בסטטיסטיקות לתכנון תקציב חכם יותר.',
+    },
+    editName: {
+        emoji:'✏️', phase:'before',
+        title:'עריכת שם מוצר',
+        body:'לחץ על שם המוצר כדי לשנות אותו.\nהשינוי יישמר אוטומטית.',
+        tip:'💡 שם ברור עוזר למצוא מוצרים מהר בחיפוש.',
+    },
+    editPrice: {
+        emoji:'₪', phase:'before',
+        title:'עריכת מחיר',
+        body:'לחץ על הסכום כדי לעדכן את המחיר.\nהסיכום הכולל מתעדכן מיידית.',
+        tip:'💡 אפשר להזין מחיר ל-0 אם המוצר חינמי.',
+    },
+    category: {
+        emoji:'🏷️', phase:'before',
+        title:'שינוי קטגוריה',
+        body:'קטגוריות עוזרות לסדר ולסנן את הרשימה בקלות.\nהאפליקציה מנסה לזהות קטגוריה אוטומטית.',
+        tip:'💡 ניתן ליצור קטגוריות מותאמות אישית בהגדרות.',
+    },
+    note: {
+        emoji:'📝', phase:'before',
+        title:'הוספת הערה',
+        body:'הוסף פרטים נוספים: לינק למוצר, הוראות מיוחדות, או כל מידע שחשוב לך.',
+        tip:'💡 הערות עם לינקים יהפכו ללחיצים אוטומטית.',
+    },
+    reminder: {
+        emoji:'⏰', phase:'before',
+        title:'הגדרת תזכורת',
+        body:'קבע מתי תקבל התראה לפני תאריך היעד של הפריט.\nהתזכורות מגיעות גם כשהאפליקציה סגורה.',
+        tip:'💡 הגדר תזכורת של יומיים לפני לתכנון מראש.',
+    },
+    qtyPlus: {
+        emoji:'🔢', phase:'before',
+        title:'הגדלת כמות',
+        body:'לחץ + כדי להגדיל את מספר היחידות.\nהמחיר הכולל יתעדכן אוטומטית.',
+        tip:'💡 שנה כמות מהירה: לחץ ממושך על + לריבוי מהיר.',
+    },
+    qtyMinus: {
+        emoji:'🔢', phase:'before',
+        title:'הפחתת כמות',
+        body:'לחץ − כדי להפחית יחידה.\nכמות מינימלית היא 1.',
+        tip:'💡 לחץ 🗑️ אם ברצונך למחוק לגמרי.',
+    },
+    pasteBtn: {
+        emoji:'📋', phase:'before',
+        title:'ייבוא רשימה מטקסט',
+        body:'הדבק טקסט מוואטסאפ, אימייל או כל מקור אחר.\nהאפליקציה תזהה אוטומטית את הפריטים ותבנה רשימה.',
+        tip:'💡 עובד עם רשימות מוואטסאפ, הערות טלפון ועוד!',
+    },
+    excelBtn: {
+        emoji:'📊', phase:'before',
+        title:'ייבוא מאקסל / כרטיס אשראי',
+        body:'ייבא קובץ Excel (.xlsx) ישירות מהבנק או חברת האשראי.\nהאפליקציה תהפוך את העמודות לרשימת קניות חכמה.',
+        tip:'💡 תומך בקבצי Excel מבנק הפועלים, לאומי, כאל, ישראכרט ועוד.',
+    },
+    bankBtn: {
+        emoji:'🏦', phase:'before',
+        title:'ייבוא PDF מהבנק / אשראי',
+        body:'העלה קובץ PDF של דף חשבון, חיובי כרטיס אשראי או קבלה.\nהמערכת תסרוק את הנתונים ותייצר ממנם רשימה אוטומטית.',
+        tip:'💡 עובד עם PDF מחברות אשראי, דפי בנק וחשבוניות.',
+    },
+    myLists: {
+        emoji:'📚', phase:'before',
+        title:'הרשימות שלי',
+        body:'כאן תמצא את כל רשימות הקניות שלך.\nלחץ על רשימה לפתיחתה, או צור רשימה חדשה.',
+        tip:'💡 ניתן לגרור ולסדר את הרשימות בסדר הרצוי.',
+    },
+};
+
+// ── Core: show a full-screen wizard card ───────────────────────────
+function wiz(key, phase, onDismiss) {
+    if (!wizardMode) {
+        if (onDismiss) onDismiss();
+        return;
+    }
+    const data = WIZ[key];
+    if (!data) { if (onDismiss) onDismiss(); return; }
+
+    const overlay = document.getElementById('wizCardOverlay');
+    const card    = document.getElementById('wizCard');
+    if (!overlay || !card) { if (onDismiss) onDismiss(); return; }
+
+    // Populate content
+    const wizEmojiEl = document.getElementById('wizEmoji');
+    wizEmojiEl.textContent = data.emoji;
+    wizEmojiEl.style.color = data.emojiColor || '';
+    document.getElementById('wizTitle').textContent  = data.title;
+    document.getElementById('wizBody').innerHTML     = data.body.replace(/\n/g,'<br>');
+
+    const phasePill  = document.getElementById('wizPhasePill');
+    const phaseLabel = document.getElementById('wizPhaseLabel');
+    const isBefore   = (data.phase === 'before' || phase === 'before');
+    phasePill.className = 'wiz-phase-pill ' + (isBefore ? 'wiz-phase-before' : 'wiz-phase-after');
+    phaseLabel.textContent = isBefore ? 'לפני הפעולה' : 'בוצע!';
+
+    const tipBox  = document.getElementById('wizTipBox');
+    const tipText = document.getElementById('wizTipText');
+    if (data.tip) {
+        tipText.textContent = data.tip.slice(2).trim(); // remove emoji prefix
+        document.getElementById('wizTipIcon').textContent = data.tip[0];
+        tipBox.style.display = 'flex';
+    } else {
+        tipBox.style.display = 'none';
+    }
+
+    // Btn labels
+    const okBtn   = document.getElementById('wizOkBtn');
+    const skipBtn = document.getElementById('wizSkipBtn');
+    okBtn.textContent   = isBefore ? 'הבנתי, בואו נמשיך ✓' : 'מצוין! ✓';
+    skipBtn.textContent = 'דלג';
+
+    // Store callback
+    _wizDismissCallback = onDismiss || null;
+
+    // Clear any pending auto-close
+    clearTimeout(_wizAutoTimer);
+
+    // Animate card in
+    card.classList.remove('wiz-card-in', 'wiz-card-out');
+    void card.offsetWidth; // reflow
+    overlay.classList.add('wiz-active');
+    requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+            card.classList.add('wiz-card-in');
+        });
+    });
+
+    // After-phase: NO auto-dismiss — only button closes card
+
+    // Tap backdrop to dismiss
+    overlay.onclick = (e) => {
+        if (e.target === overlay || e.target.classList.contains('wiz-backdrop') ||
+            e.target.classList.contains('wiz-bg') || e.target.classList.contains('wiz-blob')) {
+            _wizDismiss();
+        }
+    };
+}
+
+function _wizForceClose() {
+    // Immediately close any open wizard card without waiting for animation
+    clearTimeout(_wizAutoTimer);
+    _wizDismissCallback = null;
+    const overlay = document.getElementById('wizCardOverlay');
+    const card    = document.getElementById('wizCard');
+    if (overlay) overlay.classList.remove('wiz-active');
+    if (card) { card.classList.remove('wiz-card-in'); card.classList.remove('wiz-card-out'); }
+}
+
+function _wizSkip() {
+    // סגור את כרטיס המדריך
+    _wizDismiss();
+    // המתן לאנימציית הסגירה ואז כבה מדריך + toast
+    setTimeout(() => {
+        if (wizardMode) {
+            wizardMode = false;
+            localStorage.setItem('wizardMode', 'false');
+            document.body.classList.remove('wizard-mode-active');
+            const btn = document.getElementById('wizardModeBtn');
+            if (btn) btn.classList.remove('wizard-active');
+            const panelPill = document.getElementById('wizardPanelPill');
+            const panelTxt  = document.getElementById('wizardPanelText');
+            if (panelPill) { panelPill.style.background=''; panelPill.style.color=''; }
+            if (panelTxt) panelTxt.textContent = 'מדריך';
+            _showToast({ message: '✨ מדריך כובה', type: 'success', duration: 3000 });
+        }
+    }, 320);
+}
+
+function _wizDismiss() {
+    clearTimeout(_wizAutoTimer);
+    const overlay = document.getElementById('wizCardOverlay');
+    const card    = document.getElementById('wizCard');
+    if (!overlay || !card) return;
+
+    card.classList.remove('wiz-card-in');
+    card.classList.add('wiz-card-out');
+
+    setTimeout(() => {
+        overlay.classList.remove('wiz-active');
+        card.classList.remove('wiz-card-out');
+        if (_wizDismissCallback) {
+            const cb = _wizDismissCallback;
+            _wizDismissCallback = null;
+            cb();
+        }
+    }, 300);
+}
+
+function _wizCloseWelcome() {
+    const el = document.getElementById('wizWelcomeOverlay');
+    if (!el) return;
+    el.classList.remove('wiz-welcome-visible');
+    setTimeout(() => { el.style.display = 'none'; }, 350);
+}
+
+function _wizShowWelcome() {
+    const el = document.getElementById('wizWelcomeOverlay');
+    if (!el) return;
+    el.style.display = 'flex';
+    requestAnimationFrame(() => {
+        requestAnimationFrame(() => el.classList.add('wiz-welcome-visible'));
+    });
+}
+
+// ── Toggle wizard mode ─────────────────────────────────────────────
+
+window._closeDemoPrompt = function() {
+    var el = document.getElementById('demoWizardPrompt');
+    if (el) el.remove();
+};
+
+function _askDemoBeforeWizard() {
+    var hasRealData = Object.values(db.lists).some(function(l){ return l.items && l.items.length > 0 && !l.isDemo; });
+    if (isDemoMode || hasRealData) {
+        // יש כבר נתונים — פתח מדריך ישירות
+        _wizShowWelcome();
+        return;
+    }
+    // שאל על דמו
+    var overlay = document.createElement('div');
+    overlay.id = 'demoWizardPrompt';
+    overlay.style.cssText = 'position:fixed;inset:0;z-index:99998;background:rgba(0,0,0,0.6);display:flex;align-items:flex-end;font-family:system-ui,sans-serif;';
+    var sheet = document.createElement('div');
+    sheet.style.cssText = 'background:white;border-radius:28px 28px 0 0;width:100%;padding:24px 20px 40px;animation:demoSheetIn 0.35s cubic-bezier(0.34,1.56,0.64,1);';
+    sheet.innerHTML = '<div style="width:38px;height:4px;background:#e5e7eb;border-radius:99px;margin:0 auto 18px;"></div>'
+        + '<div style="font-size:44px;text-align:center;margin-bottom:10px;">🎯</div>'
+        + '<div style="font-size:19px;font-weight:900;color:#1e1b4b;text-align:center;margin-bottom:6px;">טרם התחלת להשתמש</div>'
+        + '<div style="font-size:13px;color:#6b7280;text-align:center;line-height:1.6;margin-bottom:20px;">רוצה לטעון 10 רשימות לדוגמה<br>כדי שהמדריך יהיה חי ומעניין יותר?</div>'
+        + '<div style="display:flex;flex-direction:column;gap:10px;">'
+        + '<button onclick="window._closeDemoPrompt();loadDemoMode();_wizShowWelcome();" style="background:linear-gradient(135deg,#7367f0,#9055ff);color:white;border:none;border-radius:18px;padding:16px;font-size:15px;font-weight:900;cursor:pointer;font-family:system-ui,sans-serif;box-shadow:0 6px 20px rgba(115,103,240,0.35);">\uD83C\uDFAF כן, טען נתוני דמו</button>'
+        + '<button onclick="window._closeDemoPrompt();_wizShowWelcome();" style="background:#f3f4f6;color:#6b7280;border:none;border-radius:18px;padding:14px;font-size:14px;font-weight:700;cursor:pointer;font-family:system-ui,sans-serif;">לא תודה, התחל מדריך ריק</button>'
+        + '</div>'
+        + '<style>@keyframes demoSheetIn{from{transform:translateY(100%)}to{transform:translateY(0)}}</style>';
+    overlay.appendChild(sheet);
+    document.body.appendChild(overlay);
+}
+
+// ── GitHub Token Management ──────────────────────────────────────
+function loadGithubToken() {
+    const token = localStorage.getItem('vplus_github_pat') || '';
+    window.GITHUB_PAT = token;
+    const input = document.getElementById('githubTokenInput');
+    if (input && token) input.value = token;
+    updateGithubTokenStatus();
+}
+
+function saveGithubToken() {
+    const input = document.getElementById('githubTokenInput');
+    if (!input) return;
+    const token = input.value.trim();
+    if (!token) {
+        localStorage.removeItem('vplus_github_pat');
+        window.GITHUB_PAT = '';
+        showNotification('🗑️ Token נמחק');
+    } else if (!token.startsWith('ghp_') && !token.startsWith('github_pat_')) {
+        showNotification('⚠️ Token לא תקין — חייב להתחיל ב-ghp_ או github_pat_', 'warning');
+        return;
+    } else {
+        localStorage.setItem('vplus_github_pat', token);
+        window.GITHUB_PAT = token;
+        showNotification('✅ GitHub Token נשמר!');
+    }
+    updateGithubTokenStatus();
+}
+
+function updateGithubTokenStatus() {
+    const input  = document.getElementById('githubTokenInput');
+    const status = document.getElementById('githubTokenStatus');
+    if (!status) return;
+    const val = (input ? input.value : '') || localStorage.getItem('vplus_github_pat') || '';
+    if (val.startsWith('ghp_') || val.startsWith('github_pat_')) {
+        status.textContent = '✅ מוגדר';
+        status.style.color = '#22c55e';
+    } else if (val.length > 0) {
+        status.textContent = '⚠️ לא תקין';
+        status.style.color = '#f59e0b';
+    } else {
+        status.textContent = '❌ לא מוגדר';
+        status.style.color = '#ef4444';
+    }
+}
+
+function toggleWizardMode() {
+    wizardMode = !wizardMode;
+    localStorage.setItem('wizardMode', wizardMode ? 'true' : 'false');
+
+    const btn = document.getElementById('wizardModeBtn');
+    const txt = document.getElementById('wizardBtnText');
+
+    const panelPill = document.getElementById('wizardPanelPill');
+    const panelTxt  = document.getElementById('wizardPanelText');
+    if (wizardMode) {
+        if (btn) btn.classList.add('wizard-active');
+        if (txt) txt.textContent = 'מדריך';
+        if (panelPill) { panelPill.style.background='#7367f0'; panelPill.style.color='white'; }
+        if (panelTxt) panelTxt.textContent = '✨ פעיל';
+        document.body.classList.add('wizard-mode-active');
+        // שאל על דמו לפני פתיחת המדריך
+        _askDemoBeforeWizard();
+    } else {
+        if (btn) btn.classList.remove('wizard-active');
+        if (txt) txt.textContent = 'מדריך';
+        if (panelPill) { panelPill.style.background=''; panelPill.style.color=''; }
+        if (panelTxt) panelTxt.textContent = 'מדריך';
+        document.body.classList.remove('wizard-mode-active');
+        // Close any open card
+        const overlay = document.getElementById('wizCardOverlay');
+        if (overlay) overlay.classList.remove('wiz-active');
+        _wizDismissCallback = null;
+        clearTimeout(_wizAutoTimer);
+        showNotification('מצב מדריך כובה');
+    }
+}
+
+// ── handlePlusBtn ──────────────────────────────────────────────────
+// קונטקסטואלי: הרשימות שלי → רשימה חדשה | הרשימה שלי → הוסף מוצר
+function handlePlusBtn(e) {
+    if (e) e.stopPropagation();
+    if (activePage === 'summary') {
+        // טאב הרשימות שלי — יצירת רשימה חדשה
+        if (wizardMode) {
+            wiz('newList', 'before', () => openModal('newListModal'));
+        } else {
+            openModal('newListModal');
+        }
+    } else {
+        // טאב הרשימה שלי — הוספת מוצר
+        if (wizardMode) {
+            wiz('plusBtn', 'before', () => openModal('inputForm'));
+        } else {
+            openModal('inputForm');
+        }
+    }
+}
+
+// ── Wrap core functions with wizard before/after ───────────────────
+const _orig = {};
+
+// toggleItem
+if (typeof toggleItem === 'function') {
+    _orig.toggleItem = toggleItem;
+    window.toggleItem = function(idx) {
+        if (wizardMode) {
+            wiz('checkItem', 'before', () => {
+                _orig.toggleItem(idx);
+                setTimeout(() => wiz('checkDone', 'after'), 200);
+            });
+        } else {
+            _orig.toggleItem(idx);
+        }
+    };
+}
+
+// removeItem
+if (typeof removeItem === 'function') {
+    _orig.removeItem = removeItem;
+    window.removeItem = function(idx) {
+        if (wizardMode) {
+            wiz('removeItem', 'before', () => {
+                _orig.removeItem(idx);
+                setTimeout(() => wiz('removeDone', 'after'), 200);
+            });
+        } else {
+            _orig.removeItem(idx);
+        }
+    };
+}
+
+// addItemToList
+if (typeof addItemToList === 'function') {
+    _orig.addItemToList = addItemToList;
+    window.addItemToList = function(e) {
+        const hasName = (document.getElementById('itemName')?.value || '').trim().length > 0;
+        _orig.addItemToList(e);
+        if (wizardMode && hasName) {
+            setTimeout(() => wiz('plusDone', 'after'), 350);
+        }
+    };
+}
+
+// saveNewList
+if (typeof saveNewList === 'function') {
+    _orig.saveNewList = saveNewList;
+    window.saveNewList = function() {
+        _orig.saveNewList();
+        if (wizardMode) setTimeout(() => wiz('newListDone', 'after'), 400);
+    };
+}
+
+// completeList
+if (typeof completeList === 'function') {
+    _orig.completeList = completeList;
+    window.completeList = function() {
+        _orig.completeList();
+        if (wizardMode) setTimeout(() => wiz('completeDone', 'after'), 400);
+    };
+}
+
+// toggleLock
+if (typeof toggleLock === 'function') {
+    _orig.toggleLock = toggleLock;
+    window.toggleLock = function() {
+        _orig.toggleLock();
+        if (wizardMode) setTimeout(() => wiz('lockDone', 'after'), 200);
+    };
+}
+
+// openNotificationCenter — NOT wizard-intercepted (must open immediately, also from lock screen)
+
+// openEditItemNameModal
+if (typeof openEditItemNameModal === 'function') {
+    _orig.openEditItemNameModal = openEditItemNameModal;
+    window.openEditItemNameModal = function(idx) {
+        if (wizardMode) {
+            wiz('editName', 'before', () => _orig.openEditItemNameModal(idx));
+        } else {
+            _orig.openEditItemNameModal(idx);
+        }
+    };
+}
+
+// openEditTotalModal
+if (typeof openEditTotalModal === 'function') {
+    _orig.openEditTotalModal = openEditTotalModal;
+    window.openEditTotalModal = function(idx) {
+        if (wizardMode) {
+            wiz('editPrice', 'before', () => _orig.openEditTotalModal(idx));
+        } else {
+            _orig.openEditTotalModal(idx);
+        }
+    };
+}
+
+// openEditCategoryModal
+if (typeof openEditCategoryModal === 'function') {
+    _orig.openEditCategoryModal = openEditCategoryModal;
+    window.openEditCategoryModal = function(idx) {
+        if (wizardMode) {
+            wiz('category', 'before', () => _orig.openEditCategoryModal(idx));
+        } else {
+            _orig.openEditCategoryModal(idx);
+        }
+    };
+}
+
+// openItemNoteModal
+if (typeof openItemNoteModal === 'function') {
+    _orig.openItemNoteModal = openItemNoteModal;
+    window.openItemNoteModal = function(idx) {
+        if (wizardMode) {
+            wiz('note', 'before', () => _orig.openItemNoteModal(idx));
+        } else {
+            _orig.openItemNoteModal(idx);
+        }
+    };
+}
+
+// openEditReminder
+if (typeof openEditReminder === 'function') {
+    _orig.openEditReminder = openEditReminder;
+    window.openEditReminder = function(idx) {
+        if (wizardMode) {
+            wiz('reminder', 'before', () => _orig.openEditReminder(idx));
+        } else {
+            _orig.openEditReminder(idx);
+        }
+    };
+}
+
+// Wrap tab/page switching
+if (typeof showPage === 'function') {
+    _orig.showPage = showPage;
+    window.showPage = function(p) {
+        if (wizardMode) {
+            const keyMap = { lists:'tabList', listsMenu:'myLists', allLists:'myLists', stats:'tabStats' };
+            const key = keyMap[p];
+            if (key) {
+                wiz(key, 'before', () => _orig.showPage(p));
+                return;
+            }
+        }
+        _orig.showPage(p);
+    };
+}
+
+// Wrap openModal for specific modals with wizard tips
+const _origOpenModal = typeof openModal === 'function' ? openModal : null;
+if (_origOpenModal) {
+    window.openModal = function(id) {
+        if (wizardMode) {
+            const modalTips = {
+                'newListModal': 'newList',
+                'confirmModal': 'completeList',
+                'settingsModal': 'settingsBtn',
+            };
+            const tipKey = modalTips[id];
+            if (tipKey) {
+                wiz(tipKey, 'before', () => _origOpenModal(id));
+                return;
+            }
+        }
+        _origOpenModal(id);
+    };
+}
+
+// changeQty — wrap for qty tips
+if (typeof changeQty === 'function') {
+    _orig.changeQty = changeQty;
+    window.changeQty = function(idx, d) {
+        if (wizardMode) {
+            wiz(d > 0 ? 'qtyPlus' : 'qtyMinus', 'before', () => _orig.changeQty(idx, d));
+        } else {
+            _orig.changeQty(idx, d);
+        }
+    };
+}
+
+// ── Patch render to keep wizard mode indicator ─────────────────────
+if (typeof render === 'function') {
+    const _origRender = render;
+    window.render = function() {
+        _origRender();
+        if (wizardMode) {
+            document.body.classList.add('wizard-mode-active');
+        }
+    };
+}
+
+// ── Stubs for legacy HTML compatibility ────────────────────────────
+function openWizard(type) {
+    const map = {
+        'addItem':      () => handlePlusBtn(null),
+        'newList':      () => wizardMode ? wiz('newList','before', () => openModal('newListModal')) : openModal('newListModal'),
+        'completeList': () => wizardMode ? wiz('completeList','before', () => openModal('confirmModal')) : openModal('confirmModal'),
+    };
+    if (map[type]) map[type]();
+}
+function closeWizard() {
+    const o = document.getElementById('wizardOverlay');
+    if (o) o.classList.remove('active');
+}
+function wizardOverlayClick(e) {
+    if (e && e.target === document.getElementById('wizardOverlay')) closeWizard();
+}
+
+// ── Init on DOMContentLoaded ───────────────────────────────────────
+document.addEventListener('DOMContentLoaded', () => {
+    const firstTime = !localStorage.getItem('wizardModeEverSet');
+    if (firstTime) {
+        // First launch: auto-enable wizard
+        localStorage.setItem('wizardModeEverSet', 'true');
+        localStorage.setItem('wizardMode', 'true');
+    }
+    if (localStorage.getItem('wizardMode') === 'true') {
+        wizardMode = true;
+        const btn = document.getElementById('wizardModeBtn');
+        const txt = document.getElementById('wizardBtnText');
+        if (btn) btn.classList.add('wizard-active');
+        if (txt) txt.textContent = 'מדריך';
+        document.body.classList.add('wizard-mode-active');
+        // Show welcome on first time
+        if (firstTime) {
+            setTimeout(_wizShowWelcome, 800);
+        }
+    } else {
+        const welcome = document.getElementById('wizWelcomeOverlay');
+        if (welcome) welcome.style.display = 'none';
+    }
+});
+
+// ══════════════════════════════════════════════════════════════
+// 🎙️ VOICE ACTION BUTTONS — "קניתי" & "לקנות"
+// ══════════════════════════════════════════════════════════════
+
+let _voiceActionRecognition = null;
+let _voiceActionMode = null; // 'bought' | 'tobuy'
+let _voiceActionActive = false;
+
+function initVoiceAction() {
+    if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+        showNotification('הדפדפן לא תומך בזיהוי קולי', 'error');
+        return null;
+    }
+    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    const r = new SR();
+    const langMap = { 'he':'he-IL','en':'en-US','ru':'ru-RU','ro':'ro-RO' };
+    r.lang = langMap[currentLang] || 'he-IL';
+    r.continuous = false;
+    r.interimResults = false;
+    r.maxAlternatives = 3;
+    return r;
+}
+
+// Fuzzy match — returns best matching item index or -1
+function _fuzzyFindItem(transcript, items) {
+    const q = transcript.trim().toLowerCase();
+    let bestIdx = -1, bestScore = 0;
+
+    items.forEach((item, idx) => {
+        const name = item.name.toLowerCase();
+        // exact
+        if (name === q) { bestIdx = idx; bestScore = 100; return; }
+        // contains
+        if (name.includes(q) || q.includes(name)) {
+            const score = 80 - Math.abs(name.length - q.length);
+            if (score > bestScore) { bestScore = score; bestIdx = idx; }
+            return;
+        }
+        // Levenshtein for typos/accent errors
+        const lev = _levenshtein(name, q);
+        const maxLen = Math.max(name.length, q.length);
+        const score = Math.round((1 - lev / maxLen) * 70);
+        if (score > bestScore && score >= 50) { bestScore = score; bestIdx = idx; }
+    });
+    return bestIdx;
+}
+
+function _levenshtein(a, b) {
+    const m = a.length, n = b.length;
+    const dp = Array.from({length: m+1}, (_, i) => Array.from({length: n+1}, (_, j) => i === 0 ? j : j === 0 ? i : 0));
+    for (let i = 1; i <= m; i++)
+        for (let j = 1; j <= n; j++)
+            dp[i][j] = a[i-1] === b[j-1] ? dp[i-1][j-1] : 1 + Math.min(dp[i-1][j], dp[i][j-1], dp[i-1][j-1]);
+    return dp[m][n];
+}
+
+function startVoiceAction(mode) {
+    // mode = 'bought' | 'tobuy'
+    if (!db.currentId || !db.lists[db.currentId]) {
+        showNotification('אין רשימה פעילה', 'error'); return;
+    }
+
+    if (_voiceActionActive) {
+        _stopVoiceAction(); return;
+    }
+
+    _voiceActionMode = mode;
+    _voiceActionRecognition = initVoiceAction();
+    if (!_voiceActionRecognition) return;
+
+    _voiceActionActive = true;
+    _updateVoiceActionBtns(true);
+
+    const label = mode === 'bought' ? '🛒 אמור שם מוצר שקנית...' : '📋 אמור שם מוצר לרשימה...';
+    showNotification(label, 'success');
+
+    _voiceActionRecognition.onresult = (e) => {
+        // Try all alternatives for best match
+        const transcripts = Array.from({length: e.results[0].length}, (_, i) => e.results[0][i].transcript);
+        _handleVoiceActionResult(transcripts, mode);
+    };
+
+    _voiceActionRecognition.onerror = (e) => {
+        _stopVoiceAction();
+        if (e.error === 'no-speech') showNotification('לא זוהה דיבור', 'warning');
+        else showNotification('שגיאת זיהוי קולי', 'error');
+    };
+
+    _voiceActionRecognition.onend = () => { _stopVoiceAction(); };
+
+    try { _voiceActionRecognition.start(); }
+    catch(e) { _stopVoiceAction(); }
+}
+
+function _stopVoiceAction() {
+    _voiceActionActive = false;
+    _voiceActionMode = null;
+    _updateVoiceActionBtns(false);
+    if (_voiceActionRecognition) {
+        try { _voiceActionRecognition.stop(); } catch(e) {}
+    }
+}
+
+function _updateVoiceActionBtns(recording) {
+    const boughtBtn = document.getElementById('voiceBoughtBtn');
+    const tobuyBtn  = document.getElementById('voiceTobuyBtn');
+    if (boughtBtn) boughtBtn.classList.toggle('voice-action-recording', recording && _voiceActionMode === 'bought');
+    if (tobuyBtn)  tobuyBtn.classList.toggle('voice-action-recording', recording && _voiceActionMode === 'tobuy');
+}
+
+function _handleVoiceActionResult(transcripts, mode) {
+    const list = db.lists[db.currentId];
+    const items = list.items;
+
+    let bestIdx = -1;
+    for (const t of transcripts) {
+        bestIdx = _fuzzyFindItem(t, items);
+        if (bestIdx !== -1) break;
+    }
+    const transcript = transcripts[0];
+
+    if (mode === 'bought') {
+        if (bestIdx === -1) {
+            showNotification(`❌ לא מצאתי "${transcript}" ברשימה`, 'error');
+            return;
+        }
+        const item = items[bestIdx];
+        if (item.checked) {
+            showNotification(`ℹ️ "${item.name}" כבר מסומן כנרכש`, 'warning');
+            return;
+        }
+        // Mark as bought
+        item.checked = true;
+        lastCheckedItem = item;
+        lastCheckedIdx = bestIdx;
+        lastCheckedState = false;
+        db.lists[db.currentId].items = sortItemsByStatusAndCategory(items);
+        save();
+        showUndoCheckNotification(item.name, true);
+
+    } else { // tobuy
+        if (bestIdx !== -1) {
+            const item = items[bestIdx];
+            if (!item.checked) {
+                showNotification(`ℹ️ "${item.name}" כבר ברשימה וממתין לרכישה`, 'warning');
+            } else {
+                // Uncheck — move back to "to buy"
+                item.checked = false;
+                lastCheckedItem = item;
+                lastCheckedIdx = bestIdx;
+                lastCheckedState = true;
+                db.lists[db.currentId].items = sortItemsByStatusAndCategory(items);
+                save();
+                showUndoCheckNotification(item.name, false);
+            }
+        } else {
+            // Not found — offer to add
+            _showAddItemPrompt(transcript);
+        }
+    }
+}
+
+function _showAddItemPrompt(name) {
+    // Use existing toast system with a custom action
+    _showToast({
+        message: `"${name}" לא ברשימה — להוסיף?`,
+        type: 'warning',
+        undoCallback: () => _addItemByVoice(name),
+        undoLabel: '➕ הוסף',
+        duration: 7000
+    });
+}
+
+function _addItemByVoice(name) {
+    const trimmed = name.trim();
+    if (!trimmed || !db.currentId) return;
+    const category = detectCategory(trimmed);
+    db.lists[db.currentId].items.push({
+        name: trimmed,
+        price: 0,
+        qty: 1,
+        checked: false,
+        category: category,
+        note: '',
+        dueDate: '',
+        paymentUrl: '',
+        isPaid: false,
+        lastUpdated: Date.now(),
+        cloudId: 'item_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9)
+    });
+    save();
+    showNotification(`✅ "${trimmed}" נוסף לרשימה!`, 'success');
+}
+// ========== Bank Sync Functions ==========
+
+
+// ═══════════════════════════════════════════════════════
+// 💰 FINANCIAL MODALS — Credit Card + Bank Scraper
+// ═══════════════════════════════════════════════════════
+
+let selectedCreditCompany = null;
+let selectedBank = null;
+
+const BANK_CONFIG = {
+    hapoalim:     { field1: 'userCode',  field1Label: 'קוד משתמש',    field2: null,  field2Label: '',                     hint: 'קוד המשתמש שלך באינטרנט פועלים' },
+    leumi:        { field1: 'username',  field1Label: 'שם משתמש',      field2: null,  field2Label: '',                     hint: 'שם המשתמש שלך בלאומי דיגיטל' },
+    mizrahi:      { field1: 'username',  field1Label: 'שם משתמש',      field2: null,  field2Label: '',                     hint: '' },
+    discount:     { field1: 'id',        field1Label: 'תעודת זהות',     field2: 'num', field2Label: 'מספר סניף (3 ספרות)', hint: 'נדרש: ת"ז + מספר סניף + סיסמה' },
+    otsarHahayal: { field1: 'username',  field1Label: 'שם משתמש',      field2: null,  field2Label: '',                     hint: '' },
+    yahav:        { field1: 'username',  field1Label: 'שם משתמש',      field2: null,  field2Label: '',                     hint: '' },
+    massad:       { field1: 'username',  field1Label: 'שם משתמש',      field2: null,  field2Label: '',                     hint: '' },
+    unionBank:    { field1: 'username',  field1Label: 'שם משתמש',      field2: null,  field2Label: '',                     hint: '' },
+    beinleumi:    { field1: 'username',  field1Label: 'שם משתמש',      field2: null,  field2Label: '',                     hint: '' },
+};
+
+const BANK_NAMES = {
+    hapoalim: 'פועלים', leumi: 'לאומי', mizrahi: 'מזרחי',
+    discount: 'דיסקונט', otsarHahayal: 'אוצר החייל',
+    yahav: 'יהב', massad: 'מסד', unionBank: 'איגוד', beinleumi: 'בינלאומי'
+};
+
+const CREDIT_NAMES = { max: 'Max', visaCal: 'Cal', leumincard: 'לאומי קארד', isracard: 'ישראכרט' };
+
+// ── Legacy stub (keep pageBank button working) ──
+function openBankModal() { openModal('financialChoiceModal'); }
+function closeBankModal() { closeModal('financialChoiceModal'); }
+function openBankConnectModal() {
+    selectedBank = null;
+    document.getElementById('bankField1').value = '';
+    document.getElementById('bankConnectPassword').value = '';
+    document.getElementById('bankField2').value = '';
+    document.getElementById('bankField2Wrap').style.display = 'none';
+    document.getElementById('bankField1').placeholder = 'שם משתמש';
+    document.getElementById('bankConnectHint').style.display = 'none';
+    document.querySelectorAll('#bankConnectModal .fin-btn').forEach(b => b.classList.remove('selected'));
+    openModal('bankConnectModal');
+}
+
+// ── Credit company selector ──
+function selectCreditCompany(id, btn) {
+    selectedCreditCompany = id;
+    document.querySelectorAll('#creditCardModal .fin-btn').forEach(b => b.classList.remove('selected'));
     btn.classList.add('selected');
 }
 
-/**
- * Sets the progress bar + stage indicators to a given step (1, 2, or 3)
- * and updates the title/subtitle/icon accordingly.
- */
-function setCreditStage(step, options = {}) {
-    const bar     = document.getElementById('creditProgressBar');
-    const title   = document.getElementById('progressTitle');
-    const sub     = document.getElementById('progressSubtitle');
-    const icon    = document.getElementById('progressIcon');
+// ── Bank selector ──
+function selectBank(bankId, btn) {
+    selectedBank = bankId;
+    document.querySelectorAll('#bankConnectModal .fin-btn').forEach(b => b.classList.remove('selected'));
+    btn.classList.add('selected');
+    const cfg = BANK_CONFIG[bankId];
+    if (!cfg) return;
+    document.getElementById('bankField1').placeholder = cfg.field1Label;
+    const f2wrap = document.getElementById('bankField2Wrap');
+    const f2 = document.getElementById('bankField2');
+    if (cfg.field2) {
+        f2.placeholder = cfg.field2Label;
+        f2wrap.style.display = 'block';
+    } else {
+        f2wrap.style.display = 'none';
+        f2.value = '';
+    }
+    const hint = document.getElementById('bankConnectHint');
+    if (cfg.hint) { hint.textContent = 'ℹ️ ' + cfg.hint; hint.style.display = 'block'; }
+    else { hint.style.display = 'none'; }
+}
 
-    const stages = [
-        { icon: '🔐', title: 'מתחבר לחברת האשראי...', sub: 'מאמת פרטי התחברות' },
-        { icon: '📡', title: 'שולף נתוני עסקאות...', sub: 'זה לוקח עד דקה, אנא המתן' },
-        { icon: '⚙️', title: 'מעבד ומייבא נתונים...', sub: 'עוד רגע ואתה מוכן!' }
-    ];
-
-    const cfg = options || stages[step - 1];
-    icon.textContent  = cfg.icon  || stages[step - 1].icon;
-    title.textContent = cfg.title || stages[step - 1].title;
-    sub.textContent   = cfg.sub   || stages[step - 1].sub;
-
-    // Progress bar width per stage: 15%, 60%, 90%
-    const widths = ['15%', '60%', '90%'];
-    bar.style.width = widths[step - 1];
-
-    // Update stage indicators
+// ── Progress helpers ──
+function showFinProgress() {
+    const el = document.getElementById('finProgressOverlay');
+    if (el) { el.style.display = 'flex'; }
+}
+function hideFinProgress() {
+    const el = document.getElementById('finProgressOverlay');
+    if (el) { el.style.display = 'none'; }
+}
+function setFinStage(step, icon, title, sub, pct) {
+    document.getElementById('finProgressIcon').textContent = icon;
+    document.getElementById('finProgressTitle').textContent = title;
+    document.getElementById('finProgressSub').textContent = sub;
+    document.getElementById('finProgressBar').style.width = pct;
     for (let i = 1; i <= 3; i++) {
-        const el  = document.getElementById('stage' + i);
-        const dot = document.getElementById('dot' + i);
-        el.classList.remove('active', 'done');
-        dot.textContent = i;
-
-        if (i < step) {
-            el.classList.add('done');
-            dot.textContent = '✓';
-        } else if (i === step) {
-            el.classList.add('active');
-        }
+        const dot = document.getElementById('finDot' + i);
+        const stage = document.getElementById('finStage' + i);
+        dot.style.background = i < step ? '#7367f0' : i === step ? '#0ea5e9' : '#f3f4f6';
+        dot.style.color = i <= step ? 'white' : '#9ca3af';
+        dot.textContent = i < step ? '✓' : String(i);
     }
 }
 
-function showCreditProgress() {
-    document.getElementById('creditProgressOverlay').classList.add('active');
-    setCreditStage(1, { icon: '🔐', title: 'מתחבר לחברת האשראי...', sub: 'מאמת פרטי התחברות' });
+// ── Debug log panel ──
+function showDebugLog(logs) {
+    let panel = document.getElementById('debugLogPanel');
+    if (!panel) {
+        panel = document.createElement('div');
+        panel.id = 'debugLogPanel';
+        panel.style.cssText = 'position:fixed;bottom:0;left:0;right:0;z-index:99999;background:#1a1a2e;color:#e0e0e0;font-family:monospace;font-size:12px;max-height:50vh;overflow-y:auto;border-top:3px solid #e94560;padding:8px;direction:ltr;text-align:left;';
+        const header = document.createElement('div');
+        header.style.cssText = 'display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;';
+        const copyBtn = document.createElement('button');
+        copyBtn.textContent = '📋 העתק';
+        copyBtn.style.cssText = 'background:#0f3460;color:white;border:none;padding:3px 8px;border-radius:4px;margin-left:6px;cursor:pointer;font-size:11px;';
+        copyBtn.onclick = () => { const c = document.getElementById('debugLogContent'); if(c) navigator.clipboard?.writeText(c.innerText).then(()=>alert('הועתק!')); };
+        const closeBtn = document.createElement('button');
+        closeBtn.textContent = '✕';
+        closeBtn.style.cssText = 'background:#e94560;color:white;border:none;padding:3px 8px;border-radius:4px;cursor:pointer;font-size:11px;';
+        closeBtn.onclick = () => { const p = document.getElementById('debugLogPanel'); if(p) p.remove(); };
+        const title = document.createElement('span');
+        title.innerHTML = '🐛 Debug Log';
+        title.style.cssText = 'color:#e94560;font-weight:bold;';
+        const btnWrap = document.createElement('div');
+        btnWrap.appendChild(copyBtn);
+        btnWrap.appendChild(closeBtn);
+        header.appendChild(title);
+        header.appendChild(btnWrap);
+        panel.appendChild(header);
+        const content = document.createElement('div');
+        content.id = 'debugLogContent';
+        panel.appendChild(content);
+        document.body.appendChild(panel);
+    }
+    const content = document.getElementById('debugLogContent');
+    content.innerHTML = logs.map(l => {
+        const color = l.type==='error'?'#ff6b6b':l.type==='warn'?'#ffd93d':l.type==='success'?'#6bcb77':'#a8dadc';
+        return `<div style="color:${color};padding:2px 0;border-bottom:1px solid #333;">${l.icon||'•'} [${l.time}] ${l.msg}</div>`;
+    }).join('');
+    content.scrollTop = content.scrollHeight;
 }
 
-function hideCreditProgress() {
-    document.getElementById('creditProgressOverlay').classList.remove('active');
-}
+// ── Shared fetch helper ──
+async function runFinancialFetch({ companyId, credentials, modalId, nameLabel }) {
+    const debugLogs = [];
+    const log = (msg, type='info', icon='•') => {
+        debugLogs.push({ msg, type, icon, time: new Date().toLocaleTimeString('he-IL') });
+        showDebugLog(debugLogs);
+    };
 
-async function startCreditCardFetch() {
-    // Validation
-    if (!selectedCreditCompany) {
-        showNotification('⚠️ בחר חברת אשראי תחילה', 'warning');
-        return;
-    }
-    const username = document.getElementById('creditUsername').value.trim();
-    const password = document.getElementById('creditPassword').value.trim();
-    if (!username || !password) {
-        showNotification('⚠️ הזן שם משתמש וסיסמה', 'warning');
-        return;
-    }
-
-    // Close the input modal and show progress
-    closeModal('creditCardModal');
-    showCreditProgress();
+    closeModal(modalId);
+    showFinProgress();
 
     try {
-        // ── Stage 1: Connecting ──
-        setCreditStage(1, { icon: '🔐', title: 'מתחבר לחברת האשראי...', sub: 'מאמת פרטי התחברות' });
-        await delay(3000);
+        const user = window.firebaseAuth?.currentUser;
+        log(`חברה: ${companyId}`, 'info', '🏦');
+        log(`currentUser: ${user ? user.email : 'null'}`, user ? 'success' : 'error', user ? '👤' : '❌');
+        if (!user) { hideFinProgress(); showNotification('❌ יש להתחבר לחשבון תחילה', 'error'); return; }
 
-        // ── Stage 2: Fetching data ──
-        setCreditStage(2, { icon: '📡', title: 'שולף נתוני עסקאות...', sub: 'טוען פעולות אחרונות — זה לוקח רגע' });
+        const userId = user.uid;
+        const jobId  = 'job_' + Date.now();
 
-        // Call Firebase Function if available
-        let transactions = [];
-        if (window.firebaseApp) {
-            try {
-                const { getFunctions, httpsCallable } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-functions.js');
-                // ⚠️ Must match the region where the function is deployed (me-west1 = Tel Aviv)
-                const functions = getFunctions(window.firebaseApp, 'me-west1');
-                const fetchAccountData = httpsCallable(functions, 'fetchAccountData', { timeout: 300000 });
+        setFinStage(1, '🔐', 'שולח לסנכרון...', 'מפעיל GitHub Actions', '15%');
 
-                const result = await fetchAccountData({
-                    companyId: selectedCreditCompany,   // server expects 'companyId' not 'company'
-                    username,
-                    password
-                });
-                transactions = result.data?.transactions || [];
-            } catch (fnErr) {
-                console.error('Firebase Function error:', fnErr);
-                // Show the real error so we can debug
-                const errMsg = fnErr?.message || fnErr?.code || JSON.stringify(fnErr);
-                showNotification('⚠️ שגיאת Function: ' + errMsg, 'warning');
-                // Fall back to demo transactions
-                transactions = getDemoCreditTransactions(selectedCreditCompany);
+        // ── שלח ל-GitHub Actions ──────────────────────────────────
+        const GITHUB_TOKEN = window.GITHUB_PAT || '';
+        const REPO         = 'ronmailx-boop/Shopping-list';
+
+        if (!GITHUB_TOKEN) {
+            log('⚠️ חסר GITHUB_PAT — עיין בהגדרות', 'error', '❌');
+            hideFinProgress();
+            showNotification('❌ חסר GitHub Token — הגדר GITHUB_PAT', 'error');
+            return;
+        }
+
+        const payload = {
+            event_type: 'bank-sync',
+            client_payload: {
+                userId,
+                jobId,
+                companyId,
+                username:  credentials.username  || credentials.userCode || '',
+                password:  credentials.password  || '',
+                userCode:  credentials.userCode  || '',
+                id:        credentials.id        || '',
+                num:       credentials.num       || '',
             }
-        } else {
-            // No Firebase — use demo data so the UI flow is visible
-            transactions = getDemoCreditTransactions(selectedCreditCompany);
+        };
+
+        log('שולח ל-GitHub Actions...', 'info', '🚀');
+        const ghRes = await fetch(`https://api.github.com/repos/${REPO}/dispatches`, {
+            method: 'POST',
+            headers: {
+                'Authorization': `token ${GITHUB_TOKEN}`,
+                'Accept':        'application/vnd.github.v3+json',
+                'Content-Type':  'application/json',
+            },
+            body: JSON.stringify(payload),
+        });
+
+        if (!ghRes.ok) {
+            const errText = await ghRes.text();
+            log(`שגיאת GitHub: ${ghRes.status} — ${errText}`, 'error', '❌');
+            hideFinProgress();
+            showNotification('❌ שגיאת GitHub Actions', 'error');
+            return;
         }
 
-        // ── Stage 3: Processing ──
-        setCreditStage(3, { icon: '⚙️', title: 'מעבד ומייבא נתונים...', sub: 'בונה רשימה מהעסקאות שלך' });
-        await delay(1500);
+        log('GitHub Actions הופעל ✅', 'success', '🚀');
+        setFinStage(2, '⏳', 'ממתין לתוצאות...', 'זה לוקח עד 3 דקות', '40%');
 
-        // Finish progress bar
-        document.getElementById('creditProgressBar').style.width = '100%';
+        // ── המתן לתוצאות ב-Firestore ─────────────────────────────
+        const { doc, onSnapshot } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js');
+        const jobRef = doc(window.firebaseDb, 'bankSync', userId, 'jobs', jobId);
 
-        // Mark all stages done
+        const transactions = await new Promise((resolve, reject) => {
+            const TIMEOUT = 8 * 60 * 1000; // 8 דקות
+            let settled = false;
+
+            const timer = setTimeout(() => {
+                if (!settled) { settled = true; unsubscribe(); reject(new Error('timeout')); }
+            }, TIMEOUT);
+
+            const unsubscribe = onSnapshot(jobRef, (snap) => {
+                if (!snap.exists()) return;
+                const data = snap.data();
+                log(`סטטוס: ${data.status}`, 'info', '📊');
+
+                if (data.status === 'running') {
+                    setFinStage(2, '🔐', 'מתחבר לבנק...', 'GitHub Actions פועל', '55%');
+                }
+
+                if (data.status === 'done') {
+                    if (!settled) {
+                        settled = true;
+                        clearTimeout(timer);
+                        unsubscribe();
+                        // כל account → אובייקט נפרד עם מספר כרטיס + עסקאות ממוינות
+                        const accounts = (data.accounts || []).map(acc => {
+                            const txns = (acc.txns || [])
+                                .map(t => ({
+                                    name:   t.description || 'עסקה',
+                                    amount: Math.abs(t.amount || 0),
+                                    price:  Math.abs(t.amount || 0),
+                                    date:   t.date || '',
+                                }))
+                                .sort((a, b) => new Date(b.date) - new Date(a.date));
+                            return {
+                                accountNumber: acc.accountNumber || '',
+                                txns,
+                            };
+                        });
+                        const totalTxns = accounts.reduce((s, a) => s + a.txns.length, 0);
+                        log(`התקבלו ${totalTxns} עסקאות ב-${accounts.length} כרטיסים ✅`, 'success', '✅');
+                        resolve(accounts);
+                    }
+                }
+
+                if (data.status === 'error') {
+                    if (!settled) {
+                        settled = true;
+                        clearTimeout(timer);
+                        unsubscribe();
+                        reject(new Error(data.errorMessage || data.errorType || 'שגיאה'));
+                    }
+                }
+            }, (err) => {
+                if (!settled) { settled = true; clearTimeout(timer); unsubscribe(); reject(err); }
+            });
+        });
+
+        // ── הצג סיום ─────────────────────────────────────────────
+        setFinStage(3, '⚙️', 'מעבד נתונים...', 'עוד רגע...', '85%');
+        await new Promise(r => setTimeout(r, 800));
+
+        document.getElementById('finProgressBar').style.width = '100%';
+        document.getElementById('finProgressIcon').textContent = '✅';
+        document.getElementById('finProgressTitle').textContent = 'הושלם בהצלחה!';
+        document.getElementById('finProgressSub').textContent = `יובאו ${transactions.length} עסקאות`;
         for (let i = 1; i <= 3; i++) {
-            const el  = document.getElementById('stage' + i);
-            const dot = document.getElementById('dot' + i);
-            el.classList.remove('active');
-            el.classList.add('done');
-            dot.textContent = '✓';
+            document.getElementById('finDot' + i).textContent = '✓';
+            document.getElementById('finDot' + i).style.background = '#7367f0';
+            document.getElementById('finDot' + i).style.color = 'white';
         }
-        document.getElementById('progressIcon').textContent  = '✅';
-        document.getElementById('progressTitle').textContent  = 'הושלם בהצלחה!';
-        document.getElementById('progressSubtitle').textContent = 'הנתונים יובאו לרשימה';
-
-        await delay(1200);
-        hideCreditProgress();
+        await new Promise(r => setTimeout(r, 1000));
+        hideFinProgress();
 
         if (transactions.length > 0) {
-            importCreditTransactions(transactions);
+            // כל account+חודש מקבל רשימה נפרדת
+            const MONTHS_HE = ['ינואר','פברואר','מרץ','אפריל','מאי','יוני','יולי','אוגוסט','ספטמבר','אוקטובר','נובמבר','דצמבר'];
+            let totalImported = 0;
+            transactions.forEach(acc => {
+                if (!acc.txns || acc.txns.length === 0) return;
+                const cardSuffix = acc.accountNumber ? ` ${acc.accountNumber}` : '';
+                // קבץ לפי חודש
+                const byMonth = {};
+                acc.txns.forEach(t => {
+                    const d = new Date(t.date);
+                    const key = `${d.getFullYear()}-${d.getMonth()}`;
+                    if (!byMonth[key]) byMonth[key] = { year: d.getFullYear(), month: d.getMonth(), txns: [] };
+                    byMonth[key].txns.push(t);
+                });
+                // מיון מחודש חדש לישן
+                Object.values(byMonth)
+                    .sort((a, b) => b.year !== a.year ? b.year - a.year : b.month - a.month)
+                    .forEach(({ year, month, txns }) => {
+                        const monthLabel = `${MONTHS_HE[month]} ${year}`;
+                        const listName = `${nameLabel}${cardSuffix} - ${monthLabel}`;
+                        // מיין עסקאות מחדש לישן
+                        txns.sort((a, b) => new Date(b.date) - new Date(a.date));
+                        importFinancialTransactions(txns, listName);
+                        totalImported += txns.length;
+                    });
+            });
+            if (totalImported === 0) showNotification('ℹ️ לא נמצאו עסקאות', 'warning');
         } else {
-            showNotification('ℹ️ לא נמצאו עסקאות חדשות', 'warning');
+            showNotification('ℹ️ לא נמצאו עסקאות', 'warning');
         }
 
     } catch (err) {
-        console.error('Credit card fetch error:', err);
-        hideCreditProgress();
-        showNotification('❌ שגיאה בשליפת הנתונים: ' + (err.message || 'שגיאה לא ידועה'), 'error');
+        const msg = err.message === 'timeout' ? 'פסק הזמן — נסה שוב' : err.message;
+        log(`שגיאה: ${msg}`, 'error', '💥');
+        hideFinProgress();
+        showNotification('❌ ' + msg, 'error');
     }
 }
 
-/** Returns realistic demo transactions for the selected credit company */
-function getDemoCreditTransactions(company) {
-    const companyNames = { max: 'Max', cal: 'Cal', leumi: 'לאומי קארד', isracard: 'ישראכרט' };
-    const label = companyNames[company] || 'אשראי';
-    const today = new Date();
-    const fmt = d => d.toLocaleDateString('he-IL');
-
-    const mkDate = daysAgo => {
-        const d = new Date(today);
-        d.setDate(d.getDate() - daysAgo);
-        return fmt(d);
-    };
-
-    return [
-        { name: 'שופרסל',            amount: 312.50, date: mkDate(1)  },
-        { name: 'מקדונלד\'ס',        amount: 87.90,  date: mkDate(2)  },
-        { name: 'YES טלוויזיה',      amount: 229.00, date: mkDate(3)  },
-        { name: 'אמזון',             amount: 156.30, date: mkDate(4)  },
-        { name: 'פנגו חניה',         amount: 42.00,  date: mkDate(5)  },
-        { name: 'כל-בו',             amount: 198.70, date: mkDate(6)  },
-        { name: 'גט טקסי',           amount: 64.00,  date: mkDate(7)  },
-        { name: 'אושר עד',           amount: 275.40, date: mkDate(8)  },
-        { name: 'נטפליקס',           amount: 52.90,  date: mkDate(9)  },
-        { name: 'תחנת דלק פז',       amount: 340.00, date: mkDate(10) },
-    ];
+// ── Credit card fetch ──
+async function startCreditCardFetch() {
+    if (!selectedCreditCompany) { showNotification('⚠️ בחר חברת אשראי תחילה', 'warning'); return; }
+    const username = document.getElementById('creditUsername').value.trim();
+    const password = document.getElementById('creditPassword').value.trim();
+    if (!username || !password) { showNotification('⚠️ הזן שם משתמש וסיסמה', 'warning'); return; }
+    await runFinancialFetch({
+        companyId: selectedCreditCompany,
+        credentials: { username, password },
+        modalId: 'creditCardModal',
+        nameLabel: '💳 ' + (CREDIT_NAMES[selectedCreditCompany] || 'אשראי')
+    });
 }
 
-/** Creates a list from credit card transactions */
-function importCreditTransactions(transactions) {
-    const companyNames = { max: 'Max', cal: 'Cal', leumi: 'לאומי קארד', isracard: 'ישראכרט' };
-    const company = companyNames[selectedCreditCompany] || 'אשראי';
+// ── Bank fetch ──
+async function startBankFetch() {
+    if (!selectedBank) { showNotification('⚠️ בחר בנק תחילה', 'warning'); return; }
+    const cfg = BANK_CONFIG[selectedBank];
+    const field1Val = document.getElementById('bankField1').value.trim();
+    const password  = document.getElementById('bankConnectPassword').value.trim();
+    const field2Val = document.getElementById('bankField2').value.trim();
+    if (!field1Val || !password) { showNotification('⚠️ הזן את כל פרטי ההתחברות', 'warning'); return; }
+    if (cfg.field2 && !field2Val) { showNotification('⚠️ ' + cfg.field2Label + ' נדרש', 'warning'); return; }
+    const credentials = { password };
+    credentials[cfg.field1] = field1Val;
+    if (cfg.field2) credentials[cfg.field2] = field2Val;
+    await runFinancialFetch({
+        companyId: selectedBank,
+        credentials,
+        modalId: 'bankConnectModal',
+        nameLabel: '🏛️ ' + (BANK_NAMES[selectedBank] || 'בנק')
+    });
+}
+
+// ── Import transactions to list ──
+function importFinancialTransactions(transactions, nameLabel) {
     const today = new Date().toLocaleDateString('he-IL');
     const newId = 'L' + Date.now();
-
     const items = transactions.map(t => ({
         name: t.name || t.description || 'עסקה',
         price: parseFloat(t.amount || t.price || 0),
-        qty: 1,
-        checked: false,
-        isPaid: true,
+        qty: 1, checked: false, isPaid: true,
         category: detectCategory(t.name || t.description || ''),
-        note: t.date ? '📅 ' + t.date : '',
-        dueDate: '',
-        paymentUrl: '',
+        note: t.date ? '📅 ' + new Date(t.date).toLocaleDateString('he-IL') : '',
+        dueDate: '', paymentUrl: '',
         lastUpdated: Date.now(),
         cloudId: 'item_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9)
     }));
-
-    db.lists[newId] = {
-        name: '💳 ' + company + ' - ' + today,
-        url: '',
-        budget: 0,
-        isTemplate: false,
-        items
-    };
+    db.lists[newId] = { name: nameLabel + ' - ' + today, url: '', budget: 0, isTemplate: false, items };
     db.currentId = newId;
     activePage = 'lists';
     save();
-    showNotification('✅ יובאו ' + items.length + ' עסקאות מ' + company + '!');
+    showNotification('✅ יובאו ' + items.length + ' רשומות מ' + nameLabel + '!');
 }
 
-/** Simple promise-based delay */
-function delay(ms) {
-    return new Promise(resolve => setTimeout(resolve, ms));
+// ── Dynamic padding for list name bar ──
+function adjustContentPadding() {
+    const bar = document.getElementById('listNameBar');
+    const spacer = document.getElementById('barSpacer');
+    if (bar && spacer) {
+        const barRect = bar.getBoundingClientRect();
+        // גובה הבר + מיקומו מהחלק העליון של הדף
+        const totalHeight = barRect.bottom + 8;
+        spacer.style.height = totalHeight + 'px';
+        document.documentElement.style.setProperty('--lnb-height', barRect.height + 'px');
+    }
 }
 
+// ResizeObserver — עוקב אחרי גובה הבר בזמן אמת
+(function initBarObserver() {
+    const bar = document.getElementById('listNameBar');
+    if (!bar) { setTimeout(initBarObserver, 100); return; }
+    const observer = new ResizeObserver(() => adjustContentPadding());
+    observer.observe(bar);
+    adjustContentPadding();
+    // רץ שוב אחרי טעינת פונטים
+    setTimeout(adjustContentPadding, 100);
+    setTimeout(adjustContentPadding, 400);
+    setTimeout(adjustContentPadding, 800);
+})();
+
+// ── Compact Mode ──
+let compactMode = false;
+
+function toggleCompactMode() {
+    compactMode = !compactMode;
+    const btn = document.getElementById('compactModeBtn');
+    if (btn) {
+        btn.style.background = compactMode ? 'rgba(255,255,255,0.4)' : 'rgba(255,255,255,0.2)';
+        btn.style.borderColor = compactMode ? 'white' : 'rgba(255,255,255,0.3)';
+    }
+    render();
+}
+
+// ── Legacy startBankSync stub ──
+async function startBankSync() { startBankFetch(); }
+
+function renderBankData() {
+    const container = document.getElementById('bankDataContainer');
+    if (!container) return;
+    container.innerHTML = '<div class="text-center text-gray-400 py-10 bg-white rounded-3xl shadow-sm border border-gray-100"><span class="text-5xl block mb-4">🏦</span><p class="font-medium">השתמש בכפתור פיננסי לשליפת נתונים.</p></div>';
+}
+
+
+
+// ══ LIST NAME BAR — ACTIONS PANEL ══
+let _listPanelOpen = false;
+
+function _positionActionsPanel() {
+    const bar   = document.getElementById('listNameBar');
+    const panel = document.getElementById('listActionsPanel');
+    if (!bar || !panel) return;
+    const rect = bar.getBoundingClientRect();
+    panel.style.top = rect.bottom + 'px';
+}
+
+function toggleListActionsPanel() {
+    _listPanelOpen ? closeListActionsPanel() : openListActionsPanel();
+}
+
+function openListActionsPanel() {
+    _listPanelOpen = true;
+    _positionActionsPanel();
+    const panel = document.getElementById('listActionsPanel');
+    const arrow = document.getElementById('lnbArrow');
+    if (panel) panel.classList.add('open');
+    if (arrow) arrow.classList.add('open');
+}
+
+function closeListActionsPanel() {
+    _listPanelOpen = false;
+    const panel = document.getElementById('listActionsPanel');
+    const arrow = document.getElementById('lnbArrow');
+    if (panel) panel.classList.remove('open');
+    if (arrow) arrow.classList.remove('open');
+}
+
+// עדכון מיקום הפאנל והבר לפי גובה ה-header בפועל
+function _positionListNameBar() {
+    const header = document.querySelector('.app-header');
+    const bar    = document.getElementById('listNameBar');
+    if (!header || !bar) return;
+    const headerBottom = header.getBoundingClientRect().bottom;
+    bar.style.top = headerBottom + 'px';
+    if (_listPanelOpen) _positionActionsPanel();
+}
+
+window.addEventListener('resize', _positionListNameBar);
+document.addEventListener('DOMContentLoaded', () => {
+    setTimeout(_positionListNameBar, 100);
+});
+setTimeout(_positionListNameBar, 300);
+
+// סגירה בלחיצה מחוץ לפאנל
+document.addEventListener('click', function(e) {
+    if (!_listPanelOpen) return;
+    const arrow  = document.getElementById('lnbArrow');
+    const panel  = document.getElementById('listActionsPanel');
+    if (arrow && !arrow.contains(e.target) && panel && !panel.contains(e.target)) {
+        closeListActionsPanel();
+    }
+});
+
+// ── עדכון תווית כפתור + לפי טאב ──
+function _updatePlusBtnLabel() {
+    const lbl = document.getElementById('plusBtnLabel');
+    if (!lbl) return;
+    lbl.textContent = (activePage === 'summary') ? 'רשימה חדשה' : 'הוסף מוצר';
+}
+
+// Hook into showPage
+const _origShowPage = window.showPage || null;
+if (typeof showPage === 'function') {
+    const __origShowPage = showPage;
+    window.showPage = function(p) {
+        __origShowPage(p);
+        _updatePlusBtnLabel();
+    };
+}
+// Init on load
+document.addEventListener('DOMContentLoaded', _updatePlusBtnLabel);
+setTimeout(_updatePlusBtnLabel, 500);
