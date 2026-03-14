@@ -3711,7 +3711,14 @@ ${error.message}
     });
 
     function tapTab(page) {
-        if (!_appReady) return; // מניעת הפעלה בזמן טעינה (pull-to-refresh)
+        if (!_appReady) {
+            if (typeof dbgLog === 'function') dbgLog('🚫 tapTab("' + page + '") חסום — appReady=false', '#ff4444');
+            return;
+        }
+        if (typeof dbgLog === 'function') {
+            var st = (new Error()).stack.split('\n').slice(1,4).join(' ← ').replace(/https?:\/\/[^/]+/g,'').substring(0,120);
+            dbgLog('👆 tapTab("' + page + '") | ' + st, '#ffaa00');
+        }
         var actions = document.getElementById('barActionsRow');
         var stats   = document.getElementById('barStatsRow');
         if (_activePage === page) {
