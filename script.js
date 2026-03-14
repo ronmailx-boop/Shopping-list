@@ -782,23 +782,25 @@ let compactMode = false;
 
 // ========== DEBUG PANEL ==========
 (function initDebugPanel() {
-    // יצירת הפאנל
+    // יצירת הפאנל — ניתן לגרירה
     const panel = document.createElement('div');
     panel.id = 'vplus-debug-panel';
     panel.style.cssText = `
-        position:fixed; bottom:80px; left:0; right:0; z-index:999999;
-        background:rgba(0,0,0,0.92); color:#00ff88; font-family:monospace;
-        font-size:11px; max-height:40vh; overflow-y:auto;
-        border-top:2px solid #00ff88; display:none; direction:ltr;
-        padding:4px;
+        position:fixed; top:80px; left:4px; width:calc(100vw - 8px);
+        z-index:999999; background:rgba(0,0,0,0.92); color:#00ff88;
+        font-family:monospace; font-size:11px; max-height:45vh; overflow-y:auto;
+        border:2px solid #00ff88; border-radius:10px; display:none; direction:ltr;
+        padding:4px; box-shadow:0 4px 24px rgba(0,255,136,0.2);
+        touch-action:none;
     `;
 
     const toolbar = document.createElement('div');
-    toolbar.style.cssText = 'display:flex;gap:6px;padding:4px 6px;background:#111;position:sticky;top:0;z-index:1;';
+    toolbar.style.cssText = 'display:flex;gap:6px;padding:4px 6px;background:#111;position:sticky;top:0;z-index:1;border-radius:8px 8px 0 0;cursor:grab;user-select:none;';
     toolbar.innerHTML = `
-        <span style="color:#fff;font-weight:bold;flex:1">🐛 VPlus Debug</span>
-        <button onclick="dbgCopyAll()" style="background:#7367f0;color:white;border:none;border-radius:4px;padding:2px 8px;font-size:11px;cursor:pointer">📋 העתק לוג</button>
-        <button onclick="dbgClear()" style="background:#555;color:white;border:none;border-radius:4px;padding:2px 8px;font-size:11px;cursor:pointer">🗑 Clear</button>
+        <span style="color:#00ff88;font-size:14px;margin-left:2px;">⠿</span>
+        <span style="color:#fff;font-weight:bold;flex:1;font-size:11px;">🐛 VPlus Debug</span>
+        <button onclick="dbgCopyAll()" style="background:#7367f0;color:white;border:none;border-radius:4px;padding:2px 8px;font-size:11px;cursor:pointer">📋 העתק</button>
+        <button onclick="dbgClear()" style="background:#555;color:white;border:none;border-radius:4px;padding:2px 8px;font-size:11px;cursor:pointer">🗑</button>
         <button onclick="document.getElementById('vplus-debug-panel').style.display='none'" style="background:#c00;color:white;border:none;border-radius:4px;padding:2px 8px;font-size:11px;cursor:pointer">✕</button>
     `;
 
@@ -810,21 +812,82 @@ let compactMode = false;
     panel.appendChild(log);
     document.body.appendChild(panel);
 
-    // כפתור פתיחה
+    // גרירה למובייל ודסקטופ
+    let dragStartX, dragStartY, panelStartX, panelStartY, isDragging = false;
+    function onDragStart(e) {
+        isDragging = true;
+        const touch = e.touches ? e.touches[0] : e;
+        dragStartX = touch.clientX;
+        dragStartY = touch.clientY;
+        const rect = panel.getBoundingClientRect();
+        panelStartX = rect.left;
+        panelStartY = rect.top;
+        toolbar.style.cursor = 'grabbing';
+        e.preventDefault();
+    }
+    function onDragMove(e) {
+        if (!isDragging) return;
+        const touch = e.touches ? e.touches[0] : e;
+        const dx = touch.clientX - dragStartX;
+        const dy = touch.clientY - dragStartY;
+        const newX = Math.max(0, Math.min(window.innerWidth - panel.offsetWidth, panelStartX + dx));
+        const newY = Math.max(0, Math.min(window.innerHeight - 60, panelStartY + dy));
+        panel.style.left = newX + 'px';
+        panel.style.top = newY + 'px';
+        e.preventDefault();
+    }
+    function onDragEnd() { isDragging = false; toolbar.style.cursor = 'grab'; }
+    toolbar.addEventListener('touchstart', onDragStart, { passive: false });
+    toolbar.addEventListener('touchmove', onDragMove, { passive: false });
+    toolbar.addEventListener('touchend', onDragEnd);
+    toolbar.addEventListener('mousedown', onDragStart);
+    document.addEventListener('mousemove', onDragMove);
+    document.addEventListener('mouseup', onDragEnd);
+
+    // כפתור פתיחה — גם ניתן לגרירה
     const openBtn = document.createElement('button');
     openBtn.id = 'vplus-debug-btn';
     openBtn.textContent = '🐛';
     openBtn.style.cssText = `
-        position:fixed; bottom:140px; left:8px; z-index:999998;
+        position:fixed; bottom:160px; left:8px; z-index:999998;
         width:36px; height:36px; border-radius:50%;
         background:rgba(0,0,0,0.6); color:#00ff88;
         border:1.5px solid #00ff88; font-size:16px;
         cursor:pointer; display:flex; align-items:center; justify-content:center;
+        touch-action:none;
     `;
-    openBtn.onclick = function() {
+    // גרירה לכפתור עצמו
+    let btnDragging = false, btnStartX, btnStartY, btnPosX = 8, btnPosY;
+    openBtn.addEventListener('touchstart', function(e) {
+        btnDragging = false;
+        const t = e.touches[0];
+        btnStartX = t.clientX; btnStartY = t.clientY;
+        btnPosY = openBtn.getBoundingClientRect().top;
+    }, { passive: true });
+    openBtn.addEventListener('touchmove', function(e) {
+        const t = e.touches[0];
+        const dx = Math.abs(t.clientX - btnStartX), dy = Math.abs(t.clientY - btnStartY);
+        if (dx > 5 || dy > 5) {
+            btnDragging = true;
+            const newX = Math.max(0, Math.min(window.innerWidth - 40, t.clientX - 18));
+            const newY = Math.max(0, Math.min(window.innerHeight - 40, t.clientY - 18));
+            openBtn.style.left = newX + 'px';
+            openBtn.style.top = newY + 'px';
+            openBtn.style.bottom = 'auto';
+            e.preventDefault();
+        }
+    }, { passive: false });
+    openBtn.addEventListener('touchend', function() {
+        if (!btnDragging) {
+            const p = document.getElementById('vplus-debug-panel');
+            p.style.display = p.style.display === 'none' ? 'block' : 'none';
+        }
+        btnDragging = false;
+    });
+    openBtn.onclick = function(e) {
+        if (btnDragging) return;
         const p = document.getElementById('vplus-debug-panel');
         p.style.display = p.style.display === 'none' ? 'block' : 'none';
-        if (p.style.display === 'block') dbgSnapshot();
     };
     document.body.appendChild(openBtn);
 
