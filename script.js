@@ -751,6 +751,15 @@ let db = JSON.parse(localStorage.getItem('BUDGET_FINAL_V28')) || {
     categoryMemory: {}
 };
 
+// ── Guard: וודא תקינות db אחרי טעינה מ-localStorage ──
+if (!db.lists || Object.keys(db.lists).length === 0) {
+    db.lists = { 'L1': { name: 'הרשימה שלי', url: '', budget: 0, isTemplate: false, items: [] } };
+    db.currentId = 'L1';
+}
+if (!db.lists[db.currentId]) {
+    db.currentId = Object.keys(db.lists)[0];
+}
+
 let isLocked = true;
 let activePage = db.lastActivePage || 'lists';
 let currentEditIdx = null;
@@ -769,6 +778,14 @@ if (!db.categoryMemory) db.categoryMemory = {};
 
 // ========== Core Functions ==========
 function save() {
+    // ── Guard: וודא תמיד שיש לפחות רשימה אחת ו-currentId תקין ──
+    if (!db.lists || Object.keys(db.lists).length === 0) {
+        db.lists = { 'L1': { name: 'הרשימה שלי', url: '', budget: 0, isTemplate: false, items: [] } };
+        db.currentId = 'L1';
+    }
+    if (!db.lists[db.currentId]) {
+        db.currentId = Object.keys(db.lists)[0];
+    }
     db.lastActivePage = activePage;
     db.lastSync = Date.now();
     localStorage.setItem('BUDGET_FINAL_V28', JSON.stringify(db));
@@ -4894,6 +4911,16 @@ function mergeCloudWithLocal(cloudData, localData) {
             }
         }
     });
+
+    // ── Guard: וודא currentId תקין ──
+    if (!merged.currentId || !merged.lists[merged.currentId]) {
+        merged.currentId = Object.keys(merged.lists)[0] || 'L1';
+    }
+    // ── Guard: וודא שיש לפחות רשימה אחת ──
+    if (!merged.lists || Object.keys(merged.lists).length === 0) {
+        merged.lists = { 'L1': { name: 'הרשימה שלי', url: '', budget: 0, isTemplate: false, items: [] } };
+        merged.currentId = 'L1';
+    }
 
     return merged;
 }
