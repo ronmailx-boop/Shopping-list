@@ -995,6 +995,11 @@ function toggleDarkMode() {
 }
 
 function showPage(p) {
+    if (typeof dbgLog === 'function') {
+        const caller = (new Error()).stack.split('\n').slice(2, 5).join(' ← ');
+        const short = caller.replace(/https?:\/\/[^/]+/g, '').replace(/\s+/g, ' ').substring(0, 120);
+        dbgLog(`📄 showPage("${p}") | ${short}`, '#ffaa00');
+    }
     activePage = p;
     // פתיחת הבר אוטומטית ועדכון טאבי הניווט בבר הפתוח
     if (p === 'lists' || p === 'summary') {
@@ -2291,8 +2296,8 @@ function generateItemMetadataHTML(item, idx) {
 
 function render() {
     if (typeof dbgLog === 'function') {
-        const caller = (new Error()).stack.split('\n')[2] || '';
-        const short = caller.replace(/.*at /, '').replace(/http.*/, '').trim().substring(0, 40);
+        const caller = (new Error()).stack.split('\n').slice(2, 5).join(' ← ');
+        const short = caller.replace(/https?:\/\/[^/]+/g, '').replace(/\s+/g, ' ').substring(0, 120);
         dbgLog(`🎨 RENDER — activePage:"${activePage}" lists:${Object.keys(db.lists||{}).length} | ${short}`, '#ff88ff');
     }
     const container = document.getElementById(activePage === 'lists' ? 'itemsContainer' : activePage === 'summary' ? 'summaryContainer' : null);
