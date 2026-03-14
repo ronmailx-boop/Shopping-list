@@ -1,4 +1,4 @@
-localIsNewer// Firebase methods are attached to window in index.html
+// Firebase methods are attached to window in index.html
 let unsubscribeSnapshot = null;
 let isSyncing = false;
 let isConnected = false;
