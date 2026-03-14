@@ -776,6 +776,129 @@ if (!db.customCategories) db.customCategories = [];
 if (!db.categoryMemory) db.categoryMemory = {};
 
 
+// ========== DEBUG PANEL ==========
+(function initDebugPanel() {
+    // יצירת הפאנל
+    const panel = document.createElement('div');
+    panel.id = 'vplus-debug-panel';
+    panel.style.cssText = `
+        position:fixed; bottom:80px; left:0; right:0; z-index:999999;
+        background:rgba(0,0,0,0.92); color:#00ff88; font-family:monospace;
+        font-size:11px; max-height:40vh; overflow-y:auto;
+        border-top:2px solid #00ff88; display:none; direction:ltr;
+        padding:4px;
+    `;
+
+    const toolbar = document.createElement('div');
+    toolbar.style.cssText = 'display:flex;gap:6px;padding:4px 6px;background:#111;position:sticky;top:0;z-index:1;';
+    toolbar.innerHTML = `
+        <span style="color:#fff;font-weight:bold;flex:1">🐛 VPlus Debug</span>
+        <button onclick="dbgSnapshot()" style="background:#7367f0;color:white;border:none;border-radius:4px;padding:2px 8px;font-size:11px;cursor:pointer">📸 Snapshot</button>
+        <button onclick="dbgClear()" style="background:#555;color:white;border:none;border-radius:4px;padding:2px 8px;font-size:11px;cursor:pointer">🗑 Clear</button>
+        <button onclick="document.getElementById('vplus-debug-panel').style.display='none'" style="background:#c00;color:white;border:none;border-radius:4px;padding:2px 8px;font-size:11px;cursor:pointer">✕</button>
+    `;
+
+    const log = document.createElement('div');
+    log.id = 'vplus-debug-log';
+    log.style.cssText = 'padding:4px 8px;';
+
+    panel.appendChild(toolbar);
+    panel.appendChild(log);
+    document.body.appendChild(panel);
+
+    // כפתור פתיחה
+    const openBtn = document.createElement('button');
+    openBtn.id = 'vplus-debug-btn';
+    openBtn.textContent = '🐛';
+    openBtn.style.cssText = `
+        position:fixed; bottom:140px; left:8px; z-index:999998;
+        width:36px; height:36px; border-radius:50%;
+        background:rgba(0,0,0,0.6); color:#00ff88;
+        border:1.5px solid #00ff88; font-size:16px;
+        cursor:pointer; display:flex; align-items:center; justify-content:center;
+    `;
+    openBtn.onclick = function() {
+        const p = document.getElementById('vplus-debug-panel');
+        p.style.display = p.style.display === 'none' ? 'block' : 'none';
+        if (p.style.display === 'block') dbgSnapshot();
+    };
+    document.body.appendChild(openBtn);
+
+    // פונקציות ציבוריות
+    window.dbgLog = function(msg, color) {
+        const el = document.getElementById('vplus-debug-log');
+        if (!el) return;
+        const time = new Date().toLocaleTimeString('he-IL');
+        const line = document.createElement('div');
+        line.style.cssText = `border-bottom:1px solid #333;padding:2px 0;color:${color||'#00ff88'}`;
+        line.textContent = `[${time}] ${msg}`;
+        el.insertBefore(line, el.firstChild);
+    };
+
+    window.dbgClear = function() {
+        const el = document.getElementById('vplus-debug-log');
+        if (el) el.innerHTML = '';
+    };
+
+    window.dbgSnapshot = function() {
+        try {
+            const raw = localStorage.getItem('BUDGET_FINAL_V28');
+            if (!raw) { dbgLog('❌ localStorage ריק לחלוטין!', '#ff4444'); return; }
+            const d = JSON.parse(raw);
+            const keys = Object.keys(d.lists || {});
+            dbgLog('━━━━━ SNAPSHOT ━━━━━', '#ffff00');
+            dbgLog(`currentId: "${d.currentId}"`, '#00ccff');
+            dbgLog(`lists (${keys.length}): ${keys.join(', ')||'(ריק!)'}`, keys.length===0?'#ff4444':'#00ff88');
+            keys.forEach(k => {
+                const l = d.lists[k];
+                dbgLog(`  [${k}] "${l.name}" → ${(l.items||[]).length} פריטים`, '#aaffaa');
+            });
+            dbgLog(`currentId קיים ברשימות? ${d.lists[d.currentId]?'✅':'❌ לא קיים!'}`, d.lists[d.currentId]?'#00ff88':'#ff4444');
+        } catch(e) {
+            dbgLog('❌ שגיאה ב-snapshot: ' + e.message, '#ff4444');
+        }
+    };
+
+    // Patch localStorage.setItem כדי ללכוד כל שמירה
+    const origSetItem = localStorage.setItem.bind(localStorage);
+    localStorage.setItem = function(key, value) {
+        origSetItem(key, value);
+        if (key === 'BUDGET_FINAL_V28') {
+            try {
+                const d = JSON.parse(value);
+                const keys = Object.keys(d.lists || {});
+                const caller = (new Error()).stack.split('\n')[2] || '';
+                const shortCaller = caller.replace(/.*at /, '').replace(/\(.*\)/, '').trim().substring(0, 60);
+                if (keys.length === 0) {
+                    dbgLog(`🚨 SAVE — רשימות ריקות! caller: ${shortCaller}`, '#ff0000');
+                } else {
+                    dbgLog(`💾 SAVE — lists: [${keys.join(', ')}] currentId:"${d.currentId}" | ${shortCaller}`, '#88ff88');
+                }
+            } catch(e) {}
+        }
+    };
+
+    // Patch localStorage.getItem
+    const origGetItem = localStorage.getItem.bind(localStorage);
+    localStorage.getItem = function(key) {
+        const val = origGetItem(key);
+        if (key === 'BUDGET_FINAL_V28') {
+            try {
+                const d = val ? JSON.parse(val) : null;
+                const keys = d ? Object.keys(d.lists || {}) : [];
+                if (!d || keys.length === 0) {
+                    dbgLog(`📖 LOAD — ${!d?'null/ריק':'רשימות ריקות!'} `, !d?'#ff8800':'#ff0000');
+                } else {
+                    dbgLog(`📖 LOAD — lists: [${keys.join(', ')}] currentId:"${d.currentId}"`, '#88aaff');
+                }
+            } catch(e) {}
+        }
+        return val;
+    };
+
+    dbgLog('🟢 Debug Panel פעיל — לחץ 🐛 לפתיחה', '#ffff00');
+})();
+
 // ========== Core Functions ==========
 function save() {
     // ── Guard: וודא תמיד שיש לפחות רשימה אחת ו-currentId תקין ──
