@@ -761,7 +761,8 @@ if (!db.lists[db.currentId]) {
 }
 
 let isLocked = true;
-let activePage = db.lastActivePage || 'lists';
+// תמיד להתחיל בטאב הרשימה — לא לשחזר summary/stats/bank שגורם לבלבול
+let activePage = 'lists';
 let currentEditIdx = null;
 let listToDelete = null;
 let sortableInstance = null;
@@ -10378,4 +10379,3 @@ if (typeof showPage === 'function') {
 // Init on load
 document.addEventListener('DOMContentLoaded', _updatePlusBtnLabel);
 setTimeout(_updatePlusBtnLabel, 500);
-
