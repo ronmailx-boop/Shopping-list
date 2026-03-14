@@ -778,6 +778,8 @@ if (!db.categoryMemory) db.categoryMemory = {};
 if (!db.selectedInSummary) db.selectedInSummary = [];
 
 
+let compactMode = false;
+
 // ========== DEBUG PANEL ==========
 (function initDebugPanel() {
     // יצירת הפאנל
@@ -10324,7 +10326,6 @@ function adjustContentPadding() {
 })();
 
 // ── Compact Mode ──
-let compactMode = false;
 
 function toggleCompactMode() {
     compactMode = !compactMode;
