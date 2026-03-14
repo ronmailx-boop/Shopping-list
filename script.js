@@ -844,52 +844,6 @@ let compactMode = false;
     document.addEventListener('mousemove', onDragMove);
     document.addEventListener('mouseup', onDragEnd);
 
-    // כפתור פתיחה — גם ניתן לגרירה
-    const openBtn = document.createElement('button');
-    openBtn.id = 'vplus-debug-btn';
-    openBtn.textContent = '🐛';
-    openBtn.style.cssText = `
-        position:fixed; bottom:160px; left:8px; z-index:999998;
-        width:36px; height:36px; border-radius:50%;
-        background:rgba(0,0,0,0.6); color:#00ff88;
-        border:1.5px solid #00ff88; font-size:16px;
-        cursor:pointer; display:flex; align-items:center; justify-content:center;
-        touch-action:none;
-    `;
-    // גרירה לכפתור עצמו
-    let btnDragging = false, btnStartX, btnStartY, btnPosX = 8, btnPosY;
-    openBtn.addEventListener('touchstart', function(e) {
-        btnDragging = false;
-        const t = e.touches[0];
-        btnStartX = t.clientX; btnStartY = t.clientY;
-        btnPosY = openBtn.getBoundingClientRect().top;
-    }, { passive: true });
-    openBtn.addEventListener('touchmove', function(e) {
-        const t = e.touches[0];
-        const dx = Math.abs(t.clientX - btnStartX), dy = Math.abs(t.clientY - btnStartY);
-        if (dx > 5 || dy > 5) {
-            btnDragging = true;
-            const newX = Math.max(0, Math.min(window.innerWidth - 40, t.clientX - 18));
-            const newY = Math.max(0, Math.min(window.innerHeight - 40, t.clientY - 18));
-            openBtn.style.left = newX + 'px';
-            openBtn.style.top = newY + 'px';
-            openBtn.style.bottom = 'auto';
-            e.preventDefault();
-        }
-    }, { passive: false });
-    openBtn.addEventListener('touchend', function() {
-        if (!btnDragging) {
-            const p = document.getElementById('vplus-debug-panel');
-            p.style.display = p.style.display === 'none' ? 'block' : 'none';
-        }
-        btnDragging = false;
-    });
-    openBtn.onclick = function(e) {
-        if (btnDragging) return;
-        const p = document.getElementById('vplus-debug-panel');
-        p.style.display = p.style.display === 'none' ? 'block' : 'none';
-    };
-    document.body.appendChild(openBtn);
 
     // פונקציות ציבוריות
     window.dbgLog = function(msg, color) {
@@ -963,7 +917,7 @@ let compactMode = false;
         return val;
     };
 
-    dbgLog('🟢 Debug Panel פעיל — לחץ 🐛 לפתיחה', '#ffff00');
+    dbgLog('🟢 Debug Panel פעיל — דאבל-טאפ על ⚙️ לפתיחה/סגירה', '#ffff00');
 })();
 
 // ========== Core Functions ==========
