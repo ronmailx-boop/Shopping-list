@@ -794,7 +794,7 @@ if (!db.categoryMemory) db.categoryMemory = {};
     toolbar.style.cssText = 'display:flex;gap:6px;padding:4px 6px;background:#111;position:sticky;top:0;z-index:1;';
     toolbar.innerHTML = `
         <span style="color:#fff;font-weight:bold;flex:1">🐛 VPlus Debug</span>
-        <button onclick="dbgSnapshot()" style="background:#7367f0;color:white;border:none;border-radius:4px;padding:2px 8px;font-size:11px;cursor:pointer">📸 Snapshot</button>
+        <button onclick="dbgCopyAll()" style="background:#7367f0;color:white;border:none;border-radius:4px;padding:2px 8px;font-size:11px;cursor:pointer">📋 העתק לוג</button>
         <button onclick="dbgClear()" style="background:#555;color:white;border:none;border-radius:4px;padding:2px 8px;font-size:11px;cursor:pointer">🗑 Clear</button>
         <button onclick="document.getElementById('vplus-debug-panel').style.display='none'" style="background:#c00;color:white;border:none;border-radius:4px;padding:2px 8px;font-size:11px;cursor:pointer">✕</button>
     `;
@@ -841,22 +841,22 @@ if (!db.categoryMemory) db.categoryMemory = {};
         if (el) el.innerHTML = '';
     };
 
-    window.dbgSnapshot = function() {
-        try {
-            const raw = localStorage.getItem('BUDGET_FINAL_V28');
-            if (!raw) { dbgLog('❌ localStorage ריק לחלוטין!', '#ff4444'); return; }
-            const d = JSON.parse(raw);
-            const keys = Object.keys(d.lists || {});
-            dbgLog('━━━━━ SNAPSHOT ━━━━━', '#ffff00');
-            dbgLog(`currentId: "${d.currentId}"`, '#00ccff');
-            dbgLog(`lists (${keys.length}): ${keys.join(', ')||'(ריק!)'}`, keys.length===0?'#ff4444':'#00ff88');
-            keys.forEach(k => {
-                const l = d.lists[k];
-                dbgLog(`  [${k}] "${l.name}" → ${(l.items||[]).length} פריטים`, '#aaffaa');
-            });
-            dbgLog(`currentId קיים ברשימות? ${d.lists[d.currentId]?'✅':'❌ לא קיים!'}`, d.lists[d.currentId]?'#00ff88':'#ff4444');
-        } catch(e) {
-            dbgLog('❌ שגיאה ב-snapshot: ' + e.message, '#ff4444');
+    window.dbgCopyAll = function() {
+        const el = document.getElementById('vplus-debug-log');
+        if (!el) return;
+        const lines = Array.from(el.querySelectorAll('div')).map(d => d.textContent).reverse().join('\n');
+        const full = '=== VPlus Debug Log ===\n' + lines;
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(full).then(() => dbgLog('✅ הועתק ללוח!', '#ffff00'));
+        } else {
+            const ta = document.createElement('textarea');
+            ta.value = full;
+            ta.style.cssText = 'position:fixed;left:-9999px;top:0';
+            document.body.appendChild(ta);
+            ta.select();
+            document.execCommand('copy');
+            document.body.removeChild(ta);
+            dbgLog('✅ הועתק (fallback)!', '#ffff00');
         }
     };
 
@@ -4900,12 +4900,20 @@ function setupFirestoreListener(user) {
             console.log('☁️ מסמך נמצא בענן');
             const cloudData = docSnap.data();
 
+            const cloudKeys = Object.keys(cloudData.lists || {});
+            const localKeys = Object.keys(db.lists || {});
+            if (typeof dbgLog === 'function') {
+                dbgLog(`☁️ FIREBASE — ענן: [${cloudKeys.join(',')||'ריק'}]`, '#ff9900');
+                dbgLog(`☁️ FIREBASE — מקומי: [${localKeys.join(',')||'ריק'}]`, '#ffcc00');
+            }
+
             // בדיקה: אם הענן ריק אבל יש נתונים מקומיים, העלה אותם לענן
             const cloudIsEmpty = !cloudData.lists || Object.keys(cloudData.lists).length === 0;
             const localHasData = db.lists && Object.keys(db.lists).length > 0;
 
             if (cloudIsEmpty && localHasData) {
                 console.log('☁️ הענן ריק אבל יש נתונים מקומיים - מעלה לענן');
+                if (typeof dbgLog === 'function') dbgLog('☁️ ענן ריק → מעלה מקומי לענן', '#ff9900');
                 syncToCloud();
                 return;
             }
@@ -4914,6 +4922,12 @@ function setupFirestoreListener(user) {
             if (JSON.stringify(cloudData) !== JSON.stringify(db)) {
                 console.log('🔄 מבצע סנכרון חכם מהענן...');
                 const mergedDb = mergeCloudWithLocal(cloudData, db);
+
+                const mergedKeys = Object.keys(mergedDb.lists || {});
+                if (typeof dbgLog === 'function') {
+                    dbgLog(`🔀 MERGE — תוצאה: [${mergedKeys.join(',')||'ריק!'}]`, mergedKeys.length===0?'#ff0000':'#00ffcc');
+                    if (!mergedDb.lists['L1']) dbgLog('🚨 L1 נעלמה אחרי MERGE!', '#ff0000');
+                }
 
                 // הגנה: וודא שקיים אובייקט רשימות
                 if (!mergedDb.lists || Object.keys(mergedDb.lists).length === 0) {
