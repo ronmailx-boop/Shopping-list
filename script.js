@@ -812,7 +812,8 @@ let compactMode = false;
     panel.appendChild(log);
     document.body.appendChild(panel);
 
-    // גרירה למובייל ודסקטופ
+    // גרירה — רק מהידית ⠿, לא מכל הtoolbar
+    const dragHandle = toolbar.querySelector('span');
     let dragStartX, dragStartY, panelStartX, panelStartY, isDragging = false;
     function onDragStart(e) {
         isDragging = true;
@@ -822,7 +823,6 @@ let compactMode = false;
         const rect = panel.getBoundingClientRect();
         panelStartX = rect.left;
         panelStartY = rect.top;
-        toolbar.style.cursor = 'grabbing';
         e.preventDefault();
     }
     function onDragMove(e) {
@@ -836,11 +836,11 @@ let compactMode = false;
         panel.style.top = newY + 'px';
         e.preventDefault();
     }
-    function onDragEnd() { isDragging = false; toolbar.style.cursor = 'grab'; }
-    toolbar.addEventListener('touchstart', onDragStart, { passive: false });
-    toolbar.addEventListener('touchmove', onDragMove, { passive: false });
-    toolbar.addEventListener('touchend', onDragEnd);
-    toolbar.addEventListener('mousedown', onDragStart);
+    function onDragEnd() { isDragging = false; }
+    dragHandle.addEventListener('touchstart', onDragStart, { passive: false });
+    dragHandle.addEventListener('touchmove', onDragMove, { passive: false });
+    dragHandle.addEventListener('touchend', onDragEnd);
+    dragHandle.addEventListener('mousedown', onDragStart);
     document.addEventListener('mousemove', onDragMove);
     document.addEventListener('mouseup', onDragEnd);
 
@@ -2788,7 +2788,7 @@ function render() {
                         <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;">
                             <div style="display:flex;align-items:center;gap:8px;flex:1;min-width:0;">
                                 <input type="checkbox" ${isSel ? 'checked' : ''} onchange="toggleSum('${id}')" class="w-7 h-7 accent-indigo-600" style="flex-shrink:0;">
-                                <span class="font-bold cursor-pointer" style="font-size:15px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" onclick="selectListAndImport('${id}'); showPage('lists')">
+                                <span class="font-bold cursor-pointer" style="font-size:15px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" onclick="selectListAndImport('${id}'); tapTab('lists')">
                                     ${templateBadge}${l.name}
                                 </span>
                             </div>
@@ -2800,7 +2800,7 @@ function render() {
                     <div class="flex justify-between items-center mb-4">
                         <div class="flex items-center gap-3 flex-1">
                             <input type="checkbox" ${isSel ? 'checked' : ''} onchange="toggleSum('${id}')" class="w-7 h-7 accent-indigo-600">
-                            <div class="flex-1 text-2xl font-bold cursor-pointer" onclick="selectListAndImport('${id}'); showPage('lists')">
+                            <div class="flex-1 text-2xl font-bold cursor-pointer" onclick="selectListAndImport('${id}'); tapTab('lists')">
                                 ${templateBadge}${l.name}
                             </div>
                         </div>
