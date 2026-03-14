@@ -911,7 +911,7 @@ function save() {
     if (!db.lists[db.currentId]) {
         db.currentId = Object.keys(db.lists)[0];
     }
-    db.lastActivePage = activePage;
+    db.lastActivePage = (activePage === "lists") ? "lists" : "lists"; // תמיד שמור lists
     db.lastSync = Date.now();
     localStorage.setItem('BUDGET_FINAL_V28', JSON.stringify(db));
     render();
@@ -4273,7 +4273,7 @@ function saveItemEdit() {
         initItemAlertTime(item);
         
         // שמירה מקומית תחילה
-        db.lastActivePage = activePage;
+        db.lastActivePage = "lists"; // תמיד שמור lists
         db.lastSync = Date.now();
         localStorage.setItem('BUDGET_FINAL_V28', JSON.stringify(db));
         
