@@ -2289,7 +2289,16 @@ function generateItemMetadataHTML(item, idx) {
 }
 
 function render() {
+    if (typeof dbgLog === 'function') {
+        const caller = (new Error()).stack.split('\n')[2] || '';
+        const short = caller.replace(/.*at /, '').replace(/http.*/, '').trim().substring(0, 40);
+        dbgLog(`🎨 RENDER — activePage:"${activePage}" lists:${Object.keys(db.lists||{}).length} | ${short}`, '#ff88ff');
+    }
     const container = document.getElementById(activePage === 'lists' ? 'itemsContainer' : activePage === 'summary' ? 'summaryContainer' : null);
+    if ((activePage === 'lists' || activePage === 'summary') && !container) {
+        if (typeof dbgLog === 'function') dbgLog(`🚨 RENDER — container הוא NULL! activePage="${activePage}"`, '#ff0000');
+        return;
+    }
     let total = 0, paid = 0;
 
     // tabLists ו-tabSummary הם עכשיו hit-areas שקופות מעל SVG — לא נגע בהם
