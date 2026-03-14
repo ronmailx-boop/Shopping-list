@@ -94,7 +94,7 @@
             transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
         }
         .bottom-bar.minimized {
-            transform: translateY(calc(100% - 52px));
+            transform: translateY(calc(100% - 8px));
         }
 
         /* Fixed tabs strip above bottom bar */
@@ -2199,7 +2199,7 @@
         console.log('🔵 Starting Firebase initialization...');
         
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import { getAuth, signInWithPopup, signInWithRedirect, GoogleAuthProvider, getRedirectResult, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+        import { getAuth, signInWithPopup, GoogleAuthProvider, getRedirectResult, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
         import { getFirestore, doc, setDoc, onSnapshot, getDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
         import { getFunctions, httpsCallable } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-functions.js";
 
@@ -2233,7 +2233,6 @@
             window.googleProvider = provider;
 
             window.signInWithPopup = signInWithPopup;
-            window.signInWithRedirect = signInWithRedirect;
             window.getRedirectResult = getRedirectResult;
             window.signOut = signOut;
             window.onAuthStateChanged = onAuthStateChanged;
@@ -3681,18 +3680,11 @@ ${error.message}
 
     <script>
     /* ═══ SVG TABS + DOUBLE TAP ═══ */
-    // BUG FIX: use window._activePage so showPage() in script.js can keep it in sync.
-    // Also restore the last active page so tapTab doesn't toggle stats-mode on first tap.
-    window._activePage = (function() {
-        try {
-            var saved = JSON.parse(localStorage.getItem('BUDGET_FINAL_V28'));
-            return (saved && saved.lastActivePage) ? saved.lastActivePage : 'lists';
-        } catch(e) { return 'lists'; }
-    })();
+    var _activePage = 'lists';
     var _activeMode = 'buttons'; // 'buttons' | 'stats'
 
     function updateSvgTabs(page) {
-        page = page || window._activePage;
+        page = page || _activePage;
         var sR = document.getElementById('svgShapeRight');
         var sL = document.getElementById('svgShapeLeft');
         var tR = document.getElementById('svgTextRight');
@@ -3716,19 +3708,17 @@ ${error.message}
     function tapTab(page) {
         var actions = document.getElementById('barActionsRow');
         var stats   = document.getElementById('barStatsRow');
-
-        // window._activePage is kept in sync by showPage() in script.js —
-        // no manual sync needed here anymore.
-        var isCompact = (typeof compactMode !== 'undefined') ? compactMode : false;
-        var alreadyHere = (window._activePage === page);
-
-        if (alreadyHere && !isCompact) {
+        if (_activePage === page) {
+            // לחיצה שנייה — החלף מצב
             _activeMode = (_activeMode === 'buttons') ? 'stats' : 'buttons';
         } else {
-            window._activePage = page;
+            // לחיצה ראשונה — עבור לטאב, תמיד כפתורים
+            _activePage = page;
             _activeMode = 'buttons';
+            window.activePage = page;
             if (typeof showPage === 'function') showPage(page);
         }
+        // עדכן תצוגה
         if (_activeMode === 'buttons') {
             if (actions) { actions.style.display='flex'; actions.style.padding='10px 12px 18px'; }
             if (stats)   stats.style.display = 'none';
@@ -3736,7 +3726,7 @@ ${error.message}
             if (actions) actions.style.display = 'none';
             if (stats)   { stats.style.display='flex'; stats.style.padding='10px 12px 18px'; }
         }
-        updateSvgTabs(window._activePage);
+        updateSvgTabs(_activePage);
     }
 
     var _listSearchOpen = false;
