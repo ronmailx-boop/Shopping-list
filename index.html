@@ -3729,6 +3729,11 @@ ${error.message}
             _activePage = page;
             _activeMode = 'buttons';
             window.activePage = page;
+            // עדכן DOM ישירות — לא לסמוך על שרשרת overrides
+            var pL = document.getElementById('pageLists');
+            var pS = document.getElementById('pageSummary');
+            if (page === 'lists')   { if(pL) pL.classList.remove('hidden'); if(pS) pS.classList.add('hidden'); }
+            if (page === 'summary') { if(pS) pS.classList.remove('hidden'); if(pL) pL.classList.add('hidden'); }
             if (typeof showPage === 'function') showPage(page);
         }
         // עדכן תצוגה
