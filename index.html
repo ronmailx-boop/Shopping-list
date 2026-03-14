@@ -3705,7 +3705,13 @@ ${error.message}
         }
     }
 
+    var _appReady = false;
+    document.addEventListener('DOMContentLoaded', function() {
+        setTimeout(function(){ _appReady = true; }, 800);
+    });
+
     function tapTab(page) {
+        if (!_appReady) return; // מניעת הפעלה בזמן טעינה (pull-to-refresh)
         var actions = document.getElementById('barActionsRow');
         var stats   = document.getElementById('barStatsRow');
         if (_activePage === page) {
