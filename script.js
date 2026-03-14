@@ -2554,6 +2554,20 @@ function render() {
                     </button>
                 ` : '';
 
+                if (compactMode) {
+                    div.style.padding = '10px 14px';
+                    div.innerHTML = `
+                        <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;">
+                            <div style="display:flex;align-items:center;gap:8px;flex:1;min-width:0;">
+                                <input type="checkbox" ${isSel ? 'checked' : ''} onchange="toggleSum('${id}')" class="w-7 h-7 accent-indigo-600" style="flex-shrink:0;">
+                                <span class="font-bold cursor-pointer" style="font-size:15px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" onclick="selectListAndImport('${id}'); showPage('lists')">
+                                    ${templateBadge}${l.name}
+                                </span>
+                            </div>
+                            <span class="font-black text-indigo-600" style="font-size:15px;flex-shrink:0;">₪${lT.toFixed(2)}</span>
+                        </div>
+                    `;
+                } else {
                 div.innerHTML = `
                     <div class="flex justify-between items-center mb-4">
                         <div class="flex items-center gap-3 flex-1">
@@ -2576,6 +2590,7 @@ function render() {
                         <span class="text-2xl font-black text-indigo-600">₪${lT.toFixed(2)}</span>
                     </div>
                 `;
+                }
                 container.appendChild(div);
             });
 
