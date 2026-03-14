@@ -775,6 +775,7 @@ let categorySortEnabled = localStorage.getItem('categorySortEnabled') === 'true'
 // Backwards compatibility: Initialize new properties if they don't exist
 if (!db.customCategories) db.customCategories = [];
 if (!db.categoryMemory) db.categoryMemory = {};
+if (!db.selectedInSummary) db.selectedInSummary = [];
 
 
 // ========== DEBUG PANEL ==========
@@ -5071,6 +5072,10 @@ function mergeCloudWithLocal(cloudData, localData) {
         merged.lists = { 'L1': { name: 'הרשימה שלי', url: '', budget: 0, isTemplate: false, items: [] } };
         merged.currentId = 'L1';
     }
+    // ── Guard: וודא שדות חיוניים ──
+    if (!merged.selectedInSummary) merged.selectedInSummary = [];
+    if (!merged.customCategories) merged.customCategories = [];
+    if (!merged.categoryMemory) merged.categoryMemory = {};
 
     return merged;
 }
@@ -10405,4 +10410,3 @@ if (typeof showPage === 'function') {
 // Init on load
 document.addEventListener('DOMContentLoaded', _updatePlusBtnLabel);
 setTimeout(_updatePlusBtnLabel, 500);
-
