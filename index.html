@@ -3706,6 +3706,8 @@ ${error.message}
     }
 
     function tapTab(page) {
+        // סנכרן עם window.activePage — מונע את הבעיה של "לא מגיב"
+        if (typeof window.activePage !== 'undefined') _activePage = window.activePage;
         var actions = document.getElementById('barActionsRow');
         var stats   = document.getElementById('barStatsRow');
         if (_activePage === page) {
