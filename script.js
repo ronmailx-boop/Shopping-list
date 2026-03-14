@@ -4945,7 +4945,10 @@ function setupFirestoreListener(user) {
 
                 db = mergedDb;
                 localStorage.setItem('BUDGET_FINAL_V28', JSON.stringify(db));
-                render();
+                // תמיד חזור לטאב הרשימה אחרי סנכרון ענן
+                activePage = 'lists';
+                db.lastActivePage = 'lists';
+                setTimeout(function(){ render(); }, 50);
                 showNotification('☁️ סונכרן מהענן!', 'success');
             }
         } else {
