@@ -2675,11 +2675,12 @@ function render() {
             const listKeys = Object.keys(db.lists);
             if (typeof dbgLog === 'function') dbgLog(`📋 summary loop — ${listKeys.length} רשימות, container=${container.id}, searchTerm="${searchTerm}"`, '#00ffff');
             Object.keys(db.lists).forEach(id => {
+                try {
                 const l = db.lists[id];
 
-                const matchesName = l.name.toLowerCase().includes(searchTerm);
-                const matchesURL = l.url && l.url.toLowerCase().includes(searchTerm);
-                const matchesItems = l.items.some(i => i.name.toLowerCase().includes(searchTerm));
+                const matchesName = l.name && l.name.toLowerCase().includes(searchTerm);
+                const matchesURL = l.url && typeof l.url === 'string' && l.url.toLowerCase().includes(searchTerm);
+                const matchesItems = Array.isArray(l.items) && l.items.some(i => i.name && i.name.toLowerCase().includes(searchTerm));
 
                 if (searchTerm && !matchesName && !matchesURL && !matchesItems) return;
 
@@ -2754,6 +2755,9 @@ function render() {
                 `;
                 }
                 container.appendChild(div);
+                } catch(e) {
+                    if (typeof dbgLog === 'function') dbgLog(`🚨 crash ברשימה "${id}": ${e.message}`, '#ff0000');
+                }
             });
             if (typeof dbgLog === 'function') dbgLog(`📋 summary סיום — container.children=${container.children.length}`, container.children.length===0?'#ff0000':'#00ffff');
             if (highlightedListId !== null) {
