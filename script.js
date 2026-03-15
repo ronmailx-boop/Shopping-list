@@ -10135,19 +10135,18 @@ function toggleCompactMode() {
     compactMode = !compactMode;
     compactActionsOpen = false;
 
-    // כפתור ☰ — צבע
     const btn = document.getElementById('compactModeBtn');
     if (btn) {
         btn.style.background = compactMode ? 'rgba(255,255,255,0.4)' : 'rgba(255,255,255,0.2)';
         btn.style.borderColor = compactMode ? 'white' : 'rgba(255,255,255,0.3)';
     }
 
-    const plusWrap    = document.getElementById('compactPlusWrap');
-    const actionsRow  = document.getElementById('compactActionsRow');
-    const barActions  = document.getElementById('barActionsRow');
-    const barStats    = document.getElementById('barStatsRow');
-    const tabsRow     = document.getElementById('tabsRowWrap');
-    const bar         = document.getElementById('smartBottomBar');
+    const plusWrap   = document.getElementById('compactPlusWrap');
+    const actionsRow = document.getElementById('compactActionsRow');
+    const barActions = document.getElementById('barActionsRow');
+    const barStats   = document.getElementById('barStatsRow');
+    const tabsRow    = document.getElementById('tabsRowWrap');
+    const bar        = document.getElementById('smartBottomBar');
 
     if (compactMode) {
         if (barActions) barActions.style.display = 'none';
@@ -10155,8 +10154,7 @@ function toggleCompactMode() {
         if (tabsRow)    tabsRow.style.display     = 'block';
         if (actionsRow) actionsRow.style.display  = 'none';
         if (plusWrap)   plusWrap.style.display    = 'block';
-        if (bar)        bar.style.overflow        = 'visible';
-        _resetCompactPlusIcon();
+        if (bar)        bar.style.overflow        = 'hidden';
     } else {
         if (barActions) { barActions.style.display = 'flex'; barActions.style.padding = '10px 12px 18px'; }
         if (barStats)   barStats.style.display   = 'none';
@@ -10167,35 +10165,40 @@ function toggleCompactMode() {
     }
 }
 
-function toggleCompactActions() {
-    compactActionsOpen = !compactActionsOpen;
-    const actionsRow = document.getElementById('compactActionsRow');
-    const tabsRow    = document.getElementById('tabsRowWrap');
-    const plusWrap   = document.getElementById('compactPlusWrap');
-    const plusBtn    = document.getElementById('compactPlusBtn');
-    const plusIcon   = document.getElementById('compactPlusIcon');
-
-    if (compactActionsOpen) {
+// לחיצה על + בcompact — לפי הטאב הפעיל
+function handleCompactPlus() {
+    const page = (typeof activePage !== 'undefined') ? activePage : 'lists';
+    if (page === 'summary') {
+        // רשימות שלי — רשימה חדשה
+        if (typeof wizardMode !== 'undefined' && wizardMode) {
+            wiz('newList', 'before', () => openModal('newListModal'));
+        } else {
+            openModal('newListModal');
+        }
+    } else {
+        // רשימה שלי — פתח actions
+        compactActionsOpen = true;
+        const actionsRow = document.getElementById('compactActionsRow');
+        const tabsRow    = document.getElementById('tabsRowWrap');
+        const plusWrap   = document.getElementById('compactPlusWrap');
         if (tabsRow)    tabsRow.style.display    = 'none';
         if (actionsRow) actionsRow.style.display = 'flex';
-        // הכפתור עולה — מעל שורת הפעולות (62px גובה + 10px padding)
-        if (plusWrap)   plusWrap.style.bottom    = '88px';
-        if (plusBtn)    plusBtn.style.animation  = 'none';
-        if (plusIcon)   plusIcon.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.8" d="M6 18L18 6M6 6l12 12"/>';
-    } else {
-        if (tabsRow)    tabsRow.style.display    = 'block';
-        if (actionsRow) actionsRow.style.display = 'none';
-        if (plusWrap)   plusWrap.style.bottom    = '26px';
-        _resetCompactPlusIcon();
+        if (plusWrap)   plusWrap.style.display   = 'none';
     }
 }
 
-function _resetCompactPlusIcon() {
-    const plusBtn  = document.getElementById('compactPlusBtn');
-    const plusIcon = document.getElementById('compactPlusIcon');
-    if (plusBtn)  plusBtn.style.animation = 'smartPlusPulse 2.4s ease-out infinite';
-    if (plusIcon) plusIcon.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.8" d="M12 5v14M5 12h14"/>';
+function closeCompactActions() {
+    compactActionsOpen = false;
+    const actionsRow = document.getElementById('compactActionsRow');
+    const tabsRow    = document.getElementById('tabsRowWrap');
+    const plusWrap   = document.getElementById('compactPlusWrap');
+    if (actionsRow) actionsRow.style.display = 'none';
+    if (tabsRow)    tabsRow.style.display    = 'block';
+    if (plusWrap)   plusWrap.style.display   = 'block';
 }
+
+function toggleCompactActions() { handleCompactPlus(); }
+function _resetCompactPlusIcon() {}
 
 // ── Legacy startBankSync stub ──
 async function startBankSync() { startBankFetch(); }
