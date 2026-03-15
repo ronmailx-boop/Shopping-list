@@ -2671,23 +2671,24 @@ ${error.message}
         </div>
     </div>
 
-    <div class="bottom-bar text-white no-print" id="smartBottomBar" style="padding:0;display:flex;flex-direction:column;overflow:visible;">
-
-        <!-- כפתור + / X צף במרכז (compact mode) — fixed כדי שיהיה תמיד לחיץ -->
-        <div id="compactPlusWrap" style="display:none;position:fixed;bottom:26px;left:50%;transform:translateX(-50%);z-index:1100;">
-            <button id="compactPlusBtn" onclick="toggleCompactActions()"
-                style="width:62px;height:62px;border-radius:50%;background:#22c55e;border:3px solid rgba(255,255,255,0.35);display:flex;align-items:center;justify-content:center;box-shadow:0 6px 20px rgba(34,197,94,0.5);cursor:pointer;transition:transform 0.2s;animation:smartPlusPulse 2.4s ease-out infinite;"
-                ontouchstart="this.style.transform='scale(0.9)'" ontouchend="this.style.transform='scale(1)'">
-                <svg id="compactPlusIcon" width="30" height="30" fill="none" stroke="white" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.8" d="M12 5v14M5 12h14"/>
-                </svg>
-            </button>
-        </div>
+    <div class="bottom-bar text-white no-print" id="smartBottomBar" style="padding:0;display:flex;flex-direction:column;overflow:hidden;">
 
         <!-- שורת טאבים — SVG -->
         <div id="tabsRowWrap" style="position:relative;height:52px;flex-shrink:0;">
             <div id="tabLists"   onclick="tapTab('summary')" style="position:absolute;top:0;right:0;width:50%;bottom:0;z-index:10;cursor:pointer;"></div>
             <div id="tabSummary" onclick="tapTab('lists')"   style="position:absolute;top:0;left:0;width:50%;bottom:0;z-index:10;cursor:pointer;"></div>
+
+            <!-- כפתור + קטן במרכז הטאבים (compact mode) -->
+            <div id="compactPlusWrap" style="display:none;position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);z-index:50;">
+                <button id="compactPlusBtn" onclick="handleCompactPlus()"
+                    style="width:32px;height:32px;border-radius:50%;background:#22c55e;border:2px solid rgba(255,255,255,0.5);display:flex;align-items:center;justify-content:center;box-shadow:0 3px 10px rgba(34,197,94,0.6);cursor:pointer;transition:transform 0.2s;"
+                    ontouchstart="this.style.transform='scale(0.88)'" ontouchend="this.style.transform='scale(1)'">
+                    <svg id="compactPlusIcon" width="16" height="16" fill="none" stroke="white" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M12 5v14M5 12h14"/>
+                    </svg>
+                </button>
+            </div>
+
             <svg style="position:absolute;top:0;left:0;width:100%;height:100%;z-index:5;pointer-events:none;"
                  viewBox="0 0 400 52" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
                 <path id="svgShapeRight" d="M 200,0 L 400,0 L 400,52 L 212,52 Q 200,52 200,40 Z" fill="white" opacity="0"/>
@@ -2697,23 +2698,22 @@ ${error.message}
             </svg>
         </div>
 
-        <!-- שורת compact actions — נסתרת, נפתחת בלחיצה על + -->
-        <div id="compactActionsRow" style="display:none;align-items:center;gap:8px;padding:10px 10px 16px;">
+        <!-- שורת compact actions — נפתחת בלחיצה על + -->
+        <div id="compactActionsRow" style="display:none;align-items:center;gap:8px;padding:8px 10px 14px;position:relative;">
 
-            <!-- רשימה חדשה — ימין ראשון -->
-            <div style="display:flex;flex-direction:column;align-items:center;gap:3px;flex-shrink:0;">
-                <button onclick="openModal('newListModal')"
-                    style="width:62px;height:62px;border-radius:50%;background:#22c55e;border:3px solid rgba(255,255,255,0.35);display:flex;align-items:center;justify-content:center;box-shadow:0 6px 20px rgba(34,197,94,0.5);cursor:pointer;transition:transform 0.2s;"
-                    ontouchstart="this.style.transform='scale(0.9)'" ontouchend="this.style.transform='scale(1)'">
-                    <svg width="30" height="30" fill="none" stroke="white" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.8" d="M12 5v14M5 12h14"/>
+            <!-- כפתור X אדום קטן — סוגר את ה-actions -->
+            <div style="position:absolute;top:-16px;left:50%;transform:translateX(-50%);z-index:50;">
+                <button onclick="closeCompactActions()"
+                    style="width:32px;height:32px;border-radius:50%;background:#ef4444;border:2px solid rgba(255,255,255,0.5);display:flex;align-items:center;justify-content:center;box-shadow:0 3px 10px rgba(239,68,68,0.5);cursor:pointer;transition:transform 0.2s;"
+                    ontouchstart="this.style.transform='scale(0.88)'" ontouchend="this.style.transform='scale(1)'">
+                    <svg width="14" height="14" fill="none" stroke="white" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M6 18L18 6M6 6l12 12"/>
                     </svg>
                 </button>
-                <span style="font-size:9px;font-weight:800;color:rgba(255,255,255,0.75);">רשימה חדשה</span>
             </div>
 
             <!-- הוספה קולית -->
-            <button onclick="if(_voiceActionActive){ startVoiceAction('tobuy'); } else { startVoiceAction('tobuy'); }"
+            <button onclick="startVoiceAction('tobuy')"
                 style="flex:1;height:62px;border-radius:18px;background:rgba(255,255,255,0.13);border:1px solid rgba(255,255,255,0.18);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;cursor:pointer;transition:all 0.2s;"
                 ontouchstart="this.style.transform='scale(0.93)'" ontouchend="this.style.transform='scale(1)'">
                 <div style="position:relative;width:20px;height:20px;display:flex;align-items:center;justify-content:center;">
@@ -2727,7 +2727,7 @@ ${error.message}
             </button>
 
             <!-- בוצע קולי -->
-            <button onclick="if(_voiceActionActive){ startVoiceAction('bought'); } else { startVoiceAction('bought'); }"
+            <button onclick="startVoiceAction('bought')"
                 style="flex:1;height:62px;border-radius:18px;background:rgba(255,255,255,0.13);border:1px solid rgba(255,255,255,0.18);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;cursor:pointer;transition:all 0.2s;"
                 ontouchstart="this.style.transform='scale(0.93)'" ontouchend="this.style.transform='scale(1)'">
                 <div style="position:relative;width:20px;height:20px;display:flex;align-items:center;justify-content:center;">
