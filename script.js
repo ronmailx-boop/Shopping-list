@@ -10171,19 +10171,21 @@ function toggleCompactActions() {
     compactActionsOpen = !compactActionsOpen;
     const actionsRow = document.getElementById('compactActionsRow');
     const tabsRow    = document.getElementById('tabsRowWrap');
+    const plusWrap   = document.getElementById('compactPlusWrap');
     const plusBtn    = document.getElementById('compactPlusBtn');
     const plusIcon   = document.getElementById('compactPlusIcon');
 
     if (compactActionsOpen) {
-        // הצג כפתורי פעולה, הסתר טאבים, הפוך + ל-X
         if (tabsRow)    tabsRow.style.display    = 'none';
         if (actionsRow) actionsRow.style.display = 'flex';
+        // הכפתור עולה — מעל שורת הפעולות (62px גובה + 10px padding)
+        if (plusWrap)   plusWrap.style.bottom    = '88px';
         if (plusBtn)    plusBtn.style.animation  = 'none';
         if (plusIcon)   plusIcon.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.8" d="M6 18L18 6M6 6l12 12"/>';
     } else {
-        // הצג טאבים, הסתר פעולות, החזר +
         if (tabsRow)    tabsRow.style.display    = 'block';
         if (actionsRow) actionsRow.style.display = 'none';
+        if (plusWrap)   plusWrap.style.bottom    = '26px';
         _resetCompactPlusIcon();
     }
 }
