@@ -2458,6 +2458,14 @@ ${error.message}
                 <div class="notification-badge" id="notificationBadge" style="display: none;">0</div>
             </div>
 
+            <!-- כפתור יציאה מ-compact mode — מוצג רק כשcompact פעיל -->
+            <div id="compactExitBtn" onclick="toggleCompactMode()"
+                style="display:none;width:32px;height:32px;border-radius:50%;background:#7367f0;border:1.5px solid rgba(115,103,240,0.5);align-items:center;justify-content:center;cursor:pointer;transition:all 0.2s;flex-shrink:0;box-shadow:0 2px 8px rgba(115,103,240,0.4);">
+                <svg width="16" height="16" fill="none" stroke="white" stroke-width="2.2" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16"/>
+                </svg>
+            </div>
+
             <button id="gearBtn" onclick="openModal('settingsModal')" class="p-2 rounded-full hover:bg-gray-100 gear-btn">
                 <svg class="w-7 h-7 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
