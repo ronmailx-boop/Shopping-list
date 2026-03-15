@@ -9823,6 +9823,15 @@ function setFinStage(step, icon, title, sub, pct) {
 }
 
 // ── Debug log panel ──
+// ── Global debug log ──────────────────────────────────────────────
+const _globalDebugLogs = [];
+function dbgLog(msg, color) {
+    const type = color === '#ff4444' ? 'error' : color === '#ffaa00' ? 'warn' : 'info';
+    const icon = color === '#ff4444' ? '🔴' : color === '#ffaa00' ? '🟡' : color === '#22c55e' ? '🟢' : '•';
+    _globalDebugLogs.push({ msg, type, icon, time: new Date().toLocaleTimeString('he-IL') });
+    showDebugLog(_globalDebugLogs);
+}
+
 function showDebugLog(logs) {
     let panel = document.getElementById('debugLogPanel');
     if (!panel) {
@@ -10181,9 +10190,11 @@ function handleCompactPlus() {
         const actionsRow = document.getElementById('compactActionsRow');
         const tabsRow    = document.getElementById('tabsRowWrap');
         const plusWrap   = document.getElementById('compactPlusWrap');
+        const bar        = document.getElementById('smartBottomBar');
         if (tabsRow)    tabsRow.style.display    = 'none';
         if (actionsRow) actionsRow.style.display = 'flex';
         if (plusWrap)   plusWrap.style.display   = 'none';
+        if (bar)        bar.style.overflow       = 'visible';
     }
 }
 
@@ -10192,9 +10203,11 @@ function closeCompactActions() {
     const actionsRow = document.getElementById('compactActionsRow');
     const tabsRow    = document.getElementById('tabsRowWrap');
     const plusWrap   = document.getElementById('compactPlusWrap');
+    const bar        = document.getElementById('smartBottomBar');
     if (actionsRow) actionsRow.style.display = 'none';
     if (tabsRow)    tabsRow.style.display    = 'block';
     if (plusWrap)   plusWrap.style.display   = 'block';
+    if (bar)        bar.style.overflow       = 'hidden';
 }
 
 function toggleCompactActions() { handleCompactPlus(); }
@@ -10288,4 +10301,3 @@ if (typeof showPage === 'function') {
 // Init on load
 document.addEventListener('DOMContentLoaded', _updatePlusBtnLabel);
 setTimeout(_updatePlusBtnLabel, 500);
-
