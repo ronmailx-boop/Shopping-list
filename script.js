@@ -2147,6 +2147,9 @@ function generateItemMetadataHTML(item, idx) {
     return html;
 }
 
+let compactMode = false;
+let compactActionsOpen = false;
+
 function render() {
     const container = document.getElementById(activePage === 'lists' ? 'itemsContainer' : activePage === 'summary' ? 'summaryContainer' : null);
     let total = 0, paid = 0;
@@ -10246,8 +10249,6 @@ function adjustContentPadding() {
 })();
 
 // ── Compact Mode ──
-let compactMode = false;
-let compactActionsOpen = false;
 
 function toggleCompactMode() {
     compactMode = !compactMode;
