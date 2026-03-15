@@ -10150,25 +10150,21 @@ function toggleCompactMode() {
     const bar         = document.getElementById('smartBottomBar');
 
     if (compactMode) {
-        // הסתר שורת פעולות ושורת נתונים
         if (barActions) barActions.style.display = 'none';
         if (barStats)   barStats.style.display   = 'none';
-        // הצג טאבים + כפתור +
         if (tabsRow)    tabsRow.style.display     = 'block';
         if (actionsRow) actionsRow.style.display  = 'none';
         if (plusWrap)   plusWrap.style.display    = 'block';
-        // overflow:visible כדי שהכפתור יבלוט
-        if (bar) bar.style.overflow = 'visible';
-        // החזר כפתור + לאיקס
+        if (bar)        bar.style.overflow        = 'visible';
         _resetCompactPlusIcon();
     } else {
-        // חזור למצב רגיל
-        if (barActions) barActions.style.display = 'flex';
+        if (barActions) { barActions.style.display = 'flex'; barActions.style.padding = '10px 12px 18px'; }
+        if (barStats)   barStats.style.display   = 'none';
         if (plusWrap)   plusWrap.style.display   = 'none';
         if (actionsRow) actionsRow.style.display = 'none';
-        if (bar) bar.style.overflow = 'hidden';
+        if (tabsRow)    tabsRow.style.display    = 'block';
+        if (bar)        bar.style.overflow       = 'hidden';
     }
-    render();
 }
 
 function toggleCompactActions() {
