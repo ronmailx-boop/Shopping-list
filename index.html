@@ -3824,13 +3824,14 @@ ${error.message}
             if (page === 'summary') { if(pS) pS.classList.remove('hidden'); if(pL) pL.classList.add('hidden'); }
             if (typeof showPage === 'function') showPage(page);
         }
-        // עדכן תצוגה
+        // עדכן תצוגה — בcompact mode לא מציגים barActionsRow
+        var isCompact = (typeof compactMode !== 'undefined' && compactMode);
         if (_activeMode === 'buttons') {
-            if (actions) { actions.style.display='flex'; actions.style.padding='10px 12px 18px'; }
+            if (actions) { actions.style.display = isCompact ? 'none' : 'flex'; if(!isCompact) actions.style.padding='10px 12px 18px'; }
             if (stats)   stats.style.display = 'none';
         } else {
             if (actions) actions.style.display = 'none';
-            if (stats)   { stats.style.display='flex'; stats.style.padding='10px 12px 18px'; }
+            if (stats)   { stats.style.display = isCompact ? 'none' : 'flex'; if(!isCompact) stats.style.padding='10px 12px 18px'; }
         }
         updateSvgTabs(_activePage);
     }
