@@ -10254,7 +10254,6 @@ function toggleCompactMode() {
     compactActionsOpen = false;
 
     const btn        = document.getElementById('compactModeBtn');
-    const exitBtn    = document.getElementById('compactExitBtn');
     const plusWrap   = document.getElementById('compactPlusWrap');
     const actionsRow = document.getElementById('compactActionsRow');
     const barActions = document.getElementById('barActionsRow');
@@ -10263,11 +10262,7 @@ function toggleCompactMode() {
     const bar        = document.getElementById('smartBottomBar');
 
     if (compactMode) {
-        // ☰ בbar — הדגש
         if (btn) { btn.style.background = 'rgba(255,255,255,0.4)'; btn.style.borderColor = 'white'; }
-        // כפתור יציאה ב-header — הצג
-        if (exitBtn) exitBtn.style.display = 'flex';
-        // הסתר bar actions, הצג טאבים + plus
         if (barActions) barActions.style.display = 'none';
         if (barStats)   barStats.style.display   = 'none';
         if (tabsRow)    tabsRow.style.display     = 'block';
@@ -10275,9 +10270,7 @@ function toggleCompactMode() {
         if (plusWrap)   plusWrap.style.display    = 'block';
         if (bar)        bar.style.overflow        = 'hidden';
     } else {
-        // חזור למצב רגיל
         if (btn) { btn.style.background = 'rgba(255,255,255,0.2)'; btn.style.borderColor = 'rgba(255,255,255,0.3)'; }
-        if (exitBtn) exitBtn.style.display = 'none';
         if (barActions) { barActions.style.display = 'flex'; barActions.style.padding = '10px 12px 18px'; }
         if (barStats)   barStats.style.display   = 'none';
         if (plusWrap)   plusWrap.style.display   = 'none';
@@ -10285,9 +10278,8 @@ function toggleCompactMode() {
         if (tabsRow)    tabsRow.style.display    = 'block';
         if (bar)        bar.style.overflow       = 'hidden';
     }
-}
-
-// לחיצה על + בcompact — לפי הטאב הפעיל
+    render();
+} — לפי הטאב הפעיל
 function handleCompactPlus() {
     const page = (typeof activePage !== 'undefined') ? activePage : 'lists';
     if (page === 'summary') {
