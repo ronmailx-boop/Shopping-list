@@ -751,18 +751,8 @@ let db = JSON.parse(localStorage.getItem('BUDGET_FINAL_V28')) || {
     categoryMemory: {}
 };
 
-// ── Guard: וודא תקינות db אחרי טעינה מ-localStorage ──
-if (!db.lists || Object.keys(db.lists).length === 0) {
-    db.lists = { 'L1': { name: 'הרשימה שלי', url: '', budget: 0, isTemplate: false, items: [] } };
-    db.currentId = 'L1';
-}
-if (!db.lists[db.currentId]) {
-    db.currentId = Object.keys(db.lists)[0];
-}
-
 let isLocked = true;
-// תמיד להתחיל בטאב הרשימה — לא לשחזר summary/stats/bank שגורם לבלבול
-let activePage = 'lists';
+let activePage = db.lastActivePage || 'lists';
 let currentEditIdx = null;
 let listToDelete = null;
 let sortableInstance = null;
@@ -775,162 +765,11 @@ let categorySortEnabled = localStorage.getItem('categorySortEnabled') === 'true'
 // Backwards compatibility: Initialize new properties if they don't exist
 if (!db.customCategories) db.customCategories = [];
 if (!db.categoryMemory) db.categoryMemory = {};
-if (!db.selectedInSummary) db.selectedInSummary = [];
 
-
-let compactMode = false;
-
-// ========== DEBUG PANEL ==========
-(function initDebugPanel() {
-    // יצירת הפאנל — ניתן לגרירה
-    const panel = document.createElement('div');
-    panel.id = 'vplus-debug-panel';
-    panel.style.cssText = `
-        position:fixed; top:80px; left:4px; width:calc(100vw - 8px);
-        z-index:999999; background:rgba(0,0,0,0.92); color:#00ff88;
-        font-family:monospace; font-size:11px; max-height:45vh; overflow-y:auto;
-        border:2px solid #00ff88; border-radius:10px; display:none; direction:ltr;
-        padding:4px; box-shadow:0 4px 24px rgba(0,255,136,0.2);
-        touch-action:none;
-    `;
-
-    const toolbar = document.createElement('div');
-    toolbar.style.cssText = 'display:flex;gap:6px;padding:4px 6px;background:#111;position:sticky;top:0;z-index:1;border-radius:8px 8px 0 0;cursor:grab;user-select:none;';
-    toolbar.innerHTML = `
-        <span style="color:#00ff88;font-size:14px;margin-left:2px;">⠿</span>
-        <span style="color:#fff;font-weight:bold;flex:1;font-size:11px;">🐛 VPlus Debug</span>
-        <button onclick="dbgCopyAll()" style="background:#7367f0;color:white;border:none;border-radius:4px;padding:2px 8px;font-size:11px;cursor:pointer">📋 העתק</button>
-        <button onclick="dbgClear()" style="background:#555;color:white;border:none;border-radius:4px;padding:2px 8px;font-size:11px;cursor:pointer">🗑</button>
-        <button onclick="document.getElementById('vplus-debug-panel').style.display='none'" style="background:#c00;color:white;border:none;border-radius:4px;padding:2px 8px;font-size:11px;cursor:pointer">✕</button>
-    `;
-
-    const log = document.createElement('div');
-    log.id = 'vplus-debug-log';
-    log.style.cssText = 'padding:4px 8px;';
-
-    panel.appendChild(toolbar);
-    panel.appendChild(log);
-    document.body.appendChild(panel);
-
-    // גרירה — רק מהידית ⠿, לא מכל הtoolbar
-    const dragHandle = toolbar.querySelector('span');
-    let dragStartX, dragStartY, panelStartX, panelStartY, isDragging = false;
-    function onDragStart(e) {
-        isDragging = true;
-        const touch = e.touches ? e.touches[0] : e;
-        dragStartX = touch.clientX;
-        dragStartY = touch.clientY;
-        const rect = panel.getBoundingClientRect();
-        panelStartX = rect.left;
-        panelStartY = rect.top;
-        e.preventDefault();
-    }
-    function onDragMove(e) {
-        if (!isDragging) return;
-        const touch = e.touches ? e.touches[0] : e;
-        const dx = touch.clientX - dragStartX;
-        const dy = touch.clientY - dragStartY;
-        const newX = Math.max(0, Math.min(window.innerWidth - panel.offsetWidth, panelStartX + dx));
-        const newY = Math.max(0, Math.min(window.innerHeight - 60, panelStartY + dy));
-        panel.style.left = newX + 'px';
-        panel.style.top = newY + 'px';
-        e.preventDefault();
-    }
-    function onDragEnd() { isDragging = false; }
-    dragHandle.addEventListener('touchstart', onDragStart, { passive: false });
-    dragHandle.addEventListener('touchmove', onDragMove, { passive: false });
-    dragHandle.addEventListener('touchend', onDragEnd);
-    dragHandle.addEventListener('mousedown', onDragStart);
-    document.addEventListener('mousemove', onDragMove);
-    document.addEventListener('mouseup', onDragEnd);
-
-
-    // פונקציות ציבוריות
-    window.dbgLog = function(msg, color) {
-        const el = document.getElementById('vplus-debug-log');
-        if (!el) return;
-        const time = new Date().toLocaleTimeString('he-IL');
-        const line = document.createElement('div');
-        line.style.cssText = `border-bottom:1px solid #333;padding:2px 0;color:${color||'#00ff88'}`;
-        line.textContent = `[${time}] ${msg}`;
-        el.insertBefore(line, el.firstChild);
-    };
-
-    window.dbgClear = function() {
-        const el = document.getElementById('vplus-debug-log');
-        if (el) el.innerHTML = '';
-    };
-
-    window.dbgCopyAll = function() {
-        const el = document.getElementById('vplus-debug-log');
-        if (!el) return;
-        const lines = Array.from(el.querySelectorAll('div')).map(d => d.textContent).reverse().join('\n');
-        const full = '=== VPlus Debug Log ===\n' + lines;
-        if (navigator.clipboard && navigator.clipboard.writeText) {
-            navigator.clipboard.writeText(full).then(() => dbgLog('✅ הועתק ללוח!', '#ffff00'));
-        } else {
-            const ta = document.createElement('textarea');
-            ta.value = full;
-            ta.style.cssText = 'position:fixed;left:-9999px;top:0';
-            document.body.appendChild(ta);
-            ta.select();
-            document.execCommand('copy');
-            document.body.removeChild(ta);
-            dbgLog('✅ הועתק (fallback)!', '#ffff00');
-        }
-    };
-
-    // Patch localStorage.setItem כדי ללכוד כל שמירה
-    const origSetItem = localStorage.setItem.bind(localStorage);
-    localStorage.setItem = function(key, value) {
-        origSetItem(key, value);
-        if (key === 'BUDGET_FINAL_V28') {
-            try {
-                const d = JSON.parse(value);
-                const keys = Object.keys(d.lists || {});
-                const caller = (new Error()).stack.split('\n')[2] || '';
-                const shortCaller = caller.replace(/.*at /, '').replace(/\(.*\)/, '').trim().substring(0, 60);
-                if (keys.length === 0) {
-                    dbgLog(`🚨 SAVE — רשימות ריקות! caller: ${shortCaller}`, '#ff0000');
-                } else {
-                    dbgLog(`💾 SAVE — lists: [${keys.join(', ')}] currentId:"${d.currentId}" | ${shortCaller}`, '#88ff88');
-                }
-            } catch(e) {}
-        }
-    };
-
-    // Patch localStorage.getItem
-    const origGetItem = localStorage.getItem.bind(localStorage);
-    localStorage.getItem = function(key) {
-        const val = origGetItem(key);
-        if (key === 'BUDGET_FINAL_V28') {
-            try {
-                const d = val ? JSON.parse(val) : null;
-                const keys = d ? Object.keys(d.lists || {}) : [];
-                if (!d || keys.length === 0) {
-                    dbgLog(`📖 LOAD — ${!d?'null/ריק':'רשימות ריקות!'} `, !d?'#ff8800':'#ff0000');
-                } else {
-                    dbgLog(`📖 LOAD — lists: [${keys.join(', ')}] currentId:"${d.currentId}"`, '#88aaff');
-                }
-            } catch(e) {}
-        }
-        return val;
-    };
-
-    dbgLog('🟢 Debug Panel פעיל — דאבל-טאפ על ⚙️ לפתיחה/סגירה', '#ffff00');
-})();
 
 // ========== Core Functions ==========
 function save() {
-    // ── Guard: וודא תמיד שיש לפחות רשימה אחת ו-currentId תקין ──
-    if (!db.lists || Object.keys(db.lists).length === 0) {
-        db.lists = { 'L1': { name: 'הרשימה שלי', url: '', budget: 0, isTemplate: false, items: [] } };
-        db.currentId = 'L1';
-    }
-    if (!db.lists[db.currentId]) {
-        db.currentId = Object.keys(db.lists)[0];
-    }
-    db.lastActivePage = (activePage === "lists") ? "lists" : "lists"; // תמיד שמור lists
+    db.lastActivePage = activePage;
     db.lastSync = Date.now();
     localStorage.setItem('BUDGET_FINAL_V28', JSON.stringify(db));
     render();
@@ -1014,11 +853,6 @@ function toggleDarkMode() {
 }
 
 function showPage(p) {
-    if (typeof dbgLog === 'function') {
-        const caller = (new Error()).stack.split('\n').slice(2, 5).join(' ← ');
-        const short = caller.replace(/https?:\/\/[^/]+/g, '').replace(/\s+/g, ' ').substring(0, 120);
-        dbgLog(`📄 showPage("${p}") | ${short}`, '#ffaa00');
-    }
     activePage = p;
     // פתיחת הבר אוטומטית ועדכון טאבי הניווט בבר הפתוח
     if (p === 'lists' || p === 'summary') {
@@ -2314,16 +2148,7 @@ function generateItemMetadataHTML(item, idx) {
 }
 
 function render() {
-    if (typeof dbgLog === 'function') {
-        const caller = (new Error()).stack.split('\n').slice(2, 5).join(' ← ');
-        const short = caller.replace(/https?:\/\/[^/]+/g, '').replace(/\s+/g, ' ').substring(0, 120);
-        dbgLog(`🎨 RENDER — activePage:"${activePage}" lists:${Object.keys(db.lists||{}).length} | ${short}`, '#ff88ff');
-    }
     const container = document.getElementById(activePage === 'lists' ? 'itemsContainer' : activePage === 'summary' ? 'summaryContainer' : null);
-    if ((activePage === 'lists' || activePage === 'summary') && !container) {
-        if (typeof dbgLog === 'function') dbgLog(`🚨 RENDER — container הוא NULL! activePage="${activePage}"`, '#ff0000');
-        return;
-    }
     let total = 0, paid = 0;
 
     // tabLists ו-tabSummary הם עכשיו hit-areas שקופות מעל SVG — לא נגע בהם
@@ -2691,21 +2516,14 @@ function render() {
 
         if (container) {
             container.innerHTML = '';
-            const listKeys = Object.keys(db.lists);
-            if (typeof dbgLog === 'function') dbgLog(`📋 summary loop — ${listKeys.length} רשימות, container=${container.id}, searchTerm="${searchTerm}"`, '#00ffff');
             Object.keys(db.lists).forEach(id => {
-                try {
                 const l = db.lists[id];
 
-                const matchesName = l.name && l.name.toLowerCase().includes(searchTerm);
-                const matchesURL = l.url && typeof l.url === 'string' && l.url.toLowerCase().includes(searchTerm);
-                const matchesItems = Array.isArray(l.items) && l.items.some(i => i.name && i.name.toLowerCase().includes(searchTerm));
+                const matchesName = l.name.toLowerCase().includes(searchTerm);
+                const matchesURL = l.url && l.url.toLowerCase().includes(searchTerm);
+                const matchesItems = l.items.some(i => i.name.toLowerCase().includes(searchTerm));
 
                 if (searchTerm && !matchesName && !matchesURL && !matchesItems) return;
-
-                if (typeof dbgLog === 'function' && container.children.length === 0 && id === listKeys[0]) {
-                    dbgLog(`📋 מוסיף רשימה ראשונה: "${l.name}"`, '#00ffff');
-                }
 
                 let lT = 0, lP = 0;
                 l.items.forEach(i => {
@@ -2742,7 +2560,7 @@ function render() {
                         <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;">
                             <div style="display:flex;align-items:center;gap:8px;flex:1;min-width:0;">
                                 <input type="checkbox" ${isSel ? 'checked' : ''} onchange="toggleSum('${id}')" class="w-7 h-7 accent-indigo-600" style="flex-shrink:0;">
-                                <span class="font-bold cursor-pointer" style="font-size:15px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" onclick="selectListAndImport('${id}'); tapTab('lists')">
+                                <span class="font-bold cursor-pointer" style="font-size:15px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" onclick="selectListAndImport('${id}'); showPage('lists')">
                                     ${templateBadge}${l.name}
                                 </span>
                             </div>
@@ -2754,7 +2572,7 @@ function render() {
                     <div class="flex justify-between items-center mb-4">
                         <div class="flex items-center gap-3 flex-1">
                             <input type="checkbox" ${isSel ? 'checked' : ''} onchange="toggleSum('${id}')" class="w-7 h-7 accent-indigo-600">
-                            <div class="flex-1 text-2xl font-bold cursor-pointer" onclick="selectListAndImport('${id}'); tapTab('lists')">
+                            <div class="flex-1 text-2xl font-bold cursor-pointer" onclick="selectListAndImport('${id}'); showPage('lists')">
                                 ${templateBadge}${l.name}
                             </div>
                         </div>
@@ -2774,11 +2592,9 @@ function render() {
                 `;
                 }
                 container.appendChild(div);
-                } catch(e) {
-                    if (typeof dbgLog === 'function') dbgLog(`🚨 crash ברשימה "${id}": ${e.message}`, '#ff0000');
-                }
             });
-            if (typeof dbgLog === 'function') dbgLog(`📋 summary סיום — container.children=${container.children.length}`, container.children.length===0?'#ff0000':'#00ffff');
+
+            // Add scroll listener to remove highlight for lists
             if (highlightedListId !== null) {
                 const removeHighlight = () => {
                     highlightedListId = null;
@@ -4306,7 +4122,7 @@ function saveItemEdit() {
         initItemAlertTime(item);
         
         // שמירה מקומית תחילה
-        db.lastActivePage = "lists"; // תמיד שמור lists
+        db.lastActivePage = activePage;
         db.lastSync = Date.now();
         localStorage.setItem('BUDGET_FINAL_V28', JSON.stringify(db));
         
@@ -4943,20 +4759,12 @@ function setupFirestoreListener(user) {
             console.log('☁️ מסמך נמצא בענן');
             const cloudData = docSnap.data();
 
-            const cloudKeys = Object.keys(cloudData.lists || {});
-            const localKeys = Object.keys(db.lists || {});
-            if (typeof dbgLog === 'function') {
-                dbgLog(`☁️ FIREBASE — ענן: [${cloudKeys.join(',')||'ריק'}]`, '#ff9900');
-                dbgLog(`☁️ FIREBASE — מקומי: [${localKeys.join(',')||'ריק'}]`, '#ffcc00');
-            }
-
             // בדיקה: אם הענן ריק אבל יש נתונים מקומיים, העלה אותם לענן
             const cloudIsEmpty = !cloudData.lists || Object.keys(cloudData.lists).length === 0;
             const localHasData = db.lists && Object.keys(db.lists).length > 0;
 
             if (cloudIsEmpty && localHasData) {
                 console.log('☁️ הענן ריק אבל יש נתונים מקומיים - מעלה לענן');
-                if (typeof dbgLog === 'function') dbgLog('☁️ ענן ריק → מעלה מקומי לענן', '#ff9900');
                 syncToCloud();
                 return;
             }
@@ -4965,12 +4773,6 @@ function setupFirestoreListener(user) {
             if (JSON.stringify(cloudData) !== JSON.stringify(db)) {
                 console.log('🔄 מבצע סנכרון חכם מהענן...');
                 const mergedDb = mergeCloudWithLocal(cloudData, db);
-
-                const mergedKeys = Object.keys(mergedDb.lists || {});
-                if (typeof dbgLog === 'function') {
-                    dbgLog(`🔀 MERGE — תוצאה: [${mergedKeys.join(',')||'ריק!'}]`, mergedKeys.length===0?'#ff0000':'#00ffcc');
-                    if (!mergedDb.lists['L1']) dbgLog('🚨 L1 נעלמה אחרי MERGE!', '#ff0000');
-                }
 
                 // הגנה: וודא שקיים אובייקט רשימות
                 if (!mergedDb.lists || Object.keys(mergedDb.lists).length === 0) {
@@ -4988,10 +4790,7 @@ function setupFirestoreListener(user) {
 
                 db = mergedDb;
                 localStorage.setItem('BUDGET_FINAL_V28', JSON.stringify(db));
-                // תמיד חזור לטאב הרשימה אחרי סנכרון ענן
-                activePage = 'lists';
-                db.lastActivePage = 'lists';
-                setTimeout(function(){ render(); }, 50);
+                render();
                 showNotification('☁️ סונכרן מהענן!', 'success');
             }
         } else {
@@ -5095,20 +4894,6 @@ function mergeCloudWithLocal(cloudData, localData) {
             }
         }
     });
-
-    // ── Guard: וודא currentId תקין ──
-    if (!merged.currentId || !merged.lists[merged.currentId]) {
-        merged.currentId = Object.keys(merged.lists)[0] || 'L1';
-    }
-    // ── Guard: וודא שיש לפחות רשימה אחת ──
-    if (!merged.lists || Object.keys(merged.lists).length === 0) {
-        merged.lists = { 'L1': { name: 'הרשימה שלי', url: '', budget: 0, isTemplate: false, items: [] } };
-        merged.currentId = 'L1';
-    }
-    // ── Guard: וודא שדות חיוניים ──
-    if (!merged.selectedInSummary) merged.selectedInSummary = [];
-    if (!merged.customCategories) merged.customCategories = [];
-    if (!merged.categoryMemory) merged.categoryMemory = {};
 
     return merged;
 }
@@ -10343,15 +10128,75 @@ function adjustContentPadding() {
 })();
 
 // ── Compact Mode ──
+let compactMode = false;
+let compactActionsOpen = false;
 
 function toggleCompactMode() {
     compactMode = !compactMode;
+    compactActionsOpen = false;
+
+    // כפתור ☰ — צבע
     const btn = document.getElementById('compactModeBtn');
     if (btn) {
         btn.style.background = compactMode ? 'rgba(255,255,255,0.4)' : 'rgba(255,255,255,0.2)';
         btn.style.borderColor = compactMode ? 'white' : 'rgba(255,255,255,0.3)';
     }
+
+    const plusWrap    = document.getElementById('compactPlusWrap');
+    const actionsRow  = document.getElementById('compactActionsRow');
+    const barActions  = document.getElementById('barActionsRow');
+    const barStats    = document.getElementById('barStatsRow');
+    const tabsRow     = document.getElementById('tabsRowWrap');
+    const bar         = document.getElementById('smartBottomBar');
+
+    if (compactMode) {
+        // הסתר שורת פעולות ושורת נתונים
+        if (barActions) barActions.style.display = 'none';
+        if (barStats)   barStats.style.display   = 'none';
+        // הצג טאבים + כפתור +
+        if (tabsRow)    tabsRow.style.display     = 'block';
+        if (actionsRow) actionsRow.style.display  = 'none';
+        if (plusWrap)   plusWrap.style.display    = 'block';
+        // overflow:visible כדי שהכפתור יבלוט
+        if (bar) bar.style.overflow = 'visible';
+        // החזר כפתור + לאיקס
+        _resetCompactPlusIcon();
+    } else {
+        // חזור למצב רגיל
+        if (barActions) barActions.style.display = 'flex';
+        if (plusWrap)   plusWrap.style.display   = 'none';
+        if (actionsRow) actionsRow.style.display = 'none';
+        if (bar) bar.style.overflow = 'hidden';
+    }
     render();
+}
+
+function toggleCompactActions() {
+    compactActionsOpen = !compactActionsOpen;
+    const actionsRow = document.getElementById('compactActionsRow');
+    const tabsRow    = document.getElementById('tabsRowWrap');
+    const plusBtn    = document.getElementById('compactPlusBtn');
+    const plusIcon   = document.getElementById('compactPlusIcon');
+
+    if (compactActionsOpen) {
+        // הצג כפתורי פעולה, הסתר טאבים, הפוך + ל-X
+        if (tabsRow)    tabsRow.style.display    = 'none';
+        if (actionsRow) actionsRow.style.display = 'flex';
+        if (plusBtn)    plusBtn.style.animation  = 'none';
+        if (plusIcon)   plusIcon.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.8" d="M6 18L18 6M6 6l12 12"/>';
+    } else {
+        // הצג טאבים, הסתר פעולות, החזר +
+        if (tabsRow)    tabsRow.style.display    = 'block';
+        if (actionsRow) actionsRow.style.display = 'none';
+        _resetCompactPlusIcon();
+    }
+}
+
+function _resetCompactPlusIcon() {
+    const plusBtn  = document.getElementById('compactPlusBtn');
+    const plusIcon = document.getElementById('compactPlusIcon');
+    if (plusBtn)  plusBtn.style.animation = 'smartPlusPulse 2.4s ease-out infinite';
+    if (plusIcon) plusIcon.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.8" d="M12 5v14M5 12h14"/>';
 }
 
 // ── Legacy startBankSync stub ──
