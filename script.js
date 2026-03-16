@@ -4675,7 +4675,7 @@ function loginWithGoogle() {
                 currentUser = result.user;
                 isConnected = true;
                 updateCloudIndicator('connected');
-                setupFirestoreListener(result.user);
+                // setupFirestoreListener יופעל אוטומטית ע"י onAuthStateChanged
             })
             .catch((error) => {
                 console.error("❌ שגיאת התחברות:", error);
@@ -4761,6 +4761,13 @@ function setupFirestoreListener(user) {
     console.log('📡 מגדיר Firestore listener עבור UID:', user.uid);
     if (typeof dbgLog === 'function') dbgLog('📡 setupFirestoreListener — UID: ' + user.uid, '#aaaaff');
 
+    // בטל listener קיים לפני רישום חדש — מניעת double listener
+    if (unsubscribeSnapshot) {
+        if (typeof dbgLog === 'function') dbgLog('🔁 מבטל listener קיים לפני רישום חדש', '#ffaa00');
+        unsubscribeSnapshot();
+        unsubscribeSnapshot = null;
+    }
+
     const userDocRef = window.doc(window.firebaseDb, "shopping_lists", user.uid);
 
     unsubscribeSnapshot = window.onSnapshot(userDocRef, (docSnap) => {
@@ -4781,7 +4788,9 @@ function setupFirestoreListener(user) {
             }
 
             // מיזוג חכם: הענן הוא מקור האמת למחיקות
-            if (typeof dbgLog === 'function') dbgLog('🔍 Snapshot: בודק שינויים — ענן vs מקומי', '#aaaaff');
+            const cloudListCount = Object.keys(cloudData.lists || {}).length;
+            const localListCount = Object.keys(db.lists || {}).length;
+            if (typeof dbgLog === 'function') dbgLog('🔍 בודק שינויים — ענן: ' + cloudListCount + ' רשימות, מקומי: ' + localListCount + ' רשימות', '#aaaaff');
             if (JSON.stringify(cloudData) !== JSON.stringify(db)) {
                 console.log('🔄 מבצע סנכרון חכם מהענן...');
                 if (typeof dbgLog === 'function') dbgLog('🔄 יש הבדל — מבצע מיזוג מהענן', '#ffaa00');
@@ -4803,9 +4812,11 @@ function setupFirestoreListener(user) {
 
                 db = mergedDb;
                 localStorage.setItem('BUDGET_FINAL_V28', JSON.stringify(db));
+                if (typeof dbgLog === 'function') dbgLog('✅ מיזוג הושלם — ' + Object.keys(db.lists||{}).length + ' רשימות | activePage=' + activePage, '#22c55e');
                 render();
-                if (typeof dbgLog === 'function') dbgLog('✅ מיזוג הושלם — render() הופעל', '#22c55e');
                 showNotification('☁️ סונכרן מהענן!', 'success');
+            } else {
+                if (typeof dbgLog === 'function') dbgLog('✅ נתונים זהים לענן — אין שינוי', '#22c55e');
             }
         } else {
             console.log('📝 מסמך לא קיים בענן, יוצר חדש...');
