@@ -2298,12 +2298,6 @@ function render() {
                                 div.style.boxShadow = '0 8px 20px rgba(245, 158, 11, 0.3)';
                             }
                             div.innerHTML = `
-                                <div style="display:flex;justify-content:flex-start;margin-bottom:6px;">
-                                    <button onclick="expandedItemIdx=-1;render();" style="background:rgba(115,103,240,0.08);border:none;border-radius:99px;padding:3px 12px;font-size:12px;font-weight:800;color:#7367f0;cursor:pointer;display:flex;align-items:center;gap:4px;font-family:inherit;">
-                                        <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2 8L6 4L10 8" stroke="#7367f0" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-                                        כווץ
-                                    </button>
-                                </div>
                                 <div class="flex justify-between items-center mb-4">
                                     <div class="flex items-center gap-3 flex-1">
                                         <input type="checkbox" ${item.checked ? 'checked' : ''} onchange="toggleItem(${idx})" class="w-7 h-7 accent-indigo-600">
@@ -2445,6 +2439,12 @@ function render() {
                             div.style.padding = '15px';
                             div.style.borderRadius = '20px';
                             div.innerHTML = `
+                                <div style="display:flex;justify-content:flex-start;margin-bottom:6px;">
+                                    <button onclick="expandedItemIdx=-1;render();" style="background:rgba(115,103,240,0.08);border:none;border-radius:99px;padding:3px 12px;font-size:12px;font-weight:800;color:#7367f0;cursor:pointer;display:flex;align-items:center;gap:4px;font-family:inherit;">
+                                        <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2 8L6 4L10 8" stroke="#7367f0" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                                        כווץ
+                                    </button>
+                                </div>
                                 <div class="flex justify-between items-center mb-4">
                                     <div class="flex items-center gap-3 flex-1">
                                         <input type="checkbox" ${item.checked ? 'checked' : ''} onchange="toggleItem(${idx})" class="w-7 h-7 accent-indigo-600">
