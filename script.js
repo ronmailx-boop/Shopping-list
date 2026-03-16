@@ -2149,6 +2149,7 @@ function generateItemMetadataHTML(item, idx) {
 
 let compactMode = false;
 let compactActionsOpen = false;
+let expandedItemIdx = -1; // מוצר מורחב ב-compact mode
 let listEditMode = false;  // מצב עריכת סדר רשימות
 let itemEditMode = false;  // מצב עריכת סדר מוצרים
 
@@ -2297,6 +2298,12 @@ function render() {
                                 div.style.boxShadow = '0 8px 20px rgba(245, 158, 11, 0.3)';
                             }
                             div.innerHTML = `
+                                <div style="display:flex;justify-content:flex-start;margin-bottom:6px;">
+                                    <button onclick="expandedItemIdx=-1;render();" style="background:rgba(115,103,240,0.08);border:none;border-radius:99px;padding:3px 12px;font-size:12px;font-weight:800;color:#7367f0;cursor:pointer;display:flex;align-items:center;gap:4px;font-family:inherit;">
+                                        <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2 8L6 4L10 8" stroke="#7367f0" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                                        כווץ
+                                    </button>
+                                </div>
                                 <div class="flex justify-between items-center mb-4">
                                     <div class="flex items-center gap-3 flex-1">
                                         <input type="checkbox" ${item.checked ? 'checked' : ''} onchange="toggleItem(${idx})" class="w-7 h-7 accent-indigo-600">
@@ -2432,19 +2439,68 @@ function render() {
                         div.style.boxShadow = '0 8px 20px rgba(245, 158, 11, 0.3)';
                     }
                     if (compactMode) {
-                        div.style.padding = '10px 14px';
-                        div.innerHTML = `
-                            <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;">
-                                <div style="display:flex;align-items:center;gap:6px;flex:1;min-width:0;">
-                                    <div class="item-drag-handle" data-drag="true" style="display:${itemEditMode ? 'flex' : 'none'};align-items:center;justify-content:center;width:26px;height:26px;flex-shrink:0;cursor:grab;color:#a89fff;touch-action:none;"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" style="pointer-events:none"><rect x="2" y="3" width="12" height="2" rx="1" fill="currentColor"/><rect x="2" y="7" width="12" height="2" rx="1" fill="currentColor"/><rect x="2" y="11" width="12" height="2" rx="1" fill="currentColor"/></svg></div>
-                                    <input type="checkbox" ${item.checked ? 'checked' : ''} onchange="toggleItem(${idx})" class="w-7 h-7 accent-indigo-600" style="flex-shrink:0;">
-                                    <span class="font-bold ${item.checked ? 'line-through text-gray-300' : ''}" style="font-size:15px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
-                                        <span class="item-number">${idx + 1}.</span> ${item.name}
-                                    </span>
+                        const isExpanded = expandedItemIdx === idx;
+                        if (isExpanded) {
+                            // Full view בתוך compact mode
+                            div.style.padding = '15px';
+                            div.style.borderRadius = '20px';
+                            div.innerHTML = `
+                                <div class="flex justify-between items-center mb-4">
+                                    <div class="flex items-center gap-3 flex-1">
+                                        <input type="checkbox" ${item.checked ? 'checked' : ''} onchange="toggleItem(${idx})" class="w-7 h-7 accent-indigo-600">
+                                        <div class="flex-1">
+                                            <div class="text-2xl font-bold ${item.checked ? 'line-through text-gray-300' : ''}" onclick="openEditItemNameModal(${idx})" style="cursor:pointer;">
+                                                <span class="item-number">${idx + 1}.</span> ${item.name}
+                                            </div>
+                                            ${categoryBadge}
+                                            ${metadataHTML}
+                                        </div>
+                                    </div>
+                                    <div class="flex items-center gap-2">
+                                        <div class="note-icon ${item.note ? 'has-note' : ''}" onclick="openItemNoteModal(${idx})" title="${item.note ? 'יש הערה' : 'הוסף הערה'}">
+                                            <svg class="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+                                            </svg>
+                                        </div>
+                                        <button onclick="removeItem(${idx})" class="trash-btn">
+                                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path>
+                                            </svg>
+                                        </button>
+                                    </div>
                                 </div>
-                                ${item.isGeneralNote ? '' : `<span class="font-black text-indigo-600" style="font-size:15px;flex-shrink:0;">₪${sub.toFixed(2)}</span>`}
-                            </div>
-                        `;
+                                <div class="flex justify-between items-center">
+                                    ${item.isGeneralNote ? '' : `
+                                    <div class="flex items-center gap-3 bg-gray-50 rounded-xl px-2 py-1 border">
+                                        <button onclick="changeQty(${idx}, 1)" class="text-green-500 text-2xl font-bold">+</button>
+                                        <span class="font-bold w-6 text-center">${item.qty}</span>
+                                        <button onclick="changeQty(${idx}, -1)" class="text-red-500 text-2xl font-bold">-</button>
+                                    </div>
+                                    <span onclick="openEditTotalModal(${idx})" class="text-2xl font-black text-indigo-600" style="cursor:pointer;">₪${sub.toFixed(2)}</span>
+                                    `}
+                                </div>
+                            `;
+
+                        } else {
+                            // Compact view רגיל
+                            div.style.padding = '10px 14px';
+                            div.innerHTML = `
+                                <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;">
+                                    <div style="display:flex;align-items:center;gap:6px;flex:1;min-width:0;">
+                                        <div class="item-drag-handle" data-drag="true" style="display:${itemEditMode ? 'flex' : 'none'};align-items:center;justify-content:center;width:26px;height:26px;flex-shrink:0;cursor:grab;color:#a89fff;touch-action:none;"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" style="pointer-events:none"><rect x="2" y="3" width="12" height="2" rx="1" fill="currentColor"/><rect x="2" y="7" width="12" height="2" rx="1" fill="currentColor"/><rect x="2" y="11" width="12" height="2" rx="1" fill="currentColor"/></svg></div>
+                                        <input type="checkbox" ${item.checked ? 'checked' : ''} onchange="toggleItem(${idx})" class="w-7 h-7 accent-indigo-600" style="flex-shrink:0;" onclick="event.stopPropagation()">
+                                        <span class="font-bold ${item.checked ? 'line-through text-gray-300' : ''}" style="font-size:15px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;cursor:pointer;">
+                                            <span class="item-number">${idx + 1}.</span> ${item.name}
+                                        </span>
+                                    </div>
+                                    ${item.isGeneralNote ? '' : `<span class="font-black text-indigo-600" style="font-size:15px;flex-shrink:0;">₪${sub.toFixed(2)}</span>`}
+                                </div>
+                            `;
+                            div.onclick = (e) => {
+                                if (e.target.closest('input[type=checkbox],[data-drag]')) return;
+                                expandedItemIdx = idx; render();
+                            };
+                        }
                     } else {
                     div.innerHTML = `
                         <div class="flex justify-between items-center mb-4">
@@ -10451,6 +10507,7 @@ function setupItemDrag() {
 
 function toggleCompactMode() {
     compactMode = !compactMode;
+    expandedItemIdx = -1;
     compactActionsOpen = false;
 
     const btn        = document.getElementById('compactModeBtn');
