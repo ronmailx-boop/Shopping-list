@@ -2425,6 +2425,7 @@ function render() {
                     const div = document.createElement('div');
                     div.className = "item-card";
                     div.setAttribute('data-id', idx);
+                    div.dataset.idx = idx;
                     if (isHighlighted) {
                         div.style.background = 'linear-gradient(135deg, #fef3c7 0%, #fde68a 100%)';
                         div.style.border = '3px solid #f59e0b';
@@ -2486,6 +2487,8 @@ function render() {
                 });
             }
 
+            // אם במצב עריכת סדר מוצרים — חבר drag listeners
+            if (itemEditMode) setupItemDrag();
 
             // Add scroll listener to remove highlight
             if (highlightedItemIndex !== null) {
@@ -2600,6 +2603,9 @@ function render() {
                 }
                 container.appendChild(div);
             });
+
+            // אם במצב עריכת סדר רשימות — חבר drag listeners
+            if (listEditMode) setupListDrag();
 
             // Add scroll listener to remove highlight for lists
             if (highlightedListId !== null) {
@@ -10284,12 +10290,8 @@ function reorderLists(fromId, toId) {
 }
 
 function setupListDrag() {
-    const c = document.getElementById('summaryContainer');
-    if (!c) return;
-    // remove old listeners by cloning
-    const newC = c.cloneNode(true);
-    c.parentNode.replaceChild(newC, c);
     const container = document.getElementById('summaryContainer');
+    if (!container) return;
 
     let src = null, ghost = null, ox = 0, oy = 0, didDrag = false, startY = 0;
 
@@ -10369,11 +10371,8 @@ function toggleItemEditMode() {
 }
 
 function setupItemDrag() {
-    const c = document.getElementById('itemsContainer');
-    if (!c) return;
-    const newC = c.cloneNode(true);
-    c.parentNode.replaceChild(newC, c);
     const container = document.getElementById('itemsContainer');
+    if (!container) return;
 
     let src = null, ghost = null, ox = 0, oy = 0, didDrag = false, startY = 0, srcIdx = -1;
 
