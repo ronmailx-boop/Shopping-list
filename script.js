@@ -2152,6 +2152,7 @@ let compactActionsOpen = false;
 let expandedItemIdx = -1; // מוצר מורחב ב-compact mode
 let listEditMode = false;  // מצב עריכת סדר רשימות
 let itemEditMode = false;  // מצב עריכת סדר מוצרים
+let compactStatsOpen = false; // הצגת סכום בבר compact
 
 function render() {
     const container = document.getElementById(activePage === 'lists' ? 'itemsContainer' : activePage === 'summary' ? 'summaryContainer' : null);
@@ -10505,6 +10506,39 @@ function setupItemDrag() {
     }, { signal: sig });
 }
 
+// ════════════════════════════════════════════════
+// 📊 הצג סכום ב-compact mode
+// ════════════════════════════════════════════════
+function toggleCompactStats() {
+    compactStatsOpen = !compactStatsOpen;
+    const btn1 = document.getElementById('summaryStatsBtn');
+    const btn2 = document.getElementById('listsStatsBtn');
+    const label = compactStatsOpen ? '✕ הסתר סכום' : '📊 הצג סכום';
+    const bgActive = compactStatsOpen ? '#7367f0' : 'rgba(115,103,240,0.08)';
+    const colActive = compactStatsOpen ? '#fff' : '#7367f0';
+    [btn1, btn2].forEach(b => { if (b) { b.textContent = label; b.style.background = bgActive; b.style.color = colActive; } });
+
+    const tabsWrap = document.getElementById('tabsRowWrap');
+    const statsRow = document.getElementById('barStatsRow');
+    if (compactStatsOpen) {
+        if (tabsWrap) tabsWrap.style.display = 'none';
+        if (statsRow) { statsRow.style.display = 'flex'; statsRow.style.padding = '10px 12px 18px'; }
+    } else {
+        _restoreCompactTabs();
+    }
+}
+
+function _restoreCompactTabs() {
+    const tabsWrap = document.getElementById('tabsRowWrap');
+    if (tabsWrap) tabsWrap.style.display = '';
+    const statsRow = document.getElementById('barStatsRow');
+    if (statsRow) statsRow.style.display = 'none';
+    const btn1 = document.getElementById('summaryStatsBtn');
+    const btn2 = document.getElementById('listsStatsBtn');
+    [btn1, btn2].forEach(b => { if (b) { b.textContent = '📊 הצג סכום'; b.style.background = 'rgba(115,103,240,0.08)'; b.style.color = '#7367f0'; } });
+    compactStatsOpen = false;
+}
+
 function toggleCompactMode() {
     compactMode = !compactMode;
     expandedItemIdx = -1;
@@ -10522,6 +10556,8 @@ function toggleCompactMode() {
         if (btn) { btn.style.background = 'rgba(255,255,255,0.4)'; btn.style.borderColor = 'white'; }
         const itemEditWrap = document.getElementById('itemEditModeWrap');
         if (itemEditWrap) itemEditWrap.style.display = 'flex';
+        const summaryBtns = document.getElementById('summaryCompactBtns');
+        if (summaryBtns) summaryBtns.style.display = 'flex';
         if (barActions) barActions.style.display = 'none';
         if (barStats)   barStats.style.display   = 'none';
         if (tabsRow)    tabsRow.style.display     = 'block';
@@ -10532,6 +10568,9 @@ function toggleCompactMode() {
         if (btn) { btn.style.background = 'rgba(255,255,255,0.2)'; btn.style.borderColor = 'rgba(255,255,255,0.3)'; }
         const itemEditWrapOff = document.getElementById('itemEditModeWrap');
         if (itemEditWrapOff) { itemEditWrapOff.style.display = 'none'; itemEditMode = false; }
+        const summaryBtnsOff = document.getElementById('summaryCompactBtns');
+        if (summaryBtnsOff) summaryBtnsOff.style.display = 'none';
+        if (compactStatsOpen) { compactStatsOpen = false; _restoreCompactTabs(); }
         if (barActions) { barActions.style.display = 'flex'; barActions.style.padding = '10px 12px 18px'; }
         if (barStats)   barStats.style.display   = 'none';
         if (plusWrap)   plusWrap.style.display   = 'none';
