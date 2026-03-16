@@ -718,7 +718,7 @@ function showDemoPrompt() {
     overlay.style.cssText = 'position:fixed;inset:0;z-index:99998;background:rgba(0,0,0,0.6);display:flex;align-items:flex-end;font-family:system-ui,sans-serif;';
     var sheet = document.createElement('div');
     sheet.style.cssText = 'background:white;border-radius:28px 28px 0 0;width:100%;padding:28px 20px 40px;animation:demoSheetIn 0.4s cubic-bezier(0.34,1.56,0.64,1);';
-    sheet.innerHTML = '<div style="width:40px;height:4px;background:#e5e7eb;border-radius:99px;margin:0 auto 20px;"></div><div style="text-align:center;margin-bottom:20px;"><div style="font-size:48px;margin-bottom:12px;">🎯</div><div style="font-size:20px;font-weight:900;color:#1e1b4b;margin-bottom:6px;">ברוך הבא ל-Vplus Pro!</div><div style="font-size:13px;color:#6b7280;line-height:1.6;">רוצה לראות איך האפליקציה נראית<br>עם נתונים אמיתיים לפני שתתחיל?</div></div><div style="display:flex;flex-direction:column;gap:10px;"><button onclick="document.getElementById(\'demoPromptOverlay\').remove();localStorage.setItem(\'vplus_demo_seen\',\'true\');loadDemoMode();" style="background:linear-gradient(135deg,#7367f0,#9055ff);color:white;border:none;border-radius:18px;padding:16px;font-size:15px;font-weight:900;cursor:pointer;font-family:system-ui,sans-serif;box-shadow:0 6px 20px rgba(115,103,240,0.4);">🎯 כן! הראה לי מצב דמו</button><button onclick="document.getElementById(\'demoPromptOverlay\').remove();localStorage.setItem(\'vplus_demo_seen\',\'true\');" style="background:#f3f4f6;color:#6b7280;border:none;border-radius:18px;padding:14px;font-size:14px;font-weight:700;cursor:pointer;font-family:system-ui,sans-serif;">לא תודה, אתחיל עם רשימה ריקה</button></div><style>@keyframes demoSheetIn{from{transform:translateY(100%)}to{transform:translateY(0)}}</style>';
+    sheet.innerHTML = '<div style="display:flex;justify-content:flex-end;margin-bottom:6px;"><button onclick="document.getElementById(\'demoPromptOverlay\').remove();localStorage.setItem(\'vplus_demo_seen\',\'true\');" style="background:rgba(0,0,0,0.06);border:none;border-radius:50%;width:32px;height:32px;font-size:20px;cursor:pointer;color:#888;">×</button></div><div style="width:40px;height:4px;background:#e5e7eb;border-radius:99px;margin:0 auto 20px;"></div><div style="text-align:center;margin-bottom:20px;"><div style="font-size:48px;margin-bottom:12px;">🎯</div><div style="font-size:20px;font-weight:900;color:#1e1b4b;margin-bottom:6px;">ברוך הבא ל-Vplus Pro!</div><div style="font-size:13px;color:#6b7280;line-height:1.6;">רוצה לראות איך האפליקציה נראית<br>עם נתונים אמיתיים לפני שתתחיל?</div></div><div style="display:flex;flex-direction:column;gap:10px;"><button onclick="document.getElementById(\'demoPromptOverlay\').remove();localStorage.setItem(\'vplus_demo_seen\',\'true\');loadDemoMode();" style="background:linear-gradient(135deg,#7367f0,#9055ff);color:white;border:none;border-radius:18px;padding:16px;font-size:15px;font-weight:900;cursor:pointer;font-family:system-ui,sans-serif;box-shadow:0 6px 20px rgba(115,103,240,0.4);">🎯 כן! הראה לי מצב דמו</button><button onclick="document.getElementById(\'demoPromptOverlay\').remove();localStorage.setItem(\'vplus_demo_seen\',\'true\');" style="background:#f3f4f6;color:#6b7280;border:none;border-radius:18px;padding:14px;font-size:14px;font-weight:700;cursor:pointer;font-family:system-ui,sans-serif;">לא תודה, אתחיל עם רשימה ריקה</button></div><style>@keyframes demoSheetIn{from{transform:translateY(100%)}to{transform:translateY(0)}}</style>';
     overlay.appendChild(sheet);
     document.body.appendChild(overlay);
 }
@@ -2149,6 +2149,8 @@ function generateItemMetadataHTML(item, idx) {
 
 let compactMode = false;
 let compactActionsOpen = false;
+let listEditMode = false;  // מצב עריכת סדר רשימות
+let itemEditMode = false;  // מצב עריכת סדר מוצרים
 
 function render() {
     const container = document.getElementById(activePage === 'lists' ? 'itemsContainer' : activePage === 'summary' ? 'summaryContainer' : null);
@@ -2432,7 +2434,8 @@ function render() {
                         div.style.padding = '10px 14px';
                         div.innerHTML = `
                             <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;">
-                                <div style="display:flex;align-items:center;gap:8px;flex:1;min-width:0;">
+                                <div style="display:flex;align-items:center;gap:6px;flex:1;min-width:0;">
+                                    <div class="item-drag-handle" data-drag="true" style="display:${itemEditMode ? 'flex' : 'none'};align-items:center;justify-content:center;width:26px;height:26px;flex-shrink:0;cursor:grab;color:#a89fff;touch-action:none;"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" style="pointer-events:none"><rect x="2" y="3" width="12" height="2" rx="1" fill="currentColor"/><rect x="2" y="7" width="12" height="2" rx="1" fill="currentColor"/><rect x="2" y="11" width="12" height="2" rx="1" fill="currentColor"/></svg></div>
                                     <input type="checkbox" ${item.checked ? 'checked' : ''} onchange="toggleItem(${idx})" class="w-7 h-7 accent-indigo-600" style="flex-shrink:0;">
                                     <span class="font-bold ${item.checked ? 'line-through text-gray-300' : ''}" style="font-size:15px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
                                         <span class="item-number">${idx + 1}.</span> ${item.name}
@@ -2561,7 +2564,8 @@ function render() {
                     div.style.padding = '10px 14px';
                     div.innerHTML = `
                         <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;">
-                            <div style="display:flex;align-items:center;gap:8px;flex:1;min-width:0;">
+                            <div style="display:flex;align-items:center;gap:6px;flex:1;min-width:0;">
+                                <div class="list-drag-handle" data-drag="true" style="display:${listEditMode ? 'flex' : 'none'};align-items:center;justify-content:center;width:26px;height:26px;flex-shrink:0;cursor:grab;color:#a89fff;touch-action:none;"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" style="pointer-events:none"><rect x="2" y="3" width="12" height="2" rx="1" fill="currentColor"/><rect x="2" y="7" width="12" height="2" rx="1" fill="currentColor"/><rect x="2" y="11" width="12" height="2" rx="1" fill="currentColor"/></svg></div>
                                 <input type="checkbox" ${isSel ? 'checked' : ''} onchange="toggleSum('${id}')" class="w-7 h-7 accent-indigo-600" style="flex-shrink:0;">
                                 <span class="font-bold cursor-pointer" style="font-size:15px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" onclick="selectListAndImport('${id}'); showPage('lists')">
                                     ${templateBadge}${l.name}
@@ -4534,7 +4538,6 @@ const checkFirebase = setInterval(() => {
     if (window.firebaseAuth) {
         clearInterval(checkFirebase);
         console.log('✅ Firebase זמין, מאתחל...');
-        if (typeof dbgLog === 'function') dbgLog('✅ Firebase נטען — מאתחל Auth', '#22c55e');
         initFirebaseAuth();
 
         // NOTE: redirect result is checked in index.html script
@@ -4546,7 +4549,6 @@ const checkFirebase = setInterval(() => {
 setTimeout(() => {
     if (!window.firebaseAuth) {
         console.warn("⚠️ Firebase לא נטען אחרי 10 שניות");
-        if (typeof dbgLog === 'function') dbgLog('❌ Firebase לא נטען אחרי 10 שניות!', '#ff4444');
         showNotification('⚠️ שירות הענן לא זמין - טען מחדש את הדף', 'warning');
         if (typeof window.showFirebaseError === 'function') {
             window.showFirebaseError(
@@ -4559,7 +4561,6 @@ setTimeout(() => {
 
 function initFirebaseAuth() {
     console.log('🔄 מאתחל Firebase Auth...');
-    if (typeof dbgLog === 'function') dbgLog('🔄 initFirebaseAuth — מתחיל', '#aaaaff');
 
     window.onAuthStateChanged(window.firebaseAuth, (user) => {
         currentUser = user;
@@ -4591,11 +4592,9 @@ function initFirebaseAuth() {
         // Setup Firestore listener or cleanup
         if (user) {
             console.log("✅ משתמש מחובר:", user.email, "UID:", user.uid);
-            if (typeof dbgLog === 'function') dbgLog('✅ Auth: מחובר — ' + user.email, '#22c55e');
             setupFirestoreListener(user);
         } else {
             console.log("⚠️ אין משתמש מחובר");
-            if (typeof dbgLog === 'function') dbgLog('⚠️ Auth: אין משתמש מחובר', '#ffaa00');
             if (unsubscribeSnapshot) {
                 unsubscribeSnapshot();
                 unsubscribeSnapshot = null;
@@ -4675,7 +4674,7 @@ function loginWithGoogle() {
                 currentUser = result.user;
                 isConnected = true;
                 updateCloudIndicator('connected');
-                // setupFirestoreListener יופעל אוטומטית ע"י onAuthStateChanged
+                setupFirestoreListener(result.user);
             })
             .catch((error) => {
                 console.error("❌ שגיאת התחברות:", error);
@@ -4759,21 +4758,12 @@ function updateCloudIndicator(status) {
 
 function setupFirestoreListener(user) {
     console.log('📡 מגדיר Firestore listener עבור UID:', user.uid);
-    if (typeof dbgLog === 'function') dbgLog('📡 setupFirestoreListener — UID: ' + user.uid, '#aaaaff');
-
-    // בטל listener קיים לפני רישום חדש — מניעת double listener
-    if (unsubscribeSnapshot) {
-        if (typeof dbgLog === 'function') dbgLog('🔁 מבטל listener קיים לפני רישום חדש', '#ffaa00');
-        unsubscribeSnapshot();
-        unsubscribeSnapshot = null;
-    }
 
     const userDocRef = window.doc(window.firebaseDb, "shopping_lists", user.uid);
 
     unsubscribeSnapshot = window.onSnapshot(userDocRef, (docSnap) => {
         if (docSnap.exists()) {
             console.log('☁️ מסמך נמצא בענן');
-            if (typeof dbgLog === 'function') dbgLog('☁️ Snapshot: מסמך נמצא בענן', '#22c55e');
             const cloudData = docSnap.data();
 
             // בדיקה: אם הענן ריק אבל יש נתונים מקומיים, העלה אותם לענן
@@ -4782,18 +4772,13 @@ function setupFirestoreListener(user) {
 
             if (cloudIsEmpty && localHasData) {
                 console.log('☁️ הענן ריק אבל יש נתונים מקומיים - מעלה לענן');
-                if (typeof dbgLog === 'function') dbgLog('☁️ הענן ריק — מעלה נתונים מקומיים', '#ffaa00');
                 syncToCloud();
                 return;
             }
 
             // מיזוג חכם: הענן הוא מקור האמת למחיקות
-            const cloudListCount = Object.keys(cloudData.lists || {}).length;
-            const localListCount = Object.keys(db.lists || {}).length;
-            if (typeof dbgLog === 'function') dbgLog('🔍 בודק שינויים — ענן: ' + cloudListCount + ' רשימות, מקומי: ' + localListCount + ' רשימות', '#aaaaff');
             if (JSON.stringify(cloudData) !== JSON.stringify(db)) {
                 console.log('🔄 מבצע סנכרון חכם מהענן...');
-                if (typeof dbgLog === 'function') dbgLog('🔄 יש הבדל — מבצע מיזוג מהענן', '#ffaa00');
                 const mergedDb = mergeCloudWithLocal(cloudData, db);
 
                 // הגנה: וודא שקיים אובייקט רשימות
@@ -4812,11 +4797,8 @@ function setupFirestoreListener(user) {
 
                 db = mergedDb;
                 localStorage.setItem('BUDGET_FINAL_V28', JSON.stringify(db));
-                if (typeof dbgLog === 'function') dbgLog('✅ מיזוג הושלם — ' + Object.keys(db.lists||{}).length + ' רשימות | activePage=' + activePage, '#22c55e');
                 render();
                 showNotification('☁️ סונכרן מהענן!', 'success');
-            } else {
-                if (typeof dbgLog === 'function') dbgLog('✅ נתונים זהים לענן — אין שינוי', '#22c55e');
             }
         } else {
             console.log('📝 מסמך לא קיים בענן, יוצר חדש...');
@@ -4824,7 +4806,6 @@ function setupFirestoreListener(user) {
         }
     }, (error) => {
         console.error("❌ שגיאת Firestore sync:", error);
-        if (typeof dbgLog === 'function') dbgLog('❌ שגיאת Firestore: ' + (error.code || error.message), '#ff4444');
         showDetailedError('Firestore Sync', error);
         if (currentUser) {
             updateCloudIndicator('connected');
@@ -9212,7 +9193,7 @@ function _askDemoBeforeWizard() {
     overlay.style.cssText = 'position:fixed;inset:0;z-index:99998;background:rgba(0,0,0,0.6);display:flex;align-items:flex-end;font-family:system-ui,sans-serif;';
     var sheet = document.createElement('div');
     sheet.style.cssText = 'background:white;border-radius:28px 28px 0 0;width:100%;padding:24px 20px 40px;animation:demoSheetIn 0.35s cubic-bezier(0.34,1.56,0.64,1);';
-    sheet.innerHTML = '<div style="width:38px;height:4px;background:#e5e7eb;border-radius:99px;margin:0 auto 18px;"></div>'
+    sheet.innerHTML = '<div style="display:flex;justify-content:flex-end;margin-bottom:6px;"><button onclick="window._closeDemoPrompt();" style="background:rgba(0,0,0,0.06);border:none;border-radius:50%;width:32px;height:32px;font-size:20px;cursor:pointer;color:#888;">×</button></div><div style="width:38px;height:4px;background:#e5e7eb;border-radius:99px;margin:0 auto 18px;"></div>'
         + '<div style="font-size:44px;text-align:center;margin-bottom:10px;">🎯</div>'
         + '<div style="font-size:19px;font-weight:900;color:#1e1b4b;text-align:center;margin-bottom:6px;">טרם התחלת להשתמש</div>'
         + '<div style="font-size:13px;color:#6b7280;text-align:center;line-height:1.6;margin-bottom:20px;">רוצה לטעון 10 רשימות לדוגמה<br>כדי שהמדריך יהיה חי ומעניין יותר?</div>'
@@ -10273,6 +10254,194 @@ function adjustContentPadding() {
 
 // ── Compact Mode ──
 
+
+// ════════════════════════════════════════════════
+// ✏️ סדר רשימות — Edit Mode
+// ════════════════════════════════════════════════
+function toggleListEditMode() {
+    listEditMode = !listEditMode;
+    const btn = document.getElementById('listEditModeBtn');
+    if (btn) {
+        btn.textContent = listEditMode ? '✅ סיום' : '✏️ סדר רשימות';
+        btn.style.background = listEditMode ? '#7367f0' : 'rgba(115,103,240,0.08)';
+        btn.style.color = listEditMode ? '#fff' : '#7367f0';
+        btn.style.borderColor = listEditMode ? '#7367f0' : 'rgba(115,103,240,0.25)';
+    }
+    render();
+    if (listEditMode) setupListDrag();
+}
+
+function reorderLists(fromId, toId) {
+    const keys = Object.keys(db.lists);
+    const fi = keys.indexOf(fromId), ti = keys.indexOf(toId);
+    if (fi === -1 || ti === -1) return;
+    keys.splice(fi, 1);
+    keys.splice(ti, 0, fromId);
+    const newLists = {};
+    keys.forEach(k => newLists[k] = db.lists[k]);
+    db.lists = newLists;
+    save();
+}
+
+function setupListDrag() {
+    const c = document.getElementById('summaryContainer');
+    if (!c) return;
+    // remove old listeners by cloning
+    const newC = c.cloneNode(true);
+    c.parentNode.replaceChild(newC, c);
+    const container = document.getElementById('summaryContainer');
+
+    let src = null, ghost = null, ox = 0, oy = 0, didDrag = false, startY = 0;
+
+    function mkGhost(item) {
+        const g = document.createElement('div');
+        g.style.cssText = 'position:fixed;pointer-events:none;z-index:9999;background:#fff;border:2px solid #7367f0;border-radius:12px;padding:10px 14px;display:flex;align-items:center;gap:8px;box-shadow:0 12px 40px rgba(115,103,240,0.4);direction:rtl;transform:rotate(1.5deg) scale(1.03);font-family:inherit;';
+        const name = item.querySelector('.font-bold.cursor-pointer')?.textContent?.trim() || '';
+        g.innerHTML = '<span style="font-size:15px;font-weight:700;color:#1a1a2e;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + name + '</span>';
+        document.body.appendChild(g);
+        return g;
+    }
+
+    container.addEventListener('touchstart', e => {
+        const handle = e.target.closest('[data-drag]');
+        if (!handle || !listEditMode) return;
+        const item = handle.closest('.item-card');
+        if (!item) return;
+        const rect = item.getBoundingClientRect(), t = e.touches[0];
+        ox = t.clientX - rect.left; oy = t.clientY - rect.top;
+        startY = t.clientY; didDrag = false;
+        src = item; src.style.opacity = '0.35';
+        ghost = mkGhost(item);
+        ghost.style.width = rect.width + 'px';
+        ghost.style.top = (t.clientY - oy) + 'px';
+        ghost.style.left = rect.left + 'px';
+        e.preventDefault();
+    }, { passive: false });
+
+    document.addEventListener('touchmove', e => {
+        if (!src || !ghost) return;
+        const t = e.touches[0];
+        if (Math.abs(t.clientY - startY) > 5) didDrag = true;
+        ghost.style.top = (t.clientY - oy) + 'px';
+        container.querySelectorAll('.item-card').forEach(el => el.style.outline = '');
+        container.querySelectorAll('.item-card').forEach(el => {
+            const r = el.getBoundingClientRect();
+            if (el !== src && t.clientY > r.top && t.clientY < r.bottom)
+                el.style.outline = '2px solid #7367f0';
+        });
+        e.preventDefault();
+    }, { passive: false });
+
+    document.addEventListener('touchend', e => {
+        if (!src) return;
+        if (ghost) { ghost.remove(); ghost = null; }
+        const t = e.changedTouches[0];
+        let target = null;
+        container.querySelectorAll('.item-card').forEach(el => {
+            el.style.outline = '';
+            const r = el.getBoundingClientRect();
+            if (el !== src && t.clientY > r.top && t.clientY < r.bottom) target = el;
+        });
+        if (didDrag && target) {
+            reorderLists(src.dataset.id, target.dataset.id);
+        } else {
+            src.style.opacity = '';
+            if (didDrag) container.addEventListener('click', e => e.stopPropagation(), { capture: true, once: true });
+        }
+        src = null; didDrag = false;
+    });
+}
+
+// ════════════════════════════════════════════════
+// ✏️ סדר מוצרים — Item Edit Mode
+// ════════════════════════════════════════════════
+function toggleItemEditMode() {
+    itemEditMode = !itemEditMode;
+    const btn = document.getElementById('itemEditModeBtn');
+    if (btn) {
+        btn.textContent = itemEditMode ? '✅ סיום' : '✏️ סדר מוצרים';
+        btn.style.background = itemEditMode ? '#7367f0' : 'rgba(115,103,240,0.08)';
+        btn.style.color = itemEditMode ? '#fff' : '#7367f0';
+        btn.style.borderColor = itemEditMode ? '#7367f0' : 'rgba(115,103,240,0.25)';
+    }
+    render();
+    if (itemEditMode) setupItemDrag();
+}
+
+function setupItemDrag() {
+    const c = document.getElementById('itemsContainer');
+    if (!c) return;
+    const newC = c.cloneNode(true);
+    c.parentNode.replaceChild(newC, c);
+    const container = document.getElementById('itemsContainer');
+
+    let src = null, ghost = null, ox = 0, oy = 0, didDrag = false, startY = 0, srcIdx = -1;
+
+    function mkGhost(item) {
+        const g = document.createElement('div');
+        g.style.cssText = 'position:fixed;pointer-events:none;z-index:9999;background:#fff;border:2px solid #7367f0;border-radius:12px;padding:10px 14px;display:flex;align-items:center;gap:8px;box-shadow:0 12px 40px rgba(115,103,240,0.4);direction:rtl;transform:rotate(1.5deg) scale(1.03);font-family:inherit;';
+        const nameEl = item.querySelector('.font-bold');
+        const name = nameEl ? nameEl.textContent.trim() : '';
+        g.innerHTML = '<span style="font-size:15px;font-weight:700;color:#1a1a2e;">' + name + '</span>';
+        document.body.appendChild(g);
+        return g;
+    }
+
+    container.addEventListener('touchstart', e => {
+        const handle = e.target.closest('[data-drag]');
+        if (!handle || !itemEditMode) return;
+        const item = handle.closest('.item-card');
+        if (!item) return;
+        const rect = item.getBoundingClientRect(), t = e.touches[0];
+        ox = t.clientX - rect.left; oy = t.clientY - rect.top;
+        startY = t.clientY; didDrag = false;
+        srcIdx = parseInt(item.dataset.idx);
+        src = item; src.style.opacity = '0.35';
+        ghost = mkGhost(item);
+        ghost.style.width = rect.width + 'px';
+        ghost.style.top = (t.clientY - oy) + 'px';
+        ghost.style.left = rect.left + 'px';
+        e.preventDefault();
+    }, { passive: false });
+
+    document.addEventListener('touchmove', e => {
+        if (!src || !ghost) return;
+        const t = e.touches[0];
+        if (Math.abs(t.clientY - startY) > 5) didDrag = true;
+        ghost.style.top = (t.clientY - oy) + 'px';
+        container.querySelectorAll('.item-card').forEach(el => el.style.outline = '');
+        container.querySelectorAll('.item-card').forEach(el => {
+            const r = el.getBoundingClientRect();
+            if (el !== src && t.clientY > r.top && t.clientY < r.bottom)
+                el.style.outline = '2px solid #7367f0';
+        });
+        e.preventDefault();
+    }, { passive: false });
+
+    document.addEventListener('touchend', e => {
+        if (!src) return;
+        if (ghost) { ghost.remove(); ghost = null; }
+        const t = e.changedTouches[0];
+        let toIdx = -1;
+        container.querySelectorAll('.item-card').forEach(el => {
+            el.style.outline = '';
+            if (el === src) return;
+            const r = el.getBoundingClientRect();
+            if (t.clientY > r.top && t.clientY < r.bottom) toIdx = parseInt(el.dataset.idx);
+        });
+        if (didDrag && toIdx !== -1 && toIdx !== srcIdx) {
+            const items = db.lists[db.currentId].items;
+            const [moved] = items.splice(srcIdx, 1);
+            items.splice(toIdx, 0, moved);
+            save();
+        } else {
+            src.style.opacity = '';
+            if (didDrag) container.addEventListener('click', e => e.stopPropagation(), { capture: true, once: true });
+        }
+        src = null; srcIdx = -1; didDrag = false;
+    });
+}
+
 function toggleCompactMode() {
     compactMode = !compactMode;
     compactActionsOpen = false;
@@ -10287,6 +10456,8 @@ function toggleCompactMode() {
 
     if (compactMode) {
         if (btn) { btn.style.background = 'rgba(255,255,255,0.4)'; btn.style.borderColor = 'white'; }
+        const itemEditWrap = document.getElementById('itemEditModeWrap');
+        if (itemEditWrap) itemEditWrap.style.display = 'flex';
         if (barActions) barActions.style.display = 'none';
         if (barStats)   barStats.style.display   = 'none';
         if (tabsRow)    tabsRow.style.display     = 'block';
@@ -10295,6 +10466,8 @@ function toggleCompactMode() {
         if (bar)        bar.style.overflow        = 'hidden';
     } else {
         if (btn) { btn.style.background = 'rgba(255,255,255,0.2)'; btn.style.borderColor = 'rgba(255,255,255,0.3)'; }
+        const itemEditWrapOff = document.getElementById('itemEditModeWrap');
+        if (itemEditWrapOff) { itemEditWrapOff.style.display = 'none'; itemEditMode = false; }
         if (barActions) { barActions.style.display = 'flex'; barActions.style.padding = '10px 12px 18px'; }
         if (barStats)   barStats.style.display   = 'none';
         if (plusWrap)   plusWrap.style.display   = 'none';
