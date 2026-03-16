@@ -2552,7 +2552,7 @@ function render() {
                 div.className = "item-card";
                 div.dataset.id = id;
                 div.style.background = isHighlighted ? 'linear-gradient(135deg, #e0f2fe 0%, #bae6fd 100%)' : '';
-                div.style.border = isHighlighted ? '3px solid #0ea5e9' : '';
+                div.style.border = isHighlighted ? '3px solid #0ea5e9' : '2px solid #7367f0';
                 div.style.boxShadow = isHighlighted ? '0 8px 20px rgba(14, 165, 233, 0.3)' : '';
 
                 const webBtn = l.url ? `
