@@ -2149,6 +2149,7 @@ function generateItemMetadataHTML(item, idx) {
 
 let compactMode = false;
 let compactActionsOpen = false;
+let listEditMode = false; // מצב עריכת סדר רשימות
 
 function render() {
     const container = document.getElementById(activePage === 'lists' ? 'itemsContainer' : activePage === 'summary' ? 'summaryContainer' : null);
@@ -2562,6 +2563,9 @@ function render() {
                     div.innerHTML = `
                         <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;">
                             <div style="display:flex;align-items:center;gap:8px;flex:1;min-width:0;">
+                                <div class="list-drag-handle" data-drag="true" style="display:${listEditMode ? 'flex' : 'none'};align-items:center;justify-content:center;width:28px;height:28px;flex-shrink:0;cursor:grab;color:#a89fff;touch-action:none;">
+                                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" style="pointer-events:none"><rect x="2" y="3" width="12" height="2" rx="1" fill="currentColor"/><rect x="2" y="7" width="12" height="2" rx="1" fill="currentColor"/><rect x="2" y="11" width="12" height="2" rx="1" fill="currentColor"/></svg>
+                                </div>
                                 <input type="checkbox" ${isSel ? 'checked' : ''} onchange="toggleSum('${id}')" class="w-7 h-7 accent-indigo-600" style="flex-shrink:0;">
                                 <span class="font-bold cursor-pointer" style="font-size:15px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" onclick="selectListAndImport('${id}'); showPage('lists')">
                                     ${templateBadge}${l.name}
@@ -10249,6 +10253,96 @@ function adjustContentPadding() {
 })();
 
 // ── Compact Mode ──
+
+// ── עריכת סדר רשימות ──
+function toggleListEditMode() {
+    listEditMode = !listEditMode;
+    const btn = document.getElementById('listEditModeBtn');
+    if (btn) {
+        btn.textContent = listEditMode ? '✅ סיום עריכה' : '✏️ סדר רשימות';
+        btn.style.background = listEditMode ? '#7367f0' : 'rgba(115,103,240,0.08)';
+        btn.style.color = listEditMode ? '#fff' : '#7367f0';
+        btn.style.borderColor = listEditMode ? '#7367f0' : 'rgba(115,103,240,0.25)';
+    }
+    render();
+    if (listEditMode) setupListDrag();
+}
+
+function reorderLists(fromId, toId) {
+    const keys = Object.keys(db.lists);
+    const fi = keys.indexOf(fromId), ti = keys.indexOf(toId);
+    if (fi === -1 || ti === -1) return;
+    keys.splice(fi, 1);
+    keys.splice(ti, 0, fromId);
+    const newLists = {};
+    keys.forEach(k => newLists[k] = db.lists[k]);
+    db.lists = newLists;
+    save();
+}
+
+function setupListDrag() {
+    const c = document.getElementById('summaryContainer');
+    if (!c) return;
+    let src = null, ghost = null, ox = 0, oy = 0;
+    let didDrag = false, startY = 0;
+
+    function mkGhost(item) {
+        const g = document.createElement('div');
+        g.style.cssText = 'position:fixed;pointer-events:none;z-index:9999;background:#fff;border:2px solid #7367f0;border-radius:12px;padding:11px 14px;display:flex;align-items:center;gap:10px;box-shadow:0 12px 40px rgba(115,103,240,0.4);direction:rtl;transform:rotate(1.5deg) scale(1.04);';
+        g.innerHTML = '<span style="font-size:15px;font-weight:700;color:#1a1a2e;">' + (item.querySelector('.font-bold.cursor-pointer')?.textContent?.trim() || '') + '</span>';
+        document.body.appendChild(g);
+        return g;
+    }
+
+    c.addEventListener('touchstart', e => {
+        const handle = e.target.closest('[data-drag]');
+        if (!handle || !listEditMode) return;
+        const item = handle.closest('.item-card');
+        if (!item) return;
+        const rect = item.getBoundingClientRect(), t = e.touches[0];
+        ox = t.clientX - rect.left; oy = t.clientY - rect.top;
+        startY = t.clientY; didDrag = false;
+        src = item; src.style.opacity = '0.35';
+        ghost = mkGhost(item);
+        ghost.style.width = rect.width + 'px';
+        ghost.style.top = (t.clientY - oy) + 'px';
+        ghost.style.left = rect.left + 'px';
+        e.preventDefault();
+    }, { passive: false });
+
+    document.addEventListener('touchmove', e => {
+        if (!src || !ghost) return;
+        const t = e.touches[0];
+        if (Math.abs(t.clientY - startY) > 5) didDrag = true;
+        ghost.style.top = (t.clientY - oy) + 'px';
+        c.querySelectorAll('.item-card').forEach(el => el.style.outline = '');
+        c.querySelectorAll('.item-card').forEach(el => {
+            const r = el.getBoundingClientRect();
+            if (el !== src && t.clientY > r.top && t.clientY < r.bottom)
+                el.style.outline = '2px solid #7367f0';
+        });
+        e.preventDefault();
+    }, { passive: false });
+
+    document.addEventListener('touchend', e => {
+        if (!src) return;
+        if (ghost) { ghost.remove(); ghost = null; }
+        const t = e.changedTouches[0];
+        let target = null;
+        c.querySelectorAll('.item-card').forEach(el => {
+            el.style.outline = '';
+            const r = el.getBoundingClientRect();
+            if (el !== src && t.clientY > r.top && t.clientY < r.bottom) target = el;
+        });
+        if (didDrag && target) {
+            reorderLists(src.dataset.id, target.dataset.id);
+        } else {
+            src.style.opacity = '';
+            if (didDrag) c.addEventListener('click', e => e.stopPropagation(), { capture: true, once: true });
+        }
+        src = null; didDrag = false;
+    });
+}
 
 function toggleCompactMode() {
     compactMode = !compactMode;
