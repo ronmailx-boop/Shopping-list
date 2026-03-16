@@ -10280,7 +10280,8 @@ function toggleCompactMode() {
         if (bar)        bar.style.overflow       = 'hidden';
     }
     render();
-} — לפי הטאב הפעיל
+}
+
 function handleCompactPlus() {
     const page = (typeof activePage !== 'undefined') ? activePage : 'lists';
     if (page === 'summary') {
