@@ -3838,6 +3838,7 @@ ${error.message}
             if (page === 'lists')   { if(pL) pL.classList.remove('hidden'); if(pS) pS.classList.add('hidden'); }
             if (page === 'summary') { if(pS) pS.classList.remove('hidden'); if(pL) pL.classList.add('hidden'); }
             if (typeof showPage === 'function') showPage(page);
+            if (typeof render === 'function') render();
         }
         // עדכן תצוגה — בcompact mode לא מציגים barActionsRow
         var isCompact = (typeof compactMode !== 'undefined' && compactMode);
@@ -3891,4 +3892,3 @@ ${error.message}
     </script>
 </body>
 </html>
-
