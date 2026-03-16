@@ -10289,9 +10289,13 @@ function reorderLists(fromId, toId) {
     save();
 }
 
+let _listDragAbort = null;
 function setupListDrag() {
     const container = document.getElementById('summaryContainer');
     if (!container) return;
+    if (_listDragAbort) { _listDragAbort.abort(); }
+    _listDragAbort = new AbortController();
+    const sig = _listDragAbort.signal;
 
     let src = null, ghost = null, ox = 0, oy = 0, didDrag = false, startY = 0;
 
@@ -10318,7 +10322,7 @@ function setupListDrag() {
         ghost.style.top = (t.clientY - oy) + 'px';
         ghost.style.left = rect.left + 'px';
         e.preventDefault();
-    }, { passive: false });
+    }, { passive: false, signal: sig });
 
     document.addEventListener('touchmove', e => {
         if (!src || !ghost) return;
@@ -10332,7 +10336,7 @@ function setupListDrag() {
                 el.style.outline = '2px solid #7367f0';
         });
         e.preventDefault();
-    }, { passive: false });
+    }, { passive: false, signal: sig });
 
     document.addEventListener('touchend', e => {
         if (!src) return;
@@ -10351,7 +10355,7 @@ function setupListDrag() {
             if (didDrag) container.addEventListener('click', e => e.stopPropagation(), { capture: true, once: true });
         }
         src = null; didDrag = false;
-    });
+    }, { signal: sig });
 }
 
 // ════════════════════════════════════════════════
@@ -10370,9 +10374,13 @@ function toggleItemEditMode() {
     if (itemEditMode) setupItemDrag();
 }
 
+let _itemDragAbort = null;
 function setupItemDrag() {
     const container = document.getElementById('itemsContainer');
     if (!container) return;
+    if (_itemDragAbort) { _itemDragAbort.abort(); }
+    _itemDragAbort = new AbortController();
+    const sig = _itemDragAbort.signal;
 
     let src = null, ghost = null, ox = 0, oy = 0, didDrag = false, startY = 0, srcIdx = -1;
 
@@ -10401,7 +10409,7 @@ function setupItemDrag() {
         ghost.style.top = (t.clientY - oy) + 'px';
         ghost.style.left = rect.left + 'px';
         e.preventDefault();
-    }, { passive: false });
+    }, { passive: false, signal: sig });
 
     document.addEventListener('touchmove', e => {
         if (!src || !ghost) return;
@@ -10415,7 +10423,7 @@ function setupItemDrag() {
                 el.style.outline = '2px solid #7367f0';
         });
         e.preventDefault();
-    }, { passive: false });
+    }, { passive: false, signal: sig });
 
     document.addEventListener('touchend', e => {
         if (!src) return;
@@ -10438,7 +10446,7 @@ function setupItemDrag() {
             if (didDrag) container.addEventListener('click', e => e.stopPropagation(), { capture: true, once: true });
         }
         src = null; srcIdx = -1; didDrag = false;
-    });
+    }, { signal: sig });
 }
 
 function toggleCompactMode() {
