@@ -4156,35 +4156,52 @@ function openEditItemNameModal(idx) {
     currentEditIdx = idx;
     const item = db.lists[db.currentId].items[idx];
     document.getElementById('editItemName').value = item.name;
+    document.getElementById('editItemPrice').value = item.price || '';
+    document.getElementById('editItemQty').value = item.qty || 1;
     document.getElementById('editItemDueDate').value = item.dueDate || '';
+    document.getElementById('editItemDueTime').value = item.dueTime || '';
     document.getElementById('editItemPaymentUrl').value = item.paymentUrl || '';
-    if (document.getElementById('editItemReminderValue')) {
-        document.getElementById('editItemReminderValue').value = item.reminderValue || '';
-    }
-    if (document.getElementById('editItemReminderUnit')) {
-        document.getElementById('editItemReminderUnit').value = item.reminderUnit || '';
-    }
+    document.getElementById('editItemNotes').value = item.note || '';
+    document.getElementById('editItemCategory').value = item.category || '';
+    document.getElementById('editItemReminderValue').value = item.reminderValue || '';
+    document.getElementById('editItemReminderUnit').value = item.reminderUnit || 'minutes';
+
+    // Reset advanced drawer to closed state
+    const drawer = document.getElementById('editAdvancedDrawer');
+    const btn = document.getElementById('editAdvancedToggleBtn');
+    if (drawer) { drawer.classList.remove('open'); }
+    if (btn) { btn.classList.remove('open'); }
+
     openModal('editItemNameModal');
 
     setTimeout(() => {
         const input = document.getElementById('editItemName');
-        input.focus();
-        input.select();
+        if (input) { input.focus(); input.select(); }
     }, 100);
 }
 
 function saveItemEdit() {
     const newName = document.getElementById('editItemName').value.trim();
+    const newPrice = parseFloat(document.getElementById('editItemPrice').value) || 0;
+    const newQty = parseInt(document.getElementById('editItemQty').value) || 1;
     const newDueDate = document.getElementById('editItemDueDate').value;
+    const newDueTime = document.getElementById('editItemDueTime').value;
     const newPaymentUrl = document.getElementById('editItemPaymentUrl').value.trim();
-    const newReminderValue = document.getElementById('editItemReminderValue') ? document.getElementById('editItemReminderValue').value : '';
-    const newReminderUnit = document.getElementById('editItemReminderUnit') ? document.getElementById('editItemReminderUnit').value : '';
+    const newNotes = document.getElementById('editItemNotes').value.trim();
+    const newCategory = document.getElementById('editItemCategory').value;
+    const newReminderValue = document.getElementById('editItemReminderValue').value;
+    const newReminderUnit = document.getElementById('editItemReminderUnit').value;
     
     if (newName && currentEditIdx !== null) {
         const item = db.lists[db.currentId].items[currentEditIdx];
         item.name = newName;
+        item.price = newPrice;
+        item.qty = newQty;
         item.dueDate = newDueDate;
+        item.dueTime = newDueTime;
         item.paymentUrl = newPaymentUrl;
+        item.note = newNotes;
+        item.category = newCategory;
         item.reminderValue = newReminderValue;
         item.reminderUnit = newReminderUnit;
         item.lastUpdated = Date.now();
