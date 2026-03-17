@@ -3031,50 +3031,51 @@ ${error.message}
     </div>
 
     <div id="newListModal" class="modal-overlay no-print">
-        <div class="edit-modal" style="padding:16px 18px 16px;">
-            <h2 style="margin-bottom:12px;font-size:18px;">רשימה חדשה</h2>
-            <input type="text" id="newListNameInput" placeholder="שם הרשימה" class="modal-input" style="margin-bottom:8px;">
-            <input type="url" id="newListUrlInput" placeholder="כתובת אתר (אופציונלי)" class="modal-input" style="margin-bottom:8px;">
-            <input type="number" id="newListBudget" placeholder="תקציב (אופציונלי)" class="modal-input" style="margin-bottom:8px;">
-            <div class="flex items-center justify-end gap-2" style="padding:2px 2px 8px;">
+        <div class="edit-modal" style="padding:6px 20px 14px;">
+            <h2 style="margin-bottom:10px;font-size:1.15rem;">רשימה חדשה</h2>
+            <input type="text" id="newListNameInput" placeholder="שם הרשימה" class="modal-input">
+            <div class="price-qty-row">
+                <input type="url" id="newListUrlInput" placeholder="🌐 אתר" class="modal-input">
+                <input type="number" id="newListBudget" placeholder="💰 תקציב" class="modal-input">
+            </div>
+            <div class="flex items-center justify-end gap-2" style="padding:2px 2px 6px;">
                 <label class="flex items-center gap-2 cursor-pointer">
                     <input type="checkbox" id="newListTemplate" class="w-5 h-5 accent-indigo-600">
                     <span class="text-sm font-bold">⭐ שמור כתבנית</span>
                 </label>
             </div>
 
-            <!-- ייבוא -->
-            <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
                 <div style="flex:1;height:1.5px;background:#f3f4f6;border-radius:2px;"></div>
-                <span style="font-size:10px;font-weight:800;color:#c4b5fd;white-space:nowrap;">או ייבא רשימה קיימת מ</span>
+                <span style="font-size:10px;font-weight:800;color:#c4b5fd;white-space:nowrap;">או ייבא מ</span>
                 <div style="flex:1;height:1.5px;background:#f3f4f6;border-radius:2px;"></div>
             </div>
-            <div style="display:flex;gap:8px;margin-bottom:14px;">
+            <div style="display:flex;gap:8px;margin-bottom:10px;">
                 <button onclick="event.stopPropagation(); closeModal('newListModal'); openManualImport();"
-                    style="flex:1;height:44px;border-radius:14px;border:1.5px solid #f0eeff;background:#faf9ff;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;cursor:pointer;transition:all 0.15s;"
+                    style="flex:1;height:42px;border-radius:14px;border:1.5px solid #f0eeff;background:#faf9ff;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;cursor:pointer;"
                     ontouchstart="this.style.background='#f0edff'" ontouchend="this.style.background='#faf9ff'">
-                    <span style="font-size:16px;line-height:1;">📋</span>
+                    <span style="font-size:15px;line-height:1;">📋</span>
                     <span style="font-size:9px;font-weight:800;color:#7367f0;">הדבק טקסט</span>
                 </button>
                 <label for="excel-upload-modal"
                     onclick="if(wizardMode){event.preventDefault();wiz('excelBtn','before',()=>document.getElementById('excel-upload-modal').click());}"
-                    style="flex:1;height:44px;border-radius:14px;border:1.5px solid #f0eeff;background:#faf9ff;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;cursor:pointer;transition:all 0.15s;"
+                    style="flex:1;height:42px;border-radius:14px;border:1.5px solid #f0eeff;background:#faf9ff;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;cursor:pointer;"
                     ontouchstart="this.style.background='#f0edff'" ontouchend="this.style.background='#faf9ff'">
-                    <span style="font-size:16px;line-height:1;">📊</span>
+                    <span style="font-size:15px;line-height:1;">📊</span>
                     <span style="font-size:9px;font-weight:800;color:#7367f0;">Excel</span>
                 </label>
                 <label for="bankFileInput-modal"
                     onclick="if(wizardMode){event.preventDefault();wiz('bankBtn','before',()=>document.getElementById('bankFileInput-modal').click());}"
-                    style="flex:1;height:44px;border-radius:14px;border:1.5px solid #f0eeff;background:#faf9ff;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;cursor:pointer;transition:all 0.15s;"
+                    style="flex:1;height:42px;border-radius:14px;border:1.5px solid #f0eeff;background:#faf9ff;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;cursor:pointer;"
                     ontouchstart="this.style.background='#f0edff'" ontouchend="this.style.background='#faf9ff'">
-                    <span style="font-size:16px;line-height:1;">📄</span>
+                    <span style="font-size:15px;line-height:1;">📄</span>
                     <span style="font-size:9px;font-weight:800;color:#7367f0;">PDF</span>
                 </label>
                 <input type="file" id="excel-upload-modal" accept=".xlsx,.xls" style="display:none;" onchange="closeModal('newListModal'); handleExcelUpload(event)">
                 <input type="file" id="bankFileInput-modal" accept=".xls,.xlsx,.pdf" style="display:none;" onchange="closeModal('newListModal'); importBankFile(event)">
             </div>
 
-            <div class="flex gap-3">
+            <div class="flex gap-3" style="margin-top:2px;">
                 <button class="bg-indigo-600 text-white flex-1 py-4 rounded-xl font-bold shadow-md"
                     onclick="event.stopPropagation(); saveNewList();">צור</button>
                 <button class="bg-gray-100 flex-1 py-4 rounded-xl font-bold"
