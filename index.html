@@ -3138,28 +3138,86 @@ ${error.message}
     </div>
 
     <div id="editItemNameModal" class="modal-overlay no-print">
-        <div class="edit-modal">
-            <h2>📝 עריכת פריט</h2>
-            <input type="text" id="editItemName" class="modal-input" placeholder="שם הפריט">
-            <input type="date" id="editItemDueDate" class="modal-input" placeholder="תאריך יעד">
-            <input type="url" id="editItemPaymentUrl" class="modal-input" placeholder="🔗 קישור לתשלום (אופציונלי)">
-            <div style="margin-bottom: 5px;">
-                <label class="text-sm font-bold text-gray-600 block text-center mb-1">🔔 צור התראה לפני</label>
-                <div class="flex gap-2">
-                    <input type="number" id="editItemReminderValue" placeholder="מספר" class="modal-input" min="0" style="flex: 1;">
-                    <select id="editItemReminderUnit" class="modal-input" style="flex: 1;">
-                        <option value="minutes" selected>דקות</option>
-                        <option value="hours">שעות</option>
-                        <option value="days">ימים</option>
-                        <option value="weeks">שבועות</option>
-                    </select>
+        <div class="edit-modal" style="position: relative;">
+
+            <!-- Header: title only (no continuous toggle for edit) -->
+            <div class="quick-add-header">
+                <div></div>
+                <h2 class="quick-add-title">עריכת מוצר</h2>
+            </div>
+
+            <!-- Name field with embedded mic button -->
+            <div style="position: relative;">
+                <input type="text" id="editItemName" placeholder="שם המוצר" class="modal-input"
+                    autocomplete="off" style="padding-left: 48px; font-weight: 900; font-size: 1.05rem;">
+                <button onclick="event.stopPropagation(); startVoiceInputEdit()" id="editVoiceBtn"
+                    title="הקלט קולי"
+                    style="position:absolute; left:6px; top:50%; transform:translateY(-50%);
+                           width:36px; height:36px; border-radius:50%; border:none;
+                           background:linear-gradient(135deg,#9055ff,#7367f0);
+                           color:white; display:flex; align-items:center; justify-content:center;
+                           cursor:pointer; box-shadow:0 2px 8px rgba(115,103,240,0.4);
+                           transition:transform 0.2s, box-shadow 0.2s; flex-shrink:0;">
+                    <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z"/>
+                    </svg>
+                </button>
+            </div>
+
+            <!-- Price + Qty side by side -->
+            <div class="price-qty-row">
+                <input type="number" id="editItemPrice" inputmode="decimal" placeholder="💰 מחיר" class="modal-input">
+                <input type="number" id="editItemQty" placeholder="🔢 כמות" class="modal-input" value="1" min="1">
+            </div>
+
+            <!-- Advanced drawer toggle button -->
+            <button class="advanced-toggle-btn" id="editAdvancedToggleBtn"
+                onclick="event.stopPropagation(); toggleEditAdvancedDrawer()">
+                <span>⚙️ פרטים נוספים</span>
+                <span class="adv-arrow">▾</span>
+            </button>
+
+            <!-- Advanced drawer -->
+            <div class="advanced-drawer" id="editAdvancedDrawer">
+                <label class="text-sm font-bold text-gray-600 block text-center mb-1">📅 תאריך ושעת יעד</label>
+                <input type="date" id="editItemDueDate" class="modal-input">
+                <input type="time" id="editItemDueTime" class="modal-input">
+                <input type="url" id="editItemPaymentUrl" placeholder="🔗 קישור לתשלום (אופציונלי)" class="modal-input">
+                <input type="text" id="editItemNotes" placeholder="📝 הערות (אופציונלי)" class="modal-input">
+                <select id="editItemCategory" class="modal-input">
+                    <option value="">בחר קטגוריה (אופציונלי)</option>
+                    <option value="פירות וירקות">🥬 פירות וירקות</option>
+                    <option value="בשר ודגים">🥩 בשר ודגים</option>
+                    <option value="חלב וביצים">🥛 חלב וביצים</option>
+                    <option value="לחם ומאפים">🍞 לחם ומאפים</option>
+                    <option value="שימורים">🥫 שימורים</option>
+                    <option value="חטיפים">🍪 חטיפים</option>
+                    <option value="משקאות">🥤 משקאות</option>
+                    <option value="ניקיון">🧹 ניקיון</option>
+                    <option value="היגיינה">🧴 היגיינה</option>
+                    <option value="אחר">📦 אחר</option>
+                </select>
+                <div style="margin-bottom: 8px;">
+                    <label class="text-sm font-bold text-gray-600 block text-center mb-1">🔔 צור התראה לפני</label>
+                    <div class="flex gap-2">
+                        <input type="number" id="editItemReminderValue" placeholder="מספר" class="modal-input" min="0" style="flex: 1;">
+                        <select id="editItemReminderUnit" class="modal-input" style="flex: 1;">
+                            <option value="minutes" selected>דקות</option>
+                            <option value="hours">שעות</option>
+                            <option value="days">ימים</option>
+                            <option value="weeks">שבועות</option>
+                        </select>
+                    </div>
                 </div>
             </div>
-            <div class="flex gap-3">
-                <button class="bg-indigo-600 text-white flex-1 py-4 rounded-xl font-bold"
-                    onclick="event.stopPropagation(); saveItemEdit();">שמור</button>
-                <button class="bg-gray-100 flex-1 py-4 rounded-xl font-bold"
-                    onclick="event.stopPropagation(); closeModal('editItemNameModal');">ביטול</button>
+
+            <!-- Action buttons -->
+            <div class="flex gap-3" style="margin-top: 4px;">
+                <button class="bg-green-500 text-white flex-1 py-4 rounded-xl font-bold shadow-md add-item-btn"
+                    onclick="event.stopPropagation(); saveItemEdit();">שמור ✓</button>
+                <button class="bg-gray-100 text-gray-500 py-4 px-6 rounded-xl font-bold"
+                    onclick="event.stopPropagation(); closeModal('editItemNameModal');">סגור</button>
             </div>
         </div>
     </div>
@@ -3851,6 +3909,32 @@ ${error.message}
         }
         updateSvgTabs(_activePage);
     }
+
+    function toggleEditAdvancedDrawer() {
+        var drawer = document.getElementById('editAdvancedDrawer');
+        var btn = document.getElementById('editAdvancedToggleBtn');
+        if (!drawer) return;
+        var isOpen = drawer.classList.toggle('open');
+        if (btn) btn.classList.toggle('open', isOpen);
+        var arrow = btn ? btn.querySelector('.adv-arrow') : null;
+        if (arrow) arrow.textContent = isOpen ? '▴' : '▾';
+        var spanEl = btn ? btn.querySelector('span:first-child') : null;
+        if (spanEl) spanEl.textContent = isOpen ? '⚙️ הסתר פרטים' : '⚙️ פרטים נוספים';
+    }
+    window.toggleEditAdvancedDrawer = toggleEditAdvancedDrawer;
+
+    function startVoiceInputEdit() {
+        // delegate to existing voice system, targeting editItemName field
+        var origField = window._voiceTargetField;
+        var origId    = window._voiceTargetId;
+        window._voiceTargetField = document.getElementById('editItemName');
+        window._voiceTargetId    = 'editItemName';
+        if (typeof startVoiceInput === 'function') startVoiceInput('editItemName');
+        // restore after call
+        window._voiceTargetField = origField;
+        window._voiceTargetId    = origId;
+    }
+    window.startVoiceInputEdit = startVoiceInputEdit;
 
     var _listSearchOpen = false;
     function toggleListSearch() {
