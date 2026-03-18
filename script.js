@@ -4159,30 +4159,30 @@ function saveTotal() {
 function openEditItemNameModal(idx) {
     currentEditIdx = idx;
     const item = db.lists[db.currentId].items[idx];
-    document.getElementById('editItemName').value = item.name;
-    document.getElementById('editItemDueDate').value = item.dueDate || '';
-    document.getElementById('editItemPaymentUrl').value = item.paymentUrl || '';
-    if (document.getElementById('editItemReminderValue')) {
-        document.getElementById('editItemReminderValue').value = item.reminderValue || '';
+    document.getElementById('editName2').value = item.name;
+    document.getElementById('editDueDate2').value = item.dueDate || '';
+    document.getElementById('editPayUrl2').value = item.paymentUrl || '';
+    if (document.getElementById('editRemVal2')) {
+        document.getElementById('editRemVal2').value = item.reminderValue || '';
     }
-    if (document.getElementById('editItemReminderUnit')) {
-        document.getElementById('editItemReminderUnit').value = item.reminderUnit || '';
+    if (document.getElementById('editRemUnit2')) {
+        document.getElementById('editRemUnit2').value = item.reminderUnit || '';
     }
     openModal('editItemNameModal');
 
     setTimeout(() => {
-        const input = document.getElementById('editItemName');
+        const input = document.getElementById('editName2');
         input.focus();
         input.select();
     }, 100);
 }
 
 function saveItemEdit() {
-    const newName = document.getElementById('editItemName').value.trim();
-    const newDueDate = document.getElementById('editItemDueDate').value;
-    const newPaymentUrl = document.getElementById('editItemPaymentUrl').value.trim();
-    const newReminderValue = document.getElementById('editItemReminderValue') ? document.getElementById('editItemReminderValue').value : '';
-    const newReminderUnit = document.getElementById('editItemReminderUnit') ? document.getElementById('editItemReminderUnit').value : '';
+    const newName = document.getElementById('editName2').value.trim();
+    const newDueDate = document.getElementById('editDueDate2').value;
+    const newPaymentUrl = document.getElementById('editPayUrl2').value.trim();
+    const newReminderValue = document.getElementById('editRemVal2') ? document.getElementById('editRemVal2').value : '';
+    const newReminderUnit = document.getElementById('editRemUnit2') ? document.getElementById('editRemUnit2').value : '';
     
     if (newName && currentEditIdx !== null) {
         const item = db.lists[db.currentId].items[currentEditIdx];
@@ -9693,4 +9693,5 @@ function startVoiceAction(mode) {
     showNotification(label, 'success');
 
     _voiceActionRecognition.onresult = (e) => {
-        // Try all
+        // Try all alternatives for best match
+        const transcripts = Array.from({length: e.results[0].length}, (_
