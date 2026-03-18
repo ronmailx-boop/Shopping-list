@@ -2151,9 +2151,7 @@ function generateItemMetadataHTML(item, idx) {
     return html;
 }
 
-let compactMode = localStorage.getItem('compactMode') !== null
-    ? localStorage.getItem('compactMode') === 'true'
-    : true; // ברירת מחדל: compact mode פעיל
+let compactMode = false;
 let compactActionsOpen = false;
 let expandedItemIdx = -1; // מוצר מורחב ב-compact mode
 let listEditMode = false;  // מצב עריכת סדר רשימות
@@ -5013,30 +5011,12 @@ if (currentLang === 'he') {
 render();
 updateUILanguage();
 
-// אתחול compact mode לפי ערך שמור
-if (compactMode) {
-    // מחכה ל-DOM להיות מוכן לפני שמפעיל את ה-UI
-    setTimeout(function() {
-        const barActions = document.getElementById('barActionsRow');
-        const barStats   = document.getElementById('barStatsRow');
-        const plusWrap   = document.getElementById('compactPlusWrap');
-        const actionsRow = document.getElementById('compactActionsRow');
-        const tabsRow    = document.getElementById('tabsRowWrap');
-        const bar        = document.getElementById('smartBottomBar');
-        const btn        = document.getElementById('compactModeBtn');
-        const itemEditWrap = document.getElementById('itemEditModeWrap');
-        const summaryBtns  = document.getElementById('summaryCompactBtns');
-        if (barActions) barActions.style.display = 'none';
-        if (barStats)   barStats.style.display   = 'none';
-        if (plusWrap)   plusWrap.style.display    = 'block';
-        if (actionsRow) actionsRow.style.display  = 'none';
-        if (tabsRow)    tabsRow.style.display     = 'block';
-        if (bar)        bar.style.overflow        = 'hidden';
-        if (btn)        { btn.style.background = 'rgba(255,255,255,0.4)'; btn.style.borderColor = 'white'; }
-        if (itemEditWrap) itemEditWrap.style.display = 'flex';
-        if (summaryBtns)  summaryBtns.style.display  = 'flex';
-    }, 300);
-}
+// אתחול compact mode לפי ערך שמור (ברירת מחדל: פעיל)
+setTimeout(function() {
+    const savedCompact = localStorage.getItem('compactMode');
+    const shouldBeCompact = savedCompact !== null ? savedCompact === 'true' : true;
+    if (shouldBeCompact) toggleCompactMode();
+}, 350);
 
 // ========== Excel Import Functions ==========
 
@@ -9676,4 +9656,41 @@ function _fuzzyFindItem(transcript, items) {
         }
         // Levenshtein for typos/accent errors
         const lev = _levenshtein(name, q);
-        const maxLen = Math.max(name
+        const maxLen = Math.max(name.length, q.length);
+        const score = Math.round((1 - lev / maxLen) * 70);
+        if (score > bestScore && score >= 50) { bestScore = score; bestIdx = idx; }
+    });
+    return bestIdx;
+}
+
+function _levenshtein(a, b) {
+    const m = a.length, n = b.length;
+    const dp = Array.from({length: m+1}, (_, i) => Array.from({length: n+1}, (_, j) => i === 0 ? j : j === 0 ? i : 0));
+    for (let i = 1; i <= m; i++)
+        for (let j = 1; j <= n; j++)
+            dp[i][j] = a[i-1] === b[j-1] ? dp[i-1][j-1] : 1 + Math.min(dp[i-1][j], dp[i][j-1], dp[i-1][j-1]);
+    return dp[m][n];
+}
+
+function startVoiceAction(mode) {
+    // mode = 'bought' | 'tobuy'
+    if (!db.currentId || !db.lists[db.currentId]) {
+        showNotification('אין רשימה פעילה', 'error'); return;
+    }
+
+    if (_voiceActionActive) {
+        _stopVoiceAction(); return;
+    }
+
+    _voiceActionMode = mode;
+    _voiceActionRecognition = initVoiceAction();
+    if (!_voiceActionRecognition) return;
+
+    _voiceActionActive = true;
+    _updateVoiceActionBtns(true);
+
+    const label = mode === 'bought' ? '🛒 אמור שם מוצר שקנית...' : '📋 אמור שם מוצר לרשימה...';
+    showNotification(label, 'success');
+
+    _voiceActionRecognition.onresult = (e) => {
+        // Try all
