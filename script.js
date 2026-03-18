@@ -1324,11 +1324,6 @@ function parseVoiceInput(text) {
         const itemName = items[0];
         const category = detectCategory(itemName);
 
-        // ═══════════════════════════════════════════════════
-        // 🐛 DEBUG: single voice item — fills form, submit goes via addItemToList (correct path)
-        dbgLog(`🎤 [VOICE SINGLE] "${itemName}" → ממלא טופס, הכנסה תהיה דרך addItemToList`, '#ffaa00');
-        // ═══════════════════════════════════════════════════
-
         document.getElementById('itemName').value = itemName;
         if (category) {
             document.getElementById('itemCategory').value = category;
@@ -1342,20 +1337,9 @@ function parseVoiceInput(text) {
         items.forEach(itemName => {
             if (itemName) {
                 const category = detectCategory(itemName);
-
-                // ═══════════════════════════════════════════════════
-                // 🐛 DEBUG: voice multi-item insert position
-                const _debugItems = db.lists[db.currentId].items;
-                const _debugFirstChecked = _debugItems.findIndex(i => i.checked);
-                const _debugInsertPos = _debugItems.length;
-                dbgLog(`🎤 [VOICE] הוספת "${itemName}" | push() → אינדקס ${_debugInsertPos}`, '#7367f0');
-                if (_debugFirstChecked !== -1) {
-                    dbgLog(`⚠️ באג: מסומן ראשון באינדקס ${_debugFirstChecked} — המוצר ייכנס אחריו! צריך splice(${_debugFirstChecked})`, '#ff4444');
-                } else {
-                    dbgLog(`✅ אין מסומנים — push() תקין`, '#22c55e');
-                }
-                // ═══════════════════════════════════════════════════
-
+                const _chk = db.lists[db.currentId].items.findIndex(i => i.checked);
+                dbgLog(`🎤 VOICE | מוסיף: "${itemName}" | push() לסוף (אינדקס ${db.lists[db.currentId].items.length})`, '#7367f0');
+                if (_chk !== -1) dbgLog(`⚠️ באג: יש מסומנים מאינדקס ${_chk} — המוצר נכנס אחריהם במקום לפניהם`, '#ff4444');
                 db.lists[db.currentId].items.push({
                     name: itemName,
                     price: 0,
@@ -3828,17 +3812,6 @@ function addItemToList(event) {
         // Insert before the first checked item (so new item is last among unchecked)
         const items = db.lists[targetId].items;
         const firstCheckedIdx = items.findIndex(i => i.checked);
-
-        // ═══════════════════════════════════════════════════
-        // 🐛 DEBUG: keyboard/modal insert position
-        dbgLog(`⌨️ [KEYBOARD] הוספת "${n}" | מסומן ראשון: ${firstCheckedIdx === -1 ? 'אין' : firstCheckedIdx}`, '#22c55e');
-        if (firstCheckedIdx === -1) {
-            dbgLog(`📍 push() לסוף (אינדקס ${items.length})`, '#22c55e');
-        } else {
-            dbgLog(`📍 splice(${firstCheckedIdx}) — יכניס לפני המסומן ✅`, '#22c55e');
-        }
-        // ═══════════════════════════════════════════════════
-
         if (firstCheckedIdx === -1) {
             items.push(newItem); // no checked items — add at end
         } else {
@@ -9672,5 +9645,38 @@ function initVoiceAction() {
     return r;
 }
 
-// Fuzzy 
+// Fuzzy match — returns best matching item index or -1
+function _fuzzyFindItem(transcript, items) {
+    const q = transcript.trim().toLowerCase();
+    let bestIdx = -1, bestScore = 0;
 
+    items.forEach((item, idx) => {
+        const name = item.name.toLowerCase();
+        // exact
+        if (name === q) { bestIdx = idx; bestScore = 100; return; }
+        // contains
+        if (name.includes(q) || q.includes(name)) {
+            const score = 80 - Math.abs(name.length - q.length);
+            if (score > bestScore) { bestScore = score; bestIdx = idx; }
+            return;
+        }
+        // Levenshtein for typos/accent errors
+        const lev = _levenshtein(name, q);
+        const maxLen = Math.max(name.length, q.length);
+        const score = Math.round((1 - lev / maxLen) * 70);
+        if (score > bestScore && score >= 50) { bestScore = score; bestIdx = idx; }
+    });
+    return bestIdx;
+}
+
+function _levenshtein(a, b) {
+    const m = a.length, n = b.length;
+    const dp = Array.from({length: m+1}, (_, i) => Array.from({length: n+1}, (_, j) => i === 0 ? j : j === 0 ? i : 0));
+    for (let i = 1; i <= m; i++)
+        for (let j = 1; j <= n; j++)
+            dp[i][j] = a[i-1] === b[j-1] ? dp[i-1][j-1] : 1 + Math.min(dp[i-1][j], dp[i][j-1], dp[i-1][j-1]);
+    return dp[m][n];
+}
+
+function startVoiceAction(mode) {
+    // mode = 'boug
