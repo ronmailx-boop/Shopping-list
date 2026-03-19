@@ -1,13 +1,24 @@
-const CACHE_NAME = 'vplus-pro-v1.0.2';
+// ─── עדכון גרסה v2.0.0 — מאלץ ניקוי cache ישן ב-activate ───
+// חובה לשנות מספר זה בכל פריסה שמשנה קבצי JS/HTML
+const CACHE_NAME = 'vplus-pro-v2.0.0';
 const urlsToCache = [
   '/',
   '/index.html',
-  '/style.css',
-  '/script.js',
   '/manifest.json',
+  '/sw.js',
+  '/notification-handler.js',
+  // קבצי JS המפוצלים (החליפו את script.js הישן)
+  '/constants.js',
+  '/store.js',
+  '/services.js',
+  '/importers.js',
+  '/ui.js',
+  '/app.js',
+  // ספריות חיצוניות
   'https://cdn.tailwindcss.com',
   'https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js',
-  'https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js'
+  'https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js',
+  'https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js'
 ];
 
 // Install Service Worker
