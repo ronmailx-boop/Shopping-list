@@ -785,6 +785,35 @@ function _wizDismiss() {
 
 function _wizForceClose() { if (document.getElementById('wizCardOverlay')) _wizDismiss(); }
 
+// ─── תיקון: _wizSkip — נקרא מ-HTML (כפתור "דלג") ───
+function _wizSkip() {
+    _wizDismiss();
+    wizardMode = false;
+    localStorage.setItem('wizardMode', 'false');
+    window.wizardMode = false;
+    const btn = _n('wizardModeBtn'), txt = _n('wizardBtnText');
+    if (btn) btn.style.background = 'rgba(255,255,255,0.12)';
+    if (txt) txt.textContent = '🧙 ויזארד';
+    showNotification('✅ ויזארד כובה');
+}
+
+// ─── תיקון: saveReminderEdit — נקרא מ-HTML (מודל תזכורת) ───
+function saveReminderEdit() {
+    if (currentEditIdx === null) return;
+    const item = db.lists[db.currentId]?.items[currentEditIdx];
+    if (!item) return;
+    const val  = _n('editItemReminderValue')?.value || '';
+    const unit = _n('editItemReminderUnit')?.value  || '';
+    item.reminderValue = val;
+    item.reminderUnit  = unit;
+    item.lastUpdated   = Date.now();
+    initItemAlertTime(item);
+    save();
+    closeModal('editReminderModal');
+    showNotification('✅ תזכורת עודכנה!');
+    checkUrgentPayments();
+}
+
 function openWizard(type)     { openModal(type + 'Modal'); }
 function closeWizard()        { }
 function wizardOverlayClick() { }
@@ -885,8 +914,9 @@ function _exposeAll() {
         confirmDeleteHistory, executeDeleteHistory, undoDeleteHistory,
         openRestoreItemPicker, restoreSingleItem, createFromTemplate,
         tapTab, editDueDate, editNotes, toggleItemPaid,
-        toggleWizardMode, wiz, _wizDismiss, _wizForceClose,
+        toggleWizardMode, wiz, _wizDismiss, _wizForceClose, _wizSkip,
         openWizard, closeWizard, wizardOverlayClick, handlePlusBtn,
+        saveReminderEdit,
         dbgLog, showDebugLog,
         // bank modal stubs
         openBankModal: () => openModal('financialChoiceModal'),
@@ -897,7 +927,12 @@ function _exposeAll() {
     Object.entries(fns).forEach(([name, fn]) => { window[name] = fn; });
 
     // extra aliases used in HTML
-    window.wizardMode           = wizardMode;
+    // wizardMode: משתמשים ב-getter כדי שהערך תמיד יהיה עדכני
+    Object.defineProperty(window, 'wizardMode', {
+        get: () => wizardMode,
+        set: (v) => { wizardMode = v; },
+        configurable: true
+    });
     window.expandedItemIdx      = expandedItemIdx;
     window.activePage           = activePage;
     window.render               = render;
@@ -909,6 +944,11 @@ function _exposeAll() {
     window.selectListAndImport  = selectListAndImport;
     window.showPage             = showPage;
 }
+
+// ─── תיקון מרכזי: קרא ל-_exposeAll מיד עם טעינת המודול ───
+// ES modules הם deferred — בלי שורה זו, הפונקציות לא יהיו על window
+// עד אחרי DOMContentLoaded, מה שגורם לכפתורים להיות חרשים בלחיצה הראשונה
+_exposeAll();
 
 // ============================================================
 //  DOMContentLoaded — Bootstrap
@@ -922,7 +962,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Dark mode
     if (localStorage.getItem('darkMode') === 'true') document.body.classList.add('dark-mode');
 
-    // Expose all window functions first
+    // Expose again — מעדכן window.activePage ו-window.expandedItemIdx אחרי שה-state נטען
     _exposeAll();
 
     // Initial render
