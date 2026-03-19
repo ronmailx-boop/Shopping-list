@@ -785,7 +785,7 @@ function _wizDismiss() {
 
 function _wizForceClose() { if (document.getElementById('wizCardOverlay')) _wizDismiss(); }
 
-// ─── תיקון: _wizSkip — נקרא מ-HTML (כפתור "דלג") ───
+// ─── _wizSkip — נקרא מ-HTML (כפתור "דלג") ───
 function _wizSkip() {
     _wizDismiss();
     wizardMode = false;
@@ -797,15 +797,13 @@ function _wizSkip() {
     showNotification('✅ ויזארד כובה');
 }
 
-// ─── תיקון: saveReminderEdit — נקרא מ-HTML (מודל תזכורת) ───
+// ─── saveReminderEdit — נקרא מ-HTML (מודל תזכורת) ───
 function saveReminderEdit() {
     if (currentEditIdx === null) return;
     const item = db.lists[db.currentId]?.items[currentEditIdx];
     if (!item) return;
-    const val  = _n('editItemReminderValue')?.value || '';
-    const unit = _n('editItemReminderUnit')?.value  || '';
-    item.reminderValue = val;
-    item.reminderUnit  = unit;
+    item.reminderValue = _n('editItemReminderValue')?.value || '';
+    item.reminderUnit  = _n('editItemReminderUnit')?.value  || '';
     item.lastUpdated   = Date.now();
     initItemAlertTime(item);
     save();
@@ -927,7 +925,7 @@ function _exposeAll() {
     Object.entries(fns).forEach(([name, fn]) => { window[name] = fn; });
 
     // extra aliases used in HTML
-    // wizardMode: משתמשים ב-getter כדי שהערך תמיד יהיה עדכני
+    // wizardMode דרך getter — תמיד מחזיר את הערך העדכני מהמודול
     Object.defineProperty(window, 'wizardMode', {
         get: () => wizardMode,
         set: (v) => { wizardMode = v; },
@@ -945,9 +943,14 @@ function _exposeAll() {
     window.showPage             = showPage;
 }
 
-// ─── תיקון מרכזי: קרא ל-_exposeAll מיד עם טעינת המודול ───
-// ES modules הם deferred — בלי שורה זו, הפונקציות לא יהיו על window
-// עד אחרי DOMContentLoaded, מה שגורם לכפתורים להיות חרשים בלחיצה הראשונה
+// ═══════════════════════════════════════════════════════════════
+//  תיקון קריטי: קרא ל-_exposeAll מיד בטעינת המודול
+//
+//  ES modules הם תמיד deferred — הם מתחילים לרוץ רק אחרי שכל
+//  ה-HTML נוצר. בלי השורה הזו, כל onclick ב-HTML לא מוצא פונקציה
+//  עד שהמשתמש כבר לחץ (ואז קיבל שגיאה). _exposeAll כאן שמה
+//  את כל הפונקציות על window מיד עם פרסור הקובץ.
+// ═══════════════════════════════════════════════════════════════
 _exposeAll();
 
 // ============================================================
@@ -962,7 +965,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Dark mode
     if (localStorage.getItem('darkMode') === 'true') document.body.classList.add('dark-mode');
 
-    // Expose again — מעדכן window.activePage ו-window.expandedItemIdx אחרי שה-state נטען
+    // קרא שוב — מעדכן window.activePage / window.expandedItemIdx אחרי טעינת state
     _exposeAll();
 
     // Initial render
