@@ -6,7 +6,7 @@
 
 import { CATEGORIES, categoryTranslations } from './constants.js';
 import {
-    db, activePage, isLocked, compactMode: _cmImport,
+    db, activePage, isLocked,
     categorySortEnabled, highlightedItemIndex, highlightedListId,
     currentLang,
     setHighlightedItemIndex, setHighlightedListId,
