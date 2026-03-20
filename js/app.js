@@ -624,6 +624,11 @@ if (currentLang === 'he') {
 render();
 updateUILanguage();
 
+// Show demo prompt on first run (if no real data)
+if (typeof checkFirstRunDemo === 'function') {
+    checkFirstRunDemo();
+}
+
 // ========== Excel Import Functions ==========
 
 // פונקציה לזיהוי אינדקס עמודה לפי מילות מפתח - חיפוש גמיש
