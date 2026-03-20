@@ -1,21 +1,16 @@
-// Version v2.0.1 - removed external CDN URLs from precache (CORS fix)
-const CACHE_NAME = 'vplus-pro-v2.0.1';
+const CACHE_NAME = 'vplus-pro-v1.0.2';
 const urlsToCache = [
   '/',
   '/index.html',
+  '/style.css',
+  '/script.js',
   '/manifest.json',
-  '/sw.js',
-  '/notification-handler.js',
-  '/constants.js',
-  '/store.js',
-  '/services.js',
-  '/importers.js',
-  '/ui.js',
-  '/app.js'
-  // External CDNs removed - they caused CORS errors during SW install
-  // They will be cached automatically by the fetch handler below
+  'https://cdn.tailwindcss.com',
+  'https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js',
+  'https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js'
 ];
 
+// Install Service Worker
 self.addEventListener('install', event => {
   event.waitUntil(
     caches.open(CACHE_NAME)
@@ -30,6 +25,7 @@ self.addEventListener('install', event => {
   self.skipWaiting();
 });
 
+// Activate Service Worker
 self.addEventListener('activate', event => {
   event.waitUntil(
     caches.keys().then(cacheNames => {
@@ -46,11 +42,15 @@ self.addEventListener('activate', event => {
   self.clients.claim();
 });
 
+// Fetch Strategy: Network First, then Cache
 self.addEventListener('fetch', event => {
+  // Only handle GET requests — the Cache API does NOT support PUT with non-GET methods.
+  // Firebase Functions calls are POST requests and must NOT be intercepted/cached.
   if (event.request.method !== 'GET') {
-    return;
+    return; // Let the browser handle non-GET requests normally
   }
 
+  // Also skip caching Firebase / gstatic API calls to avoid CORS / auth issues
   const url = event.request.url;
   if (
     url.includes('firebaseio.com') ||
@@ -60,32 +60,42 @@ self.addEventListener('fetch', event => {
     url.includes('identitytoolkit.googleapis.com') ||
     url.includes('securetoken.googleapis.com')
   ) {
-    return;
+    return; // Let Firebase calls go through without caching
   }
 
   event.respondWith(
     fetch(event.request)
       .then(response => {
+        // Only cache successful responses
         if (!response || response.status !== 200 || response.type === 'opaque') {
           return response;
         }
+
+        // Clone the response before caching
         const responseToCache = response.clone();
+        
         caches.open(CACHE_NAME)
           .then(cache => {
             cache.put(event.request, responseToCache);
           });
+        
         return response;
       })
       .catch(() => {
+        // If network fails, try cache
         return caches.match(event.request)
           .then(response => {
-            if (response) return response;
+            if (response) {
+              return response;
+            }
+            // Return a custom offline page if nothing in cache
             return caches.match('/index.html');
           });
       })
   );
 });
 
+// Background Sync for offline changes
 self.addEventListener('sync', event => {
   if (event.tag === 'sync-data') {
     event.waitUntil(syncData());
@@ -94,24 +104,29 @@ self.addEventListener('sync', event => {
 
 async function syncData() {
   try {
+    // This would sync any offline changes when connection is restored
     console.log('Syncing offline data...');
+    // Implementation would depend on your backend
   } catch (err) {
     console.error('Sync failed:', err);
   }
 }
 
+// Push Notifications — FCM payload handler
 self.addEventListener('push', event => {
   let title = 'Vplus Pro';
-  let body  = 'New notification';
+  let body  = 'התראה חדשה';
   let data  = {};
 
   if (event.data) {
     try {
       const payload = event.data.json();
+      // FCM שולח notification.title / notification.body
       title = payload.notification?.title || payload.data?.title || title;
       body  = payload.notification?.body  || payload.data?.body  || body;
       data  = payload.data || {};
     } catch (e) {
+      // fallback אם הנתון לא JSON
       body = event.data.text();
     }
   }
@@ -124,9 +139,9 @@ self.addEventListener('push', event => {
     data,
     requireInteraction: true,
     actions: [
-      { action: 'snooze-10', title: 'Snooze 10 min' },
-      { action: 'snooze-60', title: 'Snooze 1 hour' },
-      { action: 'close',     title: 'Close' }
+      { action: 'snooze-10', title: '⏰ דחה 10 דק׳' },
+      { action: 'snooze-60', title: '⏰ דחה שעה'    },
+      { action: 'close',     title: '✕ סגור'         }
     ]
   };
 
@@ -135,10 +150,12 @@ self.addEventListener('push', event => {
   );
 });
 
+// Notification Click Handler
 self.addEventListener('notificationclick', event => {
   event.notification.close();
 
   if (event.action === 'snooze-10' || event.action === 'snooze-60') {
+    // שלח הודעה לאפליקציה לטיפול ב-snooze
     const snoozeMs = event.action === 'snooze-10' ? 10 * 60 * 1000 : 60 * 60 * 1000;
     event.waitUntil(
       clients.matchAll({ type: 'window' }).then(clientList => {
@@ -155,6 +172,7 @@ self.addEventListener('notificationclick', event => {
       })
     );
   } else {
+    // פתח את האפליקציה
     event.waitUntil(
       clients.matchAll({ type: 'window' }).then(clientList => {
         const focused = clientList.find(c => c.focused);
@@ -165,3 +183,6 @@ self.addEventListener('notificationclick', event => {
     );
   }
 });
+
+
+
