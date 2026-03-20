@@ -4,13 +4,6 @@
 //  מיובא על-ידי: ui.js, app.js
 // ============================================================
 
-import {
-    db, activePage, currentLang,
-    setActivePage, setPendingImportText, setDetectedListType,
-    pendingImportText, detectedListType,
-    detectCategory, save
-} from './store.js';
-
 // ============================================================
 //  עזר
 // ============================================================
@@ -22,7 +15,7 @@ function _newCloudId() {
 // ============================================================
 //  importFromText  —  ייבוא מחלון הטקסט הפשוט
 // ============================================================
-export function importFromText() {
+function importFromText() {
     const text = _n('importText')?.value.trim();
     if (!text) { alert('אנא הדבק טקסט לייבוא'); return; }
 
@@ -101,7 +94,7 @@ export function importFromText() {
 // ============================================================
 //  Clipboard Import System
 // ============================================================
-export async function checkClipboardOnStartup() {
+async function checkClipboardOnStartup() {
     try {
         if (localStorage.getItem('clipboardAutoOpen') !== 'true') return;
         if (!navigator.clipboard?.readText) return;
@@ -128,7 +121,7 @@ export async function checkClipboardOnStartup() {
     }
 }
 
-export function toggleClipboardAutoOpen() {
+function toggleClipboardAutoOpen() {
     const toggle = _n('clipboardAutoOpenToggle');
     const label  = _n('clipboardAutoOpenLabel');
     if (!toggle) return;
@@ -137,7 +130,7 @@ export function toggleClipboardAutoOpen() {
     if (label) { label.textContent = isOn ? 'מופעל' : 'מושבת'; label.style.color = isOn ? '#7367f0' : '#94a3b8'; }
 }
 
-export function showClipboardImportModal(text) {
+function showClipboardImportModal(text) {
     const modal            = _n('clipboardImportModal');
     const textarea         = _n('clipboardImportText');
     const detectedTypeDiv  = _n('clipboardDetectedType');
@@ -160,7 +153,7 @@ export function showClipboardImportModal(text) {
     if (modal)            modal.style.display = 'flex';
 }
 
-export async function openManualImport() {
+async function openManualImport() {
     if (window.wizardMode && typeof window.wiz === 'function') {
         window.wiz('pasteBtn', 'before', async () => { await _origOpenManualImport(); });
         return;
@@ -195,7 +188,7 @@ async function _origOpenManualImport() {
     setTimeout(() => textarea?.focus(), 100);
 }
 
-export function updateDetectedTypeFromInput() {
+function updateDetectedTypeFromInput() {
     const textarea         = _n('clipboardImportText');
     const detectedTypeName = _n('detectedTypeName');
     const text = textarea?.value || '';
@@ -208,7 +201,7 @@ export function updateDetectedTypeFromInput() {
     }
 }
 
-export function detectListType(text) {
+function detectListType(text) {
     const lines = text.split('\n').filter(l => l.trim());
 
     const appointmentKeywords = [
@@ -240,7 +233,7 @@ export function detectListType(text) {
     return 'general';
 }
 
-export function changeDetectedType() {
+function changeDetectedType() {
     const types = ['shopping','appointment','tasks','general'];
     const next  = (types.indexOf(detectedListType) + 1) % types.length;
     setDetectedListType(types[next]);
@@ -249,7 +242,7 @@ export function changeDetectedType() {
     if (el) el.textContent = typeNames[types[next]];
 }
 
-export function acceptClipboardImport() {
+function acceptClipboardImport() {
     const modal = _n('clipboardImportModal');
     if (modal) modal.style.display = 'none';
     const state = JSON.parse(localStorage.getItem('clipboardState') || '{}');
@@ -258,7 +251,7 @@ export function acceptClipboardImport() {
     if (typeof window.showNotification === 'function') window.showNotification('✅ בחר רשימה או צור רשימה חדשה להוספת הפריטים');
 }
 
-export function dismissClipboardImport() {
+function dismissClipboardImport() {
     const modal = _n('clipboardImportModal');
     if (modal) modal.style.display = 'none';
     const state = JSON.parse(localStorage.getItem('clipboardState') || '{}');
@@ -268,7 +261,7 @@ export function dismissClipboardImport() {
     setDetectedListType(null);
 }
 
-export function importTextToList(listId, text, listType) {
+function importTextToList(listId, text, listType) {
     if (!text || !listId) return;
     const list = db.lists[listId];
     if (!list) return;
@@ -294,7 +287,7 @@ export function importTextToList(listId, text, listType) {
 // ============================================================
 //  parseAppointmentText
 // ============================================================
-export function parseAppointmentText(text) {
+function parseAppointmentText(text) {
     const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
 
     let name = '', dueDate = '', dueTime = '', location = '', phone = '', url = '';
@@ -387,7 +380,7 @@ export function parseAppointmentText(text) {
 // ============================================================
 //  parseShoppingListText
 // ============================================================
-export function parseShoppingListText(text) {
+function parseShoppingListText(text) {
     return text.split('\n').map(l => l.trim()).filter(Boolean).map(line => {
         let price = 0;
         let name  = line;
@@ -406,7 +399,7 @@ export function parseShoppingListText(text) {
 // ============================================================
 //  parseGeneralListText
 // ============================================================
-export function parseGeneralListText(text) {
+function parseGeneralListText(text) {
     return [{
         name: text.trim(), price: 0, qty: 0, checked: false,
         category: 'אחר', note: '', dueDate: '', dueTime: '',
@@ -421,7 +414,7 @@ export function parseGeneralListText(text) {
 let recognition = null;
 let isRecording  = false;
 
-export function initVoiceRecognition() {
+function initVoiceRecognition() {
     if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) return null;
     const SR    = window.SpeechRecognition || window.webkitSpeechRecognition;
     const recog = new SR();
@@ -433,7 +426,7 @@ export function initVoiceRecognition() {
     return recog;
 }
 
-export function startVoiceInput() {
+function startVoiceInput() {
     if (!recognition) {
         recognition = initVoiceRecognition();
         if (!recognition) {
@@ -465,14 +458,14 @@ export function startVoiceInput() {
     }
 }
 
-export function stopVoiceInput() {
+function stopVoiceInput() {
     const voiceBtn = _n('voiceBtn');
     if (voiceBtn) voiceBtn.classList.remove('recording');
     isRecording = false;
     try { recognition?.stop(); } catch (e) { /* already stopped */ }
 }
 
-export function parseVoiceInput(text) {
+function parseVoiceInput(text) {
     const separators = ['ו','וגם','גם',',','עוד','בנוסף','ועוד'];
     const pattern    = new RegExp(`\\s+(${separators.join('|')})\\s+`, 'gi');
     let items = text.split(pattern).filter(item => {
@@ -520,7 +513,7 @@ let _voiceActionRecognition = null;
 let _voiceActionMode        = null;
 let _voiceActionActive      = false;
 
-export function initVoiceAction() {
+function initVoiceAction() {
     if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) return;
     // initialized on demand in startVoiceAction
 }
@@ -545,7 +538,7 @@ function _fuzzyFindItem(transcript, items) {
     return bestScore <= Math.max(3, Math.floor(best?.name.length / 4)) ? best : null;
 }
 
-export function startVoiceAction(mode) {
+function startVoiceAction(mode) {
     if (_voiceActionActive) { _stopVoiceAction(); return; }
     const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!SR) {
@@ -644,7 +637,7 @@ function _showAddItemPrompt(name) {
 // ============================================================
 //  Translation
 // ============================================================
-export async function performTranslation() {
+async function performTranslation() {
     const targetLang = _n('targetLanguage')?.value;
     const list       = db.lists[db.currentId];
     if (!list?.items.length) {
@@ -674,7 +667,7 @@ export async function performTranslation() {
     }
 }
 
-export async function translateText(text, targetLang) {
+async function translateText(text, targetLang) {
     try {
         const url  = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=${targetLang}&dt=t&q=${encodeURIComponent(text)}`;
         const data = await (await fetch(url)).json();
@@ -687,7 +680,7 @@ export async function translateText(text, targetLang) {
 // ============================================================
 //  Receipt Scanning
 // ============================================================
-export async function processReceipt() {
+async function processReceipt() {
     const fileInput = _n('receiptImage');
     const file      = fileInput?.files[0];
     if (!file) {
@@ -777,7 +770,7 @@ export async function processReceipt() {
     }
 }
 
-export function parseReceiptText(text) {
+function parseReceiptText(text) {
     const lines = text.split('\n');
     const items = [];
 
@@ -811,7 +804,7 @@ export function parseReceiptText(text) {
     return items;
 }
 
-export function createListFromReceipt(items) {
+function createListFromReceipt(items) {
     const newId    = 'L' + Date.now();
     const listName = 'קבלה - ' + new Date().toLocaleDateString('he-IL');
     db.lists[newId] = { name: listName, url: '', budget: 0, isTemplate: false, items };
@@ -823,7 +816,7 @@ export function createListFromReceipt(items) {
 // ============================================================
 //  Visibility / Focus listeners (clipboard re-check)
 // ============================================================
-export function initClipboardListeners() {
+function initClipboardListeners() {
     document.addEventListener('visibilitychange', () => {
         if (!document.hidden) setTimeout(() => checkClipboardOnStartup(), 500);
     });

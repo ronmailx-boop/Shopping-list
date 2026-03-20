@@ -4,31 +4,21 @@
 //  מיובא על-ידי: app.js
 // ============================================================
 
-import { CATEGORIES, categoryTranslations } from './constants.js';
-import {
-    db, activePage, isLocked,
-    categorySortEnabled, highlightedItemIndex, highlightedListId,
-    currentLang,
-    setHighlightedItemIndex, setHighlightedListId,
-    sortableInstance, setSortableInstance,
-    save, t, detectCategory
-} from './store.js';
-import { getReminderMilliseconds, formatReminderText } from './services.js';
 
 // ============================================================
 //  Compact-mode local state (managed here)
 // ============================================================
-export let compactMode        = localStorage.getItem('compactMode') === 'true';
-export let compactActionsOpen = false;
-export let expandedItemIdx    = -1;
-export let listEditMode       = false;
-export let itemEditMode       = false;
-export let compactStatsOpen   = false;
+let compactMode        = localStorage.getItem('compactMode') === 'true';
+let compactActionsOpen = false;
+let expandedItemIdx    = -1;
+let listEditMode       = false;
+let itemEditMode       = false;
+let compactStatsOpen   = false;
 
-export function setCompactMode(v)        { compactMode = v; }
-export function setExpandedItemIdx(v)    { expandedItemIdx = v; }
-export function setListEditMode(v)       { listEditMode = v; }
-export function setItemEditMode(v)       { itemEditMode = v; }
+function setCompactMode(v)        { compactMode = v; }
+function setExpandedItemIdx(v)    { expandedItemIdx = v; }
+function setListEditMode(v)       { listEditMode = v; }
+function setItemEditMode(v)       { itemEditMode = v; }
 
 // ============================================================
 //  Helpers
@@ -39,7 +29,7 @@ const _qs = (s)  => document.querySelector(s);
 // ============================================================
 //  openModal / closeModal
 // ============================================================
-export function openModal(id) {
+function openModal(id) {
     const m = _n(id);
     if (!m) return;
     m.classList.add('active');
@@ -90,7 +80,7 @@ export function openModal(id) {
     if (id === 'categoryManagerModal') { if (typeof window.renderCustomCategoriesList === 'function') window.renderCustomCategoriesList(); }
 }
 
-export function closeModal(id) {
+function closeModal(id) {
     const m = _n(id);
     if (m) m.classList.remove('active');
 }
@@ -104,11 +94,11 @@ let _toastUndoCallback = null;
 let _lnbToastTimer     = null;
 let _lnbUndoCallback   = null;
 
-export function showNotification(message, type = 'success') {
+function showNotification(message, type = 'success') {
     _showToast({ message, type });
 }
 
-export function _showToast({ message, type = 'success', undoCallback = null, duration = 4000, undoLabel = null }) {
+function _showToast({ message, type = 'success', undoCallback = null, duration = 4000, undoLabel = null }) {
     const lnbOverlay = _n('lnbActionOverlay');
     if (activePage === 'lists' && lnbOverlay) {
         _showLnbToast({ message, type, undoCallback, duration, undoLabel });
@@ -151,7 +141,7 @@ export function _showToast({ message, type = 'success', undoCallback = null, dur
     }, inner.classList.contains('toast-visible') ? 120 : 0);
 }
 
-export function _showLnbToast({ message, type, undoCallback, duration = 4000, undoLabel }) {
+function _showLnbToast({ message, type, undoCallback, duration = 4000, undoLabel }) {
     const overlay  = _n('lnbActionOverlay');
     const msgEl    = _n('lnbActionMsg');
     const undoBtn  = _n('lnbActionUndo');
@@ -179,13 +169,13 @@ export function _showLnbToast({ message, type, undoCallback, duration = 4000, un
     _lnbToastTimer = setTimeout(() => { overlay.classList.remove('show'); _lnbUndoCallback = null; }, duration);
 }
 
-export function handleLnbUndo() {
+function handleLnbUndo() {
     if (_lnbUndoCallback) { _lnbUndoCallback(); _lnbUndoCallback = null; }
     _n('lnbActionOverlay')?.classList.remove('show');
     if (_lnbToastTimer) { clearTimeout(_lnbToastTimer); _lnbToastTimer = null; }
 }
 
-export function handleToastUndo() {
+function handleToastUndo() {
     if (_toastUndoCallback) { _toastUndoCallback(); _toastUndoCallback = null; }
     _n('toastInner')?.classList.remove('toast-visible');
     if (_toastTimer) { clearTimeout(_toastTimer); _toastTimer = null; }
@@ -194,7 +184,7 @@ export function handleToastUndo() {
 // ============================================================
 //  Scroll helpers
 // ============================================================
-export function scrollToListTop() {
+function scrollToListTop() {
     const container = _n('itemsContainer');
     if (container) {
         const first = container.querySelector('.item-card, .category-separator');
@@ -203,7 +193,7 @@ export function scrollToListTop() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
-export function scrollToCheckedItems() {
+function scrollToCheckedItems() {
     for (const sep of document.querySelectorAll('.category-separator')) {
         if (sep.textContent?.includes('הושלמו')) { sep.scrollIntoView({ behavior: 'smooth', block: 'start' }); return; }
     }
@@ -217,7 +207,7 @@ export function scrollToCheckedItems() {
 // ============================================================
 //  Autocomplete
 // ============================================================
-export function getProductHistory() {
+function getProductHistory() {
     const map = {};
     (db.history || []).forEach(entry => {
         (entry.items || []).forEach(item => {
@@ -229,7 +219,7 @@ export function getProductHistory() {
     return map;
 }
 
-export function showAutocompleteSuggestions(searchTerm) {
+function showAutocompleteSuggestions(searchTerm) {
     const container = _n('autocompleteContainer');
     if (!container) return;
     if (!searchTerm || searchTerm.length < 2) { container.classList.remove('active'); container.innerHTML = ''; return; }
@@ -254,7 +244,7 @@ export function showAutocompleteSuggestions(searchTerm) {
     container.classList.add('active');
 }
 
-export function selectAutocompleteSuggestion(name, price, category) {
+function selectAutocompleteSuggestion(name, price, category) {
     if (_n('itemName'))     _n('itemName').value     = name;
     if (_n('itemPrice'))    _n('itemPrice').value     = price;
     if (_n('itemCategory')) _n('itemCategory').value  = category || detectCategory(name) || '';
@@ -263,7 +253,7 @@ export function selectAutocompleteSuggestion(name, price, category) {
     setTimeout(() => _n('itemPrice')?.focus(), 100);
 }
 
-export function hideAutocompleteSuggestions() {
+function hideAutocompleteSuggestions() {
     const container = _n('autocompleteContainer');
     if (container) setTimeout(() => { container.classList.remove('active'); container.innerHTML = ''; }, 200);
 }
@@ -271,7 +261,7 @@ export function hideAutocompleteSuggestions() {
 // ============================================================
 //  Search
 // ============================================================
-export function searchInList() {
+function searchInList() {
     const searchTerm = _n('listSearchInput')?.value.toLowerCase().trim();
     const list = db.lists[db.currentId];
     if (!searchTerm) { setHighlightedItemIndex(null); render(); return; }
@@ -282,9 +272,9 @@ export function searchInList() {
     setTimeout(() => { document.querySelector(`[data-id="${matches[0].idx}"]`)?.scrollIntoView({ behavior: 'smooth', block: 'center' }); }, 100);
 }
 
-export function clearListSearch() { if (_n('listSearchInput')) _n('listSearchInput').value = ''; setHighlightedItemIndex(null); render(); }
+function clearListSearch() { if (_n('listSearchInput')) _n('listSearchInput').value = ''; setHighlightedItemIndex(null); render(); }
 
-export function searchInSummary() {
+function searchInSummary() {
     const searchTerm = (_n('listSearchInput') || _n('searchInput'))?.value.toLowerCase().trim();
     if (!searchTerm) { setHighlightedListId(null); render(); return; }
     const match = Object.keys(db.lists).find(id => {
@@ -299,7 +289,7 @@ export function searchInSummary() {
 // ============================================================
 //  generateItemMetadataHTML
 // ============================================================
-export function generateItemMetadataHTML(item, idx) {
+function generateItemMetadataHTML(item, idx) {
     let html = '';
 
     if (item.dueDate && (item.reminderValue || (item.nextAlertTime && item.nextAlertTime > Date.now()))) {
@@ -440,7 +430,7 @@ function _fullCardHTML(item, idx, sub, catBadge, metaHTML, compact) {
 // ============================================================
 //  render()
 // ============================================================
-export function render() {
+function render() {
     // Tab styles
     const _tabStats = _n('tabStats'); const _tabBank = _n('tabBank');
     const _act = 'flex:1;height:34px;background:white;border:none;border-radius:12px;font-size:14px;font-weight:900;color:#7367f0;cursor:pointer;transition:all 0.2s;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 8px rgba(0,0,0,0.12);';
@@ -656,7 +646,7 @@ export function render() {
 // ============================================================
 //  adjustContentPadding
 // ============================================================
-export function adjustContentPadding() {
+function adjustContentPadding() {
     const bar    = _n('listNameBar');
     const spacer = _n('barSpacer');
     if (bar && spacer) {
@@ -669,7 +659,7 @@ export function adjustContentPadding() {
 // ============================================================
 //  initSortable (SortableJS)
 // ============================================================
-export function initSortable() {
+function initSortable() {
     const el = _n(activePage === 'lists' ? 'itemsContainer' : 'summaryContainer');
     if (sortableInstance) { sortableInstance.destroy(); setSortableInstance(null); }
     if (el && !isLocked && typeof window.Sortable !== 'undefined') {
@@ -698,18 +688,18 @@ export function initSortable() {
 // ============================================================
 let _statsMonthOffset = 0;
 
-export function navigateMonth(dir) { _statsMonthOffset += dir; if (_statsMonthOffset > 0) _statsMonthOffset = 0; renderStats(); }
-export function getSelectedMonthKey() {
+function navigateMonth(dir) { _statsMonthOffset += dir; if (_statsMonthOffset > 0) _statsMonthOffset = 0; renderStats(); }
+function getSelectedMonthKey() {
     const d = new Date(); d.setMonth(d.getMonth() + _statsMonthOffset);
     return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
 }
-export function getMonthLabel(key) {
+function getMonthLabel(key) {
     const MONTHS = ['ינואר','פברואר','מרץ','אפריל','מאי','יוני','יולי','אוגוסט','ספטמבר','אוקטובר','נובמבר','דצמבר'];
     const [y, m] = key.split('-');
     return `${MONTHS[parseInt(m)-1]} ${y}`;
 }
 
-export function renderStats() {
+function renderStats() {
     const monthKey     = getSelectedMonthKey();
     const monthlyData  = db.stats?.monthlyData || {};
     const monthlyTotal = monthlyData[monthKey] || 0;
@@ -749,7 +739,7 @@ export function renderStats() {
     renderPopularItems();
 }
 
-export function renderMonthlyChart() {
+function renderMonthlyChart() {
     const ctx = _n('monthlyChart');
     if (!ctx || typeof window.Chart === 'undefined') return;
     if (window._monthlyChart) { window._monthlyChart.destroy(); window._monthlyChart = null; }
@@ -775,7 +765,7 @@ export function renderMonthlyChart() {
     });
 }
 
-export function renderCategoryDoughnutChart() {
+function renderCategoryDoughnutChart() {
     const ctx = _n('categoryChart');
     if (!ctx || typeof window.Chart === 'undefined') return;
     if (window._categoryChart) { window._categoryChart.destroy(); window._categoryChart = null; }
@@ -805,7 +795,7 @@ export function renderCategoryDoughnutChart() {
     renderCategoryBreakdown(totals);
 }
 
-export function renderCategoryBreakdown(totals) {
+function renderCategoryBreakdown(totals) {
     const container = _n('categoryBreakdown');
     if (!container) return;
     container.innerHTML = '';
@@ -821,7 +811,7 @@ export function renderCategoryBreakdown(totals) {
     });
 }
 
-export function renderPopularItems() {
+function renderPopularItems() {
     const container = _n('popularItemsList');
     if (!container) return;
     const counts = {};
@@ -835,7 +825,7 @@ export function renderPopularItems() {
         </div>`).join('') || '<div style="color:#9ca3af;text-align:center;padding:20px;">אין היסטוריה עדיין</div>';
 }
 
-export function renderBankData() {
+function renderBankData() {
     const container = _n('bankDataContainer');
     if (!container) return;
     container.innerHTML = '<div class="text-center text-gray-400 py-10 bg-white rounded-3xl shadow-sm border border-gray-100"><span class="text-5xl block mb-4">🏦</span><p class="font-medium">השתמש בכפתור פיננסי לשליפת נתונים.</p></div>';
@@ -875,7 +865,7 @@ function getNotificationItems() {
     return items;
 }
 
-export function updateNotificationBadge() {
+function updateNotificationBadge() {
     const badge = _n('notificationBadge');
     if (!badge) return;
     const count = getNotificationItems().length;
@@ -883,7 +873,7 @@ export function updateNotificationBadge() {
     badge.style.display = count > 0 ? 'flex' : 'none';
 }
 
-export function dismissNotification(listId, itemIdx, dueDateMs, e) {
+function dismissNotification(listId, itemIdx, dueDateMs, e) {
     if (e) e.stopPropagation();
     const key = makeNotifKey(listId, itemIdx, dueDateMs);
     const dismissed = getDismissedNotifications();
@@ -899,7 +889,7 @@ export function dismissNotification(listId, itemIdx, dueDateMs, e) {
     }
 }
 
-export function dismissAllNotifications() {
+function dismissAllNotifications() {
     const items = getNotificationItems();
     const dismissed = getDismissedNotifications();
     items.forEach(n => { const k = makeNotifKey(n.listId, n.itemIdx, n.dueDateMs); if (!dismissed.includes(k)) dismissed.push(k); });
@@ -908,7 +898,7 @@ export function dismissAllNotifications() {
     openNotificationCenter();
 }
 
-export function openNotificationCenter() {
+function openNotificationCenter() {
     if (typeof window._wizForceClose === 'function') window._wizForceClose();
     const notifItems  = getNotificationItems();
     const container   = _n('notificationsList');
@@ -990,7 +980,7 @@ function _attachSwipeDismiss(wrap, card, notif) {
     document.addEventListener('mouseup',   () => { if (isDragging) onEnd(); });
 }
 
-export function jumpToItem(listId, itemIdx) {
+function jumpToItem(listId, itemIdx) {
     if (typeof window.tapTab === 'function') window.tapTab('lists');
     db.currentId = listId;
     setHighlightedItemIndex(itemIdx);
@@ -1000,7 +990,7 @@ export function jumpToItem(listId, itemIdx) {
     setTimeout(() => { document.querySelector(`[data-id="${itemIdx}"]`)?.scrollIntoView({ behavior:'smooth', block:'center' }); }, 300);
 }
 
-export function showUrgentAlertModal(urgentItems) {
+function showUrgentAlertModal(urgentItems) {
     const modal     = _n('urgentAlertModal');
     const itemsList = _n('urgentItemsList');
     if (!modal || !itemsList) return;
@@ -1028,7 +1018,7 @@ export function showUrgentAlertModal(urgentItems) {
     modal.classList.add('active');
 }
 
-export function goToItemFromAlert(itemName) {
+function goToItemFromAlert(itemName) {
     closeModal('urgentAlertModal');
     let foundListId = null, foundIdx = -1;
     Object.entries(db.lists).forEach(([listId, list]) => {
@@ -1042,7 +1032,7 @@ export function goToItemFromAlert(itemName) {
 // ============================================================
 //  Compact Mode
 // ============================================================
-export function toggleCompactStats() {
+function toggleCompactStats() {
     compactStatsOpen = !compactStatsOpen;
     const btn1 = _n('summaryStatsBtn'), btn2 = _n('listsStatsBtn');
     const label  = compactStatsOpen ? '✕ הסתר סכום' : '📊 הצג סכום';
@@ -1056,7 +1046,7 @@ export function toggleCompactStats() {
     } else { _restoreCompactTabs(); }
 }
 
-export function _restoreCompactTabs() {
+function _restoreCompactTabs() {
     const tw = _n('tabsRowWrap'); if (tw) tw.style.display = '';
     const sr = _n('barStatsRow'); if (sr) sr.style.display = 'none';
     const b1 = _n('summaryStatsBtn'), b2 = _n('listsStatsBtn');
@@ -1064,7 +1054,7 @@ export function _restoreCompactTabs() {
     compactStatsOpen = false;
 }
 
-export function toggleCompactMode() {
+function toggleCompactMode() {
     compactMode = !compactMode;
     localStorage.setItem('compactMode', compactMode ? 'true' : 'false');
     expandedItemIdx    = -1;
@@ -1103,7 +1093,7 @@ export function toggleCompactMode() {
     render();
 }
 
-export function handleCompactPlus() {
+function handleCompactPlus() {
     if (activePage === 'summary') {
         if (window.wizardMode && typeof window.wiz === 'function') window.wiz('newList','before', () => openModal('newListModal'));
         else openModal('newListModal');
@@ -1117,7 +1107,7 @@ export function handleCompactPlus() {
     }
 }
 
-export function closeCompactActions() {
+function closeCompactActions() {
     compactActionsOpen = false;
     const ar = _n('compactActionsRow'), tr = _n('tabsRowWrap'), pw = _n('compactPlusWrap'), bar = _n('smartBottomBar');
     if (ar) ar.style.display  = 'none';
@@ -1126,12 +1116,12 @@ export function closeCompactActions() {
     if (bar) bar.style.overflow = 'hidden';
 }
 
-export function toggleCompactActions() { handleCompactPlus(); }
+function toggleCompactActions() { handleCompactPlus(); }
 
 // ============================================================
 //  List / Item drag-to-reorder
 // ============================================================
-export function toggleListEditMode() {
+function toggleListEditMode() {
     listEditMode = !listEditMode;
     const btn = _n('listEditModeBtn');
     if (btn) {
@@ -1144,7 +1134,7 @@ export function toggleListEditMode() {
     if (listEditMode) setupListDrag();
 }
 
-export function reorderLists(fromId, toId) {
+function reorderLists(fromId, toId) {
     const keys = Object.keys(db.lists);
     const fi   = keys.indexOf(fromId), ti = keys.indexOf(toId);
     if (fi === -1 || ti === -1) return;
@@ -1154,7 +1144,7 @@ export function reorderLists(fromId, toId) {
 }
 
 let _listDragAbort = null;
-export function setupListDrag() {
+function setupListDrag() {
     const container = _n('summaryContainer');
     if (!container) return;
     if (_listDragAbort) _listDragAbort.abort();
@@ -1199,7 +1189,7 @@ export function setupListDrag() {
     }, { signal: sig });
 }
 
-export function toggleItemEditMode() {
+function toggleItemEditMode() {
     itemEditMode = !itemEditMode;
     const btn = _n('itemEditModeBtn');
     if (btn) {
@@ -1213,7 +1203,7 @@ export function toggleItemEditMode() {
 }
 
 let _itemDragAbort = null;
-export function setupItemDrag() {
+function setupItemDrag() {
     const container = _n('itemsContainer');
     if (!container) return;
     if (_itemDragAbort) _itemDragAbort.abort();
@@ -1266,7 +1256,7 @@ export function setupItemDrag() {
 // ============================================================
 let _listPanelOpen = false;
 
-export function adjustListNameBarPosition() {
+function adjustListNameBarPosition() {
     const header = document.querySelector('.app-header');
     const bar    = _n('listNameBar');
     if (!header || !bar) return;
@@ -1281,11 +1271,11 @@ function _positionActionsPanel() {
     panel.style.top = bar.getBoundingClientRect().bottom + 'px';
 }
 
-export function toggleListActionsPanel() { _listPanelOpen ? closeListActionsPanel() : openListActionsPanel(); }
-export function openListActionsPanel()  { _listPanelOpen = true;  _positionActionsPanel(); _n('listActionsPanel')?.classList.add('open');    _n('lnbArrow')?.classList.add('open'); }
-export function closeListActionsPanel() { _listPanelOpen = false; _n('listActionsPanel')?.classList.remove('open'); _n('lnbArrow')?.classList.remove('open'); }
+function toggleListActionsPanel() { _listPanelOpen ? closeListActionsPanel() : openListActionsPanel(); }
+function openListActionsPanel()  { _listPanelOpen = true;  _positionActionsPanel(); _n('listActionsPanel')?.classList.add('open');    _n('lnbArrow')?.classList.add('open'); }
+function closeListActionsPanel() { _listPanelOpen = false; _n('listActionsPanel')?.classList.remove('open'); _n('lnbArrow')?.classList.remove('open'); }
 
-export function initListNameBarListeners() {
+function initListNameBarListeners() {
     window.addEventListener('resize', adjustListNameBarPosition);
     document.addEventListener('DOMContentLoaded', () => setTimeout(adjustListNameBarPosition, 100));
     setTimeout(adjustListNameBarPosition, 300);
@@ -1296,7 +1286,7 @@ export function initListNameBarListeners() {
     });
 }
 
-export function updatePlusBtnLabel() {
+function updatePlusBtnLabel() {
     const lbl = _n('plusBtnLabel');
     if (lbl) lbl.textContent = activePage === 'summary' ? 'רשימה חדשה' : 'הוסף מוצר';
 }
@@ -1304,7 +1294,7 @@ export function updatePlusBtnLabel() {
 // ============================================================
 //  preparePrint
 // ============================================================
-export function preparePrint() {
+function preparePrint() {
     closeModal('settingsModal');
     const printArea = _n('printArea');
     if (!printArea) return;
@@ -1321,7 +1311,7 @@ export function preparePrint() {
 // ============================================================
 //  History / Templates rendering
 // ============================================================
-export function renderHistory() {
+function renderHistory() {
     const container = _n('historyContent');
     if (!container) return;
     container.innerHTML = '';
@@ -1348,7 +1338,7 @@ export function renderHistory() {
     });
 }
 
-export function renderTemplates() {
+function renderTemplates() {
     const container = _n('templatesContent');
     if (!container) return;
     const templates = Object.entries(db.lists).filter(([,l]) => l.isTemplate);
@@ -1363,7 +1353,7 @@ export function renderTemplates() {
         </div>`).join('');
 }
 
-export function showCompletedListsModal() {
+function showCompletedListsModal() {
     const monthKey = getSelectedMonthKey();
     const filtered = (db.history || []).filter(e => { const d = new Date(e.completedAt); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}` === monthKey; });
     if (filtered.length === 0) { showNotification(`אין רשימות שהושלמו ב${getMonthLabel(monthKey)}`, 'warning'); return; }
@@ -1373,7 +1363,7 @@ export function showCompletedListsModal() {
     renderCompletedLists();
 }
 
-export function renderCompletedLists() {
+function renderCompletedLists() {
     const container = _n('completedListsContent');
     if (!container) return;
     container.innerHTML = '';

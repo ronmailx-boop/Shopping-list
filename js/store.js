@@ -4,27 +4,19 @@
 //  מיובא על-ידי: services.js, importers.js, ui.js, app.js
 // ============================================================
 
-import {
-    translations,
-    categoryTranslations,
-    CATEGORY_KEYWORDS,
-    DEMO_DATA,
-    DEMO_NOTIFICATIONS
-} from './constants.js';
-
 // ============================================================
 //  שפה
 // ============================================================
-export let currentLang = localStorage.getItem('appLanguage') || 'he';
+let currentLang = localStorage.getItem('appLanguage') || 'he';
 
-export function t(key) {
+function t(key) {
     return translations[currentLang]?.[key] || translations['he'][key] || key;
 }
 
 // ============================================================
 //  מסד הנתונים הראשי (State)
 // ============================================================
-export let db = JSON.parse(localStorage.getItem('BUDGET_FINAL_V28')) || {
+let db = JSON.parse(localStorage.getItem('BUDGET_FINAL_V28')) || {
     currentId: 'L1',
     selectedInSummary: [],
     lists: {
@@ -46,92 +38,92 @@ if (!db.categoryMemory)   db.categoryMemory = {};
 // ============================================================
 //  משתני מצב גלובליים
 // ============================================================
-export let isLocked             = true;
-export let activePage           = db.lastActivePage || 'lists';
-export let currentEditIdx       = null;
-export let listToDelete         = null;
-export let sortableInstance     = null;
-export let monthlyChart         = null;
-export let categoryDoughnutChart = null;
-export let highlightedItemIndex = null;
-export let highlightedListId    = null;
-export let categorySortEnabled  = localStorage.getItem('categorySortEnabled') === 'true' || false;
+let isLocked             = true;
+let activePage           = db.lastActivePage || 'lists';
+let currentEditIdx       = null;
+let listToDelete         = null;
+let sortableInstance     = null;
+let monthlyChart         = null;
+let categoryDoughnutChart = null;
+let highlightedItemIndex = null;
+let highlightedListId    = null;
+let categorySortEnabled  = localStorage.getItem('categorySortEnabled') === 'true' || false;
 
 // undo-check state
-export let lastCheckedItem  = null;
-export let lastCheckedIdx   = null;
-export let lastCheckedState = null;
+let lastCheckedItem  = null;
+let lastCheckedIdx   = null;
+let lastCheckedState = null;
 
 // undo-delete state
-export let deletedItem      = null;
-export let deletedItemIndex = null;
-export let deleteTimeout    = null;
-export let undoNotification = null;
+let deletedItem      = null;
+let deletedItemIndex = null;
+let deleteTimeout    = null;
+let undoNotification = null;
 
 // undo-check notification ref
-export let undoCheckNotification = null;
-export let undoCheckTimeout      = null;
+let undoCheckNotification = null;
+let undoCheckTimeout      = null;
 
 // clipboard import
-export let pendingImportText = null;
-export let detectedListType  = null;
+let pendingImportText = null;
+let detectedListType  = null;
 
 // sync state
-export let unsubscribeSnapshot = null;
-export let isSyncing           = false;
-export let isConnected         = false;
-export let currentUser         = null;
-export let syncTimeout         = null;
+let unsubscribeSnapshot = null;
+let isSyncing           = false;
+let isConnected         = false;
+let currentUser         = null;
+let syncTimeout         = null;
 
 // note / edit helpers
-export let currentNoteItemIndex = null;
-export let currentEditItemIndex = null;
-export let currentEditField     = null;
+let currentNoteItemIndex = null;
+let currentEditItemIndex = null;
+let currentEditField     = null;
 
 // demo
-export let isDemoMode = false;
+let isDemoMode = false;
 
 // ============================================================
 //  Setters — פונקציות לעדכון משתנים מיוצאים
 //  (ES6 modules: imports הם read-only; משתמשים ב-setters)
 // ============================================================
-export function setDb(newDb)                       { db = newDb; }
-export function setActivePage(p)                   { activePage = p; }
-export function setCurrentLang(l)                  { currentLang = l; }
-export function setIsLocked(v)                     { isLocked = v; }
-export function setCurrentEditIdx(v)               { currentEditIdx = v; }
-export function setListToDelete(v)                 { listToDelete = v; }
-export function setSortableInstance(v)             { sortableInstance = v; }
-export function setMonthlyChart(v)                 { monthlyChart = v; }
-export function setCategoryDoughnutChart(v)        { categoryDoughnutChart = v; }
-export function setHighlightedItemIndex(v)         { highlightedItemIndex = v; }
-export function setHighlightedListId(v)            { highlightedListId = v; }
-export function setCategorySortEnabled(v)          { categorySortEnabled = v; }
-export function setLastCheckedItem(v)              { lastCheckedItem = v; }
-export function setLastCheckedIdx(v)               { lastCheckedIdx = v; }
-export function setLastCheckedState(v)             { lastCheckedState = v; }
-export function setDeletedItem(v)                  { deletedItem = v; }
-export function setDeletedItemIndex(v)             { deletedItemIndex = v; }
-export function setDeleteTimeout(v)                { deleteTimeout = v; }
-export function setUndoNotification(v)             { undoNotification = v; }
-export function setUndoCheckNotification(v)        { undoCheckNotification = v; }
-export function setUndoCheckTimeout(v)             { undoCheckTimeout = v; }
-export function setPendingImportText(v)            { pendingImportText = v; }
-export function setDetectedListType(v)             { detectedListType = v; }
-export function setUnsubscribeSnapshot(v)          { unsubscribeSnapshot = v; }
-export function setIsSyncing(v)                    { isSyncing = v; }
-export function setIsConnected(v)                  { isConnected = v; }
-export function setCurrentUser(v)                  { currentUser = v; }
-export function setSyncTimeout(v)                  { syncTimeout = v; }
-export function setCurrentNoteItemIndex(v)         { currentNoteItemIndex = v; }
-export function setCurrentEditItemIndex(v)         { currentEditItemIndex = v; }
-export function setCurrentEditField(v)             { currentEditField = v; }
-export function setIsDemoMode(v)                   { isDemoMode = v; }
+function setDb(newDb)                       { db = newDb; }
+function setActivePage(p)                   { activePage = p; }
+function setCurrentLang(l)                  { currentLang = l; }
+function setIsLocked(v)                     { isLocked = v; }
+function setCurrentEditIdx(v)               { currentEditIdx = v; }
+function setListToDelete(v)                 { listToDelete = v; }
+function setSortableInstance(v)             { sortableInstance = v; }
+function setMonthlyChart(v)                 { monthlyChart = v; }
+function setCategoryDoughnutChart(v)        { categoryDoughnutChart = v; }
+function setHighlightedItemIndex(v)         { highlightedItemIndex = v; }
+function setHighlightedListId(v)            { highlightedListId = v; }
+function setCategorySortEnabled(v)          { categorySortEnabled = v; }
+function setLastCheckedItem(v)              { lastCheckedItem = v; }
+function setLastCheckedIdx(v)               { lastCheckedIdx = v; }
+function setLastCheckedState(v)             { lastCheckedState = v; }
+function setDeletedItem(v)                  { deletedItem = v; }
+function setDeletedItemIndex(v)             { deletedItemIndex = v; }
+function setDeleteTimeout(v)                { deleteTimeout = v; }
+function setUndoNotification(v)             { undoNotification = v; }
+function setUndoCheckNotification(v)        { undoCheckNotification = v; }
+function setUndoCheckTimeout(v)             { undoCheckTimeout = v; }
+function setPendingImportText(v)            { pendingImportText = v; }
+function setDetectedListType(v)             { detectedListType = v; }
+function setUnsubscribeSnapshot(v)          { unsubscribeSnapshot = v; }
+function setIsSyncing(v)                    { isSyncing = v; }
+function setIsConnected(v)                  { isConnected = v; }
+function setCurrentUser(v)                  { currentUser = v; }
+function setSyncTimeout(v)                  { syncTimeout = v; }
+function setCurrentNoteItemIndex(v)         { currentNoteItemIndex = v; }
+function setCurrentEditItemIndex(v)         { currentEditItemIndex = v; }
+function setCurrentEditField(v)             { currentEditField = v; }
+function setIsDemoMode(v)                   { isDemoMode = v; }
 
 // ============================================================
 //  save()  —  שמירה ל-localStorage + render + sync
 // ============================================================
-export function save() {
+function save() {
     db.lastActivePage = activePage;
     db.lastSync = Date.now();
     localStorage.setItem('BUDGET_FINAL_V28', JSON.stringify(db));
@@ -153,7 +145,7 @@ export function save() {
 // ============================================================
 //  exportData / importData
 // ============================================================
-export function exportData() {
+function exportData() {
     const dataStr  = JSON.stringify(db, null, 2);
     const dataBlob = new Blob([dataStr], { type: 'application/json' });
     const url  = URL.createObjectURL(dataBlob);
@@ -166,7 +158,7 @@ export function exportData() {
     if (typeof window.closeModal === 'function') window.closeModal('settingsModal');
 }
 
-export function importData(event) {
+function importData(event) {
     const file = event.target.files[0];
     if (!file) return;
     const reader = new FileReader();
@@ -189,7 +181,7 @@ export function importData(event) {
 // ============================================================
 //  קטגוריות — זיהוי ולמידה
 // ============================================================
-export function detectCategory(productName) {
+function detectCategory(productName) {
     if (!productName) return 'אחר';
     const nameLower = productName.toLowerCase().trim();
     for (const [category, keywords] of Object.entries(CATEGORY_KEYWORDS)) {
@@ -200,7 +192,7 @@ export function detectCategory(productName) {
     return 'אחר';
 }
 
-export function getLearnedCategory(productName) {
+function getLearnedCategory(productName) {
     if (!productName || !db.categoryMemory) return null;
     return db.categoryMemory[productName.toLowerCase().trim()] || null;
 }
@@ -208,7 +200,7 @@ export function getLearnedCategory(productName) {
 // ============================================================
 //  sortItemsByStatusAndCategory
 // ============================================================
-export function sortItemsByStatusAndCategory(items) {
+function sortItemsByStatusAndCategory(items) {
     const categoryOrder = [
         'פירות וירקות', 'בשר ודגים', 'חלב וביצים', 'לחם ומאפים',
         'שימורים', 'חטיפים', 'משקאות', 'ניקיון', 'היגיינה', 'אחר'
@@ -226,7 +218,7 @@ export function sortItemsByStatusAndCategory(items) {
 // ============================================================
 //  toggleItem / undoCheck / toggleSum / toggleSelectAll
 // ============================================================
-export function toggleItem(idx) {
+function toggleItem(idx) {
     const item = db.lists[db.currentId].items[idx];
     const previousState = item.checked;
     item.checked = !item.checked;
@@ -248,7 +240,7 @@ export function toggleItem(idx) {
     }
 }
 
-export function undoCheck() {
+function undoCheck() {
     if (lastCheckedItem === null) return;
     const items = db.lists[db.currentId].items;
     const item  = items.find(i => i === lastCheckedItem);
@@ -264,14 +256,14 @@ export function undoCheck() {
     if (typeof window.showNotification === 'function') window.showNotification('✅ הסימון בוטל');
 }
 
-export function toggleSum(id) {
+function toggleSum(id) {
     const i = db.selectedInSummary.indexOf(id);
     if (i > -1) db.selectedInSummary.splice(i, 1);
     else db.selectedInSummary.push(id);
     save();
 }
 
-export function toggleSelectAll(checked) {
+function toggleSelectAll(checked) {
     db.selectedInSummary = checked ? Object.keys(db.lists) : [];
     save();
 }
@@ -279,7 +271,7 @@ export function toggleSelectAll(checked) {
 // ============================================================
 //  Dark Mode / showPage / toggleCategorySorting
 // ============================================================
-export function toggleDarkMode() {
+function toggleDarkMode() {
     document.body.classList.toggle('dark-mode');
     localStorage.setItem('darkMode', document.body.classList.contains('dark-mode'));
     const text = document.getElementById('darkModeText');
@@ -288,7 +280,7 @@ export function toggleDarkMode() {
     }
 }
 
-export function showPage(p) {
+function showPage(p) {
     activePage = p;
     if (p === 'lists' || p === 'summary') {
         if (typeof window.openSmartBar === 'function') window.openSmartBar();
@@ -297,7 +289,7 @@ export function showPage(p) {
     save();
 }
 
-export function toggleCategorySorting() {
+function toggleCategorySorting() {
     categorySortEnabled = !categorySortEnabled;
     localStorage.setItem('categorySortEnabled', categorySortEnabled ? 'true' : 'false');
 
@@ -323,7 +315,7 @@ export function toggleCategorySorting() {
 // ============================================================
 //  שפה — החלפה ועדכון UI
 // ============================================================
-export function confirmLanguageChange() {
+function confirmLanguageChange() {
     const selector = document.getElementById('languageSelector');
     const newLang  = selector.value;
     if (newLang === currentLang) {
@@ -334,7 +326,7 @@ export function confirmLanguageChange() {
     changeLanguage(newLang);
 }
 
-export function changeLanguage(lang) {
+function changeLanguage(lang) {
     currentLang = lang;
     localStorage.setItem('appLanguage', lang);
 
@@ -360,7 +352,7 @@ export function changeLanguage(lang) {
     }
 }
 
-export function updateUILanguage() {
+function updateUILanguage() {
     const ids = {
         settingsModalTitle:        t('settingsTitle'),
         languageLabel:             t('language'),
@@ -412,7 +404,7 @@ export function updateUILanguage() {
     updateCategoryOptions();
 }
 
-export function updateCategoryOptions() {
+function updateCategoryOptions() {
     const categorySelect = document.getElementById('itemCategory');
     if (!categorySelect) return;
     const currentValue = categorySelect.value;
@@ -429,7 +421,7 @@ export function updateCategoryOptions() {
     categorySelect.value = currentValue;
 }
 
-export function updateModalTexts() {
+function updateModalTexts() {
     // Statistics
     const el = (id) => document.getElementById(id);
     if (el('monthlyStatsTitle'))   el('monthlyStatsTitle').textContent   = t('monthlyStats');
@@ -502,7 +494,7 @@ export function updateModalTexts() {
 // ============================================================
 //  Demo Mode
 // ============================================================
-export function loadDemoMode() {
+function loadDemoMode() {
     isDemoMode = true;
     localStorage.setItem('vplus_demo_mode', 'true');
     db = JSON.parse(JSON.stringify(DEMO_DATA));
@@ -516,7 +508,7 @@ export function loadDemoMode() {
     if (typeof window.render === 'function') window.render();
 }
 
-export function exitDemoMode() {
+function exitDemoMode() {
     Object.keys(db.lists).forEach(id => { if (db.lists[id].isDemo) delete db.lists[id]; });
     if (Object.keys(db.lists).length === 0) {
         db.lists['L1'] = { name: 'הרשימה שלי', url: '', budget: 0, isTemplate: false, items: [] };
@@ -537,7 +529,7 @@ export function exitDemoMode() {
     save();
 }
 
-export function showDemoBanner() {
+function showDemoBanner() {
     if (document.getElementById('demoBanner')) return;
     const banner = document.createElement('div');
     banner.id = 'demoBanner';
@@ -551,7 +543,7 @@ export function showDemoBanner() {
     if (appHeader) appHeader.style.marginTop = '48px';
 }
 
-export function checkFirstRunDemo() {
+function checkFirstRunDemo() {
     if (localStorage.getItem('vplus_demo_mode') === 'true') {
         isDemoMode = true;
         showDemoBanner();
@@ -569,7 +561,7 @@ export function checkFirstRunDemo() {
     }
 }
 
-export function showDemoPrompt() {
+function showDemoPrompt() {
     const overlay = document.createElement('div');
     overlay.id = 'demoPromptOverlay';
     overlay.style.cssText = 'position:fixed;inset:0;z-index:99998;background:rgba(0,0,0,0.6);display:flex;align-items:flex-end;font-family:system-ui,sans-serif;';

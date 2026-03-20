@@ -4,7 +4,7 @@
 // ============================================================
 
 // ========== Categories ==========
-export const CATEGORIES = {
+const CATEGORIES = {
     'פירות וירקות': '#22c55e',
     'בשר ודגים': '#ef4444',
     'חלב וביצים': '#3b82f6',
@@ -18,7 +18,7 @@ export const CATEGORIES = {
 };
 
 // ========== Category Keywords - Multilingual ==========
-export const CATEGORY_KEYWORDS = {
+const CATEGORY_KEYWORDS = {
     'פירות וירקות': [
         // עברית
         'עגבניות', 'עגבנייה', 'מלפפון', 'מלפפונים', 'חסה', 'חציל', 'גזר', 'בצל', 'שום', 'תפוח', 'תפוחים',
@@ -252,7 +252,7 @@ export const CATEGORY_KEYWORDS = {
 };
 
 // ========== Category Translations ==========
-export const categoryTranslations = {
+const categoryTranslations = {
     he: {
         'פירות וירקות': '🥬 פירות וירקות',
         'בשר ודגים': '🥩 בשר ודגים',
@@ -304,7 +304,7 @@ export const categoryTranslations = {
 };
 
 // ========== Translations (i18n) ==========
-export const translations = {
+const translations = {
     he: {
         appName: 'Vplus', cloudSync: 'סנכרון ענן', myList: 'הרשימה שלי', myLists: 'הרשימות שלי',
         statistics: '📊 סטטיסטיקות', newList: '+ רשימה חדשה', import: '📥 ייבוא', scanReceipt: '📸 סרוק קבלה',
@@ -448,7 +448,7 @@ export const translations = {
 };
 
 // ========== Demo Data ==========
-export const DEMO_DATA = {
+const DEMO_DATA = {
     currentId: 'demo_L1',
     selectedInSummary: [],
     lastActivePage: 'lists',
@@ -532,7 +532,7 @@ export const DEMO_DATA = {
     }
 };
 
-export const DEMO_NOTIFICATIONS = [
+const DEMO_NOTIFICATIONS = [
     {id:'demo_n1', itemName:'תור לרופא משפחה',        listName:'תורים',           title:'תזכורת: תור לרופא משפחה',    body:'מחר בשעה 09:30',             isDemo:true, timestamp:Date.now()-3600000},
     {id:'demo_n2', itemName:'חיוב כרטיס Max',          listName:'כרטיס אשראי',    title:'תזכורת: חיוב Max',            body:'2,340 בעוד 5 ימים',           isDemo:true, timestamp:Date.now()-7200000},
     {id:'demo_n3', itemName:'תשלום ארנונה',            listName:'תשלומים שונים',  title:'תזכורת: ארנונה',              body:'890 עד סוף החודש',            isDemo:true, timestamp:Date.now()-10800000},
@@ -541,7 +541,7 @@ export const DEMO_NOTIFICATIONS = [
 ];
 
 // ========== Bank / Credit Config ==========
-export const BANK_CONFIG = {
+const BANK_CONFIG = {
     hapoalim:     { field1: 'userCode',  field1Label: 'קוד משתמש',    field2: null,  field2Label: '',                     hint: 'קוד המשתמש שלך באינטרנט פועלים' },
     leumi:        { field1: 'username',  field1Label: 'שם משתמש',      field2: null,  field2Label: '',                     hint: 'שם המשתמש שלך בלאומי דיגיטל' },
     mizrahi:      { field1: 'username',  field1Label: 'שם משתמש',      field2: null,  field2Label: '',                     hint: '' },
@@ -553,18 +553,18 @@ export const BANK_CONFIG = {
     beinleumi:    { field1: 'username',  field1Label: 'שם משתמש',      field2: null,  field2Label: '',                     hint: '' },
 };
 
-export const BANK_NAMES = {
+const BANK_NAMES = {
     hapoalim: 'פועלים', leumi: 'לאומי', mizrahi: 'מזרחי',
     discount: 'דיסקונט', otsarHahayal: 'אוצר החייל',
     yahav: 'יהב', massad: 'מסד', unionBank: 'איגוד', beinleumi: 'בינלאומי'
 };
 
-export const CREDIT_NAMES = {
+const CREDIT_NAMES = {
     max: 'Max', visaCal: 'Cal', leumincard: 'לאומי קארד', isracard: 'ישראכרט'
 };
 
 // ========== Wizard (WIZ) — טקסטים סטטיים ==========
-export const WIZ = {
+const WIZ = {
     plusBtn: {
         emoji:'➕', phase:'before', emojiColor:'#22c55e',
         title:'הוספת מוצר לרשימה',

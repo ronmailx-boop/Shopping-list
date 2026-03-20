@@ -4,14 +4,6 @@
 //  מיובא על-ידי: ui.js, app.js
 // ============================================================
 
-import { BANK_CONFIG, BANK_NAMES, CREDIT_NAMES } from './constants.js';
-import {
-    db, activePage, currentUser, isConnected, syncTimeout,
-    unsubscribeSnapshot, isDemoMode,
-    setDb, setActivePage, setCurrentUser, setIsConnected,
-    setSyncTimeout, setUnsubscribeSnapshot,
-    detectCategory, save
-} from './store.js';
 
 // ============================================================
 //  עזר — helper (לוקלי)
@@ -22,7 +14,7 @@ function _qs(s)  { return document.querySelector(s); }
 // ============================================================
 //  getReminderMilliseconds / computeNextAlertTime / formatReminderText
 // ============================================================
-export function getReminderMilliseconds(value, unit) {
+function getReminderMilliseconds(value, unit) {
     if (!value || !unit) return 0;
     const n = parseInt(value);
     if (isNaN(n) || n <= 0) return 0;
@@ -30,7 +22,7 @@ export function getReminderMilliseconds(value, unit) {
     return map[unit] || 0;
 }
 
-export function computeNextAlertTime(item) {
+function computeNextAlertTime(item) {
     if (!item.dueDate || !item.reminderValue || !item.reminderUnit) return null;
     const timeStr = item.dueTime || '09:00';
     const [h, m] = timeStr.split(':');
@@ -39,7 +31,7 @@ export function computeNextAlertTime(item) {
     return due.getTime() - getReminderMilliseconds(item.reminderValue, item.reminderUnit);
 }
 
-export function formatReminderText(value, unit) {
+function formatReminderText(value, unit) {
     if (!value || !unit) return '';
     const units = {
         minutes: value === '1' ? 'דקה' : 'דקות',
@@ -53,7 +45,7 @@ export function formatReminderText(value, unit) {
 // ============================================================
 //  showDetailedError
 // ============================================================
-export function showDetailedError(context, error) {
+function showDetailedError(context, error) {
     const errorCode    = error.code    || 'UNKNOWN_ERROR';
     const errorMessage = error.message || 'Unknown error occurred';
     console.error(`❌ [${context}]`, { code: errorCode, message: errorMessage, fullError: error });
@@ -97,7 +89,7 @@ export function showDetailedError(context, error) {
 // ============================================================
 //  updateCloudIndicator
 // ============================================================
-export function updateCloudIndicator(status) {
+function updateCloudIndicator(status) {
     const indicator = _n('cloudIndicator');
     const text      = _n('cloudSyncText');
     const cloudBtn  = _n('cloudBtn');
@@ -121,7 +113,7 @@ export function updateCloudIndicator(status) {
 // ============================================================
 //  normalizeItem
 // ============================================================
-export function normalizeItem(item) {
+function normalizeItem(item) {
     return {
         name:            item.name            || '',
         price:           item.price           || 0,
@@ -146,7 +138,7 @@ export function normalizeItem(item) {
 // ============================================================
 //  mergeCloudWithLocal
 // ============================================================
-export function mergeCloudWithLocal(cloudData, localData) {
+function mergeCloudWithLocal(cloudData, localData) {
     console.log('🔄 מבצע מיזוג חכם בין ענן למקומי...');
     const merged = JSON.parse(JSON.stringify(cloudData));
 
@@ -197,7 +189,7 @@ export function mergeCloudWithLocal(cloudData, localData) {
 // ============================================================
 //  syncToCloud
 // ============================================================
-export async function syncToCloud() {
+async function syncToCloud() {
     if (!currentUser) { console.warn('⚠️ אין משתמש מחובר'); return; }
     console.log('☁️ מסנכרן לענן... UID:', currentUser.uid);
     updateCloudIndicator('syncing');
@@ -216,7 +208,7 @@ export async function syncToCloud() {
 // ============================================================
 //  setupFirestoreListener
 // ============================================================
-export function setupFirestoreListener(user) {
+function setupFirestoreListener(user) {
     console.log('📡 מגדיר Firestore listener עבור UID:', user.uid);
     const userDocRef = window.doc(window.firebaseDb, 'shopping_lists', user.uid);
 
@@ -259,7 +251,7 @@ export function setupFirestoreListener(user) {
 // ============================================================
 //  initFirebaseAuth
 // ============================================================
-export function initFirebaseAuth() {
+function initFirebaseAuth() {
     console.log('🔄 מאתחל Firebase Auth...');
 
     window.onAuthStateChanged(window.firebaseAuth, (user) => {
@@ -307,7 +299,7 @@ export function initFirebaseAuth() {
 // ============================================================
 //  loginWithGoogle / logoutFromCloud
 // ============================================================
-export function loginWithGoogle() {
+function loginWithGoogle() {
     if (!window.firebaseAuth) {
         if (typeof window.showNotification === 'function') window.showNotification('⏳ שירות הענן עדיין נטען...', 'warning');
         return;
@@ -352,7 +344,7 @@ export function loginWithGoogle() {
     }
 }
 
-export function logoutFromCloud() {
+function logoutFromCloud() {
     if (!window.firebaseAuth) {
         if (typeof window.showNotification === 'function') window.showNotification('⚠️ שירות הענן לא זמין', 'warning');
         return;
@@ -375,7 +367,7 @@ export function logoutFromCloud() {
 // ============================================================
 //  Firebase init trigger (wait for window.firebaseAuth)
 // ============================================================
-export function startFirebaseWatcher() {
+function startFirebaseWatcher() {
     const checkFirebase = setInterval(() => {
         if (window.firebaseAuth) {
             clearInterval(checkFirebase);
@@ -397,9 +389,9 @@ export function startFirebaseWatcher() {
 //  תזכורות — Reminders
 // ============================================================
 const _reminderTimers = new Map();
-export let _forceShowAfterNotificationClick = false;
+let _forceShowAfterNotificationClick = false;
 
-export function initItemAlertTime(item) {
+function initItemAlertTime(item) {
     const natural = computeNextAlertTime(item);
     if (!natural) { item.nextAlertTime = null; return; }
     const now = Date.now();
@@ -409,7 +401,7 @@ export function initItemAlertTime(item) {
     }
 }
 
-export function snoozeUrgentAlert(ms) {
+function snoozeUrgentAlert(ms) {
     const now        = Date.now();
     const snoozeUntil = now + ms;
     let count = 0;
@@ -444,7 +436,7 @@ export function snoozeUrgentAlert(ms) {
     if (typeof window.showNotification === 'function') window.showNotification('⏰ תוזכר בעוד ' + label, 'info');
 }
 
-export function closeUrgentAlert() {
+function closeUrgentAlert() {
     const now = Date.now();
     Object.values(db.lists).forEach(list => {
         (list.items || []).forEach(item => {
@@ -459,7 +451,7 @@ export function closeUrgentAlert() {
     if (typeof window.closeModal === 'function') window.closeModal('urgentAlertModal');
 }
 
-export function checkUrgentPayments() {
+function checkUrgentPayments() {
     if (!db?.lists) return;
     const now      = Date.now();
     const forceShow = _forceShowAfterNotificationClick;
@@ -482,13 +474,13 @@ export function checkUrgentPayments() {
     }
 }
 
-export function updateAppBadge(count) {
+function updateAppBadge(count) {
     if ('setAppBadge' in navigator) {
         count > 0 ? navigator.setAppBadge(count).catch(() => {}) : navigator.clearAppBadge().catch(() => {});
     }
 }
 
-export function _scheduleAllReminders() {
+function _scheduleAllReminders() {
     _reminderTimers.forEach(id => clearTimeout(id));
     _reminderTimers.clear();
     if (!db?.lists) return;
@@ -532,7 +524,7 @@ function _firePushNotification(item) {
     }
 }
 
-export async function initNotificationSystem() {
+async function initNotificationSystem() {
     if ('Notification' in window && Notification.permission !== 'denied') {
         Notification.requestPermission();
     }
@@ -542,12 +534,12 @@ export async function initNotificationSystem() {
 }
 
 // ── Custom Snooze ─────────────────────────────────────────────
-export function openCustomSnooze() {
+function openCustomSnooze() {
     if (typeof window.closeModal === 'function') window.closeModal('urgentAlertModal');
     if (typeof window.openModal  === 'function') window.openModal('customSnoozeModal');
 }
 
-export function applyCustomSnooze() {
+function applyCustomSnooze() {
     const value = parseFloat(_n('customSnoozeValue')?.value);
     const unit  = _n('customSnoozeUnit')?.value;
     if (!value || value <= 0) {
@@ -562,7 +554,7 @@ export function applyCustomSnooze() {
 }
 
 // ── SW Message Listener ───────────────────────────────────────
-export function initServiceWorkerListener() {
+function initServiceWorkerListener() {
     if (!('serviceWorker' in navigator)) return;
     let _suppressStartupModal = false;
 
@@ -595,7 +587,7 @@ export function initServiceWorkerListener() {
     });
 }
 
-export function checkNotificationUrlParam() {
+function checkNotificationUrlParam() {
     const params = new URLSearchParams(window.location.search);
     const action = params.get('vplus-action');
     if (action) {
@@ -615,7 +607,7 @@ export function checkNotificationUrlParam() {
 // ============================================================
 //  GitHub Token
 // ============================================================
-export function loadGithubToken() {
+function loadGithubToken() {
     const token = localStorage.getItem('vplus_github_pat') || '';
     window.GITHUB_PAT = token;
     const input = _n('githubTokenInput');
@@ -623,7 +615,7 @@ export function loadGithubToken() {
     updateGithubTokenStatus();
 }
 
-export function saveGithubToken() {
+function saveGithubToken() {
     const input = _n('githubTokenInput');
     if (!input) return;
     const token = input.value.trim();
@@ -643,7 +635,7 @@ export function saveGithubToken() {
     updateGithubTokenStatus();
 }
 
-export function updateGithubTokenStatus() {
+function updateGithubTokenStatus() {
     const input  = _n('githubTokenInput');
     const status = _n('githubTokenStatus');
     if (!status) return;
@@ -660,15 +652,15 @@ export function updateGithubTokenStatus() {
 // ============================================================
 //  Financial progress UI
 // ============================================================
-export function showFinProgress() {
+function showFinProgress() {
     const el = _n('finProgressOverlay');
     if (el) el.style.display = 'flex';
 }
-export function hideFinProgress() {
+function hideFinProgress() {
     const el = _n('finProgressOverlay');
     if (el) el.style.display = 'none';
 }
-export function setFinStage(step, icon, title, sub, pct) {
+function setFinStage(step, icon, title, sub, pct) {
     _n('finProgressIcon').textContent  = icon;
     _n('finProgressTitle').textContent = title;
     _n('finProgressSub').textContent   = sub;
@@ -686,19 +678,19 @@ export function setFinStage(step, icon, title, sub, pct) {
 // ============================================================
 //  Bank / Credit state
 // ============================================================
-export let selectedCreditCompany = null;
-export let selectedBank          = null;
+let selectedCreditCompany = null;
+let selectedBank          = null;
 
-export function setSelectedCreditCompany(v) { selectedCreditCompany = v; }
-export function setSelectedBank(v)          { selectedBank = v; }
+function setSelectedCreditCompany(v) { selectedCreditCompany = v; }
+function setSelectedBank(v)          { selectedBank = v; }
 
-export function selectCreditCompany(id, btn) {
+function selectCreditCompany(id, btn) {
     selectedCreditCompany = id;
     document.querySelectorAll('.credit-btn').forEach(b => b.classList.remove('selected'));
     if (btn) btn.classList.add('selected');
 }
 
-export function selectBank(bankId, btn) {
+function selectBank(bankId, btn) {
     selectedBank = bankId;
     document.querySelectorAll('.bank-btn').forEach(b => b.classList.remove('selected'));
     if (btn) btn.classList.add('selected');
@@ -720,7 +712,7 @@ export function selectBank(bankId, btn) {
 // ============================================================
 //  runFinancialFetch
 // ============================================================
-export async function runFinancialFetch({ companyId, credentials, modalId, nameLabel }) {
+async function runFinancialFetch({ companyId, credentials, modalId, nameLabel }) {
     const debugLogs = [];
     const log = (msg, type = 'info', icon = '•') => {
         debugLogs.push({ msg, type, icon, time: new Date().toLocaleTimeString('he-IL') });
@@ -880,7 +872,7 @@ export async function runFinancialFetch({ companyId, credentials, modalId, nameL
     }
 }
 
-export function importFinancialTransactions(transactions, nameLabel) {
+function importFinancialTransactions(transactions, nameLabel) {
     const today = new Date().toLocaleDateString('he-IL');
     const newId = 'L' + Date.now();
     const items = transactions.map(t => ({
@@ -901,7 +893,7 @@ export function importFinancialTransactions(transactions, nameLabel) {
         window.showNotification('✅ יובאו ' + items.length + ' רשומות מ' + nameLabel + '!');
 }
 
-export async function startCreditCardFetch() {
+async function startCreditCardFetch() {
     if (!selectedCreditCompany) {
         if (typeof window.showNotification === 'function') window.showNotification('⚠️ בחר חברת אשראי תחילה', 'warning');
         return;
@@ -920,7 +912,7 @@ export async function startCreditCardFetch() {
     });
 }
 
-export async function startBankFetch() {
+async function startBankFetch() {
     if (!selectedBank) {
         if (typeof window.showNotification === 'function') window.showNotification('⚠️ בחר בנק תחילה', 'warning');
         return;
@@ -949,9 +941,9 @@ export async function startBankFetch() {
 }
 
 // ── Legacy stubs ──────────────────────────────────────────────
-export function checkAndScheduleNotifications() { _scheduleAllReminders(); }
-export function scheduleItemNotification()       {}
-export function showInAppNotification()          {}
-export function playNotificationSound()          {}
-export function showItemNotification()           {}
-export function checkSnoozeStatus()              { return true; }
+function checkAndScheduleNotifications() { _scheduleAllReminders(); }
+function scheduleItemNotification()       {}
+function showInAppNotification()          {}
+function playNotificationSound()          {}
+function showItemNotification()           {}
+function checkSnoozeStatus()              { return true; }
