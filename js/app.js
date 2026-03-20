@@ -816,6 +816,26 @@ function openWizard(type)     { openModal(type + 'Modal'); }
 function closeWizard()        { }
 function wizardOverlayClick() { }
 
+// ─── Wizard Welcome Overlay ───────────────────────────────────
+function _wizCloseWelcome() {
+    const el = document.getElementById('wizWelcomeOverlay');
+    if (!el) return;
+    el.classList.remove('wiz-welcome-visible');
+    setTimeout(() => { el.style.display = 'none'; }, 380);
+    localStorage.setItem('vplus_wizard_welcome_seen', 'true');
+}
+window._wizCloseWelcome = _wizCloseWelcome;
+
+function showWizardWelcome() {
+    const el = document.getElementById('wizWelcomeOverlay');
+    if (!el) return;
+    el.style.display = 'flex';
+    requestAnimationFrame(() => {
+        requestAnimationFrame(() => { el.classList.add('wiz-welcome-visible'); });
+    });
+}
+window.showWizardWelcome = showWizardWelcome;
+
 // handlePlusBtn — ה-+ הראשי
 function handlePlusBtn(e) {
     if (wizardMode) {
@@ -914,6 +934,7 @@ function _exposeAll() {
         tapTab, editDueDate, editNotes, toggleItemPaid,
         toggleWizardMode, wiz, _wizDismiss, _wizForceClose, _wizSkip,
         openWizard, closeWizard, wizardOverlayClick, handlePlusBtn,
+        _wizCloseWelcome, showWizardWelcome,
         saveReminderEdit,
         dbgLog, showDebugLog,
         // bank modal stubs
@@ -990,6 +1011,22 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Demo check
     checkFirstRunDemo();
+
+    // ─── Wizard Welcome — הפעלה ראשונית בלבד ───────────────────
+    {
+        const _wizWelcomeSeen = localStorage.getItem('vplus_wizard_welcome_seen');
+        const _savedDb = localStorage.getItem('BUDGET_FINAL_V28');
+        let _hasRealData = false;
+        if (_savedDb) {
+            try {
+                const _d = JSON.parse(_savedDb);
+                _hasRealData = Object.values(_d.lists || {}).some(l => l.items?.length > 0 && !l.isDemo);
+            } catch(e) {}
+        }
+        if (!_wizWelcomeSeen && !_hasRealData) {
+            setTimeout(showWizardWelcome, 3200); // אחרי שה-splash נעלם (~2.8s)
+        }
+    }
 
     // Wizard mode button state
     const wizBtn = _n('wizardModeBtn'), wizTxt = _n('wizardBtnText');
