@@ -1,3 +1,16 @@
+﻿// ============================================================
+//  app.js — Entry Point (ES Module)
+//  Imports all modules; exposes public API to window.*
+// ============================================================
+import { CATEGORIES, CATEGORY_KEYWORDS, categoryTranslations, translations, DEMO_DATA, DEMO_NOTIFICATIONS, BANK_CONFIG, BANK_NAMES, CREDIT_NAMES, WIZ } from './core/constants.js';
+import { db, setDb, save, t, currentLang, setCurrentLang, activePage, setActivePage, demoMode, setDemoMode, isDemoMode, setIsDemoMode, isConnected, setIsConnected, currentUser, setCurrentUser, unsubscribeSnapshot, setUnsubscribeSnapshot, pendingImportText, setPendingImportText, detectedListType, setDetectedListType, highlightedItemIndex, setHighlightedItemIndex, checkFirstRunDemo, detectCategory, exportData, importData } from './core/store.js';
+import { getReminderMilliseconds, computeNextAlertTime, formatReminderText, showDetailedError, normalizeItem, mergeCloudWithLocal } from './core/utils.js';
+import { updateCloudIndicator, syncToCloud, setupFirestoreListener, initFirebaseAuth, loginWithGoogle, logoutFromCloud, startFirebaseWatcher } from './core/firebase-config.js';
+import { render, initSortable, adjustContentPadding, searchInList, searchInSummary, scrollToListTop, scrollToCheckedItems, clearListSearch, reorderLists, setupListDrag, setupItemDrag } from './ui/ui-lists.js';
+import { openModal, closeModal, showNotification, updateNotificationBadge, openNotificationCenter, dismissNotification, dismissAllNotifications, showUrgentAlertModal, goToItemFromAlert, jumpToItem } from './ui/ui-modals.js';
+import { renderStats, renderBankData, renderHistory, renderTemplates, showCompletedListsModal, renderCompletedLists } from './ui/ui-charts.js';
+import { initNotificationSystem, _scheduleAllReminders, checkUrgentPayments, snoozeUrgentAlert, closeUrgentAlert, initServiceWorkerListener, checkNotificationUrlParam, applyCustomSnooze, openCustomSnooze, updateAppBadge } from './features/notifications.js';
+import { importFromText, checkClipboardOnStartup, openManualImport, showClipboardImportModal, acceptClipboardImport, dismissClipboardImport, importTextToList, detectListType, changeDetectedType, toggleClipboardAutoOpen, updateDetectedTypeFromInput, performTranslation, processReceipt, startVoiceInput, stopVoiceInput, startVoiceAction } from './features/import-export.js';
 
 
 
@@ -38,7 +51,7 @@ function deleteCustomCategory(categoryName, categoryIndex) {
     if (db.categoryMemory) {
         Object.keys(db.categoryMemory).forEach(productName => {
             if (db.categoryMemory[productName] === categoryName) {
-                db.categoryMemory[productName] = 'אחר';
+                db.categoryMemory[productName] = '׳׳—׳¨';
             }
         });
     }
@@ -47,7 +60,7 @@ function deleteCustomCategory(categoryName, categoryIndex) {
     Object.keys(db.lists).forEach(listId => {
         db.lists[listId].items.forEach(item => {
             if (item.category === categoryName) {
-                item.category = 'אחר';
+                item.category = '׳׳—׳¨';
             }
         });
     });
@@ -57,7 +70,7 @@ function deleteCustomCategory(categoryName, categoryIndex) {
         db.history.forEach(entry => {
             entry.items.forEach(item => {
                 if (item.category === categoryName) {
-                    item.category = 'אחר';
+                    item.category = '׳׳—׳¨';
                 }
             });
         });
@@ -72,7 +85,7 @@ function deleteCustomCategory(categoryName, categoryIndex) {
     save();
     renderCustomCategoriesList();
     updateCategoryDropdown();
-    showNotification(`✅ הקטגוריה '${categoryName}' נמחקה`);
+    showNotification(`ג… ׳”׳§׳˜׳’׳•׳¨׳™׳” '${categoryName}' ׳ ׳׳—׳§׳”`);
 }
 
 function updateCategoryDropdown() {
@@ -99,7 +112,7 @@ function updateCategoryDropdown() {
         db.customCategories.forEach(customCat => {
             const option = document.createElement('option');
             option.value = customCat;
-            option.textContent = `✨ ${customCat}`;
+            option.textContent = `ג¨ ${customCat}`;
             categorySelect.appendChild(option);
         });
     }
@@ -120,7 +133,7 @@ function exportData() {
     link.download = `vplus_backup_${new Date().toISOString().split('T')[0]}.json`;
     link.click();
     URL.revokeObjectURL(url);
-    showNotification('💾 הנתונים יוצאו בהצלחה!');
+    showNotification('נ’¾ ׳”׳ ׳×׳•׳ ׳™׳ ׳™׳•׳¦׳׳• ׳‘׳”׳¦׳׳—׳”!');
     closeModal('settingsModal');
 }
 
@@ -131,14 +144,14 @@ function importData(event) {
     reader.onload = function (e) {
         try {
             const importedData = JSON.parse(e.target.result);
-            if (confirm('האם לשחזר את כל הנתונים? פעולה זו תדרוס את הנתונים הנוכחיים!')) {
+            if (confirm('׳”׳׳ ׳׳©׳—׳–׳¨ ׳׳× ׳›׳ ׳”׳ ׳×׳•׳ ׳™׳? ׳₪׳¢׳•׳׳” ׳–׳• ׳×׳“׳¨׳•׳¡ ׳׳× ׳”׳ ׳×׳•׳ ׳™׳ ׳”׳ ׳•׳›׳—׳™׳™׳!')) {
                 db = importedData;
                 save();
-                showNotification('✅ הנתונים שוחזרו בהצלחה!');
+                showNotification('ג… ׳”׳ ׳×׳•׳ ׳™׳ ׳©׳•׳—׳–׳¨׳• ׳‘׳”׳¦׳׳—׳”!');
                 closeModal('settingsModal');
             }
         } catch (err) {
-            alert('שגיאה בקריאת הקובץ.');
+            alert('׳©׳’׳™׳׳” ׳‘׳§׳¨׳™׳׳× ׳”׳§׳•׳‘׳¥.');
         }
     };
     reader.readAsText(file);
@@ -155,7 +168,7 @@ function showDetailedError(context, error) {
     const errorCode = error.code || 'UNKNOWN_ERROR';
     const errorMessage = error.message || 'Unknown error occurred';
 
-    console.error(`❌ [${context}] שגיאה מפורטת:`, {
+    console.error(`ג [${context}] ׳©׳’׳™׳׳” ׳׳₪׳•׳¨׳˜׳×:`, {
         code: errorCode,
         message: errorMessage,
         fullError: error
@@ -167,44 +180,44 @@ function showDetailedError(context, error) {
     // Handle common Firebase Auth errors
     if (errorCode.includes('auth/')) {
         if (errorCode === 'auth/unauthorized-domain') {
-            errorTitle = "⚠️ הדומיין לא מורשה";
-            userMessage = `הדומיין הזה לא מורשה להתחברות ב-Firebase.
+            errorTitle = "ג ן¸ ׳”׳“׳•׳׳™׳™׳ ׳׳ ׳׳•׳¨׳©׳”";
+            userMessage = `׳”׳“׳•׳׳™׳™׳ ׳”׳–׳” ׳׳ ׳׳•׳¨׳©׳” ׳׳”׳×׳—׳‘׳¨׳•׳× ׳‘-Firebase.
 
-צעדים לפתרון:
-1. פתח את Firebase Console
-2. עבור ל: Authentication → Settings
-3. גלול ל: Authorized domains
-4. הוסף את הדומיין: ${window.location.hostname}`;
+׳¦׳¢׳“׳™׳ ׳׳₪׳×׳¨׳•׳:
+1. ׳₪׳×׳— ׳׳× Firebase Console
+2. ׳¢׳‘׳•׳¨ ׳: Authentication ג†’ Settings
+3. ׳’׳׳•׳ ׳: Authorized domains
+4. ׳”׳•׳¡׳£ ׳׳× ׳”׳“׳•׳׳™׳™׳: ${window.location.hostname}`;
         } else if (errorCode === 'auth/operation-not-allowed') {
-            errorTitle = "⚠️ Google Sign-In לא מופעל";
-            userMessage = `שיטת ההתחברות של Google לא מופעלת.
+            errorTitle = "ג ן¸ Google Sign-In ׳׳ ׳׳•׳₪׳¢׳";
+            userMessage = `׳©׳™׳˜׳× ׳”׳”׳×׳—׳‘׳¨׳•׳× ׳©׳ Google ׳׳ ׳׳•׳₪׳¢׳׳×.
 
-צעדים לפתרון:
-1. פתח Firebase Console
-2. עבור ל: Authentication → Sign-in method
-3. מצא את "Google" ברשימה
-4. לחץ עליו ואפשר אותו (Enable)`;
+׳¦׳¢׳“׳™׳ ׳׳₪׳×׳¨׳•׳:
+1. ׳₪׳×׳— Firebase Console
+2. ׳¢׳‘׳•׳¨ ׳: Authentication ג†’ Sign-in method
+3. ׳׳¦׳ ׳׳× "Google" ׳‘׳¨׳©׳™׳׳”
+4. ׳׳—׳¥ ׳¢׳׳™׳• ׳•׳׳₪׳©׳¨ ׳׳•׳×׳• (Enable)`;
         } else if (errorCode === 'auth/popup-blocked') {
-            errorTitle = "⚠️ חלון נחסם";
-            userMessage = "הדפדפן חסם את חלון ההתחברות.\n\nאפשר חלונות קופצים לאתר זה.";
+            errorTitle = "ג ן¸ ׳—׳׳•׳ ׳ ׳—׳¡׳";
+            userMessage = "׳”׳“׳₪׳“׳₪׳ ׳—׳¡׳ ׳׳× ׳—׳׳•׳ ׳”׳”׳×׳—׳‘׳¨׳•׳×.\n\n׳׳₪׳©׳¨ ׳—׳׳•׳ ׳•׳× ׳§׳•׳₪׳¦׳™׳ ׳׳׳×׳¨ ׳–׳”.";
         } else if (errorCode === 'auth/network-request-failed') {
-            errorTitle = "⚠️ בעיית רשת";
-            userMessage = "לא ניתן להתחבר לשרתי Firebase.\n\nבדוק את החיבור לאינטרנט.";
+            errorTitle = "ג ן¸ ׳‘׳¢׳™׳™׳× ׳¨׳©׳×";
+            userMessage = "׳׳ ׳ ׳™׳×׳ ׳׳”׳×׳—׳‘׳¨ ׳׳©׳¨׳×׳™ Firebase.\n\n׳‘׳“׳•׳§ ׳׳× ׳”׳—׳™׳‘׳•׳¨ ׳׳׳™׳ ׳˜׳¨׳ ׳˜.";
         } else {
-            userMessage = `קוד שגיאה: ${errorCode}\n\n${errorMessage}`;
+            userMessage = `׳§׳•׳“ ׳©׳’׳™׳׳”: ${errorCode}\n\n${errorMessage}`;
         }
     }
     // Handle Firestore errors  
     else if (errorCode.includes('permission-denied')) {
-        errorTitle = "⚠️ אין הרשאה";
-        userMessage = 'אין הרשאה לגשת לנתונים.\n\nבדוק הגדרות Firebase Security Rules.';
+        errorTitle = "ג ן¸ ׳׳™׳ ׳”׳¨׳©׳׳”";
+        userMessage = '׳׳™׳ ׳”׳¨׳©׳׳” ׳׳’׳©׳× ׳׳ ׳×׳•׳ ׳™׳.\n\n׳‘׳“׳•׳§ ׳”׳’׳“׳¨׳•׳× Firebase Security Rules.';
     }
     else if (errorCode.includes('unavailable')) {
-        errorTitle = "⚠️ שירות לא זמין";
-        userMessage = 'השירות לא זמין כרגע.\n\nנסה שוב מאוחר יותר.';
+        errorTitle = "ג ן¸ ׳©׳™׳¨׳•׳× ׳׳ ׳–׳׳™׳";
+        userMessage = '׳”׳©׳™׳¨׳•׳× ׳׳ ׳–׳׳™׳ ׳›׳¨׳’׳¢.\n\n׳ ׳¡׳” ׳©׳•׳‘ ׳׳׳•׳—׳¨ ׳™׳•׳×׳¨.';
     }
     else {
-        userMessage = `קוד: ${errorCode}\n\n${errorMessage}`;
+        userMessage = `׳§׳•׳“: ${errorCode}\n\n${errorMessage}`;
     }
 
     // Show visual error if function exists
@@ -212,7 +225,7 @@ function showDetailedError(context, error) {
         window.showFirebaseError(errorTitle, userMessage);
     } else {
         // Fallback to notification
-        showNotification(`❌ ${errorTitle}\n\n${userMessage}`, 'error');
+        showNotification(`ג ${errorTitle}\n\n${userMessage}`, 'error');
     }
 }
 
@@ -220,7 +233,7 @@ function showDetailedError(context, error) {
 const checkFirebase = setInterval(() => {
     if (window.firebaseAuth) {
         clearInterval(checkFirebase);
-        console.log('✅ Firebase זמין, מאתחל...');
+        console.log('ג… Firebase ׳–׳׳™׳, ׳׳׳×׳—׳...');
         initFirebaseAuth();
 
         // NOTE: redirect result is checked in index.html script
@@ -231,25 +244,25 @@ const checkFirebase = setInterval(() => {
 // Timeout check to warn user if firebase doesn't load
 setTimeout(() => {
     if (!window.firebaseAuth) {
-        console.warn("⚠️ Firebase לא נטען אחרי 10 שניות");
-        showNotification('⚠️ שירות הענן לא זמין - טען מחדש את הדף', 'warning');
+        console.warn("ג ן¸ Firebase ׳׳ ׳ ׳˜׳¢׳ ׳׳—׳¨׳™ 10 ׳©׳ ׳™׳•׳×");
+        showNotification('ג ן¸ ׳©׳™׳¨׳•׳× ׳”׳¢׳ ׳ ׳׳ ׳–׳׳™׳ - ׳˜׳¢׳ ׳׳—׳“׳© ׳׳× ׳”׳“׳£', 'warning');
         if (typeof window.showFirebaseError === 'function') {
             window.showFirebaseError(
-                '⚠️ Firebase לא נטען',
-                'שירות הענן לא הצליח להיטען.\n\nנסה לרענן את הדף (F5).'
+                'ג ן¸ Firebase ׳׳ ׳ ׳˜׳¢׳',
+                '׳©׳™׳¨׳•׳× ׳”׳¢׳ ׳ ׳׳ ׳”׳¦׳׳™׳— ׳׳”׳™׳˜׳¢׳.\n\n׳ ׳¡׳” ׳׳¨׳¢׳ ׳ ׳׳× ׳”׳“׳£ (F5).'
             );
         }
     }
 }, 10000);
 
 function initFirebaseAuth() {
-    console.log('🔄 מאתחל Firebase Auth...');
+    console.log('נ”„ ׳׳׳×׳—׳ Firebase Auth...');
 
     window.onAuthStateChanged(window.firebaseAuth, (user) => {
         currentUser = user;
         isConnected = !!user;
 
-        console.log('👤 מצב משתמש:', user ? `מחובר: ${user.email} (UID: ${user.uid})` : 'מנותק');
+        console.log('נ‘₪ ׳׳¦׳‘ ׳׳©׳×׳׳©:', user ? `׳׳—׳•׳‘׳¨: ${user.email} (UID: ${user.uid})` : '׳׳ ׳•׳×׳§');
 
         // Update UI
         updateCloudIndicator(user ? 'connected' : 'disconnected');
@@ -259,7 +272,7 @@ function initFirebaseAuth() {
 
         // Update email display in settings
         if (emailDisplay) {
-            emailDisplay.textContent = user ? `מחובר כ: ${user.email}` : 'לא מחובר';
+            emailDisplay.textContent = user ? `׳׳—׳•׳‘׳¨ ׳›: ${user.email}` : '׳׳ ׳׳—׳•׳‘׳¨';
             emailDisplay.style.color = user ? '#059669' : '#6b7280';
         }
 
@@ -274,10 +287,10 @@ function initFirebaseAuth() {
 
         // Setup Firestore listener or cleanup
         if (user) {
-            console.log("✅ משתמש מחובר:", user.email, "UID:", user.uid);
+            console.log("ג… ׳׳©׳×׳׳© ׳׳—׳•׳‘׳¨:", user.email, "UID:", user.uid);
             setupFirestoreListener(user);
         } else {
-            console.log("⚠️ אין משתמש מחובר");
+            console.log("ג ן¸ ׳׳™׳ ׳׳©׳×׳׳© ׳׳—׳•׳‘׳¨");
             if (unsubscribeSnapshot) {
                 unsubscribeSnapshot();
                 unsubscribeSnapshot = null;
@@ -310,28 +323,28 @@ function initFirebaseAuth() {
 
 function loginWithGoogle() {
     if (!window.firebaseAuth) {
-        showNotification('⏳ שירות הענן עדיין נטען... נסה שוב בעוד רגע', 'warning');
-        console.warn('⚠️ Firebase Auth לא זמין');
+        showNotification('ג³ ׳©׳™׳¨׳•׳× ׳”׳¢׳ ׳ ׳¢׳“׳™׳™׳ ׳ ׳˜׳¢׳... ׳ ׳¡׳” ׳©׳•׳‘ ׳‘׳¢׳•׳“ ׳¨׳’׳¢', 'warning');
+        console.warn('ג ן¸ Firebase Auth ׳׳ ׳–׳׳™׳');
         return;
     }
 
     if (!window.googleProvider) {
-        showNotification('⚠️ Google provider לא זמין', 'warning');
-        console.warn('⚠️ Google Provider לא זמין');
+        showNotification('ג ן¸ Google provider ׳׳ ׳–׳׳™׳', 'warning');
+        console.warn('ג ן¸ Google Provider ׳׳ ׳–׳׳™׳');
         return;
     }
 
     // Check if already logged in
     if (window.firebaseAuth.currentUser) {
-        showNotification('✅ אתה כבר מחובר', 'success');
-        console.log('ℹ️ משתמש כבר מחובר:', window.firebaseAuth.currentUser.email);
+        showNotification('ג… ׳׳×׳” ׳›׳‘׳¨ ׳׳—׳•׳‘׳¨', 'success');
+        console.log('ג„¹ן¸ ׳׳©׳×׳׳© ׳›׳‘׳¨ ׳׳—׳•׳‘׳¨:', window.firebaseAuth.currentUser.email);
         openModal('settingsModal'); // Show settings instead
         return;
     }
 
-    console.log('🔐 מתחיל תהליך התחברות Google...');
-    console.log('🔐 Auth:', window.firebaseAuth ? 'זמין' : 'לא זמין');
-    console.log('🔐 Provider:', window.googleProvider ? 'זמין' : 'לא זמין');
+    console.log('נ” ׳׳×׳—׳™׳ ׳×׳”׳׳™׳ ׳”׳×׳—׳‘׳¨׳•׳× Google...');
+    console.log('נ” Auth:', window.firebaseAuth ? '׳–׳׳™׳' : '׳׳ ׳–׳׳™׳');
+    console.log('נ” Provider:', window.googleProvider ? '׳–׳׳™׳' : '׳׳ ׳–׳׳™׳');
     updateCloudIndicator('syncing');
 
     // Use signInWithRedirect for GitHub Pages, signInWithPopup for Firebase domains
@@ -339,40 +352,40 @@ function loginWithGoogle() {
     
     if (isGitHubPages) {
         // GitHub Pages - use Redirect (Popup is blocked)
-        console.log('🔐 GitHub Pages detected - using Redirect...');
-        showNotification('⏳ מעביר לדף ההתחברות של Google...', 'success');
+        console.log('נ” GitHub Pages detected - using Redirect...');
+        showNotification('ג³ ׳׳¢׳‘׳™׳¨ ׳׳“׳£ ׳”׳”׳×׳—׳‘׳¨׳•׳× ׳©׳ Google...', 'success');
         window.signInWithRedirect(window.firebaseAuth, window.googleProvider)
             .catch((error) => {
-                console.error("❌ שגיאת התחברות:", error);
+                console.error("ג ׳©׳’׳™׳׳× ׳”׳×׳—׳‘׳¨׳•׳×:", error);
                 showDetailedError('Login', error);
                 updateCloudIndicator('disconnected');
             });
     } else {
         // Firebase domains - use Popup (faster UX)
-        console.log('🔐 Firebase domain detected - using Popup...');
+        console.log('נ” Firebase domain detected - using Popup...');
         window.signInWithPopup(window.firebaseAuth, window.googleProvider)
             .then((result) => {
-                console.log('✅ התחברות הצליחה!', result.user.email);
-                showNotification('✅ התחברת בהצלחה!', 'success');
+                console.log('ג… ׳”׳×׳—׳‘׳¨׳•׳× ׳”׳¦׳׳™׳—׳”!', result.user.email);
+                showNotification('ג… ׳”׳×׳—׳‘׳¨׳× ׳‘׳”׳¦׳׳—׳”!', 'success');
                 currentUser = result.user;
                 isConnected = true;
                 updateCloudIndicator('connected');
                 setupFirestoreListener(result.user);
             })
             .catch((error) => {
-                console.error("❌ שגיאת התחברות:", error);
-                console.error("❌ קוד שגיאה:", error.code);
-                console.error("❌ הודעת שגיאה:", error.message);
+                console.error("ג ׳©׳’׳™׳׳× ׳”׳×׳—׳‘׳¨׳•׳×:", error);
+                console.error("ג ׳§׳•׳“ ׳©׳’׳™׳׳”:", error.code);
+                console.error("ג ׳”׳•׳“׳¢׳× ׳©׳’׳™׳׳”:", error.message);
                 
                 if (error.code === 'auth/popup-closed-by-user') {
-                    console.log('ℹ️ המשתמש סגר את חלון ההתחברות');
-                    showNotification('ℹ️ חלון ההתחברות נסגר', 'warning');
+                    console.log('ג„¹ן¸ ׳”׳׳©׳×׳׳© ׳¡׳’׳¨ ׳׳× ׳—׳׳•׳ ׳”׳”׳×׳—׳‘׳¨׳•׳×');
+                    showNotification('ג„¹ן¸ ׳—׳׳•׳ ׳”׳”׳×׳—׳‘׳¨׳•׳× ׳ ׳¡׳’׳¨', 'warning');
                 } else if (error.code === 'auth/cancelled-popup-request') {
-                    console.log('ℹ️ בקשת popup בוטלה');
-                    showNotification('ℹ️ ההתחברות בוטלה', 'warning');
+                    console.log('ג„¹ן¸ ׳‘׳§׳©׳× popup ׳‘׳•׳˜׳׳”');
+                    showNotification('ג„¹ן¸ ׳”׳”׳×׳—׳‘׳¨׳•׳× ׳‘׳•׳˜׳׳”', 'warning');
                 } else if (error.code === 'auth/popup-blocked') {
-                    console.log('⚠️ הדפדפן חסם את חלון ההתחברות');
-                    showNotification('⚠️ הדפדפן חסם את חלון ההתחברות', 'warning');
+                    console.log('ג ן¸ ׳”׳“׳₪׳“׳₪׳ ׳—׳¡׳ ׳׳× ׳—׳׳•׳ ׳”׳”׳×׳—׳‘׳¨׳•׳×');
+                    showNotification('ג ן¸ ׳”׳“׳₪׳“׳₪׳ ׳—׳¡׳ ׳׳× ׳—׳׳•׳ ׳”׳”׳×׳—׳‘׳¨׳•׳×', 'warning');
                 } else {
                     showDetailedError('Login', error);
                 }
@@ -383,23 +396,23 @@ function loginWithGoogle() {
 
 function logoutFromCloud() {
     if (!window.firebaseAuth) {
-        showNotification('⚠️ שירות הענן לא זמין', 'warning');
-        console.warn('⚠️ Firebase Auth לא זמין להתנתקות');
+        showNotification('ג ן¸ ׳©׳™׳¨׳•׳× ׳”׳¢׳ ׳ ׳׳ ׳–׳׳™׳', 'warning');
+        console.warn('ג ן¸ Firebase Auth ׳׳ ׳–׳׳™׳ ׳׳”׳×׳ ׳×׳§׳•׳×');
         return;
     }
 
-    console.log('🚪 מתנתק מהענן...');
+    console.log('נ× ׳׳×׳ ׳×׳§ ׳׳”׳¢׳ ׳...');
     updateCloudIndicator('syncing');
 
     window.signOut(window.firebaseAuth).then(() => {
         currentUser = null;
         isConnected = false;
-        console.log('✅ התנתקות הושלמה');
-        showNotification('👋 התנתקת מהענן', 'success');
+        console.log('ג… ׳”׳×׳ ׳×׳§׳•׳× ׳”׳•׳©׳׳׳”');
+        showNotification('נ‘‹ ׳”׳×׳ ׳×׳§׳× ׳׳”׳¢׳ ׳', 'success');
         updateCloudIndicator('disconnected');
         closeModal('settingsModal');
     }).catch((error) => {
-        console.error("❌ שגיאת התנתקות:", error);
+        console.error("ג ׳©׳’׳™׳׳× ׳”׳×׳ ׳×׳§׳•׳×:", error);
         showDetailedError('Logout', error);
         updateCloudIndicator('connected'); // Revert to connected state
     });
@@ -411,11 +424,11 @@ function updateCloudIndicator(status) {
     const cloudBtn = document.getElementById('cloudBtn');
 
     if (!indicator || !cloudBtn) {
-        console.warn('⚠️ לא נמצאו אלמנטים של כפתור הענן');
+        console.warn('ג ן¸ ׳׳ ׳ ׳׳¦׳׳• ׳׳׳׳ ׳˜׳™׳ ׳©׳ ׳›׳₪׳×׳•׳¨ ׳”׳¢׳ ׳');
         return;
     }
 
-    console.log('🔄 מעדכן אינדיקטור ענן:', status, 'משתמש:', currentUser ? currentUser.email : 'אין');
+    console.log('נ”„ ׳׳¢׳“׳›׳ ׳׳™׳ ׳“׳™׳§׳˜׳•׳¨ ׳¢׳ ׳:', status, '׳׳©׳×׳׳©:', currentUser ? currentUser.email : '׳׳™׳');
 
     if (status === 'connected') {
         // Green indicator - connected successfully
@@ -425,50 +438,50 @@ function updateCloudIndicator(status) {
         cloudBtn.className = 'cloud-btn-connected px-3 py-1 rounded-full text-[10px] font-bold border flex items-center gap-1 cursor-pointer transition-all';
 
         // Show short status instead of full email to save space
-        if (text) text.textContent = "מחובר ✅";
+        if (text) text.textContent = "׳׳—׳•׳‘׳¨ ג…";
     } else if (status === 'syncing') {
         // Yellow indicator - syncing in progress with pulse animation
         indicator.className = 'w-2 h-2 bg-yellow-500 rounded-full animate-pulse';
         cloudBtn.className = 'cloud-btn-syncing px-3 py-1 rounded-full text-[10px] font-bold border flex items-center gap-1 cursor-pointer transition-all';
-        if (text) text.textContent = "מסנכרן...";
+        if (text) text.textContent = "׳׳¡׳ ׳›׳¨׳...";
     } else {
         // Red indicator - disconnected state
         indicator.className = 'w-2 h-2 bg-red-400 rounded-full';
         cloudBtn.className = 'cloud-btn-disconnected px-3 py-1 rounded-full text-[10px] font-bold border flex items-center gap-1 cursor-pointer transition-all';
-        if (text) text.textContent = "מנותק";
+        if (text) text.textContent = "׳׳ ׳•׳×׳§";
     }
 }
 
 function setupFirestoreListener(user) {
-    console.log('📡 מגדיר Firestore listener עבור UID:', user.uid);
+    console.log('נ“¡ ׳׳’׳“׳™׳¨ Firestore listener ׳¢׳‘׳•׳¨ UID:', user.uid);
 
     const userDocRef = window.doc(window.firebaseDb, "shopping_lists", user.uid);
 
     unsubscribeSnapshot = window.onSnapshot(userDocRef, (docSnap) => {
         if (docSnap.exists()) {
-            console.log('☁️ מסמך נמצא בענן');
+            console.log('ג˜ן¸ ׳׳¡׳׳ ׳ ׳׳¦׳ ׳‘׳¢׳ ׳');
             const cloudData = docSnap.data();
 
-            // בדיקה: אם הענן ריק אבל יש נתונים מקומיים, העלה אותם לענן
+            // ׳‘׳“׳™׳§׳”: ׳׳ ׳”׳¢׳ ׳ ׳¨׳™׳§ ׳׳‘׳ ׳™׳© ׳ ׳×׳•׳ ׳™׳ ׳׳§׳•׳׳™׳™׳, ׳”׳¢׳׳” ׳׳•׳×׳ ׳׳¢׳ ׳
             const cloudIsEmpty = !cloudData.lists || Object.keys(cloudData.lists).length === 0;
             const localHasData = db.lists && Object.keys(db.lists).length > 0;
 
             if (cloudIsEmpty && localHasData) {
-                console.log('☁️ הענן ריק אבל יש נתונים מקומיים - מעלה לענן');
+                console.log('ג˜ן¸ ׳”׳¢׳ ׳ ׳¨׳™׳§ ׳׳‘׳ ׳™׳© ׳ ׳×׳•׳ ׳™׳ ׳׳§׳•׳׳™׳™׳ - ׳׳¢׳׳” ׳׳¢׳ ׳');
                 syncToCloud();
                 return;
             }
 
-            // מיזוג חכם: הענן הוא מקור האמת למחיקות
+            // ׳׳™׳–׳•׳’ ׳—׳›׳: ׳”׳¢׳ ׳ ׳”׳•׳ ׳׳§׳•׳¨ ׳”׳׳׳× ׳׳׳—׳™׳§׳•׳×
             if (JSON.stringify(cloudData) !== JSON.stringify(db)) {
-                console.log('🔄 מבצע סנכרון חכם מהענן...');
+                console.log('נ”„ ׳׳‘׳¦׳¢ ׳¡׳ ׳›׳¨׳•׳ ׳—׳›׳ ׳׳”׳¢׳ ׳...');
                 const mergedDb = mergeCloudWithLocal(cloudData, db);
 
-                // הגנה: וודא שקיים אובייקט רשימות
+                // ׳”׳’׳ ׳”: ׳•׳•׳“׳ ׳©׳§׳™׳™׳ ׳׳•׳‘׳™׳™׳§׳˜ ׳¨׳©׳™׳׳•׳×
                 if (!mergedDb.lists || Object.keys(mergedDb.lists).length === 0) {
                     mergedDb.lists = {
                         'L1': {
-                            name: 'הרשימה שלי',
+                            name: '׳”׳¨׳©׳™׳׳” ׳©׳׳™',
                             url: '',
                             budget: 0,
                             isTemplate: false,
@@ -481,14 +494,14 @@ function setupFirestoreListener(user) {
                 db = mergedDb;
                 localStorage.setItem('BUDGET_FINAL_V28', JSON.stringify(db));
                 render();
-                showNotification('☁️ סונכרן מהענן!', 'success');
+                showNotification('ג˜ן¸ ׳¡׳•׳ ׳›׳¨׳ ׳׳”׳¢׳ ׳!', 'success');
             }
         } else {
-            console.log('📝 מסמך לא קיים בענן, יוצר חדש...');
+            console.log('נ“ ׳׳¡׳׳ ׳׳ ׳§׳™׳™׳ ׳‘׳¢׳ ׳, ׳™׳•׳¦׳¨ ׳—׳“׳©...');
             syncToCloud();
         }
     }, (error) => {
-        console.error("❌ שגיאת Firestore sync:", error);
+        console.error("ג ׳©׳’׳™׳׳× Firestore sync:", error);
         showDetailedError('Firestore Sync', error);
         if (currentUser) {
             updateCloudIndicator('connected');
@@ -497,14 +510,14 @@ function setupFirestoreListener(user) {
 }
 
 
-// ─── normalizeItem: שומר את כל שדות הפריט כולל תזכורות ─────────────────────
+// ג”€ג”€ג”€ normalizeItem: ׳©׳•׳׳¨ ׳׳× ׳›׳ ׳©׳“׳•׳× ׳”׳₪׳¨׳™׳˜ ׳›׳•׳׳ ׳×׳–׳›׳•׳¨׳•׳× ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€
 function normalizeItem(item) {
     return {
         name: item.name || '',
         price: item.price || 0,
         qty: item.qty || 1,
         checked: item.checked || false,
-        category: item.category || 'אחר',
+        category: item.category || '׳׳—׳¨',
         note: item.note || '',
         dueDate: item.dueDate || '',
         dueTime: item.dueTime || '',
@@ -512,7 +525,7 @@ function normalizeItem(item) {
         isPaid: item.isPaid || false,
         lastUpdated: item.lastUpdated || Date.now(),
         cloudId: item.cloudId || ('item_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9)),
-        // ─ שדות תזכורת — חייבים להישמר! ─
+        // ג”€ ׳©׳“׳•׳× ׳×׳–׳›׳•׳¨׳× ג€” ׳—׳™׳™׳‘׳™׳ ׳׳”׳™׳©׳׳¨! ג”€
         reminderValue: item.reminderValue || '',
         reminderUnit: item.reminderUnit || '',
         nextAlertTime: item.nextAlertTime || null,
@@ -522,9 +535,9 @@ function normalizeItem(item) {
 }
 
 function mergeCloudWithLocal(cloudData, localData) {
-    console.log('🔄 מבצע מיזוג חכם בין ענן למקומי...');
+    console.log('נ”„ ׳׳‘׳¦׳¢ ׳׳™׳–׳•׳’ ׳—׳›׳ ׳‘׳™׳ ׳¢׳ ׳ ׳׳׳§׳•׳׳™...');
 
-    const merged = JSON.parse(JSON.stringify(cloudData)); // עותק עמוק של נתוני הענן
+    const merged = JSON.parse(JSON.stringify(cloudData)); // ׳¢׳•׳×׳§ ׳¢׳׳•׳§ ׳©׳ ׳ ׳×׳•׳ ׳™ ׳”׳¢׳ ׳
 
     // Normalize all items in cloud data - ensure all fields exist
     Object.keys(merged.lists || {}).forEach(listId => {
@@ -535,17 +548,17 @@ function mergeCloudWithLocal(cloudData, localData) {
         }
     });
 
-    // עבור כל רשימה
+    // ׳¢׳‘׳•׳¨ ׳›׳ ׳¨׳©׳™׳׳”
     Object.keys(cloudData.lists || {}).forEach(listId => {
         const cloudList = cloudData.lists[listId];
         const localList = localData.lists && localData.lists[listId];
 
         if (!localList) {
-            // אין רשימה מקומית - השתמש בענן
+            // ׳׳™׳ ׳¨׳©׳™׳׳” ׳׳§׳•׳׳™׳× - ׳”׳©׳×׳׳© ׳‘׳¢׳ ׳
             return;
         }
 
-        // יצירת מפת cloudId לפריטי ענן
+        // ׳™׳¦׳™׳¨׳× ׳׳₪׳× cloudId ׳׳₪׳¨׳™׳˜׳™ ׳¢׳ ׳
         const cloudItemsMap = {};
         (cloudList.items || []).forEach(item => {
             if (item.cloudId) {
@@ -553,30 +566,30 @@ function mergeCloudWithLocal(cloudData, localData) {
             }
         });
 
-        // מעבר על פריטים מקומיים
+        // ׳׳¢׳‘׳¨ ׳¢׳ ׳₪׳¨׳™׳˜׳™׳ ׳׳§׳•׳׳™׳™׳
         (localList.items || []).forEach(localItem => {
             if (!localItem.cloudId) {
-                // פריט ללא cloudId - זה פריט ישן או חדש שנוסף לפני השינוי
-                // נוסיף לו cloudId ונוסיף אותו
+                // ׳₪׳¨׳™׳˜ ׳׳׳ cloudId - ׳–׳” ׳₪׳¨׳™׳˜ ׳™׳©׳ ׳׳• ׳—׳“׳© ׳©׳ ׳•׳¡׳£ ׳׳₪׳ ׳™ ׳”׳©׳™׳ ׳•׳™
+                // ׳ ׳•׳¡׳™׳£ ׳׳• cloudId ׳•׳ ׳•׳¡׳™׳£ ׳׳•׳×׳•
                 localItem.cloudId = 'item_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
                 // Normalize local item as well
                 merged.lists[listId].items.push(normalizeItem(localItem));
-                console.log('➕ מוסיף פריט חדש מקומי ללא cloudId:', localItem.name);
+                console.log('ג• ׳׳•׳¡׳™׳£ ׳₪׳¨׳™׳˜ ׳—׳“׳© ׳׳§׳•׳׳™ ׳׳׳ cloudId:', localItem.name);
             } else if (!cloudItemsMap[localItem.cloudId]) {
-                // פריט עם cloudId שלא קיים בענן - זה פריט חדש שנוסף באופליין
+                // ׳₪׳¨׳™׳˜ ׳¢׳ cloudId ׳©׳׳ ׳§׳™׳™׳ ׳‘׳¢׳ ׳ - ׳–׳” ׳₪׳¨׳™׳˜ ׳—׳“׳© ׳©׳ ׳•׳¡׳£ ׳‘׳׳•׳₪׳׳™׳™׳
                 merged.lists[listId].items.push(normalizeItem(localItem));
-                console.log('➕ מוסיף פריט חדש מאופליין:', localItem.name);
+                console.log('ג• ׳׳•׳¡׳™׳£ ׳₪׳¨׳™׳˜ ׳—׳“׳© ׳׳׳•׳₪׳׳™׳™׳:', localItem.name);
             } else {
-                // פריט קיים גם בענן - עדכן אותו מהענן (הענן מנצח)
-                console.log('✓ פריט קיים בשניהם, משתמש בנתוני ענן:', localItem.name);
+                // ׳₪׳¨׳™׳˜ ׳§׳™׳™׳ ׳’׳ ׳‘׳¢׳ ׳ - ׳¢׳“׳›׳ ׳׳•׳×׳• ׳׳”׳¢׳ ׳ (׳”׳¢׳ ׳ ׳׳ ׳¦׳—)
+                console.log('ג“ ׳₪׳¨׳™׳˜ ׳§׳™׳™׳ ׳‘׳©׳ ׳™׳”׳, ׳׳©׳×׳׳© ׳‘׳ ׳×׳•׳ ׳™ ׳¢׳ ׳:', localItem.name);
             }
         });
     });
 
-    // בדיקת רשימות חדשות שנוספו מקומית
+    // ׳‘׳“׳™׳§׳× ׳¨׳©׳™׳׳•׳× ׳—׳“׳©׳•׳× ׳©׳ ׳•׳¡׳₪׳• ׳׳§׳•׳׳™׳×
     Object.keys(localData.lists || {}).forEach(listId => {
         if (!merged.lists[listId]) {
-            console.log('📝 מוסיף רשימה חדשה מקומית:', listId);
+            console.log('נ“ ׳׳•׳¡׳™׳£ ׳¨׳©׳™׳׳” ׳—׳“׳©׳” ׳׳§׳•׳׳™׳×:', listId);
             merged.lists[listId] = localData.lists[listId];
             // Normalize items in new local list
             if (merged.lists[listId].items) {
@@ -590,20 +603,20 @@ function mergeCloudWithLocal(cloudData, localData) {
 
 async function syncToCloud() {
     if (!currentUser) {
-        console.warn('⚠️ אין משתמש מחובר, מדלג על סנכרון');
+        console.warn('ג ן¸ ׳׳™׳ ׳׳©׳×׳׳© ׳׳—׳•׳‘׳¨, ׳׳“׳׳’ ׳¢׳ ׳¡׳ ׳›׳¨׳•׳');
         return;
     }
 
-    console.log('☁️ מסנכרן לענן... UID:', currentUser.uid);
+    console.log('ג˜ן¸ ׳׳¡׳ ׳›׳¨׳ ׳׳¢׳ ׳... UID:', currentUser.uid);
     updateCloudIndicator('syncing');
 
     try {
         const userDocRef = window.doc(window.firebaseDb, "shopping_lists", currentUser.uid);
         await window.setDoc(userDocRef, db);
-        console.log('✅ סנכרון לענן הושלם בהצלחה');
+        console.log('ג… ׳¡׳ ׳›׳¨׳•׳ ׳׳¢׳ ׳ ׳”׳•׳©׳׳ ׳‘׳”׳¦׳׳—׳”');
         // Removed notification - indicator shows sync status
     } catch (error) {
-        console.error("❌ שגיאה בכתיבה לענן:", error);
+        console.error("ג ׳©׳’׳™׳׳” ׳‘׳›׳×׳™׳‘׳” ׳׳¢׳ ׳:", error);
         showDetailedError('Cloud Sync', error);
     } finally {
         // Return to connected state
@@ -631,7 +644,7 @@ if (typeof checkFirstRunDemo === 'function') {
 
 // ========== Excel Import Functions ==========
 
-// פונקציה לזיהוי אינדקס עמודה לפי מילות מפתח - חיפוש גמיש
+// ׳₪׳•׳ ׳§׳¦׳™׳” ׳׳–׳™׳”׳•׳™ ׳׳™׳ ׳“׳§׳¡ ׳¢׳׳•׳“׳” ׳׳₪׳™ ׳׳™׳׳•׳× ׳׳₪׳×׳— - ׳—׳™׳₪׳•׳© ׳’׳׳™׳©
 function findColumnIndex(headerRow, keywords) {
     if (!headerRow || !Array.isArray(headerRow)) return -1;
 
@@ -643,7 +656,7 @@ function findColumnIndex(headerRow, keywords) {
             for (const keyword of keywords) {
                 const keywordNormalized = keyword.trim().replace(/\s+/g, ' ').toLowerCase();
 
-                // בדיקה אם התא מכיל את מילת המפתח
+                // ׳‘׳“׳™׳§׳” ׳׳ ׳”׳×׳ ׳׳›׳™׳ ׳׳× ׳׳™׳׳× ׳”׳׳₪׳×׳—
                 if (cellNormalized.includes(keywordNormalized)) {
                     return i;
                 }
@@ -653,35 +666,35 @@ function findColumnIndex(headerRow, keywords) {
     return -1;
 }
 
-// פונקציה לניקוי וחילוץ מספר מתא מחיר
+// ׳₪׳•׳ ׳§׳¦׳™׳” ׳׳ ׳™׳§׳•׳™ ׳•׳—׳™׳׳•׳¥ ׳׳¡׳₪׳¨ ׳׳×׳ ׳׳—׳™׳¨
 function extractPrice(priceCell) {
     if (!priceCell) return 0;
 
-    // המרה למחרוזת
+    // ׳”׳׳¨׳” ׳׳׳—׳¨׳•׳–׳×
     let priceStr = String(priceCell).trim();
 
-    // ניקוי אגרסיבי: הסרת כל מה שלא ספרות, נקודה עשרונית או מינוס
+    // ׳ ׳™׳§׳•׳™ ׳׳’׳¨׳¡׳™׳‘׳™: ׳”׳¡׳¨׳× ׳›׳ ׳׳” ׳©׳׳ ׳¡׳₪׳¨׳•׳×, ׳ ׳§׳•׳“׳” ׳¢׳©׳¨׳•׳ ׳™׳× ׳׳• ׳׳™׳ ׳•׳¡
     priceStr = priceStr.replace(/[^\d.-]/g, '');
 
-    // טיפול במקרים של מספרים שליליים או כפולים
+    // ׳˜׳™׳₪׳•׳ ׳‘׳׳§׳¨׳™׳ ׳©׳ ׳׳¡׳₪׳¨׳™׳ ׳©׳׳™׳׳™׳™׳ ׳׳• ׳›׳₪׳•׳׳™׳
     priceStr = priceStr.replace(/--/g, '');
 
-    // המרה למספר והחזרת ערך מוחלט (חיובי)
+    // ׳”׳׳¨׳” ׳׳׳¡׳₪׳¨ ׳•׳”׳—׳–׳¨׳× ׳¢׳¨׳ ׳׳•׳—׳׳˜ (׳—׳™׳•׳‘׳™)
     const price = parseFloat(priceStr);
     return Math.abs(price) || 0;
 }
 
-// בדיקה האם תא מכיל תאריך תקין
+// ׳‘׳“׳™׳§׳” ׳”׳׳ ׳×׳ ׳׳›׳™׳ ׳×׳׳¨׳™׳ ׳×׳§׳™׳
 function isDateCell(cell) {
     if (!cell || typeof cell !== 'string') return false;
 
     const cellTrimmed = cell.trim();
 
-    // תבניות תאריך נפוצות
+    // ׳×׳‘׳ ׳™׳•׳× ׳×׳׳¨׳™׳ ׳ ׳₪׳•׳¦׳•׳×
     const datePatterns = [
-        /^\d{1,2}\/\d{1,2}\/\d{2,4}$/,      // DD/MM/YYYY או DD/MM/YY
-        /^\d{1,2}-\d{1,2}-\d{2,4}$/,        // DD-MM-YYYY או DD-MM-YY
-        /^\d{1,2}\.\d{1,2}\.\d{2,4}$/,      // DD.MM.YYYY או DD.MM.YY
+        /^\d{1,2}\/\d{1,2}\/\d{2,4}$/,      // DD/MM/YYYY ׳׳• DD/MM/YY
+        /^\d{1,2}-\d{1,2}-\d{2,4}$/,        // DD-MM-YYYY ׳׳• DD-MM-YY
+        /^\d{1,2}\.\d{1,2}\.\d{2,4}$/,      // DD.MM.YYYY ׳׳• DD.MM.YY
         /^\d{4}-\d{1,2}-\d{1,2}$/,          // YYYY-MM-DD
     ];
 
@@ -694,154 +707,154 @@ function isDateCell(cell) {
     return false;
 }
 
-// פונקציה ראשית לייבוא אקסל
+// ׳₪׳•׳ ׳§׳¦׳™׳” ׳¨׳׳©׳™׳× ׳׳™׳™׳‘׳•׳ ׳׳§׳¡׳
 async function handleExcelUpload(event) {
     const file = event.target.files[0];
     if (!file) return;
 
     try {
-        showNotification('⏳ מעבד קובץ אקסל...', 'info');
+        showNotification('ג³ ׳׳¢׳‘׳“ ׳§׳•׳‘׳¥ ׳׳§׳¡׳...', 'info');
 
-        // קריאת הקובץ
+        // ׳§׳¨׳™׳׳× ׳”׳§׳•׳‘׳¥
         const data = await file.arrayBuffer();
         const workbook = XLSX.read(data, { type: 'array' });
 
-        console.log('📂 נפתח קובץ עם', workbook.SheetNames.length, 'גליונות:', workbook.SheetNames);
+        console.log('נ“‚ ׳ ׳₪׳×׳— ׳§׳•׳‘׳¥ ׳¢׳', workbook.SheetNames.length, '׳’׳׳™׳•׳ ׳•׳×:', workbook.SheetNames);
 
-        // מבנה נתונים לאיסוף עסקאות לפי כרטיס
+        // ׳׳‘׳ ׳” ׳ ׳×׳•׳ ׳™׳ ׳׳׳™׳¡׳•׳£ ׳¢׳¡׳§׳׳•׳× ׳׳₪׳™ ׳›׳¨׳˜׳™׳¡
         // { '1234': [{name, price}, ...], '5678': [...] }
         const cardTransactions = {};
         let totalItemCount = 0;
 
-        // ========== שלב 1: מעבר על כל הגליונות ==========
+        // ========== ׳©׳׳‘ 1: ׳׳¢׳‘׳¨ ׳¢׳ ׳›׳ ׳”׳’׳׳™׳•׳ ׳•׳× ==========
         for (const sheetName of workbook.SheetNames) {
-            console.log(`\n📊 מעבד גיליון: "${sheetName}"`);
+            console.log(`\nנ“ ׳׳¢׳‘׳“ ׳’׳™׳׳™׳•׳: "${sheetName}"`);
 
             const sheet = workbook.Sheets[sheetName];
             const rows = XLSX.utils.sheet_to_json(sheet, { header: 1, raw: false, defval: '' });
 
             if (rows.length === 0) {
-                console.log('⚠️  הגיליון ריק');
+                console.log('ג ן¸  ׳”׳’׳™׳׳™׳•׳ ׳¨׳™׳§');
                 continue;
             }
 
-            // ========== שלב 2: חיפוש שורת כותרת ==========
+            // ========== ׳©׳׳‘ 2: ׳—׳™׳₪׳•׳© ׳©׳•׳¨׳× ׳›׳•׳×׳¨׳× ==========
             let headerRowIndex = -1;
             let nameColIndex = -1;
             let priceColIndex = -1;
             let cardColIndex = -1;
 
-            // מילות מפתח לחיפוש
+            // ׳׳™׳׳•׳× ׳׳₪׳×׳— ׳׳—׳™׳₪׳•׳©
             const nameKeywords = [
-                'שם בית העסק',
-                'שם בית עסק',
-                'שם העסק',
-                'בית עסק',
-                'שם עסק',
-                'תיאור',
-                'שם מוטב'
+                '׳©׳ ׳‘׳™׳× ׳”׳¢׳¡׳§',
+                '׳©׳ ׳‘׳™׳× ׳¢׳¡׳§',
+                '׳©׳ ׳”׳¢׳¡׳§',
+                '׳‘׳™׳× ׳¢׳¡׳§',
+                '׳©׳ ׳¢׳¡׳§',
+                '׳×׳™׳׳•׳¨',
+                '׳©׳ ׳׳•׳˜׳‘'
             ];
 
             const priceKeywords = [
-                'סכום חיוב',
-                'סכום',
-                'חיוב',
-                'סה״כ',
-                'מחיר',
+                '׳¡׳›׳•׳ ׳—׳™׳•׳‘',
+                '׳¡׳›׳•׳',
+                '׳—׳™׳•׳‘',
+                '׳¡׳”׳´׳›',
+                '׳׳—׳™׳¨',
                 'total',
                 'amount'
             ];
 
             const cardKeywords = [
-                '4 ספרות אחרונות של כרטיס האשראי',
-                '4 ספרות אחרונות',
-                'ספרות אחרונות',
-                'כרטיס אשראי',
-                'מספר כרטיס'
+                '4 ׳¡׳₪׳¨׳•׳× ׳׳—׳¨׳•׳ ׳•׳× ׳©׳ ׳›׳¨׳˜׳™׳¡ ׳”׳׳©׳¨׳׳™',
+                '4 ׳¡׳₪׳¨׳•׳× ׳׳—׳¨׳•׳ ׳•׳×',
+                '׳¡׳₪׳¨׳•׳× ׳׳—׳¨׳•׳ ׳•׳×',
+                '׳›׳¨׳˜׳™׳¡ ׳׳©׳¨׳׳™',
+                '׳׳¡׳₪׳¨ ׳›׳¨׳˜׳™׳¡'
             ];
 
-            // סריקת עד 40 שורות ראשונות לחיפוש כותרת
+            // ׳¡׳¨׳™׳§׳× ׳¢׳“ 40 ׳©׳•׳¨׳•׳× ׳¨׳׳©׳•׳ ׳•׳× ׳׳—׳™׳₪׳•׳© ׳›׳•׳×׳¨׳×
             for (let i = 0; i < Math.min(40, rows.length); i++) {
                 const currentRow = rows[i];
 
-                // נסה למצוא את עמודת השם, המחיר והכרטיס
+                // ׳ ׳¡׳” ׳׳׳¦׳•׳ ׳׳× ׳¢׳׳•׳“׳× ׳”׳©׳, ׳”׳׳—׳™׳¨ ׳•׳”׳›׳¨׳˜׳™׳¡
                 const foundNameCol = findColumnIndex(currentRow, nameKeywords);
                 const foundPriceCol = findColumnIndex(currentRow, priceKeywords);
                 const foundCardCol = findColumnIndex(currentRow, cardKeywords);
 
-                // אם מצאנו את שלוש העמודות - זו שורת הכותרת!
+                // ׳׳ ׳׳¦׳׳ ׳• ׳׳× ׳©׳׳•׳© ׳”׳¢׳׳•׳“׳•׳× - ׳–׳• ׳©׳•׳¨׳× ׳”׳›׳•׳×׳¨׳×!
                 if (foundNameCol !== -1 && foundPriceCol !== -1 && foundCardCol !== -1) {
                     headerRowIndex = i;
                     nameColIndex = foundNameCol;
                     priceColIndex = foundPriceCol;
                     cardColIndex = foundCardCol;
 
-                    console.log(`✅ נמצאה שורת כותרת בשורה ${i}:`);
-                    console.log(`   📝 עמודת שם (${nameColIndex}): "${currentRow[nameColIndex]}"`);
-                    console.log(`   💰 עמודת מחיר (${priceColIndex}): "${currentRow[priceColIndex]}"`);
-                    console.log(`   💳 עמודת כרטיס (${cardColIndex}): "${currentRow[cardColIndex]}"`);
+                    console.log(`ג… ׳ ׳׳¦׳׳” ׳©׳•׳¨׳× ׳›׳•׳×׳¨׳× ׳‘׳©׳•׳¨׳” ${i}:`);
+                    console.log(`   נ“ ׳¢׳׳•׳“׳× ׳©׳ (${nameColIndex}): "${currentRow[nameColIndex]}"`);
+                    console.log(`   נ’° ׳¢׳׳•׳“׳× ׳׳—׳™׳¨ (${priceColIndex}): "${currentRow[priceColIndex]}"`);
+                    console.log(`   נ’³ ׳¢׳׳•׳“׳× ׳›׳¨׳˜׳™׳¡ (${cardColIndex}): "${currentRow[cardColIndex]}"`);
                     break;
                 }
             }
 
             if (headerRowIndex === -1) {
-                console.log('❌ לא נמצאה שורת כותרת מתאימה בגיליון');
+                console.log('ג ׳׳ ׳ ׳׳¦׳׳” ׳©׳•׳¨׳× ׳›׳•׳×׳¨׳× ׳׳×׳׳™׳׳” ׳‘׳’׳™׳׳™׳•׳');
                 continue;
             }
 
-            // ========== שלב 3: מציאת תחילת הנתונים ==========
+            // ========== ׳©׳׳‘ 3: ׳׳¦׳™׳׳× ׳×׳—׳™׳׳× ׳”׳ ׳×׳•׳ ׳™׳ ==========
             let dataStartIndex = -1;
 
-            // מחפשים שורה שמתחילה בתאריך (אחרי שורת הכותרת)
+            // ׳׳—׳₪׳©׳™׳ ׳©׳•׳¨׳” ׳©׳׳×׳—׳™׳׳” ׳‘׳×׳׳¨׳™׳ (׳׳—׳¨׳™ ׳©׳•׳¨׳× ׳”׳›׳•׳×׳¨׳×)
             for (let i = headerRowIndex + 1; i < rows.length; i++) {
                 const firstCell = rows[i][0];
 
                 if (isDateCell(firstCell)) {
                     dataStartIndex = i;
-                    console.log(`✅ תחילת נתונים בשורה ${i}, תאריך ראשון: "${firstCell}"`);
+                    console.log(`ג… ׳×׳—׳™׳׳× ׳ ׳×׳•׳ ׳™׳ ׳‘׳©׳•׳¨׳” ${i}, ׳×׳׳¨׳™׳ ׳¨׳׳©׳•׳: "${firstCell}"`);
                     break;
                 }
             }
 
             if (dataStartIndex === -1) {
-                console.log('❌ לא נמצאו שורות נתונים עם תאריך');
+                console.log('ג ׳׳ ׳ ׳׳¦׳׳• ׳©׳•׳¨׳•׳× ׳ ׳×׳•׳ ׳™׳ ׳¢׳ ׳×׳׳¨׳™׳');
                 continue;
             }
 
-            // ========== שלב 4: ייבוא עסקאות ופיצול לפי כרטיסים ==========
+            // ========== ׳©׳׳‘ 4: ׳™׳™׳‘׳•׳ ׳¢׳¡׳§׳׳•׳× ׳•׳₪׳™׳¦׳•׳ ׳׳₪׳™ ׳›׳¨׳˜׳™׳¡׳™׳ ==========
             let sheetItemCount = 0;
 
             for (let i = dataStartIndex; i < rows.length; i++) {
                 const row = rows[i];
 
-                // בדיקה שהשורה מתחילה בתאריך (=שורת נתונים תקינה)
+                // ׳‘׳“׳™׳§׳” ׳©׳”׳©׳•׳¨׳” ׳׳×׳—׳™׳׳” ׳‘׳×׳׳¨׳™׳ (=׳©׳•׳¨׳× ׳ ׳×׳•׳ ׳™׳ ׳×׳§׳™׳ ׳”)
                 const firstCell = row[0];
                 if (!isDateCell(firstCell)) {
-                    // הגענו לסוף הנתונים או שורה לא תקינה
-                    console.log(`⏹️  עצירה בשורה ${i} (לא תאריך)`);
+                    // ׳”׳’׳¢׳ ׳• ׳׳¡׳•׳£ ׳”׳ ׳×׳•׳ ׳™׳ ׳׳• ׳©׳•׳¨׳” ׳׳ ׳×׳§׳™׳ ׳”
+                    console.log(`ג¹ן¸  ׳¢׳¦׳™׳¨׳” ׳‘׳©׳•׳¨׳” ${i} (׳׳ ׳×׳׳¨׳™׳)`);
                     break;
                 }
 
-                // חילוץ שם עסק מהעמודה שזיהינו
+                // ׳—׳™׳׳•׳¥ ׳©׳ ׳¢׳¡׳§ ׳׳”׳¢׳׳•׳“׳” ׳©׳–׳™׳”׳™׳ ׳•
                 const businessName = row[nameColIndex];
 
                 if (!businessName || typeof businessName !== 'string' || businessName.trim() === '') {
-                    console.log(`⚠️  שורה ${i}: שם עסק ריק, מדלג`);
+                    console.log(`ג ן¸  ׳©׳•׳¨׳” ${i}: ׳©׳ ׳¢׳¡׳§ ׳¨׳™׳§, ׳׳“׳׳’`);
                     continue;
                 }
 
-                // חילוץ מחיר מהעמודה שזיהינו
+                // ׳—׳™׳׳•׳¥ ׳׳—׳™׳¨ ׳׳”׳¢׳׳•׳“׳” ׳©׳–׳™׳”׳™׳ ׳•
                 const priceCell = row[priceColIndex];
                 const price = extractPrice(priceCell);
 
-                // חילוץ מספר כרטיס (4 ספרות אחרונות)
+                // ׳—׳™׳׳•׳¥ ׳׳¡׳₪׳¨ ׳›׳¨׳˜׳™׳¡ (4 ׳¡׳₪׳¨׳•׳× ׳׳—׳¨׳•׳ ׳•׳×)
                 const cardCell = row[cardColIndex];
                 let cardNumber = '';
 
                 if (cardCell && typeof cardCell === 'string') {
-                    // חילוץ רק הספרות מהתא
+                    // ׳—׳™׳׳•׳¥ ׳¨׳§ ׳”׳¡׳₪׳¨׳•׳× ׳׳”׳×׳
                     cardNumber = cardCell.replace(/\D/g, '');
-                    // אם יש יותר מ-4 ספרות, קח את ה-4 אחרונות
+                    // ׳׳ ׳™׳© ׳™׳•׳×׳¨ ׳-4 ׳¡׳₪׳¨׳•׳×, ׳§׳— ׳׳× ׳”-4 ׳׳—׳¨׳•׳ ׳•׳×
                     if (cardNumber.length > 4) {
                         cardNumber = cardNumber.slice(-4);
                     }
@@ -849,19 +862,19 @@ async function handleExcelUpload(event) {
                     cardNumber = String(cardCell).slice(-4);
                 }
 
-                // אם לא מצאנו מספר כרטיס תקין, דלג על השורה
+                // ׳׳ ׳׳ ׳׳¦׳׳ ׳• ׳׳¡׳₪׳¨ ׳›׳¨׳˜׳™׳¡ ׳×׳§׳™׳, ׳“׳׳’ ׳¢׳ ׳”׳©׳•׳¨׳”
                 if (!cardNumber || cardNumber.length !== 4) {
-                    console.log(`⚠️  שורה ${i}: מספר כרטיס לא תקין (${cardCell}), מדלג`);
+                    console.log(`ג ן¸  ׳©׳•׳¨׳” ${i}: ׳׳¡׳₪׳¨ ׳›׳¨׳˜׳™׳¡ ׳׳ ׳×׳§׳™׳ (${cardCell}), ׳׳“׳׳’`);
                     continue;
                 }
 
-                // אם זה הכרטיס הראשון שנתקלנו בו, צור לו מערך ריק
+                // ׳׳ ׳–׳” ׳”׳›׳¨׳˜׳™׳¡ ׳”׳¨׳׳©׳•׳ ׳©׳ ׳×׳§׳׳ ׳• ׳‘׳•, ׳¦׳•׳¨ ׳׳• ׳׳¢׳¨׳ ׳¨׳™׳§
                 if (!cardTransactions[cardNumber]) {
                     cardTransactions[cardNumber] = [];
-                    console.log(`💳 כרטיס חדש זוהה: ${cardNumber}`);
+                    console.log(`נ’³ ׳›׳¨׳˜׳™׳¡ ׳—׳“׳© ׳–׳•׳”׳”: ${cardNumber}`);
                 }
 
-                // הוסף את העסקה למערך של הכרטיס הספציפי
+                // ׳”׳•׳¡׳£ ׳׳× ׳”׳¢׳¡׳§׳” ׳׳׳¢׳¨׳ ׳©׳ ׳”׳›׳¨׳˜׳™׳¡ ׳”׳¡׳₪׳¦׳™׳₪׳™
                 cardTransactions[cardNumber].push({
                     name: businessName.trim(),
                     price: price
@@ -871,28 +884,28 @@ async function handleExcelUpload(event) {
                 totalItemCount++;
             }
 
-            console.log(`✅ מגיליון "${sheetName}" יובאו ${sheetItemCount} עסקאות`);
+            console.log(`ג… ׳׳’׳™׳׳™׳•׳ "${sheetName}" ׳™׳•׳‘׳׳• ${sheetItemCount} ׳¢׳¡׳§׳׳•׳×`);
         }
 
-        // ========== שלב 5: יצירת רשימות נפרדות לכל כרטיס ==========
+        // ========== ׳©׳׳‘ 5: ׳™׳¦׳™׳¨׳× ׳¨׳©׳™׳׳•׳× ׳ ׳₪׳¨׳“׳•׳× ׳׳›׳ ׳›׳¨׳˜׳™׳¡ ==========
         if (totalItemCount === 0) {
-            console.log('❌ לא נמצאו עסקאות לייבוא');
-            showNotification('❌ לא נמצאו עסקאות תקינות בקובץ האקסל', 'error');
+            console.log('ג ׳׳ ׳ ׳׳¦׳׳• ׳¢׳¡׳§׳׳•׳× ׳׳™׳™׳‘׳•׳');
+            showNotification('ג ׳׳ ׳ ׳׳¦׳׳• ׳¢׳¡׳§׳׳•׳× ׳×׳§׳™׳ ׳•׳× ׳‘׳§׳•׳‘׳¥ ׳”׳׳§׳¡׳', 'error');
             event.target.value = '';
             return;
         }
 
         const cardNumbers = Object.keys(cardTransactions);
-        console.log(`\n💳 נמצאו ${cardNumbers.length} כרטיסים שונים:`, cardNumbers);
+        console.log(`\nנ’³ ׳ ׳׳¦׳׳• ${cardNumbers.length} ׳›׳¨׳˜׳™׳¡׳™׳ ׳©׳•׳ ׳™׳:`, cardNumbers);
 
         let firstListId = null;
 
         for (const cardNumber of cardNumbers) {
             const transactions = cardTransactions[cardNumber];
 
-            // יצירת רשימה חדשה לכרטיס
+            // ׳™׳¦׳™׳¨׳× ׳¨׳©׳™׳׳” ׳—׳“׳©׳” ׳׳›׳¨׳˜׳™׳¡
             const listId = 'L' + Date.now() + '_' + cardNumber;
-            const listName = `אשראי ${cardNumber}`;
+            const listName = `׳׳©׳¨׳׳™ ${cardNumber}`;
 
             db.lists[listId] = {
                 name: listName,
@@ -904,7 +917,7 @@ async function handleExcelUpload(event) {
                 cloudId: 'list_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9)
             };
 
-            // הוספת כל העסקאות לרשימה
+            // ׳”׳•׳¡׳₪׳× ׳›׳ ׳”׳¢׳¡׳§׳׳•׳× ׳׳¨׳©׳™׳׳”
             for (let i = 0; i < transactions.length; i++) {
                 const transaction = transactions[i];
 
@@ -913,33 +926,33 @@ async function handleExcelUpload(event) {
                     price: transaction.price,
                     qty: 1,
                     checked: false,
-                    category: 'אחר',  // קטגוריה קבועה לכל העסקאות
+                    category: '׳׳—׳¨',  // ׳§׳˜׳’׳•׳¨׳™׳” ׳§׳‘׳•׳¢׳” ׳׳›׳ ׳”׳¢׳¡׳§׳׳•׳×
                     cloudId: 'item_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9) + '_' + i
                 });
             }
 
-            console.log(`✅ נוצרה רשימה "${listName}" עם ${transactions.length} עסקאות`);
+            console.log(`ג… ׳ ׳•׳¦׳¨׳” ׳¨׳©׳™׳׳” "${listName}" ׳¢׳ ${transactions.length} ׳¢׳¡׳§׳׳•׳×`);
 
-            // שמור את הרשימה הראשונה למעבר אליה
+            // ׳©׳׳•׳¨ ׳׳× ׳”׳¨׳©׳™׳׳” ׳”׳¨׳׳©׳•׳ ׳” ׳׳׳¢׳‘׳¨ ׳׳׳™׳”
             if (!firstListId) {
                 firstListId = listId;
             }
         }
 
-        // ========== שלב 6: מעבר לרשימה הראשונה ==========
+        // ========== ׳©׳׳‘ 6: ׳׳¢׳‘׳¨ ׳׳¨׳©׳™׳׳” ׳”׳¨׳׳©׳•׳ ׳” ==========
         if (firstListId) {
             db.currentId = firstListId;
         }
 
         save();
 
-        console.log(`\n🎉 סה"כ יובאו ${totalItemCount} עסקאות ל-${cardNumbers.length} רשימות`);
-        showNotification(`✅ נוצרו ${cardNumbers.length} רשימות עם סה"כ ${totalItemCount} עסקאות!`);
+        console.log(`\nנ‰ ׳¡׳”"׳› ׳™׳•׳‘׳׳• ${totalItemCount} ׳¢׳¡׳§׳׳•׳× ׳-${cardNumbers.length} ׳¨׳©׳™׳׳•׳×`);
+        showNotification(`ג… ׳ ׳•׳¦׳¨׳• ${cardNumbers.length} ׳¨׳©׳™׳׳•׳× ׳¢׳ ׳¡׳”"׳› ${totalItemCount} ׳¢׳¡׳§׳׳•׳×!`);
         event.target.value = '';
 
     } catch (error) {
-        console.error('❌ Excel Import Error:', error);
-        showNotification('❌ שגיאה בקריאת קובץ האקסל: ' + error.message, 'error');
+        console.error('ג Excel Import Error:', error);
+        showNotification('ג ׳©׳’׳™׳׳” ׳‘׳§׳¨׳™׳׳× ׳§׳•׳‘׳¥ ׳”׳׳§׳¡׳: ' + error.message, 'error');
         event.target.value = '';
     }
 }
@@ -954,8 +967,8 @@ async function importBankFile(event) {
     const file = event.target.files[0];
     if (!file) return;
 
-    console.log(`📄 ייבוא קובץ בנקאי: ${file.name} (${file.type})`);
-    showNotification('⏳ מעבד קובץ בנקאי...');
+    console.log(`נ“„ ׳™׳™׳‘׳•׳ ׳§׳•׳‘׳¥ ׳‘׳ ׳§׳׳™: ${file.name} (${file.type})`);
+    showNotification('ג³ ׳׳¢׳‘׳“ ׳§׳•׳‘׳¥ ׳‘׳ ׳§׳׳™...');
 
     const fileExtension = file.name.toLowerCase().split('.').pop();
 
@@ -965,11 +978,11 @@ async function importBankFile(event) {
         } else if (fileExtension === 'xls' || fileExtension === 'xlsx') {
             await importBankXLS(file);
         } else {
-            showNotification('❌ פורמט קובץ לא נתמך. השתמש ב-XLS או PDF', 'error');
+            showNotification('ג ׳₪׳•׳¨׳׳˜ ׳§׳•׳‘׳¥ ׳׳ ׳ ׳×׳׳. ׳”׳©׳×׳׳© ׳‘-XLS ׳׳• PDF', 'error');
         }
     } catch (error) {
-        console.error('❌ שגיאה בייבוא בנקאי:', error);
-        showNotification('❌ שגיאה בעיבוד הקובץ: ' + error.message, 'error');
+        console.error('ג ׳©׳’׳™׳׳” ׳‘׳™׳™׳‘׳•׳ ׳‘׳ ׳§׳׳™:', error);
+        showNotification('ג ׳©׳’׳™׳׳” ׳‘׳¢׳™׳‘׳•׳“ ׳”׳§׳•׳‘׳¥: ' + error.message, 'error');
     }
 
     event.target.value = '';
@@ -985,53 +998,53 @@ async function importBankXLS(file) {
 
         reader.onload = async function (e) {
             try {
-                console.log('📊 מתחיל עיבוד קובץ XLS בנקאי...');
+                console.log('נ“ ׳׳×׳—׳™׳ ׳¢׳™׳‘׳•׳“ ׳§׳•׳‘׳¥ XLS ׳‘׳ ׳§׳׳™...');
 
                 // Use readAsBinaryString for Android compatibility
                 const data = e.target.result;
                 const workbook = XLSX.read(data, { type: 'binary' });
 
-                console.log(`📋 נמצאו ${workbook.SheetNames.length} גיליונות:`, workbook.SheetNames);
+                console.log(`נ“‹ ׳ ׳׳¦׳׳• ${workbook.SheetNames.length} ׳’׳™׳׳™׳•׳ ׳•׳×:`, workbook.SheetNames);
 
                 const allTransactions = [];
 
                 // Process each sheet in the workbook
                 for (const sheetName of workbook.SheetNames) {
-                    console.log(`\n🔍 מעבד גיליון: "${sheetName}"`);
+                    console.log(`\nנ” ׳׳¢׳‘׳“ ׳’׳™׳׳™׳•׳: "${sheetName}"`);
                     const worksheet = workbook.Sheets[sheetName];
                     const rows = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: '' });
 
-                    console.log(`📝 סה"כ ${rows.length} שורות בגיליון`);
+                    console.log(`נ“ ׳¡׳”"׳› ${rows.length} ׳©׳•׳¨׳•׳× ׳‘׳’׳™׳׳™׳•׳`);
 
                     // Extract transactions from this sheet
                     const sheetTransactions = extractTransactionsFromSheet(rows, sheetName);
                     allTransactions.push(...sheetTransactions);
 
-                    console.log(`✅ חולצו ${sheetTransactions.length} עסקאות מגיליון "${sheetName}"`);
+                    console.log(`ג… ׳—׳•׳׳¦׳• ${sheetTransactions.length} ׳¢׳¡׳§׳׳•׳× ׳׳’׳™׳׳™׳•׳ "${sheetName}"`);
                 }
 
                 if (allTransactions.length === 0) {
-                    showNotification('❌ לא נמצאו עסקאות בקובץ', 'error');
+                    showNotification('ג ׳׳ ׳ ׳׳¦׳׳• ׳¢׳¡׳§׳׳•׳× ׳‘׳§׳•׳‘׳¥', 'error');
                     resolve();
                     return;
                 }
 
-                console.log(`\n💾 סה"כ ${allTransactions.length} עסקאות לשמירה`);
+                console.log(`\nנ’¾ ׳¡׳”"׳› ${allTransactions.length} ׳¢׳¡׳§׳׳•׳× ׳׳©׳׳™׳¨׳”`);
 
                 // Save transactions to Firebase (with duplicate prevention)
                 await saveTransactionsToFirebase(allTransactions);
 
-                showNotification(`✅ יובאו ${allTransactions.length} עסקאות בהצלחה!`);
+                showNotification(`ג… ׳™׳•׳‘׳׳• ${allTransactions.length} ׳¢׳¡׳§׳׳•׳× ׳‘׳”׳¦׳׳—׳”!`);
                 resolve();
 
             } catch (error) {
-                console.error('❌ שגיאה בעיבוד XLS:', error);
+                console.error('ג ׳©׳’׳™׳׳” ׳‘׳¢׳™׳‘׳•׳“ XLS:', error);
                 reject(error);
             }
         };
 
         reader.onerror = function () {
-            reject(new Error('שגיאה בקריאת הקובץ'));
+            reject(new Error('׳©׳’׳™׳׳” ׳‘׳§׳¨׳™׳׳× ׳”׳§׳•׳‘׳¥'));
         };
 
         // Use readAsBinaryString for Android compatibility
@@ -1046,7 +1059,7 @@ async function importBankXLS(file) {
 function extractTransactionsFromSheet(rows, sheetName) {
     const transactions = [];
 
-    // Find header row (contains "תאריך", "תיאור", "סכום" or similar)
+    // Find header row (contains "׳×׳׳¨׳™׳", "׳×׳™׳׳•׳¨", "׳¡׳›׳•׳" or similar)
     let headerRowIndex = -1;
     let dateColIndex = -1;
     let descriptionColIndex = -1;
@@ -1060,18 +1073,18 @@ function extractTransactionsFromSheet(rows, sheetName) {
             const cell = String(row[j]).trim();
 
             // Check for date column
-            if (cell.includes('תאריך') || cell.toLowerCase().includes('date')) {
+            if (cell.includes('׳×׳׳¨׳™׳') || cell.toLowerCase().includes('date')) {
                 dateColIndex = j;
             }
 
             // Check for description column
-            if (cell.includes('תיאור') || cell.includes('פרטים') || cell.includes('אסמכתא') ||
+            if (cell.includes('׳×׳™׳׳•׳¨') || cell.includes('׳₪׳¨׳˜׳™׳') || cell.includes('׳׳¡׳׳›׳×׳') ||
                 cell.toLowerCase().includes('description') || cell.toLowerCase().includes('details')) {
                 descriptionColIndex = j;
             }
 
             // Check for amount column
-            if (cell.includes('סכום') || cell.includes('חיוב') || cell.includes('זכות') ||
+            if (cell.includes('׳¡׳›׳•׳') || cell.includes('׳—׳™׳•׳‘') || cell.includes('׳–׳›׳•׳×') ||
                 cell.toLowerCase().includes('amount') || cell.toLowerCase().includes('debit') ||
                 cell.toLowerCase().includes('credit')) {
                 amountColIndex = j;
@@ -1081,13 +1094,13 @@ function extractTransactionsFromSheet(rows, sheetName) {
         // If we found all three columns, this is our header row
         if (dateColIndex !== -1 && descriptionColIndex !== -1 && amountColIndex !== -1) {
             headerRowIndex = i;
-            console.log(`✓ שורת כותרת נמצאה בשורה ${i}: תאריך=${dateColIndex}, תיאור=${descriptionColIndex}, סכום=${amountColIndex}`);
+            console.log(`ג“ ׳©׳•׳¨׳× ׳›׳•׳×׳¨׳× ׳ ׳׳¦׳׳” ׳‘׳©׳•׳¨׳” ${i}: ׳×׳׳¨׳™׳=${dateColIndex}, ׳×׳™׳׳•׳¨=${descriptionColIndex}, ׳¡׳›׳•׳=${amountColIndex}`);
             break;
         }
     }
 
     if (headerRowIndex === -1) {
-        console.log(`⚠️  לא נמצאה שורת כותרת בגיליון "${sheetName}"`);
+        console.log(`ג ן¸  ׳׳ ׳ ׳׳¦׳׳” ׳©׳•׳¨׳× ׳›׳•׳×׳¨׳× ׳‘׳’׳™׳׳™׳•׳ "${sheetName}"`);
         return transactions;
     }
 
@@ -1113,21 +1126,21 @@ function extractTransactionsFromSheet(rows, sheetName) {
 
         // Filter out summary/total rows
         if (isTotalRow(description)) {
-            console.log(`⏭️  מדלג על שורת סיכום: "${description}"`);
+            console.log(`ג­ן¸  ׳׳“׳׳’ ׳¢׳ ׳©׳•׳¨׳× ׳¡׳™׳›׳•׳: "${description}"`);
             continue;
         }
 
         // Parse date
         const date = parseDate(dateCell);
         if (!date) {
-            console.log(`⚠️  שורה ${i}: תאריך לא תקין (${dateCell}), מדלג`);
+            console.log(`ג ן¸  ׳©׳•׳¨׳” ${i}: ׳×׳׳¨׳™׳ ׳׳ ׳×׳§׳™׳ (${dateCell}), ׳׳“׳׳’`);
             continue;
         }
 
         // Parse amount
         const amount = parseAmount(amountCell);
         if (amount === 0) {
-            console.log(`⚠️  שורה ${i}: סכום אפס או לא תקין (${amountCell}), מדלג`);
+            console.log(`ג ן¸  ׳©׳•׳¨׳” ${i}: ׳¡׳›׳•׳ ׳׳₪׳¡ ׳׳• ׳׳ ׳×׳§׳™׳ (${amountCell}), ׳׳“׳׳’`);
             continue;
         }
 
@@ -1153,7 +1166,7 @@ async function importBankPDF(file) {
 
         reader.onload = async function (e) {
             try {
-                console.log('📄 מתחיל עיבוד קובץ PDF בנקאי...');
+                console.log('נ“„ ׳׳×׳—׳™׳ ׳¢׳™׳‘׳•׳“ ׳§׳•׳‘׳¥ PDF ׳‘׳ ׳§׳׳™...');
 
                 // Use readAsArrayBuffer for Android compatibility with PDF.js
                 const arrayBuffer = e.target.result;
@@ -1162,7 +1175,7 @@ async function importBankPDF(file) {
                 const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer });
                 const pdf = await loadingTask.promise;
 
-                console.log(`📖 PDF נטען: ${pdf.numPages} עמודים`);
+                console.log(`נ“– PDF ׳ ׳˜׳¢׳: ${pdf.numPages} ׳¢׳׳•׳“׳™׳`);
 
                 const allTransactions = [];
 
@@ -1173,40 +1186,40 @@ async function importBankPDF(file) {
 
                     // Extract text from page
                     const pageText = textContent.items.map(item => item.str).join(' ');
-                    console.log(`📄 עמוד ${pageNum}: ${pageText.length} תווים`);
+                    console.log(`נ“„ ׳¢׳׳•׳“ ${pageNum}: ${pageText.length} ׳×׳•׳•׳™׳`);
 
-                    // DEBUG: הצג את הטקסט שנחלץ
-                    console.log('🔍 טקסט שנחלץ מהעמוד:', pageText.substring(0, 500));
+                    // DEBUG: ׳”׳¦׳’ ׳׳× ׳”׳˜׳§׳¡׳˜ ׳©׳ ׳—׳׳¥
+                    console.log('נ” ׳˜׳§׳¡׳˜ ׳©׳ ׳—׳׳¥ ׳׳”׳¢׳׳•׳“:', pageText.substring(0, 500));
 
                     // Extract transactions from page text
                     const pageTransactions = extractTransactionsFromPDFText(pageText);
                     allTransactions.push(...pageTransactions);
 
-                    console.log(`✅ חולצו ${pageTransactions.length} עסקאות מעמוד ${pageNum}`);
+                    console.log(`ג… ׳—׳•׳׳¦׳• ${pageTransactions.length} ׳¢׳¡׳§׳׳•׳× ׳׳¢׳׳•׳“ ${pageNum}`);
                 }
 
                 if (allTransactions.length === 0) {
-                    showNotification('❌ לא נמצאו עסקאות ב-PDF', 'error');
+                    showNotification('ג ׳׳ ׳ ׳׳¦׳׳• ׳¢׳¡׳§׳׳•׳× ׳‘-PDF', 'error');
                     resolve();
                     return;
                 }
 
-                console.log(`\n💾 סה"כ ${allTransactions.length} עסקאות לשמירה`);
+                console.log(`\nנ’¾ ׳¡׳”"׳› ${allTransactions.length} ׳¢׳¡׳§׳׳•׳× ׳׳©׳׳™׳¨׳”`);
 
                 // Save transactions to Firebase (with duplicate prevention)
                 await saveTransactionsToFirebase(allTransactions);
 
-                showNotification(`✅ יובאו ${allTransactions.length} עסקאות בהצלחה!`);
+                showNotification(`ג… ׳™׳•׳‘׳׳• ${allTransactions.length} ׳¢׳¡׳§׳׳•׳× ׳‘׳”׳¦׳׳—׳”!`);
                 resolve();
 
             } catch (error) {
-                console.error('❌ שגיאה בעיבוד PDF:', error);
+                console.error('ג ׳©׳’׳™׳׳” ׳‘׳¢׳™׳‘׳•׳“ PDF:', error);
                 reject(error);
             }
         };
 
         reader.onerror = function () {
-            reject(new Error('שגיאה בקריאת הקובץ'));
+            reject(new Error('׳©׳’׳™׳׳” ׳‘׳§׳¨׳™׳׳× ׳”׳§׳•׳‘׳¥'));
         };
 
         // Use readAsArrayBuffer for Android compatibility with PDF.js
@@ -1222,49 +1235,49 @@ function extractTransactionsFromPDFText(text) {
     const transactions = [];
     const lines = text.split(/\r?\n/);
 
-    console.log(`🔍 מעבד ${lines.length} שורות מה-PDF`);
+    console.log(`נ” ׳׳¢׳‘׳“ ${lines.length} ׳©׳•׳¨׳•׳× ׳׳”-PDF`);
 
-    // פורמט בנק הפועלים: טבלה עם עמודות
-    // תאריך | תאריך ערך | תיאור | אסמכתא | חובה | זכות | יתרה
-    // דוגמה: "06/01/2026 06/01/2026 כרטיס דביט 41657 50.03 -28,599.22"
+    // ׳₪׳•׳¨׳׳˜ ׳‘׳ ׳§ ׳”׳₪׳•׳¢׳׳™׳: ׳˜׳‘׳׳” ׳¢׳ ׳¢׳׳•׳“׳•׳×
+    // ׳×׳׳¨׳™׳ | ׳×׳׳¨׳™׳ ׳¢׳¨׳ | ׳×׳™׳׳•׳¨ | ׳׳¡׳׳›׳×׳ | ׳—׳•׳‘׳” | ׳–׳›׳•׳× | ׳™׳×׳¨׳”
+    // ׳“׳•׳’׳׳”: "06/01/2026 06/01/2026 ׳›׳¨׳˜׳™׳¡ ׳“׳‘׳™׳˜ 41657 50.03 -28,599.22"
 
     for (let i = 0; i < lines.length; i++) {
         const line = lines[i].trim();
 
         if (!line || line.length < 20) {
-            continue; // שורה ריקה או קצרה מדי
+            continue; // ׳©׳•׳¨׳” ׳¨׳™׳§׳” ׳׳• ׳§׳¦׳¨׳” ׳׳“׳™
         }
 
-        // חיפוש תאריך בתחילת השורה (DD/MM/YYYY)
+        // ׳—׳™׳₪׳•׳© ׳×׳׳¨׳™׳ ׳‘׳×׳—׳™׳׳× ׳”׳©׳•׳¨׳” (DD/MM/YYYY)
         const dateMatch = line.match(/^(\d{2}\/\d{2}\/\d{4})/);
 
         if (!dateMatch) {
-            continue; // אין תאריך - דלג
+            continue; // ׳׳™׳ ׳×׳׳¨׳™׳ - ׳“׳׳’
         }
 
         const dateStr = dateMatch[1];
         let restOfLine = line.substring(dateStr.length).trim();
 
-        // הסר תאריך ערך נוסף אם קיים
+        // ׳”׳¡׳¨ ׳×׳׳¨׳™׳ ׳¢׳¨׳ ׳ ׳•׳¡׳£ ׳׳ ׳§׳™׳™׳
         restOfLine = restOfLine.replace(/^\d{2}\/\d{2}\/\d{4}\s+/, '');
 
-        // חילוץ כל המספרים בשורה (כולל אלה עם פסיקים)
-        // דוגמה: ["41657", "50.03", "28,599.22"] או ["99012", "350.00", "28,249.22"]
+        // ׳—׳™׳׳•׳¥ ׳›׳ ׳”׳׳¡׳₪׳¨׳™׳ ׳‘׳©׳•׳¨׳” (׳›׳•׳׳ ׳׳׳” ׳¢׳ ׳₪׳¡׳™׳§׳™׳)
+        // ׳“׳•׳’׳׳”: ["41657", "50.03", "28,599.22"] ׳׳• ["99012", "350.00", "28,249.22"]
         const numberMatches = restOfLine.match(/[\d,]+\.?\d*/g);
 
         if (!numberMatches || numberMatches.length < 2) {
-            continue; // לא מספיק מספרים
+            continue; // ׳׳ ׳׳¡׳₪׳™׳§ ׳׳¡׳₪׳¨׳™׳
         }
 
-        // המספר האחרון = היתרה (בפורמט: -28,599.22)
-        // המספר לפני אחרון = הסכום (חובה או זכות)
+        // ׳”׳׳¡׳₪׳¨ ׳”׳׳—׳¨׳•׳ = ׳”׳™׳×׳¨׳” (׳‘׳₪׳•׳¨׳׳˜: -28,599.22)
+        // ׳”׳׳¡׳₪׳¨ ׳׳₪׳ ׳™ ׳׳—׳¨׳•׳ = ׳”׳¡׳›׳•׳ (׳—׳•׳‘׳” ׳׳• ׳–׳›׳•׳×)
         const balanceStr = numberMatches[numberMatches.length - 1];
         const amountStr = numberMatches[numberMatches.length - 2];
 
-        // חילוץ התיאור - הכל עד המספר האחרון לפני הסכום
+        // ׳—׳™׳׳•׳¥ ׳”׳×׳™׳׳•׳¨ - ׳”׳›׳ ׳¢׳“ ׳”׳׳¡׳₪׳¨ ׳”׳׳—׳¨׳•׳ ׳׳₪׳ ׳™ ׳”׳¡׳›׳•׳
         let description = restOfLine;
 
-        // הסר את שני המספרים האחרונים (סכום + יתרה)
+        // ׳”׳¡׳¨ ׳׳× ׳©׳ ׳™ ׳”׳׳¡׳₪׳¨׳™׳ ׳”׳׳—׳¨׳•׳ ׳™׳ (׳¡׳›׳•׳ + ׳™׳×׳¨׳”)
         const lastBalanceIndex = description.lastIndexOf(balanceStr);
         if (lastBalanceIndex > 0) {
             description = description.substring(0, lastBalanceIndex).trim();
@@ -1275,8 +1288,8 @@ function extractTransactionsFromPDFText(text) {
             description = description.substring(0, lastAmountIndex).trim();
         }
 
-        // הסר מספר אסמכתא אם קיים (בדרך כלל המספר האחרון שנשאר)
-        // למשל: "כרטיס דביט 41657" -> "כרטיס דביט"
+        // ׳”׳¡׳¨ ׳׳¡׳₪׳¨ ׳׳¡׳׳›׳×׳ ׳׳ ׳§׳™׳™׳ (׳‘׳“׳¨׳ ׳›׳׳ ׳”׳׳¡׳₪׳¨ ׳”׳׳—׳¨׳•׳ ׳©׳ ׳©׳׳¨)
+        // ׳׳׳©׳: "׳›׳¨׳˜׳™׳¡ ׳“׳‘׳™׳˜ 41657" -> "׳›׳¨׳˜׳™׳¡ ׳“׳‘׳™׳˜"
         const remainingNumbers = description.match(/\d+/g);
         if (remainingNumbers && remainingNumbers.length > 0) {
             const lastNum = remainingNumbers[remainingNumbers.length - 1];
@@ -1284,21 +1297,21 @@ function extractTransactionsFromPDFText(text) {
             description = description.substring(0, lastNumIndex).trim();
         }
 
-        // נקה רווחים מיותרים
+        // ׳ ׳§׳” ׳¨׳•׳•׳—׳™׳ ׳׳™׳•׳×׳¨׳™׳
         description = description.replace(/\s+/g, ' ').trim();
 
-        // בדיקות תקינות
+        // ׳‘׳“׳™׳§׳•׳× ׳×׳§׳™׳ ׳•׳×
         if (!description || description.length < 3) {
-            continue; // תיאור קצר מדי
+            continue; // ׳×׳™׳׳•׳¨ ׳§׳¦׳¨ ׳׳“׳™
         }
 
-        // דלג על שורות כותרת וסיכום
+        // ׳“׳׳’ ׳¢׳ ׳©׳•׳¨׳•׳× ׳›׳•׳×׳¨׳× ׳•׳¡׳™׳›׳•׳
         if (isTotalRow(description) ||
-            description.includes('תאריך') ||
-            description.includes('יתרה') ||
-            description.includes('אסמכתא') ||
-            description.includes('חובה') ||
-            description.includes('זכות')) {
+            description.includes('׳×׳׳¨׳™׳') ||
+            description.includes('׳™׳×׳¨׳”') ||
+            description.includes('׳׳¡׳׳›׳×׳') ||
+            description.includes('׳—׳•׳‘׳”') ||
+            description.includes('׳–׳›׳•׳×')) {
             continue;
         }
 
@@ -1314,7 +1327,7 @@ function extractTransactionsFromPDFText(text) {
             continue;
         }
 
-        console.log(`✅ נמצא: ${dateStr} | ${description} | ${amount}`);
+        console.log(`ג… ׳ ׳׳¦׳: ${dateStr} | ${description} | ${amount}`);
 
         transactions.push({
             date: date,
@@ -1324,7 +1337,7 @@ function extractTransactionsFromPDFText(text) {
         });
     }
 
-    console.log(`📊 סה"כ ${transactions.length} עסקאות חולצו`);
+    console.log(`נ“ ׳¡׳”"׳› ${transactions.length} ׳¢׳¡׳§׳׳•׳× ׳—׳•׳׳¦׳•`);
     return transactions;
 }
 
@@ -1333,8 +1346,8 @@ function extractTransactionsFromPDFText(text) {
  */
 function isTotalRow(description) {
     const totalKeywords = [
-        'סה"כ', 'סהכ', 'סך הכל', 'total', 'sum', 'subtotal',
-        'יתרה', 'balance', 'סיכום', 'summary', 'מחזור'
+        '׳¡׳”"׳›', '׳¡׳”׳›', '׳¡׳ ׳”׳›׳', 'total', 'sum', 'subtotal',
+        '׳™׳×׳¨׳”', 'balance', '׳¡׳™׳›׳•׳', 'summary', '׳׳—׳–׳•׳¨'
     ];
 
     const lowerDesc = description.toLowerCase();
@@ -1403,7 +1416,7 @@ function parseAmount(amountCell) {
     let amountStr = String(amountCell).trim();
 
     // Remove currency symbols and spaces
-    amountStr = amountStr.replace(/[₪$€£\s]/g, '');
+    amountStr = amountStr.replace(/[ג‚×$ג‚¬ֲ£\s]/g, '');
 
     // Handle parentheses as negative (accounting format)
     if (amountStr.startsWith('(') && amountStr.endsWith(')')) {
@@ -1424,52 +1437,52 @@ function parseAmount(amountCell) {
  * Creates a new list from bank transactions and switches to it
  */
 async function saveTransactionsToFirebase(transactions) {
-    console.log(`📋 מעבד ${transactions.length} עסקאות...`);
+    console.log(`נ“‹ ׳׳¢׳‘׳“ ${transactions.length} ׳¢׳¡׳§׳׳•׳×...`);
 
     if (transactions.length === 0) {
-        showNotification('⚠️ לא נמצאו עסקאות לייבוא');
+        showNotification('ג ן¸ ׳׳ ׳ ׳׳¦׳׳• ׳¢׳¡׳§׳׳•׳× ׳׳™׳™׳‘׳•׳');
         return;
     }
 
-    // א. יצירת רשימה חדשה
+    // ׳. ׳™׳¦׳™׳¨׳× ׳¨׳©׳™׳׳” ׳—׳“׳©׳”
     const today = new Date();
     const dateStr = `${today.getDate().toString().padStart(2, '0')}/${(today.getMonth() + 1).toString().padStart(2, '0')}/${today.getFullYear()}`;
-    const newListName = `ייבוא בנקאי ${dateStr}`;
+    const newListName = `׳™׳™׳‘׳•׳ ׳‘׳ ׳§׳׳™ ${dateStr}`;
     const newListId = 'list_' + Date.now();
 
-    // ב. המרת עסקאות למוצרים עם תיקון שדות
+    // ׳‘. ׳”׳׳¨׳× ׳¢׳¡׳§׳׳•׳× ׳׳׳•׳¦׳¨׳™׳ ׳¢׳ ׳×׳™׳§׳•׳ ׳©׳“׳•׳×
     const items = [];
     for (const transaction of transactions) {
         const category = detectCategory(transaction.description);
 
-        // יצירת cloudId ייחודי למניעת בעיות סנכרון
+        // ׳™׳¦׳™׳¨׳× cloudId ׳™׳™׳—׳•׳“׳™ ׳׳׳ ׳™׳¢׳× ׳‘׳¢׳™׳•׳× ׳¡׳ ׳›׳¨׳•׳
         const cloudId = 'item_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
 
-        // וידוא שה-price הוא מספר תקין ולא NaN
+        // ׳•׳™׳“׳•׳ ׳©׳”-price ׳”׳•׳ ׳׳¡׳₪׳¨ ׳×׳§׳™׳ ׳•׳׳ NaN
         let itemPrice = parseFloat(transaction.amount);
 
-        // ניקוי הסכום מסימני מטבע ופסיקים
+        // ׳ ׳™׳§׳•׳™ ׳”׳¡׳›׳•׳ ׳׳¡׳™׳׳ ׳™ ׳׳˜׳‘׳¢ ׳•׳₪׳¡׳™׳§׳™׳
         if (typeof transaction.amount === 'string') {
-            const cleanAmount = transaction.amount.replace(/[₪$€£\s,]/g, '').replace(',', '.');
+            const cleanAmount = transaction.amount.replace(/[ג‚×$ג‚¬ֲ£\s,]/g, '').replace(',', '.');
             itemPrice = parseFloat(cleanAmount);
         }
 
-        // בדיקת תקינות
+        // ׳‘׳“׳™׳§׳× ׳×׳§׳™׳ ׳•׳×
         if (isNaN(itemPrice) || itemPrice === null || itemPrice === undefined) {
             itemPrice = 0;
         }
 
         items.push({
             name: transaction.description,
-            qty: 1,  // חשוב: qty ולא quantity - זה השדה שהאפליקציה משתמשת בו
-            price: itemPrice,  // מספר תקין בלבד, ללא NaN
+            qty: 1,  // ׳—׳©׳•׳‘: qty ׳•׳׳ quantity - ׳–׳” ׳”׳©׳“׳” ׳©׳”׳׳₪׳׳™׳§׳¦׳™׳” ׳׳©׳×׳׳©׳× ׳‘׳•
+            price: itemPrice,  // ׳׳¡׳₪׳¨ ׳×׳§׳™׳ ׳‘׳׳‘׳“, ׳׳׳ NaN
             category: category,
             checked: false,
-            cloudId: cloudId  // cloudId ייחודי לסנכרון ענן
+            cloudId: cloudId  // cloudId ׳™׳™׳—׳•׳“׳™ ׳׳¡׳ ׳›׳¨׳•׳ ׳¢׳ ׳
         });
     }
 
-    // יצירת הרשימה החדשה
+    // ׳™׳¦׳™׳¨׳× ׳”׳¨׳©׳™׳׳” ׳”׳—׳“׳©׳”
     db.lists[newListId] = {
         name: newListName,
         items: items,
@@ -1478,15 +1491,15 @@ async function saveTransactionsToFirebase(transactions) {
         isTemplate: false
     };
 
-    // ג. מעבר אוטומטי לרשימה החדשה
+    // ׳’. ׳׳¢׳‘׳¨ ׳׳•׳˜׳•׳׳˜׳™ ׳׳¨׳©׳™׳׳” ׳”׳—׳“׳©׳”
     db.currentId = newListId;
     activePage = 'lists';
 
-    // ד. סנכרון - שמירה ורינדור (ללא switchTab שלא קיים)
+    // ׳“. ׳¡׳ ׳›׳¨׳•׳ - ׳©׳׳™׳¨׳” ׳•׳¨׳™׳ ׳“׳•׳¨ (׳׳׳ switchTab ׳©׳׳ ׳§׳™׳™׳)
     save();
-    render();  // רענון המסך להצגת הרשימה החדשה
+    render();  // ׳¨׳¢׳ ׳•׳ ׳”׳׳¡׳ ׳׳”׳¦׳’׳× ׳”׳¨׳©׳™׳׳” ׳”׳—׳“׳©׳”
 
-    // ה. מניעת כפילויות - שמירת העסקאות ב-Firebase תחת transactions
+    // ׳”. ׳׳ ׳™׳¢׳× ׳›׳₪׳™׳׳•׳™׳•׳× - ׳©׳׳™׳¨׳× ׳”׳¢׳¡׳§׳׳•׳× ׳‘-Firebase ׳×׳—׳× transactions
     if (window.firebaseDb && window.firebaseAuth) {
         const user = window.firebaseAuth.currentUser;
         if (user) {
@@ -1523,15 +1536,15 @@ async function saveTransactionsToFirebase(transactions) {
                         duplicateCount++;
                     }
                 } catch (error) {
-                    console.error(`❌ שגיאה בשמירת עסקה "${transaction.description}":`, error);
+                    console.error(`ג ׳©׳’׳™׳׳” ׳‘׳©׳׳™׳¨׳× ׳¢׳¡׳§׳” "${transaction.description}":`, error);
                 }
             }
 
-            console.log(`✅ Firebase: ${savedCount} נשמרו, ${duplicateCount} כפילויות דולגו`);
+            console.log(`ג… Firebase: ${savedCount} ׳ ׳©׳׳¨׳•, ${duplicateCount} ׳›׳₪׳™׳׳•׳™׳•׳× ׳“׳•׳׳’׳•`);
         }
     }
 
-    showNotification(`✅ נוצרה רשימה חדשה עם ${items.length} מוצרים!`);
+    showNotification(`ג… ׳ ׳•׳¦׳¨׳” ׳¨׳©׳™׳׳” ׳—׳“׳©׳” ׳¢׳ ${items.length} ׳׳•׳¦׳¨׳™׳!`);
     closeModal('importModal');
 }
 
@@ -1550,7 +1563,7 @@ async function importBankFile(event) {
     const fileExtension = fileName.split('.').pop();
 
     try {
-        showNotification('📂 קורא קובץ...');
+        showNotification('נ“‚ ׳§׳•׳¨׳ ׳§׳•׳‘׳¥...');
 
         let items = [];
 
@@ -1559,12 +1572,12 @@ async function importBankFile(event) {
         } else if (fileExtension === 'pdf') {
             items = await parseBankPDF(file);
         } else {
-            showNotification('❌ פורמט קובץ לא נתמך. אנא בחר קובץ Excel או PDF');
+            showNotification('ג ׳₪׳•׳¨׳׳˜ ׳§׳•׳‘׳¥ ׳׳ ׳ ׳×׳׳. ׳׳ ׳ ׳‘׳—׳¨ ׳§׳•׳‘׳¥ Excel ׳׳• PDF');
             return;
         }
 
         if (items.length === 0) {
-            showNotification('⚠️ לא נמצאו תנועות בנקאיות בקובץ');
+            showNotification('ג ן¸ ׳׳ ׳ ׳׳¦׳׳• ׳×׳ ׳•׳¢׳•׳× ׳‘׳ ׳§׳׳™׳•׳× ׳‘׳§׳•׳‘׳¥');
             return;
         }
 
@@ -1572,7 +1585,7 @@ async function importBankFile(event) {
 
     } catch (error) {
         console.error('Error importing bank file:', error);
-        showNotification('❌ שגיאה בקריאת הקובץ: ' + error.message);
+        showNotification('ג ׳©׳’׳™׳׳” ׳‘׳§׳¨׳™׳׳× ׳”׳§׳•׳‘׳¥: ' + error.message);
     } finally {
         // Reset file input
         event.target.value = '';
@@ -1581,7 +1594,7 @@ async function importBankFile(event) {
 
 /**
  * Parse Excel bank statement
- * Looks for columns: תאריך, תיאור, בחובה
+ * Looks for columns: ׳×׳׳¨׳™׳, ׳×׳™׳׳•׳¨, ׳‘׳—׳•׳‘׳”
  */
 async function parseBankExcel(file) {
     return new Promise((resolve, reject) => {
@@ -1609,33 +1622,33 @@ async function parseBankExcel(file) {
                 let dateCol = -1, descCol = -1, debitCol = -1;
 
                 // Debug: log headers to console
-                console.log('📊 Excel Headers:', headers);
+                console.log('נ“ Excel Headers:', headers);
 
                 headers.forEach((header, index) => {
                     const h = String(header).toLowerCase().trim();
 
                     // Date column - more flexible matching
-                    if (h.includes('תאריך') || h.includes('date') || h.includes('תאר')) {
+                    if (h.includes('׳×׳׳¨׳™׳') || h.includes('date') || h.includes('׳×׳׳¨')) {
                         dateCol = index;
-                        console.log(`✅ Found date column at index ${index}: "${header}"`);
+                        console.log(`ג… Found date column at index ${index}: "${header}"`);
                     }
                     // Description column - more flexible matching
-                    if (h.includes('תיאור') || h.includes('description') || h.includes('פירוט') || h.includes('תאור')) {
+                    if (h.includes('׳×׳™׳׳•׳¨') || h.includes('description') || h.includes('׳₪׳™׳¨׳•׳˜') || h.includes('׳×׳׳•׳¨')) {
                         descCol = index;
-                        console.log(`✅ Found description column at index ${index}: "${header}"`);
+                        console.log(`ג… Found description column at index ${index}: "${header}"`);
                     }
                     // Debit column (amount charged) - more flexible matching
-                    if (h.includes('בחובה') || h.includes('חובה') || h.includes('debit') || h.includes('חיוב') || h.includes('זכות')) {
+                    if (h.includes('׳‘׳—׳•׳‘׳”') || h.includes('׳—׳•׳‘׳”') || h.includes('debit') || h.includes('׳—׳™׳•׳‘') || h.includes('׳–׳›׳•׳×')) {
                         debitCol = index;
-                        console.log(`✅ Found debit column at index ${index}: "${header}"`);
+                        console.log(`ג… Found debit column at index ${index}: "${header}"`);
                     }
                 });
 
-                console.log('🔍 Column indices:', { dateCol, descCol, debitCol });
+                console.log('נ” Column indices:', { dateCol, descCol, debitCol });
 
                 // If we didn't find the debit column, try to find any column with numbers
                 if (debitCol === -1 && dateCol !== -1 && descCol !== -1) {
-                    console.log('⚠️ Debit column not found by name, searching for numeric column...');
+                    console.log('ג ן¸ Debit column not found by name, searching for numeric column...');
                     for (let colIndex = 0; colIndex < headers.length; colIndex++) {
                         if (colIndex === dateCol || colIndex === descCol) continue;
                         // Check if this column has numeric values in first few rows
@@ -1649,7 +1662,7 @@ async function parseBankExcel(file) {
                         }
                         if (hasNumbers) {
                             debitCol = colIndex;
-                            console.log(`✅ Found numeric column at index ${colIndex}: "${headers[colIndex]}"`);
+                            console.log(`ג… Found numeric column at index ${colIndex}: "${headers[colIndex]}"`);
                             break;
                         }
                     }
@@ -1657,7 +1670,7 @@ async function parseBankExcel(file) {
 
                 // FALLBACK: If columns not found by name, use LAST 3 columns (Hebrew RTL)
                 if (dateCol === -1 || descCol === -1) {
-                    console.log('⚠️ Using fallback: last 3 columns (RTL) as date, description, amount');
+                    console.log('ג ן¸ Using fallback: last 3 columns (RTL) as date, description, amount');
                     if (headers.length >= 3) {
                         // Hebrew files are RTL, so rightmost columns are first
                         const lastCol = headers.length - 1;
@@ -1666,26 +1679,26 @@ async function parseBankExcel(file) {
                         if (debitCol === -1) {
                             debitCol = lastCol - 2;  // Third from right = amount
                         }
-                        console.log('📍 Fallback columns (RTL):', { dateCol, descCol, debitCol });
-                        console.log(`📍 Using: Date="${headers[dateCol]}", Desc="${headers[descCol]}", Amount="${headers[debitCol]}"`);
+                        console.log('נ“ Fallback columns (RTL):', { dateCol, descCol, debitCol });
+                        console.log(`נ“ Using: Date="${headers[dateCol]}", Desc="${headers[descCol]}", Amount="${headers[debitCol]}"`);
                     } else if (headers.length >= 2) {
                         // Only 2 columns - use last 2
                         const lastCol = headers.length - 1;
                         dateCol = lastCol;
                         descCol = lastCol - 1;
-                        console.log('📍 Fallback columns (2 cols):', { dateCol, descCol, debitCol });
+                        console.log('נ“ Fallback columns (2 cols):', { dateCol, descCol, debitCol });
                     } else {
-                        console.error('❌ Not enough columns in file');
-                        reject(new Error('הקובץ לא מכיל מספיק עמודות'));
+                        console.error('ג Not enough columns in file');
+                        reject(new Error('׳”׳§׳•׳‘׳¥ ׳׳ ׳׳›׳™׳ ׳׳¡׳₪׳™׳§ ׳¢׳׳•׳“׳•׳×'));
                         return;
                     }
                 }
 
-                console.log('🎯 Final columns:', { dateCol, descCol, debitCol });
+                console.log('נ¯ Final columns:', { dateCol, descCol, debitCol });
 
                 // Parse rows
                 const items = [];
-                console.log(`📋 Processing ${jsonData.length - 1} rows...`);
+                console.log(`נ“‹ Processing ${jsonData.length - 1} rows...`);
 
                 for (let i = 1; i < jsonData.length; i++) {
                     const row = jsonData[i];
@@ -1698,7 +1711,7 @@ async function parseBankExcel(file) {
 
                     // Skip if no description AND no date (completely empty row)
                     if (!description && !date) {
-                        console.log(`⏭️ Row ${i}: Skipping empty row`);
+                        console.log(`ג­ן¸ Row ${i}: Skipping empty row`);
                         continue;
                     }
 
@@ -1718,17 +1731,17 @@ async function parseBankExcel(file) {
 
                     // Only include rows with a valid debit amount
                     if (isNaN(amount) || amount === 0) {
-                        console.log(`⏭️ Row ${i}: No valid debit amount (${debit})`);
+                        console.log(`ג­ן¸ Row ${i}: No valid debit amount (${debit})`);
                         continue;
                     }
 
                     // Format date
                     const formattedDate = formatBankDate(date);
 
-                    // Use description or fallback to "תנועה" if empty
-                    const finalDescription = description ? String(description).trim() : 'תנועה';
+                    // Use description or fallback to "׳×׳ ׳•׳¢׳”" if empty
+                    const finalDescription = description ? String(description).trim() : '׳×׳ ׳•׳¢׳”';
 
-                    console.log(`✅ Row ${i}: ${finalDescription} - ${formattedDate} - ₪${amount}`);
+                    console.log(`ג… Row ${i}: ${finalDescription} - ${formattedDate} - ג‚×${amount}`);
 
                     items.push({
                         date: formattedDate,
@@ -1737,7 +1750,7 @@ async function parseBankExcel(file) {
                     });
                 }
 
-                console.log(`✅ Total items parsed: ${items.length}`);
+                console.log(`ג… Total items parsed: ${items.length}`);
                 resolve(items);
 
             } catch (error) {
@@ -1746,7 +1759,7 @@ async function parseBankExcel(file) {
         };
 
         reader.onerror = function () {
-            reject(new Error('שגיאה בקריאת הקובץ'));
+            reject(new Error('׳©׳’׳™׳׳” ׳‘׳§׳¨׳™׳׳× ׳”׳§׳•׳‘׳¥'));
         };
 
         reader.readAsArrayBuffer(file);
@@ -1771,7 +1784,7 @@ async function parseBankPDF(file) {
                 let fullText = '';
 
                 // Extract text from all pages
-                console.log(`📄 PDF has ${pdf.numPages} pages`);
+                console.log(`נ“„ PDF has ${pdf.numPages} pages`);
                 for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
                     const page = await pdf.getPage(pageNum);
                     const textContent = await page.getTextContent();
@@ -1791,8 +1804,8 @@ async function parseBankPDF(file) {
                     fullText += pageText + '\n';
                 }
 
-                console.log('📝 Extracted text length:', fullText.length);
-                console.log('📝 First 500 chars:', fullText.substring(0, 500));
+                console.log('נ“ Extracted text length:', fullText.length);
+                console.log('נ“ First 500 chars:', fullText.substring(0, 500));
 
                 // Parse transactions from text
                 const items = parseTransactionsFromText(fullText);
@@ -1805,7 +1818,7 @@ async function parseBankPDF(file) {
         };
 
         reader.onerror = function () {
-            reject(new Error('שגיאה בקריאת קובץ PDF'));
+            reject(new Error('׳©׳’׳™׳׳” ׳‘׳§׳¨׳™׳׳× ׳§׳•׳‘׳¥ PDF'));
         };
 
         reader.readAsArrayBuffer(file);
@@ -1815,13 +1828,13 @@ async function parseBankPDF(file) {
 /**
  * Parse transactions from PDF text
  * Israeli bank format: Amount Number Description Date
- * Example: 655.80 8547 כרטיסי אשראי-י 11/01/2026
+ * Example: 655.80 8547 ׳›׳¨׳˜׳™׳¡׳™ ׳׳©׳¨׳׳™-׳™ 11/01/2026
  */
 function parseTransactionsFromText(text) {
     const items = [];
     const lines = text.split('\n');
 
-    console.log(`🔍 Parsing ${lines.length} lines from PDF...`);
+    console.log(`נ” Parsing ${lines.length} lines from PDF...`);
 
     // Regex patterns for Israeli bank statements
     const datePattern = /(\d{1,2}\/\d{1,2}\/\d{4})/g;
@@ -1831,9 +1844,9 @@ function parseTransactionsFromText(text) {
         const line = lines[i].trim();
         if (!line || line.length < 10) continue;
 
-        // Skip balance lines (יתרה בש"ח)
-        if (line.includes('יתרה') || line.includes('balance')) {
-            console.log(`⏭️ Skipping balance line: "${line}"`);
+        // Skip balance lines (׳™׳×׳¨׳” ׳‘׳©"׳—)
+        if (line.includes('׳™׳×׳¨׳”') || line.includes('balance')) {
+            console.log(`ג­ן¸ Skipping balance line: "${line}"`);
             continue;
         }
 
@@ -1858,12 +1871,12 @@ function parseTransactionsFromText(text) {
             }
         }
 
-        console.log(`🔍 Line ${i}: "${line}"`);
-        console.log(`📅 Dates: ${dates.join(', ')}`);
-        console.log(`💰 Decimal numbers found: ${decimalNumbers.map(n => `${n.text}=${n.value}`).join(', ')}`);
+        console.log(`נ” Line ${i}: "${line}"`);
+        console.log(`נ“… Dates: ${dates.join(', ')}`);
+        console.log(`נ’° Decimal numbers found: ${decimalNumbers.map(n => `${n.text}=${n.value}`).join(', ')}`);
 
         if (decimalNumbers.length === 0) {
-            console.log(`⏭️ No decimal numbers, skipping`);
+            console.log(`ג­ן¸ No decimal numbers, skipping`);
             continue;
         }
 
@@ -1872,14 +1885,14 @@ function parseTransactionsFromText(text) {
         const validAmounts = decimalNumbers.filter(n => n.value >= 10 && n.value < 10000).sort((a, b) => a.value - b.value);
 
         if (validAmounts.length === 0) {
-            console.log(`⏭️ No valid amounts (>= 10), skipping`);
+            console.log(`ג­ן¸ No valid amounts (>= 10), skipping`);
             continue;
         }
 
         const amount = validAmounts[0].value;
         const amountText = validAmounts[0].text;
 
-        console.log(`✅ Using amount: ${amount} from "${amountText}" (smallest >= 10)`);
+        console.log(`ג… Using amount: ${amount} from "${amountText}" (smallest >= 10)`);
 
         const date = dates[dates.length - 1];
 
@@ -1904,10 +1917,10 @@ function parseTransactionsFromText(text) {
         description = description.replace(/^[\s\-\.]+|[\s\-\.]+$/g, '').trim();
 
         if (description.length < 2) {
-            description = 'תנועה בנקאית';
+            description = '׳×׳ ׳•׳¢׳” ׳‘׳ ׳§׳׳™׳×';
         }
 
-        console.log(`✅ Final: "${description}" - ${date} - ₪${amount}`);
+        console.log(`ג… Final: "${description}" - ${date} - ג‚×${amount}`);
 
         items.push({
             date: formatBankDate(date),
@@ -1916,7 +1929,7 @@ function parseTransactionsFromText(text) {
         });
     }
 
-    console.log(`✅ Total PDF transactions: ${items.length}`);
+    console.log(`ג… Total PDF transactions: ${items.length}`);
     return items;
 }
 
@@ -1932,7 +1945,7 @@ function addBankItemsToList(items) {
     const dateStr = `${today.getDate()}/${today.getMonth() + 1}/${today.getFullYear()}`;
 
     db.lists[newListId] = {
-        name: `ייבוא בנקאי ${dateStr}`,
+        name: `׳™׳™׳‘׳•׳ ׳‘׳ ׳§׳׳™ ${dateStr}`,
         url: '',
         budget: 0,
         isTemplate: false,
@@ -1945,13 +1958,13 @@ function addBankItemsToList(items) {
         // Create item name: Description (Date)
         const itemName = `${item.description} (${item.date})`;
 
-        // Add to NEW list with "אחר" category
+        // Add to NEW list with "׳׳—׳¨" category
         db.lists[newListId].items.push({
             name: itemName,
             price: item.amount,
             qty: 1,
             checked: false,
-            category: 'אחר',
+            category: '׳׳—׳¨',
             cloudId: 'item_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9)
         });
 
@@ -1962,7 +1975,7 @@ function addBankItemsToList(items) {
     db.currentId = newListId;
 
     save();
-    showNotification(`✅ נוצרה רשימה חדשה עם ${addedCount} תנועות בנקאיות!`);
+    showNotification(`ג… ׳ ׳•׳¦׳¨׳” ׳¨׳©׳™׳׳” ׳—׳“׳©׳” ׳¢׳ ${addedCount} ׳×׳ ׳•׳¢׳•׳× ׳‘׳ ׳§׳׳™׳•׳×!`);
 }
 
 /**
@@ -2005,13 +2018,13 @@ function formatBankDate(dateInput) {
 }
 
 // ========== NOTES FEATURE ==========
-// פתיחת modal להוספה/עריכת הערה למוצר
+// ׳₪׳×׳™׳—׳× modal ׳׳”׳•׳¡׳₪׳”/׳¢׳¨׳™׳›׳× ׳”׳¢׳¨׳” ׳׳׳•׳¦׳¨
 function openItemNoteModal(itemIndex) {
     currentNoteItemIndex = itemIndex;
     const item = db.lists[db.currentId].items[itemIndex];
     const noteInput = document.getElementById('itemNoteInput');
 
-    // טען הערה קיימת אם יש
+    // ׳˜׳¢׳ ׳”׳¢׳¨׳” ׳§׳™׳™׳׳× ׳׳ ׳™׳©
     if (noteInput) {
         noteInput.value = item.note || '';
     }
@@ -2024,7 +2037,7 @@ function openItemNote(idx) {
     openItemNoteModal(idx);
 }
 
-// שמירת הערה למוצר
+// ׳©׳׳™׳¨׳× ׳”׳¢׳¨׳” ׳׳׳•׳¦׳¨
 function saveItemNote() {
     if (currentNoteItemIndex === null || currentNoteItemIndex === undefined) {
         console.error('currentNoteItemIndex is null or undefined');
@@ -2039,18 +2052,18 @@ function saveItemNote() {
 
     const note = noteInput.value.trim();
 
-    // עדכון ההערה ב-DB
+    // ׳¢׳“׳›׳•׳ ׳”׳”׳¢׳¨׳” ׳‘-DB
     if (db.lists[db.currentId] && db.lists[db.currentId].items[currentNoteItemIndex]) {
         db.lists[db.currentId].items[currentNoteItemIndex].note = note;
 
         save();
         closeModal('itemNoteModal');
-        currentNoteItemIndex = null; // איפוס המשתנה
+        currentNoteItemIndex = null; // ׳׳™׳₪׳•׳¡ ׳”׳׳©׳×׳ ׳”
 
         if (note) {
-            showNotification('✅ ההערה נשמרה');
+            showNotification('ג… ׳”׳”׳¢׳¨׳” ׳ ׳©׳׳¨׳”');
         } else {
-            showNotification('🗑️ ההערה נמחקה');
+            showNotification('נ—‘ן¸ ׳”׳”׳¢׳¨׳” ׳ ׳׳—׳§׳”');
         }
     } else {
         console.error('Invalid item index or list');
@@ -2058,20 +2071,20 @@ function saveItemNote() {
 }
 
 // ========== SMART PRICE HISTORY ==========
-// מילוי אוטומטי של מחיר מהיסטוריה
+// ׳׳™׳׳•׳™ ׳׳•׳˜׳•׳׳˜׳™ ׳©׳ ׳׳—׳™׳¨ ׳׳”׳™׳¡׳˜׳•׳¨׳™׳”
 function autofillFromHistory(itemName) {
     if (!itemName || itemName.length < 2) return;
 
     const nameLower = itemName.toLowerCase().trim();
 
-    // חיפוש בכל הרשימות
+    // ׳—׳™׳₪׳•׳© ׳‘׳›׳ ׳”׳¨׳©׳™׳׳•׳×
     let lastPrice = null;
     let lastDate = 0;
 
     Object.values(db.lists).forEach(list => {
         list.items.forEach(item => {
             if (item.name.toLowerCase().trim() === nameLower && item.price > 0) {
-                // השתמש בתאריך עדכון אם קיים, אחרת השתמש ב-0
+                // ׳”׳©׳×׳׳© ׳‘׳×׳׳¨׳™׳ ׳¢׳“׳›׳•׳ ׳׳ ׳§׳™׳™׳, ׳׳—׳¨׳× ׳”׳©׳×׳׳© ׳‘-0
                 const itemDate = item.lastUpdated || 0;
                 if (itemDate > lastDate) {
                     lastDate = itemDate;
@@ -2081,25 +2094,25 @@ function autofillFromHistory(itemName) {
         });
     });
 
-    // מילוי שדה המחיר אם נמצא
+    // ׳׳™׳׳•׳™ ׳©׳“׳” ׳”׳׳—׳™׳¨ ׳׳ ׳ ׳׳¦׳
     const priceInput = document.getElementById('itemPrice');
     if (lastPrice && priceInput && !priceInput.value) {
         priceInput.value = lastPrice;
-        priceInput.style.backgroundColor = '#fef3c7';  // צהוב בהיר לסימון
+        priceInput.style.backgroundColor = '#fef3c7';  // ׳¦׳”׳•׳‘ ׳‘׳”׳™׳¨ ׳׳¡׳™׳׳•׳
         setTimeout(() => {
             priceInput.style.backgroundColor = '';
         }, 1500);
     }
 }
 
-// עדכון מחיר בהיסטוריה - מעדכן את כל המופעים של המוצר
+// ׳¢׳“׳›׳•׳ ׳׳—׳™׳¨ ׳‘׳”׳™׳¡׳˜׳•׳¨׳™׳” - ׳׳¢׳“׳›׳ ׳׳× ׳›׳ ׳”׳׳•׳₪׳¢׳™׳ ׳©׳ ׳”׳׳•׳¦׳¨
 function updatePriceInHistory(itemName, newPrice) {
     if (!itemName || !newPrice) return;
 
     const nameLower = itemName.toLowerCase().trim();
     const timestamp = Date.now();
 
-    // עדכון בכל הרשימות
+    // ׳¢׳“׳›׳•׳ ׳‘׳›׳ ׳”׳¨׳©׳™׳׳•׳×
     Object.values(db.lists).forEach(list => {
         list.items.forEach(item => {
             if (item.name.toLowerCase().trim() === nameLower) {
@@ -2110,14 +2123,14 @@ function updatePriceInHistory(itemName, newPrice) {
     });
 }
 
-// מחיקת פריט מהיסטוריית החיפוש
+// ׳׳—׳™׳§׳× ׳₪׳¨׳™׳˜ ׳׳”׳™׳¡׳˜׳•׳¨׳™׳™׳× ׳”׳—׳™׳₪׳•׳©
 function deleteFromSearchHistory(itemName) {
     if (!itemName) return;
 
     const nameLower = itemName.toLowerCase().trim();
     let removedCount = 0;
 
-    // הסרה מכל הרשימות
+    // ׳”׳¡׳¨׳” ׳׳›׳ ׳”׳¨׳©׳™׳׳•׳×
     Object.values(db.lists).forEach(list => {
         const initialLength = list.items.length;
         list.items = list.items.filter(item =>
@@ -2129,14 +2142,14 @@ function deleteFromSearchHistory(itemName) {
     if (removedCount > 0) {
         save();
         render();
-        showNotification(`🗑️ הוסרו ${removedCount} מופעים`);
+        showNotification(`נ—‘ן¸ ׳”׳•׳¡׳¨׳• ${removedCount} ׳׳•׳₪׳¢׳™׳`);
     }
 }
 
-// עדכון פונקציית updateSuggestions להוספת כפתור X
+// ׳¢׳“׳›׳•׳ ׳₪׳•׳ ׳§׳¦׳™׳™׳× updateSuggestions ׳׳”׳•׳¡׳₪׳× ׳›׳₪׳×׳•׳¨ X
 const originalUpdateSuggestions = window.updateSuggestions || function () { };
 window.updateSuggestions = function (searchText) {
-    // קריאה לפונקציה המקורית אם קיימת
+    // ׳§׳¨׳™׳׳” ׳׳₪׳•׳ ׳§׳¦׳™׳” ׳”׳׳§׳•׳¨׳™׳× ׳׳ ׳§׳™׳™׳׳×
     if (typeof originalUpdateSuggestions === 'function') {
         originalUpdateSuggestions(searchText);
     }
@@ -2144,36 +2157,36 @@ window.updateSuggestions = function (searchText) {
 
 
 // ========== DUAL-LAYER SORTING ==========
-// מיון דו-שכבתי: לפי סטטוס (לא מסומן/מסומן) ואז לפי קטגוריה
+// ׳׳™׳•׳ ׳“׳•-׳©׳›׳‘׳×׳™: ׳׳₪׳™ ׳¡׳˜׳˜׳•׳¡ (׳׳ ׳׳¡׳•׳׳/׳׳¡׳•׳׳) ׳•׳׳– ׳׳₪׳™ ׳§׳˜׳’׳•׳¨׳™׳”
 function sortItemsByStatusAndCategory(items) {
     return items.slice().sort((a, b) => {
-        // שכבה 1: פריטים לא מסומנים לפני מסומנים
+        // ׳©׳›׳‘׳” 1: ׳₪׳¨׳™׳˜׳™׳ ׳׳ ׳׳¡׳•׳׳ ׳™׳ ׳׳₪׳ ׳™ ׳׳¡׳•׳׳ ׳™׳
         if (a.checked !== b.checked) {
             return a.checked ? 1 : -1;
         }
 
-        // שכבה 2: מיון לפי קטגוריה בתוך כל קבוצה
-        const catA = a.category || 'אחר';
-        const catB = b.category || 'אחר';
+        // ׳©׳›׳‘׳” 2: ׳׳™׳•׳ ׳׳₪׳™ ׳§׳˜׳’׳•׳¨׳™׳” ׳‘׳×׳•׳ ׳›׳ ׳§׳‘׳•׳¦׳”
+        const catA = a.category || '׳׳—׳¨';
+        const catB = b.category || '׳׳—׳¨';
 
-        // סדר קטגוריות מותאם
+        // ׳¡׳“׳¨ ׳§׳˜׳’׳•׳¨׳™׳•׳× ׳׳•׳×׳׳
         const categoryOrder = [
-            'פירות וירקות',
-            'בשר ודגים',
-            'חלב וביצים',
-            'לחם ומאפים',
-            'שימורים',
-            'חטיפים',
-            'משקאות',
-            'ניקיון',
-            'היגיינה',
-            'אחר'
+            '׳₪׳™׳¨׳•׳× ׳•׳™׳¨׳§׳•׳×',
+            '׳‘׳©׳¨ ׳•׳“׳’׳™׳',
+            '׳—׳׳‘ ׳•׳‘׳™׳¦׳™׳',
+            '׳׳—׳ ׳•׳׳׳₪׳™׳',
+            '׳©׳™׳׳•׳¨׳™׳',
+            '׳—׳˜׳™׳₪׳™׳',
+            '׳׳©׳§׳׳•׳×',
+            '׳ ׳™׳§׳™׳•׳',
+            '׳”׳™׳’׳™׳™׳ ׳”',
+            '׳׳—׳¨'
         ];
 
         const indexA = categoryOrder.indexOf(catA);
         const indexB = categoryOrder.indexOf(catB);
 
-        // אם קטגוריה לא נמצאה ברשימה, שים אותה בסוף
+        // ׳׳ ׳§׳˜׳’׳•׳¨׳™׳” ׳׳ ׳ ׳׳¦׳׳” ׳‘׳¨׳©׳™׳׳”, ׳©׳™׳ ׳׳•׳×׳” ׳‘׳¡׳•׳£
         const orderA = indexA === -1 ? categoryOrder.length : indexA;
         const orderB = indexB === -1 ? categoryOrder.length : indexB;
 
@@ -2186,7 +2199,7 @@ function sortItemsByStatusAndCategory(items) {
 /**
  * Handle Excel file upload and create a new shopping list
  * Parses XLSX file and extracts data from columns B, C, D, E
- * Creates products with format: [Business Name] ([Date]) כרטיס [Card Number]
+ * Creates products with format: [Business Name] ([Date]) ׳›׳¨׳˜׳™׳¡ [Card Number]
  */
 function handleExcelUpload(event) {
     const file = event.target.files[0];
@@ -2195,7 +2208,7 @@ function handleExcelUpload(event) {
     // Validate file type
     const validTypes = ['application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 'application/vnd.ms-excel'];
     if (!validTypes.includes(file.type) && !file.name.match(/\.(xlsx|xls)$/i)) {
-        showNotification('❌ אנא בחר קובץ Excel תקין (.xlsx או .xls)');
+        showNotification('ג ׳׳ ׳ ׳‘׳—׳¨ ׳§׳•׳‘׳¥ Excel ׳×׳§׳™׳ (.xlsx ׳׳• .xls)');
         event.target.value = ''; // Reset input
         return;
     }
@@ -2218,13 +2231,13 @@ function handleExcelUpload(event) {
                 defval: ''  // Default value for empty cells
             });
 
-            console.log('🔥 EXCEL IMPORT v2.0 - CODE UPDATED! 🔥');
+            console.log('נ”¥ EXCEL IMPORT v2.0 - CODE UPDATED! נ”¥');
             console.log('Expected: Column 1=name, Column 3=PRICE, Column 6=card, Column 7=date');
 
             // Skip header row (index 0) and process data rows
             const products = [];
 
-            console.log('📊 Excel Import Debug - First 3 rows:');
+            console.log('נ“ Excel Import Debug - First 3 rows:');
             for (let i = 0; i < Math.min(3, jsonData.length); i++) {
                 console.log(`Row ${i}:`, jsonData[i]);
                 if (i === 0) {
@@ -2252,9 +2265,9 @@ function handleExcelUpload(event) {
                 (firstDataRow && firstDataRow[0] && String(firstDataRow[0]).includes('\t'));
 
             if (needsSplitting) {
-                console.log('⚠️ Detected single-column format with tabs - will split data by tabs');
+                console.log('ג ן¸ Detected single-column format with tabs - will split data by tabs');
             } else {
-                console.log('📊 Using multi-column format');
+                console.log('נ“ Using multi-column format');
             }
 
             for (let i = 1; i < jsonData.length; i++) {
@@ -2279,17 +2292,17 @@ function handleExcelUpload(event) {
 
                     // Based on Excel structure (right to left in Hebrew):
                     // parts[0] = row number
-                    // parts[1] = business name (שם בית עסק)
-                    // parts[2] = transaction date (תאריך עסקה)
-                    // parts[3] = charge amount (סכום חיוב) - THE PRICE!
-                    // parts[4] = credit amount (סכום זיכוי)
-                    // parts[5] = balance (יתרה)
-                    // parts[6] = card (כרטיס)
-                    // parts[7] = billing date (מועד חיוב)
+                    // parts[1] = business name (׳©׳ ׳‘׳™׳× ׳¢׳¡׳§)
+                    // parts[2] = transaction date (׳×׳׳¨׳™׳ ׳¢׳¡׳§׳”)
+                    // parts[3] = charge amount (׳¡׳›׳•׳ ׳—׳™׳•׳‘) - THE PRICE!
+                    // parts[4] = credit amount (׳¡׳›׳•׳ ׳–׳™׳›׳•׳™)
+                    // parts[5] = balance (׳™׳×׳¨׳”)
+                    // parts[6] = card (׳›׳¨׳˜׳™׳¡)
+                    // parts[7] = billing date (׳׳•׳¢׳“ ׳—׳™׳•׳‘)
 
                     if (parts.length >= 2) businessName = parts[1];
                     if (parts.length >= 4) {
-                        const amountStr = parts[3].replace(/[₪$€£,\s]/g, '').replace(/[^\d.-]/g, '');
+                        const amountStr = parts[3].replace(/[ג‚×$ג‚¬ֲ£,\s]/g, '').replace(/[^\d.-]/g, '');
                         amount = parseFloat(amountStr);
                         if (isNaN(amount)) amount = 0;
                     }
@@ -2319,37 +2332,37 @@ function handleExcelUpload(event) {
                     for (let j = 0; j < headerRow.length; j++) {
                         const header = String(headerRow[j]).toLowerCase().trim();
 
-                        if (header.includes('שם') && header.includes('עסק')) {
+                        if (header.includes('׳©׳') && header.includes('׳¢׳¡׳§')) {
                             businessNameCol = j;
-                            console.log(`✓ Found business name column at index ${j}`);
-                        } else if (header.includes('סכום') && header.includes('חיוב')) {
+                            console.log(`ג“ Found business name column at index ${j}`);
+                        } else if (header.includes('׳¡׳›׳•׳') && header.includes('׳—׳™׳•׳‘')) {
                             amountCol = j;
-                            console.log(`✓ Found amount column at index ${j}`);
-                        } else if (header.includes('כרטיס')) {
+                            console.log(`ג“ Found amount column at index ${j}`);
+                        } else if (header.includes('׳›׳¨׳˜׳™׳¡')) {
                             cardCol = j;
-                            console.log(`✓ Found card column at index ${j}`);
-                        } else if (header.includes('מועד') && header.includes('חיוב')) {
+                            console.log(`ג“ Found card column at index ${j}`);
+                        } else if (header.includes('׳׳•׳¢׳“') && header.includes('׳—׳™׳•׳‘')) {
                             dateCol = j;
-                            console.log(`✓ Found date column at index ${j}`);
+                            console.log(`ג“ Found date column at index ${j}`);
                         }
                     }
 
                     // Fallback to correct column indices based on actual Excel structure
                     if (businessNameCol === -1) {
                         businessNameCol = 1;
-                        console.log(`⚠️ Business name column not found in headers, using index ${businessNameCol}`);
+                        console.log(`ג ן¸ Business name column not found in headers, using index ${businessNameCol}`);
                     }
                     if (amountCol === -1) {
                         amountCol = 2;  // FIXED: Price is in column C (index 2)
-                        console.log(`⚠️ Amount column not found in headers, using index ${amountCol}`);
+                        console.log(`ג ן¸ Amount column not found in headers, using index ${amountCol}`);
                     }
                     if (cardCol === -1) {
-                        cardCol = 3;  // FIXED: Card is in column D (index 3) - format: "יתרה 6353"
-                        console.log(`⚠️ Card column not found in headers, using index ${cardCol}`);
+                        cardCol = 3;  // FIXED: Card is in column D (index 3) - format: "׳™׳×׳¨׳” 6353"
+                        console.log(`ג ן¸ Card column not found in headers, using index ${cardCol}`);
                     }
                     if (dateCol === -1) {
                         dateCol = 4;  // FIXED: Billing date is in column E (index 4)
-                        console.log(`⚠️ Date column not found in headers, using index ${dateCol}`);
+                        console.log(`ג ן¸ Date column not found in headers, using index ${dateCol}`);
                     }
 
                     // Use detected column indices
@@ -2364,8 +2377,8 @@ function handleExcelUpload(event) {
                         } else {
                             // Handle string format
                             let amountStr = String(rawAmount);
-                            // Remove currency symbols (₪, $, etc), commas, spaces
-                            amountStr = amountStr.replace(/[₪$€£,\s]/g, '');
+                            // Remove currency symbols (ג‚×, $, etc), commas, spaces
+                            amountStr = amountStr.replace(/[ג‚×$ג‚¬ֲ£,\s]/g, '');
                             // Keep only digits, dots, and minus signs
                             amountStr = amountStr.replace(/[^\d.-]/g, '');
                             amount = parseFloat(amountStr);
@@ -2376,8 +2389,8 @@ function handleExcelUpload(event) {
                         }
                     }
 
-                    // Column 3 contains card with balance (e.g., "יתרה 6353")
-                    // Extract only the card number (digits after "יתרה")
+                    // Column 3 contains card with balance (e.g., "׳™׳×׳¨׳” 6353")
+                    // Extract only the card number (digits after "׳™׳×׳¨׳”")
                     const cardData = row[cardCol] ? String(row[cardCol]).trim() : '';
                     const cardMatch = cardData.match(/(\d{4})/);
                     cardNumber = cardMatch ? cardMatch[1] : '';
@@ -2398,8 +2411,8 @@ function handleExcelUpload(event) {
                     // Debug log for first few rows
                     if (i <= 3) {
                         console.log(`Row ${i} parsed: business="${businessName}", amount=${amount}, card="${cardNumber}", date="${billingDate}"`);
-                        console.log(`  → Read from columns: businessNameCol=${businessNameCol}, amountCol=${amountCol}, cardCol=${cardCol}, dateCol=${dateCol}`);
-                        console.log(`  → Raw values: row[${businessNameCol}]="${row[businessNameCol]}", row[${amountCol}]="${row[amountCol]}", row[${cardCol}]="${row[cardCol]}", row[${dateCol}]="${row[dateCol]}"`);
+                        console.log(`  ג†’ Read from columns: businessNameCol=${businessNameCol}, amountCol=${amountCol}, cardCol=${cardCol}, dateCol=${dateCol}`);
+                        console.log(`  ג†’ Raw values: row[${businessNameCol}]="${row[businessNameCol]}", row[${amountCol}]="${row[amountCol]}", row[${cardCol}]="${row[cardCol]}", row[${dateCol}]="${row[dateCol]}"`);
                     }
                 }
 
@@ -2411,7 +2424,7 @@ function handleExcelUpload(event) {
                     continue;
                 }
 
-                // Format product name: [Business Name] ([Date]) כרטיס [Card]
+                // Format product name: [Business Name] ([Date]) ׳›׳¨׳˜׳™׳¡ [Card]
                 let productName = businessName;
 
                 if (billingDate) {
@@ -2422,7 +2435,7 @@ function handleExcelUpload(event) {
                     // Extract last 4 digits if card number is longer
                     const cardDigits = cardNumber.replace(/\D/g, '').slice(-4);
                     if (cardDigits) {
-                        productName += ` כרטיס ${cardDigits}`;
+                        productName += ` ׳›׳¨׳˜׳™׳¡ ${cardDigits}`;
                     }
                 }
 
@@ -2438,17 +2451,17 @@ function handleExcelUpload(event) {
                 };
 
                 products.push(product);
-                console.log(`✅ Created product: ${productName}, price: ${amount}`);
+                console.log(`ג… Created product: ${productName}, price: ${amount}`);
             }
 
             // Check if any products were found
             if (products.length === 0) {
-                showNotification('❌ לא נמצאו מוצרים בקובץ האקסל');
+                showNotification('ג ׳׳ ׳ ׳׳¦׳׳• ׳׳•׳¦׳¨׳™׳ ׳‘׳§׳•׳‘׳¥ ׳”׳׳§׳¡׳');
                 event.target.value = '';
                 return;
             }
 
-            console.log(`📦 Total products created: ${products.length}`);
+            console.log(`נ“¦ Total products created: ${products.length}`);
 
             // Create new list name from Excel filename (remove extension)
             const listName = file.name.replace(/\.(xlsx|xls)$/i, '');
@@ -2477,20 +2490,20 @@ function handleExcelUpload(event) {
             save();
 
             // Show success notification
-            showNotification(`✅ נוצרה רשימה "${listName}" עם ${products.length} מוצרים!`);
+            showNotification(`ג… ׳ ׳•׳¦׳¨׳” ׳¨׳©׳™׳׳” "${listName}" ׳¢׳ ${products.length} ׳׳•׳¦׳¨׳™׳!`);
 
             // Reset file input
             event.target.value = '';
 
         } catch (error) {
             console.error('Error parsing Excel file:', error);
-            showNotification('❌ שגיאה בקריאת קובץ האקסל. אנא ודא שהקובץ תקין.');
+            showNotification('ג ׳©׳’׳™׳׳” ׳‘׳§׳¨׳™׳׳× ׳§׳•׳‘׳¥ ׳”׳׳§׳¡׳. ׳׳ ׳ ׳•׳“׳ ׳©׳”׳§׳•׳‘׳¥ ׳×׳§׳™׳.');
             event.target.value = '';
         }
     };
 
     reader.onerror = function () {
-        showNotification('❌ שגיאה בקריאת הקובץ');
+        showNotification('ג ׳©׳’׳™׳׳” ׳‘׳§׳¨׳™׳׳× ׳”׳§׳•׳‘׳¥');
         event.target.value = '';
     };
 
@@ -2506,18 +2519,18 @@ if (typeof updateCategoryDropdown === 'function') {
 // ========== Peace of Mind Features ==========
 
 // Check for urgent payments on page load and display alerts
-// flag: כשמגיעים מלחיצה על התראה, נציג גם פריטים שסומנו כ-dismissed
+// flag: ׳›׳©׳׳’׳™׳¢׳™׳ ׳׳׳—׳™׳¦׳” ׳¢׳ ׳”׳×׳¨׳׳”, ׳ ׳¦׳™׳’ ׳’׳ ׳₪׳¨׳™׳˜׳™׳ ׳©׳¡׳•׳׳ ׳• ׳›-dismissed
 let _forceShowAfterNotificationClick = false;
 
 function checkUrgentPayments() {
     const now = Date.now();
     const alertItems = [];
 
-    // בדוק אם הגענו מלחיצה על התראה (דרך flag או sessionStorage)
+    // ׳‘׳“׳•׳§ ׳׳ ׳”׳’׳¢׳ ׳• ׳׳׳—׳™׳¦׳” ׳¢׳ ׳”׳×׳¨׳׳” (׳“׳¨׳ flag ׳׳• sessionStorage)
     let forceShow = _forceShowAfterNotificationClick;
     _forceShowAfterNotificationClick = false;
 
-    // קרא גם מ-sessionStorage (מקרה של פתיחת חלון חדש מהתראה)
+    // ׳§׳¨׳ ׳’׳ ׳-sessionStorage (׳׳§׳¨׳” ׳©׳ ׳₪׳×׳™׳—׳× ׳—׳׳•׳ ׳—׳“׳© ׳׳”׳×׳¨׳׳”)
     let pendingNotifItemName = window._notifClickItemName || null;
     window._notifClickItemName = null;
 
@@ -2545,9 +2558,9 @@ function checkUrgentPayments() {
             }
             if (!alertTime) return;
 
-            // אם הגענו מלחיצה על התראה ספציפית — הצג רק אותה (אם ידועה), אחרת הצג כל שעבר זמנו
+            // ׳׳ ׳”׳’׳¢׳ ׳• ׳׳׳—׳™׳¦׳” ׳¢׳ ׳”׳×׳¨׳׳” ׳¡׳₪׳¦׳™׳₪׳™׳× ג€” ׳”׳¦׳’ ׳¨׳§ ׳׳•׳×׳” (׳׳ ׳™׳“׳•׳¢׳”), ׳׳—׳¨׳× ׳”׳¦׳’ ׳›׳ ׳©׳¢׳‘׳¨ ׳–׳׳ ׳•
             if (pendingNotifItemName) {
-                // הצג רק הפריט שנלחץ עליו — ללא תלות בזמן
+                // ׳”׳¦׳’ ׳¨׳§ ׳”׳₪׳¨׳™׳˜ ׳©׳ ׳׳—׳¥ ׳¢׳׳™׳• ג€” ׳׳׳ ׳×׳׳•׳× ׳‘׳–׳׳
                 if (item.name === pendingNotifItemName) {
                     alertItems.push({ item, idx, listId });
                 }
@@ -2556,7 +2569,7 @@ function checkUrgentPayments() {
 
             if (now < alertTime) return; // not yet
 
-            // Skip if user dismissed this alert — אלא אם כן הגענו מלחיצה על התראה
+            // Skip if user dismissed this alert ג€” ׳׳׳ ׳׳ ׳›׳ ׳”׳’׳¢׳ ׳• ׳׳׳—׳™׳¦׳” ׳¢׳ ׳”׳×׳¨׳׳”
             if (!forceShow && item.alertDismissedAt && item.alertDismissedAt >= alertTime) return;
 
             alertItems.push({ item, idx, listId });
@@ -2613,46 +2626,46 @@ function showUrgentAlertModal(urgentItems) {
     
     let itemsHTML = '';
     
-    // הצגת פריטים באיחור
+    // ׳”׳¦׳’׳× ׳₪׳¨׳™׳˜׳™׳ ׳‘׳׳™׳—׳•׳¨
     if (overdueItemsFiltered.length > 0) {
-        itemsHTML += '<div style="font-weight: bold; color: #ef4444; margin-bottom: 10px;">⚠️ באיחור:</div>';
+        itemsHTML += '<div style="font-weight: bold; color: #ef4444; margin-bottom: 10px;">ג ן¸ ׳‘׳׳™׳—׳•׳¨:</div>';
         overdueItemsFiltered.forEach(item => {
             const formattedDate = formatDate(item.dueDate);
             const escapedName = (item.name || '').replace(/'/g, "\\'");
             itemsHTML += `
                 <div class="urgent-item" style="border-right: 3px solid #ef4444; cursor:pointer;" onclick="goToItemFromAlert('${escapedName}')">
                     <div class="urgent-item-name">${item.name}</div>
-                    <div class="urgent-item-date">📅 תאריך יעד: ${formattedDate}</div>
-                    <div style="font-size:0.72rem; color:#7367f0; margin-top:4px;">לחץ לצפייה במוצר ←</div>
+                    <div class="urgent-item-date">נ“… ׳×׳׳¨׳™׳ ׳™׳¢׳“: ${formattedDate}</div>
+                    <div style="font-size:0.72rem; color:#7367f0; margin-top:4px;">׳׳—׳¥ ׳׳¦׳₪׳™׳™׳” ׳‘׳׳•׳¦׳¨ ג†</div>
                 </div>
             `;
         });
     }
     
-    // הצגת תזכורות עתידיות
+    // ׳”׳¦׳’׳× ׳×׳–׳›׳•׳¨׳•׳× ׳¢׳×׳™׳“׳™׳•׳×
     if (upcomingItemsFiltered.length > 0) {
         if (overdueItemsFiltered.length > 0) {
             itemsHTML += '<div style="margin-top: 15px;"></div>';
         }
-        itemsHTML += '<div style="font-weight: bold; color: #3b82f6; margin-bottom: 10px;">🔔 תזכורות:</div>';
+        itemsHTML += '<div style="font-weight: bold; color: #3b82f6; margin-bottom: 10px;">נ”” ׳×׳–׳›׳•׳¨׳•׳×:</div>';
         upcomingItemsFiltered.forEach(item => {
             const formattedDate = formatDate(item.dueDate);
             const dueDate = new Date(item.dueDate);
             dueDate.setHours(0, 0, 0, 0);
             const daysUntil = Math.floor((dueDate - today) / 86400000);
-            const daysText = daysUntil === 0 ? 'היום' : daysUntil === 1 ? 'מחר' : `בעוד ${daysUntil} ימים`;
+            const daysText = daysUntil === 0 ? '׳”׳™׳•׳' : daysUntil === 1 ? '׳׳—׳¨' : `׳‘׳¢׳•׳“ ${daysUntil} ׳™׳׳™׳`;
             
             let reminderText = '';
             if (item.reminderValue && item.reminderUnit) {
-                reminderText = ` (התראה: ${formatReminderText(item.reminderValue, item.reminderUnit)} לפני)`;
+                reminderText = ` (׳”׳×׳¨׳׳”: ${formatReminderText(item.reminderValue, item.reminderUnit)} ׳׳₪׳ ׳™)`;
             }
             
             const escapedName = (item.name || '').replace(/'/g, "\\'");
             itemsHTML += `
                 <div class="urgent-item" style="border-right: 3px solid #3b82f6; cursor:pointer;" onclick="goToItemFromAlert('${escapedName}')">
                     <div class="urgent-item-name">${item.name}</div>
-                    <div class="urgent-item-date">📅 תאריך יעד: ${formattedDate} (${daysText})${reminderText}</div>
-                    <div style="font-size:0.72rem; color:#7367f0; margin-top:4px;">לחץ לצפייה במוצר ←</div>
+                    <div class="urgent-item-date">נ“… ׳×׳׳¨׳™׳ ׳™׳¢׳“: ${formattedDate} (${daysText})${reminderText}</div>
+                    <div style="font-size:0.72rem; color:#7367f0; margin-top:4px;">׳׳—׳¥ ׳׳¦׳₪׳™׳™׳” ׳‘׳׳•׳¦׳¨ ג†</div>
                 </div>
             `;
         });
@@ -2675,18 +2688,18 @@ function snoozeUrgentAlert(ms) {
 
             const alertTime = item.nextAlertTime || computeNextAlertTime(item);
             if (!alertTime) return;
-            // snooze פריטים שהתראה שלהם הגיעה (עבר זמנם) — כולל כאלה שסומנו כ-dismissed
-            // המשתמש לחץ בכוונה על snooze, אז זה override
+            // snooze ׳₪׳¨׳™׳˜׳™׳ ׳©׳”׳×׳¨׳׳” ׳©׳׳”׳ ׳”׳’׳™׳¢׳” (׳¢׳‘׳¨ ׳–׳׳ ׳) ג€” ׳›׳•׳׳ ׳›׳׳׳” ׳©׳¡׳•׳׳ ׳• ׳›-dismissed
+            // ׳”׳׳©׳×׳׳© ׳׳—׳¥ ׳‘׳›׳•׳•׳ ׳” ׳¢׳ snooze, ׳׳– ׳–׳” override
             if (now < alertTime) return;
 
             item.nextAlertTime = snoozeUntil;
-            item.alertDismissedAt = null; // נקה dismiss כדי שיופיע שוב
+            item.alertDismissedAt = null; // ׳ ׳§׳” dismiss ׳›׳“׳™ ׳©׳™׳•׳₪׳™׳¢ ׳©׳•׳‘
             snoozedAny = true;
         });
     });
 
     if (!snoozedAny) {
-        // fallback: snooze את כל הפריטים עם dueDate (גם אם alertDismissedAt קיים)
+        // fallback: snooze ׳׳× ׳›׳ ׳”׳₪׳¨׳™׳˜׳™׳ ׳¢׳ dueDate (׳’׳ ׳׳ alertDismissedAt ׳§׳™׳™׳)
         Object.keys(db.lists).forEach(listId => {
             db.lists[listId].items.forEach(item => {
                 if (item.checked || item.isPaid) return;
@@ -2699,12 +2712,12 @@ function snoozeUrgentAlert(ms) {
 
     save();
     closeModal('urgentAlertModal');
-    showNotification('⏰ תוזכר שוב בקרוב');
+    showNotification('ג° ׳×׳•׳–׳›׳¨ ׳©׳•׳‘ ׳‘׳§׳¨׳•׳‘');
     // Re-schedule timers so the snoozed time is picked up
     checkAndScheduleNotifications();
 }
 
-// Close/dismiss urgent alert — mark as dismissed so it won't auto-popup again
+// Close/dismiss urgent alert ג€” mark as dismissed so it won't auto-popup again
 function closeUrgentAlert() {
     const now = Date.now();
     Object.keys(db.lists).forEach(listId => {
@@ -2717,7 +2730,7 @@ function closeUrgentAlert() {
             if (now < alertTime) return;
             if (item.alertDismissedAt && item.alertDismissedAt >= alertTime) return;
 
-            item.alertDismissedAt = now; // mark dismissed — stays in notification center
+            item.alertDismissedAt = now; // mark dismissed ג€” stays in notification center
         });
     });
     save();
@@ -2728,7 +2741,7 @@ function closeUrgentAlert() {
 function goToItemFromAlert(itemName) {
     closeModal('urgentAlertModal');
 
-    // חפש את הפריט בכל הרשימות
+    // ׳—׳₪׳© ׳׳× ׳”׳₪׳¨׳™׳˜ ׳‘׳›׳ ׳”׳¨׳©׳™׳׳•׳×
     let foundListId = null;
     let foundItemIdx = null;
 
@@ -2744,19 +2757,19 @@ function goToItemFromAlert(itemName) {
     });
 
     if (foundListId) {
-        // עבור לרשימה הנכונה
+        // ׳¢׳‘׳•׳¨ ׳׳¨׳©׳™׳׳” ׳”׳ ׳›׳•׳ ׳”
         if (db.currentId !== foundListId) {
             db.currentId = foundListId;
             save();
             render();
         }
 
-        // גלול לפריט והדגש אותו
+        // ׳’׳׳•׳ ׳׳₪׳¨׳™׳˜ ׳•׳”׳“׳’׳© ׳׳•׳×׳•
         setTimeout(() => {
             const cards = document.querySelectorAll('.item-card');
-            // מצא לפי אינדקס בתצוגה (לאחר render)
+            // ׳׳¦׳ ׳׳₪׳™ ׳׳™׳ ׳“׳§׳¡ ׳‘׳×׳¦׳•׳’׳” (׳׳׳—׳¨ render)
             const currentItems = db.lists[foundListId].items;
-            // סינון לפי תצוגה נוכחית (כולל unchecked)
+            // ׳¡׳™׳ ׳•׳ ׳׳₪׳™ ׳×׳¦׳•׳’׳” ׳ ׳•׳›׳—׳™׳× (׳›׳•׳׳ unchecked)
             let visibleIdx = 0;
             let targetCard = null;
             currentItems.forEach((item, i) => {
@@ -2913,7 +2926,7 @@ function editNotes(idx) {
 
 // Initialize Peace of Mind features on page load
 document.addEventListener('DOMContentLoaded', function() {
-    // טען GitHub Token
+    // ׳˜׳¢׳ GitHub Token
     if (typeof loadGithubToken === 'function') loadGithubToken();
     updateGithubTokenStatus();
     setTimeout(() => { checkUrgentPayments(); }, 1000);
@@ -2940,7 +2953,7 @@ function enhanceItemHTML(item, idx, originalHTML) {
         
         const dueDateHTML = `
             <div class="${dueDateClass}" data-duedate-idx="${idx}" onclick="editDueDate(${idx})">
-                📅 ${formatDate(item.dueDate)}${isOverdue ? ' (פג תוקף!)' : ''}
+                נ“… ${formatDate(item.dueDate)}${isOverdue ? ' (׳₪׳’ ׳×׳•׳§׳£!)' : ''}
             </div>
         `;
         
@@ -2956,7 +2969,7 @@ function enhanceItemHTML(item, idx, originalHTML) {
         const linkedNotes = autoLinkNotes(item.note);
         const notesHTML = `
             <div class="item-notes-display" data-notes-idx="${idx}" onclick="editNotes(${idx})">
-                📝 ${linkedNotes}
+                נ“ ${linkedNotes}
             </div>
         `;
         
@@ -2971,7 +2984,7 @@ function enhanceItemHTML(item, idx, originalHTML) {
 }
 
 // ========== Notification Center Functions ==========
-// ── dismissed notifications stored in localStorage ────────────────
+// ג”€ג”€ dismissed notifications stored in localStorage ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€
 function getDismissedNotifications() {
     try { return JSON.parse(localStorage.getItem('vplus_dismissed_notifs') || '[]'); }
     catch(e) { return []; }
@@ -3012,15 +3025,15 @@ function getNotificationItems() {
                 const isReminderTime = reminderTimeMs > 0 && now >= reminderDate.getTime() && now <= dueDateMs + (24 * 60 * 60 * 1000);
                 const shouldNotify = isOverdue || isReminderTime;
 
-                // בדוק אם נמחקה ידנית ממרכז ההתראות
+                // ׳‘׳“׳•׳§ ׳׳ ׳ ׳׳—׳§׳” ׳™׳“׳ ׳™׳× ׳׳׳¨׳›׳– ׳”׳”׳×׳¨׳׳•׳×
                 const notifKey = makeNotifKey(listId, idx, dueDateMs);
                 if (dismissed.includes(notifKey)) return;
                 
-                // הצג במרכז התראות רק אם יש התראה מוגדרת
+                // ׳”׳¦׳’ ׳‘׳׳¨׳›׳– ׳”׳×׳¨׳׳•׳× ׳¨׳§ ׳׳ ׳™׳© ׳”׳×׳¨׳׳” ׳׳•׳’׳“׳¨׳×
                 const hasReminder = !!(item.reminderValue && item.reminderUnit) || !!(item.nextAlertTime && item.nextAlertTime > 0);
                 if (!hasReminder) return;
 
-                // הצג את הפריט — יש התראה (לא משנה אם הגיע הזמן עדיין)
+                // ׳”׳¦׳’ ׳׳× ׳”׳₪׳¨׳™׳˜ ג€” ׳™׳© ׳”׳×׳¨׳׳” (׳׳ ׳׳©׳ ׳” ׳׳ ׳”׳’׳™׳¢ ׳”׳–׳׳ ׳¢׳“׳™׳™׳)
                 {
                     const isToday = dueDate.getTime() === today.getTime();
                     const isTomorrow = dueDate.getTime() === new Date(today.getTime() + 86400000).getTime();
@@ -3079,7 +3092,7 @@ function dismissNotification(listId, itemIdx, dueDateMs, e) {
     if (!dismissed.includes(key)) dismissed.push(key);
     saveDismissedNotifications(dismissed);
     updateNotificationBadge();
-    // רענן badge ו-clear-all בלבד, ללא re-render מלא (ה-swipe עצמו מוריד את הקלף)
+    // ׳¨׳¢׳ ׳ badge ׳•-clear-all ׳‘׳׳‘׳“, ׳׳׳ re-render ׳׳׳ (׳”-swipe ׳¢׳¦׳׳• ׳׳•׳¨׳™׳“ ׳׳× ׳”׳§׳׳£)
     const items = getNotificationItems();
     const btn = document.getElementById('clearAllNotifsBtn');
     if (btn) btn.style.display = items.length > 0 ? 'flex' : 'none';
@@ -3089,9 +3102,9 @@ function dismissNotification(listId, itemIdx, dueDateMs, e) {
         const container = document.getElementById('notificationsList');
         if (container) container.innerHTML = `
             <div style="text-align:center;padding:40px 20px;">
-                <div style="font-size:3rem;margin-bottom:12px;">🎉</div>
-                <div style="color:#7367f0;font-weight:700;font-size:1rem;">אין התראות כרגע</div>
-                <div style="color:#c4b5fd;font-size:0.82rem;margin-top:6px;">הכל תחת שליטה!</div>
+                <div style="font-size:3rem;margin-bottom:12px;">נ‰</div>
+                <div style="color:#7367f0;font-weight:700;font-size:1rem;">׳׳™׳ ׳”׳×׳¨׳׳•׳× ׳›׳¨׳’׳¢</div>
+                <div style="color:#c4b5fd;font-size:0.82rem;margin-top:6px;">׳”׳›׳ ׳×׳—׳× ׳©׳׳™׳˜׳”!</div>
             </div>`;
     }
 }
@@ -3105,7 +3118,7 @@ function dismissAllNotifications() {
     });
     saveDismissedNotifications(dismissed);
     updateNotificationBadge();
-    openNotificationCenter(); // רענן
+    openNotificationCenter(); // ׳¨׳¢׳ ׳
 }
 
 function openNotificationCenter() {
@@ -3124,9 +3137,9 @@ function openNotificationCenter() {
         if (swipeHint) swipeHint.style.display = 'none';
         container.innerHTML = `
             <div style="text-align:center;padding:40px 20px;">
-                <div style="font-size:3rem;margin-bottom:12px;">🎉</div>
-                <div style="color:#7367f0;font-weight:700;font-size:1rem;">אין התראות כרגע</div>
-                <div style="color:#c4b5fd;font-size:0.82rem;margin-top:6px;">הכל תחת שליטה!</div>
+                <div style="font-size:3rem;margin-bottom:12px;">נ‰</div>
+                <div style="color:#7367f0;font-weight:700;font-size:1rem;">׳׳™׳ ׳”׳×׳¨׳׳•׳× ׳›׳¨׳’׳¢</div>
+                <div style="color:#c4b5fd;font-size:0.82rem;margin-top:6px;">׳”׳›׳ ׳×׳—׳× ׳©׳׳™׳˜׳”!</div>
             </div>`;
     } else {
         if (swipeHint) swipeHint.style.display = 'block';
@@ -3139,8 +3152,8 @@ function openNotificationCenter() {
 
             // Background layers (left & right swipe)
             wrap.innerHTML = `
-                <div class="nc-swipe-bg left-swipe">🗑️ מחק</div>
-                <div class="nc-swipe-bg right-swipe">🗑️ מחק</div>
+                <div class="nc-swipe-bg left-swipe">נ—‘ן¸ ׳׳—׳§</div>
+                <div class="nc-swipe-bg right-swipe">נ—‘ן¸ ׳׳—׳§</div>
             `;
 
             // Card
@@ -3151,17 +3164,17 @@ function openNotificationCenter() {
             let dateText = '';
             if (notif.isOverdue) {
                 const d = Math.floor((new Date().setHours(0,0,0,0) - notif.dueDate) / 86400000);
-                dateText = `⚠️ איחור ${d} ${d === 1 ? 'יום' : 'ימים'}`;
+                dateText = `ג ן¸ ׳׳™׳—׳•׳¨ ${d} ${d === 1 ? '׳™׳•׳' : '׳™׳׳™׳'}`;
             } else if (notif.isToday) {
-                dateText = '📅 היום!';
+                dateText = 'נ“… ׳”׳™׳•׳!';
             } else if (notif.isTomorrow) {
-                dateText = '📅 מחר';
+                dateText = 'נ“… ׳׳—׳¨';
             } else {
                 const d = Math.floor((notif.dueDate - new Date().setHours(0,0,0,0)) / 86400000);
                 if (notif.isUpcoming && notif.reminderValue && notif.reminderUnit) {
-                    dateText = `🔔 תזכורת ${formatReminderText(notif.reminderValue, notif.reminderUnit)} לפני — בעוד ${d} ${d === 1 ? 'יום' : 'ימים'}`;
+                    dateText = `נ”” ׳×׳–׳›׳•׳¨׳× ${formatReminderText(notif.reminderValue, notif.reminderUnit)} ׳׳₪׳ ׳™ ג€” ׳‘׳¢׳•׳“ ${d} ${d === 1 ? '׳™׳•׳' : '׳™׳׳™׳'}`;
                 } else {
-                    dateText = `📅 בעוד ${d} ${d === 1 ? 'יום' : 'ימים'}`;
+                    dateText = `נ“… ׳‘׳¢׳•׳“ ${d} ${d === 1 ? '׳™׳•׳' : '׳™׳׳™׳'}`;
                 }
             }
 
@@ -3170,14 +3183,14 @@ function openNotificationCenter() {
             card.innerHTML = `
                 <div class="notification-item-title">${notif.item.name}</div>
                 <div class="notification-item-date">${dateText}</div>
-                <div class="notification-item-list">📋 ${notif.listName}</div>
+                <div class="notification-item-list">נ“‹ ${notif.listName}</div>
             `;
             card.addEventListener('click', () => jumpToItem(notif.listId, notif.itemIdx));
 
             wrap.appendChild(card);
             container.appendChild(wrap);
 
-            // ── Swipe to dismiss ──
+            // ג”€ג”€ Swipe to dismiss ג”€ג”€
             attachSwipeDismiss(wrap, card, notif);
         });
     }
@@ -3237,7 +3250,7 @@ function attachSwipeDismiss(wrap, card, notif) {
             isHoriz   = absDx > absDy * HORIZ_RATIO;
         }
 
-        if (!dirLocked || !isHoriz) return; // vertical scroll — don't touch the card
+        if (!dirLocked || !isHoriz) return; // vertical scroll ג€” don't touch the card
 
         // Horizontal swipe confirmed
         currentX = dx;
@@ -3259,7 +3272,7 @@ function attachSwipeDismiss(wrap, card, notif) {
         const savedX   = currentX;
         reset();
 
-        if (!wasHoriz) return; // was a scroll — nothing to do
+        if (!wasHoriz) return; // was a scroll ג€” nothing to do
 
         if (Math.abs(savedX) >= THRESHOLD) {
             // Dismiss
@@ -3282,7 +3295,7 @@ function attachSwipeDismiss(wrap, card, notif) {
         }
     }
 
-    // Touch events — touchmove is NOT passive so we keep native scroll for vertical
+    // Touch events ג€” touchmove is NOT passive so we keep native scroll for vertical
     card.addEventListener('touchstart',  onTouchStart,  { passive: true });
     card.addEventListener('touchmove',   onTouchMove,   { passive: true });
     card.addEventListener('touchend',    onTouchEnd,    { passive: true });
@@ -3344,7 +3357,7 @@ function jumpToItem(listId, itemIdx) {
 // ========== Auto-link notes utility ==========
 function autoLinkNotes(noteText) {
     const urlRegex = /(https?:\/\/[^\s]+)/g;
-    return noteText.replace(urlRegex, '<a href="$1" target="_blank" style="color: #7367f0; text-decoration: underline;">קישור</a>');
+    return noteText.replace(urlRegex, '<a href="$1" target="_blank" style="color: #7367f0; text-decoration: underline;">׳§׳™׳©׳•׳¨</a>');
 }
 
 function toggleVoiceInput() {
@@ -3352,7 +3365,7 @@ function toggleVoiceInput() {
     if (!input) return;
     
     if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
-        showNotification('הדפדפן לא תומך בזיהוי קולי', 'error');
+        showNotification('׳”׳“׳₪׳“׳₪׳ ׳׳ ׳×׳•׳׳ ׳‘׳–׳™׳”׳•׳™ ׳§׳•׳׳™', 'error');
         return;
     }
     
@@ -3362,30 +3375,30 @@ function toggleVoiceInput() {
     recognition.continuous = false;
     
     const voiceIcon = document.getElementById('voiceIcon');
-    voiceIcon.textContent = '⏺️';
+    voiceIcon.textContent = 'ג÷ן¸';
     
     recognition.onresult = (event) => {
         const transcript = event.results[0][0].transcript;
         input.value = transcript;
-        voiceIcon.textContent = '🎤';
-        showNotification('✅ זוהה: ' + transcript);
+        voiceIcon.textContent = 'נ₪';
+        showNotification('ג… ׳–׳•׳”׳”: ' + transcript);
     };
     
     recognition.onerror = () => {
-        voiceIcon.textContent = '🎤';
-        showNotification('שגיאה בזיהוי קולי', 'error');
+        voiceIcon.textContent = 'נ₪';
+        showNotification('׳©׳’׳™׳׳” ׳‘׳–׳™׳”׳•׳™ ׳§׳•׳׳™', 'error');
     };
     
     recognition.onend = () => {
-        voiceIcon.textContent = '🎤';
+        voiceIcon.textContent = 'נ₪';
     };
     
     try {
         recognition.start();
-        showNotification('🎤 מאזין...');
+        showNotification('נ₪ ׳׳׳–׳™׳...');
     } catch (error) {
-        voiceIcon.textContent = '🎤';
-        showNotification('שגיאה בהפעלת המיקרופון', 'error');
+        voiceIcon.textContent = 'נ₪';
+        showNotification('׳©׳’׳™׳׳” ׳‘׳”׳₪׳¢׳׳× ׳”׳׳™׳§׳¨׳•׳₪׳•׳', 'error');
     }
 }
 
@@ -3411,12 +3424,12 @@ function addItem() {
         
         input.value = '';
         save();
-        showNotification('✅ ' + name + ' נוסף!');
+        showNotification('ג… ' + name + ' ׳ ׳•׳¡׳£!');
     }
 }
 
 function createNewList() {
-    const name = prompt('שם הרשימה החדשה:');
+    const name = prompt('׳©׳ ׳”׳¨׳©׳™׳׳” ׳”׳—׳“׳©׳”:');
     if (name && name.trim()) {
         const id = 'L' + Date.now();
         db.lists[id] = {
@@ -3434,7 +3447,7 @@ function createNewList() {
         } else {
             save();
             render();
-            showNotification('✅ רשימה חדשה נוצרה!');
+            showNotification('ג… ׳¨׳©׳™׳׳” ׳—׳“׳©׳” ׳ ׳•׳¦׳¨׳”!');
         }
     }
 }
@@ -3452,10 +3465,10 @@ function selectListAndImport(listId) {
 }
 
 function clearChecked() {
-    if (confirm('למחוק את כל הפריטים המסומנים?')) {
+    if (confirm('׳׳׳—׳•׳§ ׳׳× ׳›׳ ׳”׳₪׳¨׳™׳˜׳™׳ ׳”׳׳¡׳•׳׳ ׳™׳?')) {
         db.lists[db.currentId].items = db.lists[db.currentId].items.filter(item => !item.checked);
         save();
-        showNotification('🗑️ פריטים מסומנים נמחקו');
+        showNotification('נ—‘ן¸ ׳₪׳¨׳™׳˜׳™׳ ׳׳¡׳•׳׳ ׳™׳ ׳ ׳׳—׳§׳•');
     }
 }
 
@@ -3484,7 +3497,7 @@ function updateCategoryChart() {
     
     const categoryTotals = {};
     list.items.forEach(item => {
-        const cat = item.category || 'אחר';
+        const cat = item.category || '׳׳—׳¨';
         categoryTotals[cat] = (categoryTotals[cat] || 0) + (item.price * item.qty);
     });
     
@@ -3519,7 +3532,7 @@ function updateCategoryChart() {
 }
 
 function exportToExcel() {
-    showNotification('יצוא לאקסל - בפיתוח');
+    showNotification('׳™׳¦׳•׳ ׳׳׳§׳¡׳ - ׳‘׳₪׳™׳×׳•׳—');
 }
 
 // ========== Clipboard Import Feature ==========
@@ -3548,7 +3561,7 @@ async function checkClipboardOnStartup() {
             return;
         }
 
-        console.log('✅ Clipboard text found, length:', clipboardText.length);
+        console.log('ג… Clipboard text found, length:', clipboardText.length);
 
         // Get clipboard state from localStorage
         const clipboardState = JSON.parse(localStorage.getItem('clipboardState') || '{}');
@@ -3569,7 +3582,7 @@ async function checkClipboardOnStartup() {
             console.log('Showing modal for same text (not dismissed/imported)');
         } else {
             // New text - reset state
-            console.log('🆕 New clipboard text detected!');
+            console.log('נ†• New clipboard text detected!');
             clipboardState.lastClipboardText = clipboardText;
             clipboardState.clipboardDismissed = false;
             clipboardState.clipboardImported = false;
@@ -3580,7 +3593,7 @@ async function checkClipboardOnStartup() {
         showClipboardImportModal(clipboardText);
 
     } catch (error) {
-        console.log('❌ Clipboard access error:', error.name, error.message);
+        console.log('ג Clipboard access error:', error.name, error.message);
         // Silently fail - clipboard access not available or denied
     }
 }
@@ -3592,7 +3605,7 @@ function toggleClipboardAutoOpen() {
     if (!toggle) return;
     const isOn = toggle.checked;
     localStorage.setItem('clipboardAutoOpen', isOn ? 'true' : 'false');
-    if (label) label.textContent = isOn ? 'מופעל' : 'מושבת';
+    if (label) label.textContent = isOn ? '׳׳•׳₪׳¢׳' : '׳׳•׳©׳‘׳×';
     if (label) label.style.color = isOn ? '#7367f0' : '#94a3b8';
 }
 
@@ -3608,7 +3621,7 @@ function showClipboardImportModal(text) {
     const toggle = document.getElementById('clipboardAutoOpenToggle');
     const label = document.getElementById('clipboardAutoOpenLabel');
     if (toggle) toggle.checked = autoOpen;
-    if (label) { label.textContent = autoOpen ? 'מופעל' : 'מושבת'; label.style.color = autoOpen ? '#7367f0' : '#94a3b8'; }
+    if (label) { label.textContent = autoOpen ? '׳׳•׳₪׳¢׳' : '׳׳•׳©׳‘׳×'; label.style.color = autoOpen ? '#7367f0' : '#94a3b8'; }
 
     // Set the text
     textarea.value = text;
@@ -3619,13 +3632,13 @@ function showClipboardImportModal(text) {
     
     // Show detected type
     const typeNames = {
-        'shopping': '🛒 רשימת קניות',
-        'appointment': '🏥 תור/פגישה',
-        'tasks': '✅ רשימת משימות',
-        'general': '📝 רשימה כללית'
+        'shopping': 'נ›’ ׳¨׳©׳™׳׳× ׳§׳ ׳™׳•׳×',
+        'appointment': 'נ¥ ׳×׳•׳¨/׳₪׳’׳™׳©׳”',
+        'tasks': 'ג… ׳¨׳©׳™׳׳× ׳׳©׳™׳׳•׳×',
+        'general': 'נ“ ׳¨׳©׳™׳׳” ׳›׳׳׳™׳×'
     };
     
-    detectedTypeName.textContent = typeNames[detectedListType] || '📝 רשימה כללית';
+    detectedTypeName.textContent = typeNames[detectedListType] || 'נ“ ׳¨׳©׳™׳׳” ׳›׳׳׳™׳×';
     detectedTypeDiv.style.display = 'block';
 
     // Show modal
@@ -3667,18 +3680,18 @@ async function _origOpenManualImport() {
         detectedListType = detectListType(clipboardText);
         
         const typeNames = {
-            'shopping': '🛒 רשימת קניות',
-            'appointment': '🏥 תור/פגישה',
-            'tasks': '✅ רשימת משימות',
-            'general': '📝 רשימה כללית'
+            'shopping': 'נ›’ ׳¨׳©׳™׳׳× ׳§׳ ׳™׳•׳×',
+            'appointment': 'נ¥ ׳×׳•׳¨/׳₪׳’׳™׳©׳”',
+            'tasks': 'ג… ׳¨׳©׳™׳׳× ׳׳©׳™׳׳•׳×',
+            'general': 'נ“ ׳¨׳©׳™׳׳” ׳›׳׳׳™׳×'
         };
         
-        detectedTypeName.textContent = typeNames[detectedListType] || '📝 רשימה כללית';
+        detectedTypeName.textContent = typeNames[detectedListType] || 'נ“ ׳¨׳©׳™׳׳” ׳›׳׳׳™׳×';
         detectedTypeDiv.style.display = 'block';
     } else {
         // No text yet - set default
         detectedListType = 'shopping';
-        detectedTypeName.textContent = '🛒 רשימת קניות';
+        detectedTypeName.textContent = 'נ›’ ׳¨׳©׳™׳׳× ׳§׳ ׳™׳•׳×';
         detectedTypeDiv.style.display = 'block';
     }
 
@@ -3702,13 +3715,13 @@ function updateDetectedTypeFromInput() {
         detectedListType = detectListType(text);
         
         const typeNames = {
-            'shopping': '🛒 רשימת קניות',
-            'appointment': '🏥 תור/פגישה',
-            'tasks': '✅ רשימת משימות',
-            'general': '📝 רשימה כללית'
+            'shopping': 'נ›’ ׳¨׳©׳™׳׳× ׳§׳ ׳™׳•׳×',
+            'appointment': 'נ¥ ׳×׳•׳¨/׳₪׳’׳™׳©׳”',
+            'tasks': 'ג… ׳¨׳©׳™׳׳× ׳׳©׳™׳׳•׳×',
+            'general': 'נ“ ׳¨׳©׳™׳׳” ׳›׳׳׳™׳×'
         };
         
-        detectedTypeName.textContent = typeNames[detectedListType] || '📝 רשימה כללית';
+        detectedTypeName.textContent = typeNames[detectedListType] || 'נ“ ׳¨׳©׳™׳׳” ׳›׳׳׳™׳×';
     }
 }
 
@@ -3718,26 +3731,26 @@ function detectListType(text) {
     
     // Check for appointment indicators - IMPROVED
     const appointmentKeywords = [
-        'תור', 'פגישה', 'ד"ר', 'דוקטור', 'רופא', 'מרפאה', 'בית חולים', 'קליניקה',
-        'מכבידנט', 'כללית', 'מאוחדת', 'לאומית', 'פרופ', 'מומחה',
-        'טיפול', 'בדיקה', 'ייעוץ', 'ניתוח', 'צילום', 'אולטרסאונד'
+        '׳×׳•׳¨', '׳₪׳’׳™׳©׳”', '׳“"׳¨', '׳“׳•׳§׳˜׳•׳¨', '׳¨׳•׳₪׳', '׳׳¨׳₪׳׳”', '׳‘׳™׳× ׳—׳•׳׳™׳', '׳§׳׳™׳ ׳™׳§׳”',
+        '׳׳›׳‘׳™׳“׳ ׳˜', '׳›׳׳׳™׳×', '׳׳׳•׳—׳“׳×', '׳׳׳•׳׳™׳×', '׳₪׳¨׳•׳₪', '׳׳•׳׳—׳”',
+        '׳˜׳™׳₪׳•׳', '׳‘׳“׳™׳§׳”', '׳™׳™׳¢׳•׳¥', '׳ ׳™׳×׳•׳—', '׳¦׳™׳׳•׳', '׳׳•׳׳˜׳¨׳¡׳׳•׳ ׳“'
     ];
     const hasAppointmentKeyword = appointmentKeywords.some(keyword => text.includes(keyword));
     
     // Check for date/time patterns
     const datePattern = /\d{1,2}[\/\.\-]\d{1,2}[\/\.\-]?\d{0,4}/;
-    const timePattern = /\d{1,2}:\d{2}|בשעה|שעה/;
+    const timePattern = /\d{1,2}:\d{2}|׳‘׳©׳¢׳”|׳©׳¢׳”/;
     const hasDateTime = datePattern.test(text) || timePattern.test(text);
     
     // Check for phone pattern
-    const phonePattern = /0\d{1,2}[\-\s]?\d{3,4}[\-\s]?\d{3,4}|טלפון|טל:|נייד/;
+    const phonePattern = /0\d{1,2}[\-\s]?\d{3,4}[\-\s]?\d{3,4}|׳˜׳׳₪׳•׳|׳˜׳:|׳ ׳™׳™׳“/;
     const hasPhone = phonePattern.test(text);
     
     // Check for URL (common in appointments)
     const hasUrl = /https?:\/\//.test(text);
     
     // Check for address pattern
-    const addressPattern = /רחוב|רח'|כתובת|מיקום|קומה|בניין/;
+    const addressPattern = /׳¨׳—׳•׳‘|׳¨׳—'|׳›׳×׳•׳‘׳×|׳׳™׳§׳•׳|׳§׳•׳׳”|׳‘׳ ׳™׳™׳/;
     const hasAddress = addressPattern.test(text);
     
     // Strong appointment indicators:
@@ -3755,11 +3768,11 @@ function detectListType(text) {
     }
     
     // Check for shopping list indicators
-    const pricePattern = /\d+\s*ש"ח|₪\s*\d+|\d+\s*שקל/;
+    const pricePattern = /\d+\s*׳©"׳—|ג‚×\s*\d+|\d+\s*׳©׳§׳/;
     const hasPrice = pricePattern.test(text);
     
     // Check for common shopping items
-    const shoppingKeywords = ['חלב', 'לחם', 'ביצים', 'גבינה', 'יוגורט', 'עגבניות', 'מלפפון', 'בשר', 'עוף', 'דגים'];
+    const shoppingKeywords = ['׳—׳׳‘', '׳׳—׳', '׳‘׳™׳¦׳™׳', '׳’׳‘׳™׳ ׳”', '׳™׳•׳’׳•׳¨׳˜', '׳¢׳’׳‘׳ ׳™׳•׳×', '׳׳׳₪׳₪׳•׳', '׳‘׳©׳¨', '׳¢׳•׳£', '׳“׳’׳™׳'];
     const shoppingItemCount = shoppingKeywords.filter(keyword => text.includes(keyword)).length;
     
     if (hasPrice || shoppingItemCount >= 2 || (lines.length >= 3 && lines.length <= 30 && !hasDateTime)) {
@@ -3767,7 +3780,7 @@ function detectListType(text) {
     }
     
     // Check for tasks indicators
-    const taskKeywords = ['משימה', 'לעשות', 'להשלים', 'לבדוק', 'לקנות', 'להתקשר'];
+    const taskKeywords = ['׳׳©׳™׳׳”', '׳׳¢׳©׳•׳×', '׳׳”׳©׳׳™׳', '׳׳‘׳“׳•׳§', '׳׳§׳ ׳•׳×', '׳׳”׳×׳§׳©׳¨'];
     const hasTaskKeyword = taskKeywords.some(keyword => text.includes(keyword));
     
     if (hasTaskKeyword && lines.length >= 2) {
@@ -3795,10 +3808,10 @@ function changeDetectedType() {
     detectedListType = types[nextIndex];
     
     const typeNames = {
-        'shopping': '🛒 רשימת קניות',
-        'appointment': '🏥 תור/פגישה',
-        'tasks': '✅ רשימת משימות',
-        'general': '📝 רשימה כללית'
+        'shopping': 'נ›’ ׳¨׳©׳™׳׳× ׳§׳ ׳™׳•׳×',
+        'appointment': 'נ¥ ׳×׳•׳¨/׳₪׳’׳™׳©׳”',
+        'tasks': 'ג… ׳¨׳©׳™׳׳× ׳׳©׳™׳׳•׳×',
+        'general': 'נ“ ׳¨׳©׳™׳׳” ׳›׳׳׳™׳×'
     };
     
     document.getElementById('detectedTypeName').textContent = typeNames[detectedListType];
@@ -3817,7 +3830,7 @@ function acceptClipboardImport() {
     // Store pending import (will be used when user selects/creates a list)
     // pendingImportText and detectedListType are already set globally
     
-    showNotification('✅ בחר רשימה או צור רשימה חדשה להוספת הפריטים');
+    showNotification('ג… ׳‘׳—׳¨ ׳¨׳©׳™׳׳” ׳׳• ׳¦׳•׳¨ ׳¨׳©׳™׳׳” ׳—׳“׳©׳” ׳׳”׳•׳¡׳₪׳× ׳”׳₪׳¨׳™׳˜׳™׳');
 }
 
 // Dismiss clipboard import
@@ -3872,7 +3885,7 @@ function importTextToList(listId, text, listType) {
     
     save();
     render();
-    showNotification(`✅ ${items.length} פריטים נוספו לרשימה!`);
+    showNotification(`ג… ${items.length} ׳₪׳¨׳™׳˜׳™׳ ׳ ׳•׳¡׳₪׳• ׳׳¨׳©׳™׳׳”!`);
 }
 
 // Parse appointment text
@@ -3903,7 +3916,7 @@ function parseAppointmentText(text) {
         let month = dateMatch[2].padStart(2, '0');
         let year = dateMatch[3];
         
-        // Handle 2-digit year (26 → 2026)
+        // Handle 2-digit year (26 ג†’ 2026)
         if (year.length === 2) {
             year = '20' + year;
         }
@@ -3912,9 +3925,9 @@ function parseAppointmentText(text) {
     }
     
     // Extract time - IMPROVED with multiple patterns
-    let timeMatch = text.match(/בשעה\s+(\d{1,2}):(\d{2})/);
+    let timeMatch = text.match(/׳‘׳©׳¢׳”\s+(\d{1,2}):(\d{2})/);
     if (!timeMatch) {
-        timeMatch = text.match(/שעה\s+(\d{1,2}):(\d{2})/);
+        timeMatch = text.match(/׳©׳¢׳”\s+(\d{1,2}):(\d{2})/);
     }
     if (!timeMatch) {
         timeMatch = text.match(/\s(\d{1,2}):(\d{2})\s/);
@@ -3935,28 +3948,28 @@ function parseAppointmentText(text) {
     }
     
     // Extract name - IMPROVED with better patterns
-    // Pattern 1: "תור ל[שם]" - extract the name after "ל"
-    const namePattern1 = /תור ל(\w+)/;
+    // Pattern 1: "׳×׳•׳¨ ׳[׳©׳]" - extract the name after "׳"
+    const namePattern1 = /׳×׳•׳¨ ׳(\w+)/;
     const nameMatch1 = text.match(namePattern1);
     if (nameMatch1) {
         const personName = nameMatch1[1];
         
         // Also look for clinic/location name
-        const clinicPattern = /(מכבידנט|כללית|מאוחדת|לאומית)[\s\w-]*/;
+        const clinicPattern = /(׳׳›׳‘׳™׳“׳ ׳˜|׳›׳׳׳™׳×|׳׳׳•׳—׳“׳×|׳׳׳•׳׳™׳×)[\s\w-]*/;
         const clinicMatch = text.match(clinicPattern);
         
         if (clinicMatch) {
-            name = `תור ל${personName} - ${clinicMatch[0]}`;
+            name = `׳×׳•׳¨ ׳${personName} - ${clinicMatch[0]}`;
         } else {
-            name = `תור ל${personName}`;
+            name = `׳×׳•׳¨ ׳${personName}`;
         }
     }
     
-    // Pattern 2: Look for doctor/clinic names if no "תור ל" found
+    // Pattern 2: Look for doctor/clinic names if no "׳×׳•׳¨ ׳" found
     if (!name) {
         for (const line of lines) {
-            if (line.includes('ד"ר') || line.includes('דוקטור') || line.includes('רופא') || 
-                line.includes('פרופ') || line.includes('מרפאה') || line.includes('קליניקה')) {
+            if (line.includes('׳“"׳¨') || line.includes('׳“׳•׳§׳˜׳•׳¨') || line.includes('׳¨׳•׳₪׳') || 
+                line.includes('׳₪׳¨׳•׳₪') || line.includes('׳׳¨׳₪׳׳”') || line.includes('׳§׳׳™׳ ׳™׳§׳”')) {
                 name = line;
                 break;
             }
@@ -3965,7 +3978,7 @@ function parseAppointmentText(text) {
     
     // Pattern 3: Look for specific clinic names
     if (!name) {
-        const clinicPattern = /(מכבידנט|כללית|מאוחדת|לאומית)[\s\w-]*/;
+        const clinicPattern = /(׳׳›׳‘׳™׳“׳ ׳˜|׳›׳׳׳™׳×|׳׳׳•׳—׳“׳×|׳׳׳•׳׳™׳×)[\s\w-]*/;
         const clinicMatch = text.match(clinicPattern);
         if (clinicMatch) {
             name = clinicMatch[0];
@@ -3978,7 +3991,7 @@ function parseAppointmentText(text) {
     }
     
     // Extract location - improved
-    const locationPattern = /(מכבידנט|כללית|מאוחדת|לאומית)[\s\w-]*/;
+    const locationPattern = /(׳׳›׳‘׳™׳“׳ ׳˜|׳›׳׳׳™׳×|׳׳׳•׳—׳“׳×|׳׳׳•׳׳™׳×)[\s\w-]*/;
     const locationMatch = text.match(locationPattern);
     if (locationMatch) {
         location = locationMatch[0];
@@ -3987,8 +4000,8 @@ function parseAppointmentText(text) {
     // Pattern 2: Street/address patterns
     if (!location) {
         for (const line of lines) {
-            if (line.includes('רחוב') || line.includes('רח\'') || line.includes('כתובת') || 
-                line.includes('מיקום') || line.includes('ב-') || /\d+\s*\w+/.test(line)) {
+            if (line.includes('׳¨׳—׳•׳‘') || line.includes('׳¨׳—\'') || line.includes('׳›׳×׳•׳‘׳×') || 
+                line.includes('׳׳™׳§׳•׳') || line.includes('׳‘-') || /\d+\s*\w+/.test(line)) {
                 location = line;
                 break;
             }
@@ -3996,11 +4009,11 @@ function parseAppointmentText(text) {
     }
     
     // Extract doctor/contact person - IMPROVED
-    const doctorPattern = /(?:ל)?גב['׳]?\s+(\w+\s+\w+)|(?:ל)?ד["״]ר\s+(\w+\s+\w+)|(?:ל)?פרופ['׳]?\s+(\w+\s+\w+)/;
+    const doctorPattern = /(?:׳)?׳’׳‘['׳³]?\s+(\w+\s+\w+)|(?:׳)?׳“["׳´]׳¨\s+(\w+\s+\w+)|(?:׳)?׳₪׳¨׳•׳₪['׳³]?\s+(\w+\s+\w+)/;
     const doctorMatch = text.match(doctorPattern);
     let doctorName = '';
     if (doctorMatch) {
-        doctorName = '👤 ' + doctorMatch[0];
+        doctorName = 'נ‘₪ ' + doctorMatch[0];
     }
     
     // Build notes from remaining text
@@ -4013,17 +4026,17 @@ function parseAppointmentText(text) {
     
     // Add location if found
     if (location) {
-        noteParts.push('📍 ' + location);
+        noteParts.push('נ“ ' + location);
     }
     
     // Add phone if found
     if (phone) {
-        noteParts.push('☎️ ' + phone);
+        noteParts.push('ג˜ן¸ ' + phone);
     }
     
     // Add URL if found
     if (url) {
-        noteParts.push('🔗 ' + url);
+        noteParts.push('נ”— ' + url);
     }
     
     // Add remaining text as notes (filter out already extracted info)
@@ -4032,11 +4045,11 @@ function parseAppointmentText(text) {
         if (lineClean.length < 3) continue;
         
         const isExtracted = 
-            (name && lineClean.includes(name.replace('תור ל', '').replace(' - ', ''))) ||
+            (name && lineClean.includes(name.replace('׳×׳•׳¨ ׳', '').replace(' - ', ''))) ||
             (location && lineClean.includes(location)) ||
             (phone && lineClean.includes(phone)) ||
             (url && lineClean.includes(url)) ||
-            (doctorName && lineClean.includes(doctorName.replace('👤 ', ''))) ||
+            (doctorName && lineClean.includes(doctorName.replace('נ‘₪ ', ''))) ||
             (dueTime && lineClean.includes(dueTime)) ||
             (dateMatch && lineClean.includes(dateMatch[0]));
         
@@ -4048,11 +4061,11 @@ function parseAppointmentText(text) {
     notes = noteParts.join('\n');
     
     return [{
-        name: name || 'פגישה',
+        name: name || '׳₪׳’׳™׳©׳”',
         price: 0,
         qty: 0,  // No quantity for appointments
         checked: false,
-        category: 'תור/פגישה',
+        category: '׳×׳•׳¨/׳₪׳’׳™׳©׳”',
         note: notes,
         dueDate: dueDate,
         dueTime: dueTime,
@@ -4077,8 +4090,8 @@ function parseShoppingListText(text) {
         let price = 0;
         let name = line;
         
-        // Pattern: "חלב 12" or "חלב 12 ש"ח" or "חלב ₪12"
-        const pricePattern = /(.+?)\s*[₪]?\s*(\d+(?:\.\d+)?)\s*(?:ש"ח|שקל)?/;
+        // Pattern: "׳—׳׳‘ 12" or "׳—׳׳‘ 12 ׳©"׳—" or "׳—׳׳‘ ג‚×12"
+        const pricePattern = /(.+?)\s*[ג‚×]?\s*(\d+(?:\.\d+)?)\s*(?:׳©"׳—|׳©׳§׳)?/;
         const match = line.match(pricePattern);
         
         if (match) {
@@ -4087,7 +4100,7 @@ function parseShoppingListText(text) {
         }
         
         // Auto-detect category
-        const category = detectCategory(name) || 'אחר';
+        const category = detectCategory(name) || '׳׳—׳¨';
         
         items.push({
             name: name,
@@ -4120,7 +4133,7 @@ function parseGeneralListText(text) {
         price: 0,
         qty: 0,
         checked: false,
-        category: 'אחר',
+        category: '׳׳—׳¨',
         note: '',
         dueDate: '',
         dueTime: '',
@@ -4168,8 +4181,8 @@ document.addEventListener('DOMContentLoaded', function() {
         if (typeof updateNotificationBadge === 'function') {
             updateNotificationBadge();
         }
-        // אם הגענו מלחיצה על התראה (URL param או SW) — דלג על ה-modal האוטומטי,
-        // כי checkNotificationUrlParam יציג בעצמו רק את ההתראה הנוכחית
+        // ׳׳ ׳”׳’׳¢׳ ׳• ׳׳׳—׳™׳¦׳” ׳¢׳ ׳”׳×׳¨׳׳” (URL param ׳׳• SW) ג€” ׳“׳׳’ ׳¢׳ ׳”-modal ׳”׳׳•׳˜׳•׳׳˜׳™,
+        // ׳›׳™ checkNotificationUrlParam ׳™׳¦׳™׳’ ׳‘׳¢׳¦׳׳• ׳¨׳§ ׳׳× ׳”׳”׳×׳¨׳׳” ׳”׳ ׳•׳›׳—׳™׳×
         const isFromNotification = new URLSearchParams(window.location.search).get('vplus-action');
         if (!isFromNotification && !_suppressStartupModal && typeof checkUrgentPayments === 'function') {
             checkUrgentPayments();
@@ -4203,19 +4216,19 @@ window.addEventListener('focus', function() {
 
 
 
-// ========== מערכת תזכורות — נבנתה מחדש ==========
+// ========== ׳׳¢׳¨׳›׳× ׳×׳–׳›׳•׳¨׳•׳× ג€” ׳ ׳‘׳ ׳×׳” ׳׳—׳“׳© ==========
 //
-// ארכיטקטורה נקייה:
-//   nextAlertTime  — מתי תירה ההתראה (ms epoch). snooze = עדכון לעתיד.
-//   alertDismissedAt — מתי סגר המשתמש (= nextAlertTime של אותה פעם).
-//   dismiss לא משנה nextAlertTime — רק מונע popup אוטומטי.
-//   snooze מוחק alertDismissedAt ומגדיר nextAlertTime חדש.
-// ─────────────────────────────────────────────────────────────────
+// ׳׳¨׳›׳™׳˜׳§׳˜׳•׳¨׳” ׳ ׳§׳™׳™׳”:
+//   nextAlertTime  ג€” ׳׳×׳™ ׳×׳™׳¨׳” ׳”׳”׳×׳¨׳׳” (ms epoch). snooze = ׳¢׳“׳›׳•׳ ׳׳¢׳×׳™׳“.
+//   alertDismissedAt ג€” ׳׳×׳™ ׳¡׳’׳¨ ׳”׳׳©׳×׳׳© (= nextAlertTime ׳©׳ ׳׳•׳×׳” ׳₪׳¢׳).
+//   dismiss ׳׳ ׳׳©׳ ׳” nextAlertTime ג€” ׳¨׳§ ׳׳•׳ ׳¢ popup ׳׳•׳˜׳•׳׳˜׳™.
+//   snooze ׳׳•׳—׳§ alertDismissedAt ׳•׳׳’׳“׳™׳¨ nextAlertTime ׳—׳“׳©.
+// ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€
 
 let _reminderTimers = new Map();
 // _forceShowAfterNotificationClick declared above (line 6500)
 
-// ── חישוב זמן ההתראה הטבעי ────────────────────────────────────────
+// ג”€ג”€ ׳—׳™׳©׳•׳‘ ׳–׳׳ ׳”׳”׳×׳¨׳׳” ׳”׳˜׳‘׳¢׳™ ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€
 function computeNextAlertTime(item) {
     if (!item.dueDate || !item.reminderValue || !item.reminderUnit) return null;
     const timeStr = item.dueTime || '09:00';
@@ -4226,7 +4239,7 @@ function computeNextAlertTime(item) {
     return due.getTime() - reminderMs;
 }
 
-// ── initItemAlertTime: קרא בעת יצירה/עריכה של פריט ───────────────
+// ג”€ג”€ initItemAlertTime: ׳§׳¨׳ ׳‘׳¢׳× ׳™׳¦׳™׳¨׳”/׳¢׳¨׳™׳›׳” ׳©׳ ׳₪׳¨׳™׳˜ ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€
 function initItemAlertTime(item) {
     const natural = computeNextAlertTime(item);
     if (!natural) {
@@ -4234,15 +4247,15 @@ function initItemAlertTime(item) {
         return;
     }
     const now = Date.now();
-    // אם אין nextAlertTime, או אם שינו את התאריך/תזכורת — אפס
+    // ׳׳ ׳׳™׳ nextAlertTime, ׳׳• ׳׳ ׳©׳™׳ ׳• ׳׳× ׳”׳×׳׳¨׳™׳/׳×׳–׳›׳•׳¨׳× ג€” ׳׳₪׳¡
     if (!item.nextAlertTime || item.nextAlertTime <= now) {
         item.nextAlertTime = natural;
         item.alertDismissedAt = null;
     }
-    // אם יש nextAlertTime בעתיד (snooze) — שמור אותו
+    // ׳׳ ׳™׳© nextAlertTime ׳‘׳¢׳×׳™׳“ (snooze) ג€” ׳©׳׳•׳¨ ׳׳•׳×׳•
 }
 
-// ── snoozeUrgentAlert: דחה את ההתראה ─────────────────────────────
+// ג”€ג”€ snoozeUrgentAlert: ׳“׳—׳” ׳׳× ׳”׳”׳×׳¨׳׳” ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€
 function snoozeUrgentAlert(ms) {
     const now = Date.now();
     const snoozeUntil = now + ms;
@@ -4252,17 +4265,17 @@ function snoozeUrgentAlert(ms) {
         (list.items || []).forEach(item => {
             if (item.checked || item.isPaid || !item.dueDate) return;
             if (!item.nextAlertTime) return;
-            // snooze פריטים שהתראה שלהם הגיעה (בעבר) — אלה הנוכחיים
-            // גם אם dismissed — snooze מנצח (המשתמש בחר מפורשות)
+            // snooze ׳₪׳¨׳™׳˜׳™׳ ׳©׳”׳×׳¨׳׳” ׳©׳׳”׳ ׳”׳’׳™׳¢׳” (׳‘׳¢׳‘׳¨) ג€” ׳׳׳” ׳”׳ ׳•׳›׳—׳™׳™׳
+            // ׳’׳ ׳׳ dismissed ג€” snooze ׳׳ ׳¦׳— (׳”׳׳©׳×׳׳© ׳‘׳—׳¨ ׳׳₪׳•׳¨׳©׳•׳×)
             if (item.nextAlertTime > now && !item.alertDismissedAt) return;
             item.nextAlertTime = snoozeUntil;
-            item.alertDismissedAt = null; // נקה dismiss
+            item.alertDismissedAt = null; // ׳ ׳§׳” dismiss
             count++;
         });
     });
 
     if (count === 0) {
-        // fallback: snooze כל פריט עם תזכורת
+        // fallback: snooze ׳›׳ ׳₪׳¨׳™׳˜ ׳¢׳ ׳×׳–׳›׳•׳¨׳×
         Object.values(db.lists).forEach(list => {
             (list.items || []).forEach(item => {
                 if (item.checked || item.isPaid || !item.dueDate || !item.reminderValue) return;
@@ -4274,16 +4287,16 @@ function snoozeUrgentAlert(ms) {
 
     save();
     closeModal('urgentAlertModal');
-    _scheduleAllReminders(); // רשום timers חדשים מיד
+    _scheduleAllReminders(); // ׳¨׳©׳•׳ timers ׳—׳“׳©׳™׳ ׳׳™׳“
 
     const label = ms < 3600000
-        ? Math.round(ms / 60000) + ' דקות'
-        : ms < 86400000 ? Math.round(ms / 3600000) + ' שעות'
-        : Math.round(ms / 86400000) + ' ימים';
-    showNotification('⏰ תוזכר בעוד ' + label, 'info');
+        ? Math.round(ms / 60000) + ' ׳“׳§׳•׳×'
+        : ms < 86400000 ? Math.round(ms / 3600000) + ' ׳©׳¢׳•׳×'
+        : Math.round(ms / 86400000) + ' ׳™׳׳™׳';
+    showNotification('ג° ׳×׳•׳–׳›׳¨ ׳‘׳¢׳•׳“ ' + label, 'info');
 }
 
-// ── closeUrgentAlert: dismiss ─────────────────────────────────────
+// ג”€ג”€ closeUrgentAlert: dismiss ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€
 function closeUrgentAlert() {
     const now = Date.now();
     Object.values(db.lists).forEach(list => {
@@ -4292,14 +4305,14 @@ function closeUrgentAlert() {
             const t = item.nextAlertTime;
             if (!t || t > now) return;
             if (item.alertDismissedAt && item.alertDismissedAt >= t) return;
-            item.alertDismissedAt = t; // סמן dismissed עבור זמן זה בלבד
+            item.alertDismissedAt = t; // ׳¡׳׳ dismissed ׳¢׳‘׳•׳¨ ׳–׳׳ ׳–׳” ׳‘׳׳‘׳“
         });
     });
     save();
     closeModal('urgentAlertModal');
 }
 
-// ── checkUrgentPayments: בדוק והצג התראות שהגיעו ─────────────────
+// ג”€ג”€ checkUrgentPayments: ׳‘׳“׳•׳§ ׳•׳”׳¦׳’ ׳”׳×׳¨׳׳•׳× ׳©׳”׳’׳™׳¢׳• ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€
 function checkUrgentPayments() {
     if (!db || !db.lists) return;
     const now = Date.now();
@@ -4323,7 +4336,7 @@ function checkUrgentPayments() {
 
 // updateNotificationBadge defined above (single implementation)
 
-// ── showUrgentAlertModal ──────────────────────────────────────────
+// ג”€ג”€ showUrgentAlertModal ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€
 function showUrgentAlertModal(urgentItems) {
     const modal = document.getElementById('urgentAlertModal');
     const itemsList = document.getElementById('urgentItemsList');
@@ -4336,31 +4349,31 @@ function showUrgentAlertModal(urgentItems) {
     let html = '';
 
     if (overdue.length > 0) {
-        html += '<div style="font-weight:bold;color:#ef4444;margin-bottom:10px;">⚠️ באיחור:</div>';
+        html += '<div style="font-weight:bold;color:#ef4444;margin-bottom:10px;">ג ן¸ ׳‘׳׳™׳—׳•׳¨:</div>';
         overdue.forEach(item => {
             const esc = (item.name || '').replace(/'/g, "\'");
             html += `<div class="urgent-item" style="border-right:3px solid #ef4444;cursor:pointer;" onclick="goToItemFromAlert('${esc}')">
                 <div class="urgent-item-name">${item.name}</div>
-                <div class="urgent-item-date">📅 תאריך יעד: ${formatDate(item.dueDate)}</div>
-                <div style="font-size:0.72rem;color:#7367f0;margin-top:4px;">לחץ לצפייה במוצר ←</div>
+                <div class="urgent-item-date">נ“… ׳×׳׳¨׳™׳ ׳™׳¢׳“: ${formatDate(item.dueDate)}</div>
+                <div style="font-size:0.72rem;color:#7367f0;margin-top:4px;">׳׳—׳¥ ׳׳¦׳₪׳™׳™׳” ׳‘׳׳•׳¦׳¨ ג†</div>
             </div>`;
         });
     }
 
     if (upcoming.length > 0) {
         if (overdue.length > 0) html += '<div style="margin-top:15px;"></div>';
-        html += '<div style="font-weight:bold;color:#3b82f6;margin-bottom:10px;">🔔 תזכורות:</div>';
+        html += '<div style="font-weight:bold;color:#3b82f6;margin-bottom:10px;">נ”” ׳×׳–׳›׳•׳¨׳•׳×:</div>';
         upcoming.forEach(item => {
             const d = new Date(item.dueDate); d.setHours(0,0,0,0);
             const days = Math.floor((d - today) / 86400000);
-            const daysText = days === 0 ? 'היום' : days === 1 ? 'מחר' : `בעוד ${days} ימים`;
+            const daysText = days === 0 ? '׳”׳™׳•׳' : days === 1 ? '׳׳—׳¨' : `׳‘׳¢׳•׳“ ${days} ׳™׳׳™׳`;
             const reminderText = item.reminderValue && item.reminderUnit
-                ? ` (התראה: ${formatReminderText(item.reminderValue, item.reminderUnit)} לפני)` : '';
+                ? ` (׳”׳×׳¨׳׳”: ${formatReminderText(item.reminderValue, item.reminderUnit)} ׳׳₪׳ ׳™)` : '';
             const esc = (item.name || '').replace(/'/g, "\'");
             html += `<div class="urgent-item" style="border-right:3px solid #3b82f6;cursor:pointer;" onclick="goToItemFromAlert('${esc}')">
                 <div class="urgent-item-name">${item.name}</div>
-                <div class="urgent-item-date">📅 ${formatDate(item.dueDate)} (${daysText})${reminderText}</div>
-                <div style="font-size:0.72rem;color:#7367f0;margin-top:4px;">לחץ לצפייה במוצר ←</div>
+                <div class="urgent-item-date">נ“… ${formatDate(item.dueDate)} (${daysText})${reminderText}</div>
+                <div style="font-size:0.72rem;color:#7367f0;margin-top:4px;">׳׳—׳¥ ׳׳¦׳₪׳™׳™׳” ׳‘׳׳•׳¦׳¨ ג†</div>
             </div>`;
         });
     }
@@ -4369,7 +4382,7 @@ function showUrgentAlertModal(urgentItems) {
     modal.classList.add('active');
 }
 
-// ── _scheduleAllReminders: הגדר timers לכל הפריטים ─────────────────
+// ג”€ג”€ _scheduleAllReminders: ׳”׳’׳“׳¨ timers ׳׳›׳ ׳”׳₪׳¨׳™׳˜׳™׳ ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€
 function _scheduleAllReminders() {
     _reminderTimers.forEach(id => clearTimeout(id));
     _reminderTimers.clear();
@@ -4397,19 +4410,19 @@ function _scheduleAllReminders() {
                 _reminderTimers.set(key, timerId);
                 console.log(`[Reminder] scheduled "${item.name}" in ${Math.round(delay/1000)}s`);
             } else {
-                // הגיע כבר — הצג
+                // ׳”׳’׳™׳¢ ׳›׳‘׳¨ ג€” ׳”׳¦׳’
                 checkUrgentPayments();
             }
         });
     });
 }
 
-// ── _firePushNotification: שלח push דרך SW ──────────────────────────
+// ג”€ג”€ _firePushNotification: ׳©׳׳— push ׳“׳¨׳ SW ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€
 function _firePushNotification(item) {
-    const title = `⏰ תזכורת: ${item.name}`;
+    const title = `ג° ׳×׳–׳›׳•׳¨׳×: ${item.name}`;
     const dateStr = item.dueDate ? new Date(item.dueDate).toLocaleDateString('he-IL') : '';
-    const timeStr = item.dueTime ? ' בשעה ' + item.dueTime : '';
-    const body = dateStr ? `יעד: ${dateStr}${timeStr}` : 'יש לך תזכורת';
+    const timeStr = item.dueTime ? ' ׳‘׳©׳¢׳” ' + item.dueTime : '';
+    const body = dateStr ? `׳™׳¢׳“: ${dateStr}${timeStr}` : '׳™׳© ׳׳ ׳×׳–׳›׳•׳¨׳×';
     const data = { type: 'reminder', itemName: item.name, dueDate: item.dueDate || '', dueTime: item.dueTime || '' };
 
     if (navigator.serviceWorker && navigator.serviceWorker.controller) {
@@ -4420,27 +4433,27 @@ function _firePushNotification(item) {
     }
 }
 
-// ── initNotificationSystem ───────────────────────────────────────────
+// ג”€ג”€ initNotificationSystem ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€
 async function initNotificationSystem() {
     if ('Notification' in window && Notification.permission !== 'denied') {
         Notification.requestPermission();
     }
     _scheduleAllReminders();
     checkUrgentPayments();
-    // heartbeat — גיבוי לmissed timers
+    // heartbeat ג€” ׳’׳™׳‘׳•׳™ ׳missed timers
     setInterval(checkUrgentPayments, 30000);
 }
 
 window.addEventListener('load', () => { setTimeout(initNotificationSystem, 2000); });
 
-// כשנשמר — רשום מחדש
+// ׳›׳©׳ ׳©׳׳¨ ג€” ׳¨׳©׳•׳ ׳׳—׳“׳©
 const _origSave = save;
 save = function() {
     _origSave.apply(this, arguments);
     setTimeout(_scheduleAllReminders, 150);
 };
 
-// ── Custom Snooze ─────────────────────────────────────────────────
+// ג”€ג”€ Custom Snooze ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€
 function openCustomSnooze() {
     closeModal('urgentAlertModal');
     openModal('customSnoozeModal');
@@ -4449,7 +4462,7 @@ function openCustomSnooze() {
 function applyCustomSnooze() {
     const value = parseFloat(document.getElementById('customSnoozeValue').value);
     const unit  = document.getElementById('customSnoozeUnit').value;
-    if (!value || value <= 0) { showNotification('⚠️ נא להזין מספר חיובי', 'warning'); return; }
+    if (!value || value <= 0) { showNotification('ג ן¸ ׳ ׳ ׳׳”׳–׳™׳ ׳׳¡׳₪׳¨ ׳—׳™׳•׳‘׳™', 'warning'); return; }
     const ms = unit === 'minutes' ? value * 60000
              : unit === 'hours'   ? value * 3600000
              : value * 86400000;
@@ -4459,7 +4472,7 @@ function applyCustomSnooze() {
     document.getElementById('customSnoozeUnit').value  = 'hours';
 }
 
-// ── Legacy stubs ──────────────────────────────────────────────────
+// ג”€ג”€ Legacy stubs ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€
 function checkAndScheduleNotifications() { _scheduleAllReminders(); }
 function scheduleItemNotification() {}
 function showInAppNotification() {}
@@ -4472,8 +4485,8 @@ function updateAppBadge(count) {
     }
 }
 
-// ── SW Message Listener ───────────────────────────────────────────
-// flag: מונע מה-startup modal להופיע כשמגיעים מהתראה דרך SW
+// ג”€ג”€ SW Message Listener ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€
+// flag: ׳׳•׳ ׳¢ ׳׳”-startup modal ׳׳”׳•׳₪׳™׳¢ ׳›׳©׳׳’׳™׳¢׳™׳ ׳׳”׳×׳¨׳׳” ׳“׳¨׳ SW
 let _suppressStartupModal = false;
 
 if ('serviceWorker' in navigator) {
@@ -4485,7 +4498,7 @@ if ('serviceWorker' in navigator) {
             const action = msg.action || 'show';
             if (action === 'snooze-10')  { snoozeUrgentAlert(10 * 60 * 1000); return; }
             if (action === 'snooze-60')  { snoozeUrgentAlert(60 * 60 * 1000); return; }
-            _suppressStartupModal = true; // מנע modal אוטומטי
+            _suppressStartupModal = true; // ׳׳ ׳¢ modal ׳׳•׳˜׳•׳׳˜׳™
             closeModal('urgentAlertModal');
             _forceShowAfterNotificationClick = true;
             checkUrgentPayments();
@@ -4496,7 +4509,7 @@ if ('serviceWorker' in navigator) {
                 const action = msg.data.action;
                 if (action === 'snooze-10') { snoozeUrgentAlert(10 * 60 * 1000); return; }
                 if (action === 'snooze-60') { snoozeUrgentAlert(60 * 60 * 1000); return; }
-                _suppressStartupModal = true; // מנע modal אוטומטי
+                _suppressStartupModal = true; // ׳׳ ׳¢ modal ׳׳•׳˜׳•׳׳˜׳™
                 closeModal('urgentAlertModal');
                 _forceShowAfterNotificationClick = true;
                 checkUrgentPayments();
@@ -4508,7 +4521,7 @@ if ('serviceWorker' in navigator) {
     });
 }
 
-// ── URL Param Handler (כשנפתח מהתראה) ───────────────────────────
+// ג”€ג”€ URL Param Handler (׳›׳©׳ ׳₪׳×׳— ׳׳”׳×׳¨׳׳”) ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€
 function checkNotificationUrlParam() {
     const params = new URLSearchParams(window.location.search);
     const action = params.get('vplus-action');
@@ -4517,7 +4530,7 @@ function checkNotificationUrlParam() {
         setTimeout(() => {
             if (action === 'snooze-10') { snoozeUrgentAlert(10 * 60 * 1000); return; }
             if (action === 'snooze-60') { snoozeUrgentAlert(60 * 60 * 1000); return; }
-            closeModal('urgentAlertModal'); // סגור modal ישן שנפתח ב-startup לפני הצגת הנכון
+            closeModal('urgentAlertModal'); // ׳¡׳’׳•׳¨ modal ׳™׳©׳ ׳©׳ ׳₪׳×׳— ׳‘-startup ׳׳₪׳ ׳™ ׳”׳¦׳’׳× ׳”׳ ׳›׳•׳
             _forceShowAfterNotificationClick = true;
             checkUrgentPayments();
         }, 1500);
@@ -4528,205 +4541,205 @@ function checkNotificationUrlParam() {
 window.addEventListener('load', () => { setTimeout(checkNotificationUrlParam, 1000); });
 
 
-// ║    🧙 VPLUS WIZARD — Full-Screen Cinematic Experience v3        ║
-// ║    כל לחיצה = מסך הסבר מלא, מרהיב, אנימטיבי                    ║
-// ╚══════════════════════════════════════════════════════════════════╝
+// ג•‘    נ§™ VPLUS WIZARD ג€” Full-Screen Cinematic Experience v3        ג•‘
+// ג•‘    ׳›׳ ׳׳—׳™׳¦׳” = ׳׳¡׳ ׳”׳¡׳‘׳¨ ׳׳׳, ׳׳¨׳”׳™׳‘, ׳׳ ׳™׳׳˜׳™׳‘׳™                    ג•‘
+// ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•
 
 let wizardMode = false;
 let _wizDismissCallback = null;
 let _wizAutoTimer       = null;
 
-// ── Content library ────────────────────────────────────────────────
+// ג”€ג”€ Content library ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€
 const WIZ = {
     plusBtn: {
-        emoji:'➕', phase:'before', emojiColor:'#22c55e',
-        title:'הוספת מוצר לרשימה',
-        body:'לחץ את הכפתור הירוק כדי לפתוח את חלון הוספת המוצר.\nתוכל להזין שם, מחיר, כמות וקטגוריה.',
-        tip:'💡 טיפ: הפעל "הוספה רציפה" כדי להוסיף כמה מוצרים ברצף מהיר!',
+        emoji:'ג•', phase:'before', emojiColor:'#22c55e',
+        title:'׳”׳•׳¡׳₪׳× ׳׳•׳¦׳¨ ׳׳¨׳©׳™׳׳”',
+        body:'׳׳—׳¥ ׳׳× ׳”׳›׳₪׳×׳•׳¨ ׳”׳™׳¨׳•׳§ ׳›׳“׳™ ׳׳₪׳×׳•׳— ׳׳× ׳—׳׳•׳ ׳”׳•׳¡׳₪׳× ׳”׳׳•׳¦׳¨.\n׳×׳•׳›׳ ׳׳”׳–׳™׳ ׳©׳, ׳׳—׳™׳¨, ׳›׳׳•׳× ׳•׳§׳˜׳’׳•׳¨׳™׳”.',
+        tip:'נ’¡ ׳˜׳™׳₪: ׳”׳₪׳¢׳ "׳”׳•׳¡׳₪׳” ׳¨׳¦׳™׳₪׳”" ׳›׳“׳™ ׳׳”׳•׳¡׳™׳£ ׳›׳׳” ׳׳•׳¦׳¨׳™׳ ׳‘׳¨׳¦׳£ ׳׳”׳™׳¨!',
     },
     voiceBought: {
-        emoji:'✅', phase:'before',
-        title:'קניתי — סימון קולי',
-        body:'לחץ ואמור בקול שם של מוצר שכבר קנית.\nהאפליקציה תמצא אותו ברשימה ותסמן אותו כנרכש אוטומטית.\nאם המוצר כבר מסומן — תקבל הודעה שהוא כבר נרכש.',
-        tip:'💡 תוכל לבטל בקלות עם כפתור "ביטול" שיופיע מיד אחרי הסימון.',
+        emoji:'ג…', phase:'before',
+        title:'׳§׳ ׳™׳×׳™ ג€” ׳¡׳™׳׳•׳ ׳§׳•׳׳™',
+        body:'׳׳—׳¥ ׳•׳׳׳•׳¨ ׳‘׳§׳•׳ ׳©׳ ׳©׳ ׳׳•׳¦׳¨ ׳©׳›׳‘׳¨ ׳§׳ ׳™׳×.\n׳”׳׳₪׳׳™׳§׳¦׳™׳” ׳×׳׳¦׳ ׳׳•׳×׳• ׳‘׳¨׳©׳™׳׳” ׳•׳×׳¡׳׳ ׳׳•׳×׳• ׳›׳ ׳¨׳›׳© ׳׳•׳˜׳•׳׳˜׳™׳×.\n׳׳ ׳”׳׳•׳¦׳¨ ׳›׳‘׳¨ ׳׳¡׳•׳׳ ג€” ׳×׳§׳‘׳ ׳”׳•׳“׳¢׳” ׳©׳”׳•׳ ׳›׳‘׳¨ ׳ ׳¨׳›׳©.',
+        tip:'נ’¡ ׳×׳•׳›׳ ׳׳‘׳˜׳ ׳‘׳§׳׳•׳× ׳¢׳ ׳›׳₪׳×׳•׳¨ "׳‘׳™׳˜׳•׳" ׳©׳™׳•׳₪׳™׳¢ ׳׳™׳“ ׳׳—׳¨׳™ ׳”׳¡׳™׳׳•׳.',
     },
     voiceTobuy: {
-        emoji:'🛍️', phase:'before',
-        title:'לקנות — חיפוש קולי',
-        body:'לחץ ואמור שם מוצר.\n✅ אם קיים ומסומן — יוחזר למצב לקנות.\n📋 אם קיים ולא נרכש — תקבל הודעה שהוא כבר ממתין.\n➕ אם לא קיים ברשימה — תוצע לך אפשרות להוסיף אותו.',
-        tip:'💡 שימושי כשטעית בסימון, או כשמוצר שגמר צריך לחזור לרשימה.',
+        emoji:'נ›ן¸', phase:'before',
+        title:'׳׳§׳ ׳•׳× ג€” ׳—׳™׳₪׳•׳© ׳§׳•׳׳™',
+        body:'׳׳—׳¥ ׳•׳׳׳•׳¨ ׳©׳ ׳׳•׳¦׳¨.\nג… ׳׳ ׳§׳™׳™׳ ׳•׳׳¡׳•׳׳ ג€” ׳™׳•׳—׳–׳¨ ׳׳׳¦׳‘ ׳׳§׳ ׳•׳×.\nנ“‹ ׳׳ ׳§׳™׳™׳ ׳•׳׳ ׳ ׳¨׳›׳© ג€” ׳×׳§׳‘׳ ׳”׳•׳“׳¢׳” ׳©׳”׳•׳ ׳›׳‘׳¨ ׳׳׳×׳™׳.\nג• ׳׳ ׳׳ ׳§׳™׳™׳ ׳‘׳¨׳©׳™׳׳” ג€” ׳×׳•׳¦׳¢ ׳׳ ׳׳₪׳©׳¨׳•׳× ׳׳”׳•׳¡׳™׳£ ׳׳•׳×׳•.',
+        tip:'נ’¡ ׳©׳™׳׳•׳©׳™ ׳›׳©׳˜׳¢׳™׳× ׳‘׳¡׳™׳׳•׳, ׳׳• ׳›׳©׳׳•׳¦׳¨ ׳©׳’׳׳¨ ׳¦׳¨׳™׳ ׳׳—׳–׳•׳¨ ׳׳¨׳©׳™׳׳”.',
     },
     plusDone: {
-        emoji:'🎉', phase:'after',
-        title:'מוצר נוסף בהצלחה!',
-        body:'המוצר נוסף לרשימה שלך.\nהסכום הכולל התעדכן אוטומטית.',
-        tip:'💡 לחץ ➕ שוב להוספת מוצר נוסף, או גלול למטה לראות את הרשימה.',
+        emoji:'נ‰', phase:'after',
+        title:'׳׳•׳¦׳¨ ׳ ׳•׳¡׳£ ׳‘׳”׳¦׳׳—׳”!',
+        body:'׳”׳׳•׳¦׳¨ ׳ ׳•׳¡׳£ ׳׳¨׳©׳™׳׳” ׳©׳׳.\n׳”׳¡׳›׳•׳ ׳”׳›׳•׳׳ ׳”׳×׳¢׳“׳›׳ ׳׳•׳˜׳•׳׳˜׳™׳×.',
+        tip:'נ’¡ ׳׳—׳¥ ג• ׳©׳•׳‘ ׳׳”׳•׳¡׳₪׳× ׳׳•׳¦׳¨ ׳ ׳•׳¡׳£, ׳׳• ׳’׳׳•׳ ׳׳׳˜׳” ׳׳¨׳׳•׳× ׳׳× ׳”׳¨׳©׳™׳׳”.',
     },
     checkItem: {
-        emoji:'✅', phase:'before',
-        title:'סימון מוצר כרכוש',
-        body:'לחץ על הכרטיס כדי לסמן שרכשת את המוצר.\nהמוצר יועבר לרשימת "שולם".',
-        tip:'💡 שינית את דעתך? לחץ שוב כדי לבטל את הסימון.',
+        emoji:'ג…', phase:'before',
+        title:'׳¡׳™׳׳•׳ ׳׳•׳¦׳¨ ׳›׳¨׳›׳•׳©',
+        body:'׳׳—׳¥ ׳¢׳ ׳”׳›׳¨׳˜׳™׳¡ ׳›׳“׳™ ׳׳¡׳׳ ׳©׳¨׳›׳©׳× ׳׳× ׳”׳׳•׳¦׳¨.\n׳”׳׳•׳¦׳¨ ׳™׳•׳¢׳‘׳¨ ׳׳¨׳©׳™׳׳× "׳©׳•׳׳".',
+        tip:'נ’¡ ׳©׳™׳ ׳™׳× ׳׳× ׳“׳¢׳×׳? ׳׳—׳¥ ׳©׳•׳‘ ׳›׳“׳™ ׳׳‘׳˜׳ ׳׳× ׳”׳¡׳™׳׳•׳.',
     },
     checkDone: {
-        emoji:'✅', phase:'after',
-        title:'מוצר סומן!',
-        body:'מצוין! המוצר נרשם כרכישה שבוצעה.\nניתן לבטל בלחיצה נוספת.',
-        tip:'💡 מוצרים מסומנים נספרים ב"שולם" בסרגל התחתון.',
+        emoji:'ג…', phase:'after',
+        title:'׳׳•׳¦׳¨ ׳¡׳•׳׳!',
+        body:'׳׳¦׳•׳™׳! ׳”׳׳•׳¦׳¨ ׳ ׳¨׳©׳ ׳›׳¨׳›׳™׳©׳” ׳©׳‘׳•׳¦׳¢׳”.\n׳ ׳™׳×׳ ׳׳‘׳˜׳ ׳‘׳׳—׳™׳¦׳” ׳ ׳•׳¡׳₪׳×.',
+        tip:'נ’¡ ׳׳•׳¦׳¨׳™׳ ׳׳¡׳•׳׳ ׳™׳ ׳ ׳¡׳₪׳¨׳™׳ ׳‘"׳©׳•׳׳" ׳‘׳¡׳¨׳’׳ ׳”׳×׳—׳×׳•׳.',
     },
     removeItem: {
-        emoji:'🗑️', phase:'before',
-        title:'מחיקת מוצר',
-        body:'המוצר יוסר מהרשימה.\nיש לך 5 שניות לבטל את המחיקה!',
-        tip:'⚠️ לחץ על "בטל" שיופיע למטה כדי לשחזר.',
+        emoji:'נ—‘ן¸', phase:'before',
+        title:'׳׳—׳™׳§׳× ׳׳•׳¦׳¨',
+        body:'׳”׳׳•׳¦׳¨ ׳™׳•׳¡׳¨ ׳׳”׳¨׳©׳™׳׳”.\n׳™׳© ׳׳ 5 ׳©׳ ׳™׳•׳× ׳׳‘׳˜׳ ׳׳× ׳”׳׳—׳™׳§׳”!',
+        tip:'ג ן¸ ׳׳—׳¥ ׳¢׳ "׳‘׳˜׳" ׳©׳™׳•׳₪׳™׳¢ ׳׳׳˜׳” ׳›׳“׳™ ׳׳©׳—׳–׳¨.',
     },
     removeDone: {
-        emoji:'🗑️', phase:'after',
-        title:'מוצר הוסר',
-        body:'המוצר הוסר מהרשימה.\nלחץ "בטל" אם טעית.',
-        tip:'💡 המוצר יכול להופיע בהיסטוריה אם השתמשת בהשלמה רשימה.',
+        emoji:'נ—‘ן¸', phase:'after',
+        title:'׳׳•׳¦׳¨ ׳”׳•׳¡׳¨',
+        body:'׳”׳׳•׳¦׳¨ ׳”׳•׳¡׳¨ ׳׳”׳¨׳©׳™׳׳”.\n׳׳—׳¥ "׳‘׳˜׳" ׳׳ ׳˜׳¢׳™׳×.',
+        tip:'נ’¡ ׳”׳׳•׳¦׳¨ ׳™׳›׳•׳ ׳׳”׳•׳₪׳™׳¢ ׳‘׳”׳™׳¡׳˜׳•׳¨׳™׳” ׳׳ ׳”׳©׳×׳׳©׳× ׳‘׳”׳©׳׳׳” ׳¨׳©׳™׳׳”.',
     },
     newList: {
-        emoji:'📋', phase:'before',
-        title:'יצירת רשימה חדשה',
-        body:'תוכל לתת שם לרשימה, להגדיר תקציב ולהוסיף קישור לאתר החנות.',
-        tip:'💡 אפשר גם לשמור כתבנית לשימוש עתידי!',
+        emoji:'נ“‹', phase:'before',
+        title:'׳™׳¦׳™׳¨׳× ׳¨׳©׳™׳׳” ׳—׳“׳©׳”',
+        body:'׳×׳•׳›׳ ׳׳×׳× ׳©׳ ׳׳¨׳©׳™׳׳”, ׳׳”׳’׳“׳™׳¨ ׳×׳§׳¦׳™׳‘ ׳•׳׳”׳•׳¡׳™׳£ ׳§׳™׳©׳•׳¨ ׳׳׳×׳¨ ׳”׳—׳ ׳•׳×.',
+        tip:'נ’¡ ׳׳₪׳©׳¨ ׳’׳ ׳׳©׳׳•׳¨ ׳›׳×׳‘׳ ׳™׳× ׳׳©׳™׳׳•׳© ׳¢׳×׳™׳“׳™!',
     },
     newListDone: {
-        emoji:'🎊', phase:'after',
-        title:'הרשימה נוצרה!',
-        body:'הרשימה החדשה שלך מוכנה.\nעכשיו לחץ ➕ כדי להתחיל להוסיף מוצרים.',
-        tip:'💡 אפשר לעבור בין רשימות מהטאב "הרשימות שלי".',
+        emoji:'נ', phase:'after',
+        title:'׳”׳¨׳©׳™׳׳” ׳ ׳•׳¦׳¨׳”!',
+        body:'׳”׳¨׳©׳™׳׳” ׳”׳—׳“׳©׳” ׳©׳׳ ׳׳•׳›׳ ׳”.\n׳¢׳›׳©׳™׳• ׳׳—׳¥ ג• ׳›׳“׳™ ׳׳”׳×׳—׳™׳ ׳׳”׳•׳¡׳™׳£ ׳׳•׳¦׳¨׳™׳.',
+        tip:'נ’¡ ׳׳₪׳©׳¨ ׳׳¢׳‘׳•׳¨ ׳‘׳™׳ ׳¨׳©׳™׳׳•׳× ׳׳”׳˜׳׳‘ "׳”׳¨׳©׳™׳׳•׳× ׳©׳׳™".',
     },
     completeList: {
-        emoji:'🏁', phase:'before',
-        title:'סיום וסגירת רשימה',
-        body:'הרשימה תסומן כהושלמה ותישמר בהיסטוריה שלך.\nתוכל לצפות בה מאוחר יותר.',
-        tip:'💡 רוצה להשתמש בה שוב? שמור אותה כתבנית לפני הסגירה!',
+        emoji:'נ', phase:'before',
+        title:'׳¡׳™׳•׳ ׳•׳¡׳’׳™׳¨׳× ׳¨׳©׳™׳׳”',
+        body:'׳”׳¨׳©׳™׳׳” ׳×׳¡׳•׳׳ ׳›׳”׳•׳©׳׳׳” ׳•׳×׳™׳©׳׳¨ ׳‘׳”׳™׳¡׳˜׳•׳¨׳™׳” ׳©׳׳.\n׳×׳•׳›׳ ׳׳¦׳₪׳•׳× ׳‘׳” ׳׳׳•׳—׳¨ ׳™׳•׳×׳¨.',
+        tip:'נ’¡ ׳¨׳•׳¦׳” ׳׳”׳©׳×׳׳© ׳‘׳” ׳©׳•׳‘? ׳©׳׳•׳¨ ׳׳•׳×׳” ׳›׳×׳‘׳ ׳™׳× ׳׳₪׳ ׳™ ׳”׳¡׳’׳™׳¨׳”!',
     },
     completeDone: {
-        emoji:'🏆', phase:'after',
-        title:'כל הכבוד! הרשימה הושלמה',
-        body:'הרשימה נשמרה בהיסטוריה שלך.\nכל ההוצאות נרשמו בסטטיסטיקות.',
-        tip:'💡 כנס להיסטוריה כדי לצפות בסיכום הרכישות.',
+        emoji:'נ†', phase:'after',
+        title:'׳›׳ ׳”׳›׳‘׳•׳“! ׳”׳¨׳©׳™׳׳” ׳”׳•׳©׳׳׳”',
+        body:'׳”׳¨׳©׳™׳׳” ׳ ׳©׳׳¨׳” ׳‘׳”׳™׳¡׳˜׳•׳¨׳™׳” ׳©׳׳.\n׳›׳ ׳”׳”׳•׳¦׳׳•׳× ׳ ׳¨׳©׳׳• ׳‘׳¡׳˜׳˜׳™׳¡׳˜׳™׳§׳•׳×.',
+        tip:'נ’¡ ׳›׳ ׳¡ ׳׳”׳™׳¡׳˜׳•׳¨׳™׳” ׳›׳“׳™ ׳׳¦׳₪׳•׳× ׳‘׳¡׳™׳›׳•׳ ׳”׳¨׳›׳™׳©׳•׳×.',
     },
     lockBtn: {
-        emoji:'🔒', phase:'before',
-        title:'נעילת הרשימה',
-        body:'הנעילה מונעת שינויים בשוגג.\nשימושי כשהרשימה מוכנה לקנייה.',
-        tip:'💡 לחץ שוב על הכפתור כדי לשחרר את הנעילה.',
+        emoji:'נ”’', phase:'before',
+        title:'׳ ׳¢׳™׳׳× ׳”׳¨׳©׳™׳׳”',
+        body:'׳”׳ ׳¢׳™׳׳” ׳׳•׳ ׳¢׳× ׳©׳™׳ ׳•׳™׳™׳ ׳‘׳©׳•׳’׳’.\n׳©׳™׳׳•׳©׳™ ׳›׳©׳”׳¨׳©׳™׳׳” ׳׳•׳›׳ ׳” ׳׳§׳ ׳™׳™׳”.',
+        tip:'נ’¡ ׳׳—׳¥ ׳©׳•׳‘ ׳¢׳ ׳”׳›׳₪׳×׳•׳¨ ׳›׳“׳™ ׳׳©׳—׳¨׳¨ ׳׳× ׳”׳ ׳¢׳™׳׳”.',
     },
     lockDone: {
-        emoji:'🔐', phase:'after',
-        title:'הרשימה נעולה',
-        body:'הרשימה כעת מוגנת מפני עריכה בשוגג.\nלחץ שוב להסרת הנעילה.',
-        tip:'💡 בזמן נעילה אפשר עדיין לסמן מוצרים כרכושים.',
+        emoji:'נ”', phase:'after',
+        title:'׳”׳¨׳©׳™׳׳” ׳ ׳¢׳•׳׳”',
+        body:'׳”׳¨׳©׳™׳׳” ׳›׳¢׳× ׳׳•׳’׳ ׳× ׳׳₪׳ ׳™ ׳¢׳¨׳™׳›׳” ׳‘׳©׳•׳’׳’.\n׳׳—׳¥ ׳©׳•׳‘ ׳׳”׳¡׳¨׳× ׳”׳ ׳¢׳™׳׳”.',
+        tip:'נ’¡ ׳‘׳–׳׳ ׳ ׳¢׳™׳׳” ׳׳₪׳©׳¨ ׳¢׳“׳™׳™׳ ׳׳¡׳׳ ׳׳•׳¦׳¨׳™׳ ׳›׳¨׳›׳•׳©׳™׳.',
     },
     bellBtn: {
-        emoji:'🔔', phase:'before',
-        title:'מרכז התראות',
-        body:'כאן מרוכזות כל ההתראות הפעילות שלך.\n🔴 אדום — תאריך היעד עבר, הפריט באיחור.\n🟠 כתום — הפריט דורש תשומת לב היום או מחר.\n🔵 כחול — יש תזכורת שפעילה בימים הקרובים.',
-        tip:'💡 החלק התראה שמאלה או ימינה כדי למחוק אותה.',
+        emoji:'נ””', phase:'before',
+        title:'׳׳¨׳›׳– ׳”׳×׳¨׳׳•׳×',
+        body:'׳›׳׳ ׳׳¨׳•׳›׳–׳•׳× ׳›׳ ׳”׳”׳×׳¨׳׳•׳× ׳”׳₪׳¢׳™׳׳•׳× ׳©׳׳.\nנ”´ ׳׳“׳•׳ ג€” ׳×׳׳¨׳™׳ ׳”׳™׳¢׳“ ׳¢׳‘׳¨, ׳”׳₪׳¨׳™׳˜ ׳‘׳׳™׳—׳•׳¨.\nנ  ׳›׳×׳•׳ ג€” ׳”׳₪׳¨׳™׳˜ ׳“׳•׳¨׳© ׳×׳©׳•׳׳× ׳׳‘ ׳”׳™׳•׳ ׳׳• ׳׳—׳¨.\nנ”µ ׳›׳—׳•׳ ג€” ׳™׳© ׳×׳–׳›׳•׳¨׳× ׳©׳₪׳¢׳™׳׳” ׳‘׳™׳׳™׳ ׳”׳§׳¨׳•׳‘׳™׳.',
+        tip:'נ’¡ ׳”׳—׳׳§ ׳”׳×׳¨׳׳” ׳©׳׳׳׳” ׳׳• ׳™׳׳™׳ ׳” ׳›׳“׳™ ׳׳׳—׳•׳§ ׳׳•׳×׳”.',
     },
     cloudBtn: {
-        emoji:'☁️', phase:'before',
-        title:'סנכרון וגיבוי לענן',
-        body:'חבר את האפליקציה לחשבון Google שלך.\nכל הרשימות יגובו אוטומטית בענן ויהיו זמינות מכל מכשיר.\nהנתונים שלך מאובטחים ולא יאבדו גם אם תחליף טלפון.',
-        tip:'💡 הסנכרון מתבצע אוטומטית בכל שינוי — ללא לחיצות נוספות.',
+        emoji:'ג˜ן¸', phase:'before',
+        title:'׳¡׳ ׳›׳¨׳•׳ ׳•׳’׳™׳‘׳•׳™ ׳׳¢׳ ׳',
+        body:'׳—׳‘׳¨ ׳׳× ׳”׳׳₪׳׳™׳§׳¦׳™׳” ׳׳—׳©׳‘׳•׳ Google ׳©׳׳.\n׳›׳ ׳”׳¨׳©׳™׳׳•׳× ׳™׳’׳•׳‘׳• ׳׳•׳˜׳•׳׳˜׳™׳× ׳‘׳¢׳ ׳ ׳•׳™׳”׳™׳• ׳–׳׳™׳ ׳•׳× ׳׳›׳ ׳׳›׳©׳™׳¨.\n׳”׳ ׳×׳•׳ ׳™׳ ׳©׳׳ ׳׳׳•׳‘׳˜׳—׳™׳ ׳•׳׳ ׳™׳׳‘׳“׳• ׳’׳ ׳׳ ׳×׳—׳׳™׳£ ׳˜׳׳₪׳•׳.',
+        tip:'נ’¡ ׳”׳¡׳ ׳›׳¨׳•׳ ׳׳×׳‘׳¦׳¢ ׳׳•׳˜׳•׳׳˜׳™׳× ׳‘׳›׳ ׳©׳™׳ ׳•׳™ ג€” ׳׳׳ ׳׳—׳™׳¦׳•׳× ׳ ׳•׳¡׳₪׳•׳×.',
     },
     settingsBtn: {
-        emoji:'⚙️', phase:'before',
-        title:'הגדרות האפליקציה',
-        body:'כאן תמצא: שפת ממשק, מצב לילה, סנכרון ענן, ניהול קטגוריות ועוד.',
-        tip:'💡 הפעל מצב לילה לנוחות שימוש בשעות האפלה.',
+        emoji:'ג™ן¸', phase:'before',
+        title:'׳”׳’׳“׳¨׳•׳× ׳”׳׳₪׳׳™׳§׳¦׳™׳”',
+        body:'׳›׳׳ ׳×׳׳¦׳: ׳©׳₪׳× ׳׳׳©׳§, ׳׳¦׳‘ ׳׳™׳׳”, ׳¡׳ ׳›׳¨׳•׳ ׳¢׳ ׳, ׳ ׳™׳”׳•׳ ׳§׳˜׳’׳•׳¨׳™׳•׳× ׳•׳¢׳•׳“.',
+        tip:'נ’¡ ׳”׳₪׳¢׳ ׳׳¦׳‘ ׳׳™׳׳” ׳׳ ׳•׳—׳•׳× ׳©׳™׳׳•׳© ׳‘׳©׳¢׳•׳× ׳”׳׳₪׳׳”.',
     },
     tabList: {
-        emoji:'🛒', phase:'before',
-        title:'הרשימה הפעילה',
-        body:'הצג את הרשימה הפעילה עם כל הפריטים שלה.\nכאן מתבצעת הקנייה.',
-        tip:'💡 גרור פריטים לסידור מחדש של הרשימה.',
+        emoji:'נ›’', phase:'before',
+        title:'׳”׳¨׳©׳™׳׳” ׳”׳₪׳¢׳™׳׳”',
+        body:'׳”׳¦׳’ ׳׳× ׳”׳¨׳©׳™׳׳” ׳”׳₪׳¢׳™׳׳” ׳¢׳ ׳›׳ ׳”׳₪׳¨׳™׳˜׳™׳ ׳©׳׳”.\n׳›׳׳ ׳׳×׳‘׳¦׳¢׳× ׳”׳§׳ ׳™׳™׳”.',
+        tip:'נ’¡ ׳’׳¨׳•׳¨ ׳₪׳¨׳™׳˜׳™׳ ׳׳¡׳™׳“׳•׳¨ ׳׳—׳“׳© ׳©׳ ׳”׳¨׳©׳™׳׳”.',
     },
     tabLists: {
-        emoji:'📚', phase:'before',
-        title:'כל הרשימות שלך',
-        body:'כאן תמצא את כל הרשימות.\nניתן ליצור, לערוך, למחוק ולבחור רשימה פעילה.',
-        tip:'💡 לחץ ממושך על רשימה לאפשרויות נוספות.',
+        emoji:'נ“', phase:'before',
+        title:'׳›׳ ׳”׳¨׳©׳™׳׳•׳× ׳©׳׳',
+        body:'׳›׳׳ ׳×׳׳¦׳ ׳׳× ׳›׳ ׳”׳¨׳©׳™׳׳•׳×.\n׳ ׳™׳×׳ ׳׳™׳¦׳•׳¨, ׳׳¢׳¨׳•׳, ׳׳׳—׳•׳§ ׳•׳׳‘׳—׳•׳¨ ׳¨׳©׳™׳׳” ׳₪׳¢׳™׳׳”.',
+        tip:'נ’¡ ׳׳—׳¥ ׳׳׳•׳©׳ ׳¢׳ ׳¨׳©׳™׳׳” ׳׳׳₪׳©׳¨׳•׳™׳•׳× ׳ ׳•׳¡׳₪׳•׳×.',
     },
     tabStats: {
-        emoji:'📊', phase:'before',
-        title:'סטטיסטיקות הוצאות',
-        body:'גרפים ותובנות על ההוצאות שלך לפי חודש, קטגוריה וזמן.',
-        tip:'💡 השתמש בסטטיסטיקות לתכנון תקציב חכם יותר.',
+        emoji:'נ“', phase:'before',
+        title:'׳¡׳˜׳˜׳™׳¡׳˜׳™׳§׳•׳× ׳”׳•׳¦׳׳•׳×',
+        body:'׳’׳¨׳₪׳™׳ ׳•׳×׳•׳‘׳ ׳•׳× ׳¢׳ ׳”׳”׳•׳¦׳׳•׳× ׳©׳׳ ׳׳₪׳™ ׳—׳•׳“׳©, ׳§׳˜׳’׳•׳¨׳™׳” ׳•׳–׳׳.',
+        tip:'נ’¡ ׳”׳©׳×׳׳© ׳‘׳¡׳˜׳˜׳™׳¡׳˜׳™׳§׳•׳× ׳׳×׳›׳ ׳•׳ ׳×׳§׳¦׳™׳‘ ׳—׳›׳ ׳™׳•׳×׳¨.',
     },
     editName: {
-        emoji:'✏️', phase:'before',
-        title:'עריכת שם מוצר',
-        body:'לחץ על שם המוצר כדי לשנות אותו.\nהשינוי יישמר אוטומטית.',
-        tip:'💡 שם ברור עוזר למצוא מוצרים מהר בחיפוש.',
+        emoji:'גן¸', phase:'before',
+        title:'׳¢׳¨׳™׳›׳× ׳©׳ ׳׳•׳¦׳¨',
+        body:'׳׳—׳¥ ׳¢׳ ׳©׳ ׳”׳׳•׳¦׳¨ ׳›׳“׳™ ׳׳©׳ ׳•׳× ׳׳•׳×׳•.\n׳”׳©׳™׳ ׳•׳™ ׳™׳™׳©׳׳¨ ׳׳•׳˜׳•׳׳˜׳™׳×.',
+        tip:'נ’¡ ׳©׳ ׳‘׳¨׳•׳¨ ׳¢׳•׳–׳¨ ׳׳׳¦׳•׳ ׳׳•׳¦׳¨׳™׳ ׳׳”׳¨ ׳‘׳—׳™׳₪׳•׳©.',
     },
     editPrice: {
-        emoji:'₪', phase:'before',
-        title:'עריכת מחיר',
-        body:'לחץ על הסכום כדי לעדכן את המחיר.\nהסיכום הכולל מתעדכן מיידית.',
-        tip:'💡 אפשר להזין מחיר ל-0 אם המוצר חינמי.',
+        emoji:'ג‚×', phase:'before',
+        title:'׳¢׳¨׳™׳›׳× ׳׳—׳™׳¨',
+        body:'׳׳—׳¥ ׳¢׳ ׳”׳¡׳›׳•׳ ׳›׳“׳™ ׳׳¢׳“׳›׳ ׳׳× ׳”׳׳—׳™׳¨.\n׳”׳¡׳™׳›׳•׳ ׳”׳›׳•׳׳ ׳׳×׳¢׳“׳›׳ ׳׳™׳™׳“׳™׳×.',
+        tip:'נ’¡ ׳׳₪׳©׳¨ ׳׳”׳–׳™׳ ׳׳—׳™׳¨ ׳-0 ׳׳ ׳”׳׳•׳¦׳¨ ׳—׳™׳ ׳׳™.',
     },
     category: {
-        emoji:'🏷️', phase:'before',
-        title:'שינוי קטגוריה',
-        body:'קטגוריות עוזרות לסדר ולסנן את הרשימה בקלות.\nהאפליקציה מנסה לזהות קטגוריה אוטומטית.',
-        tip:'💡 ניתן ליצור קטגוריות מותאמות אישית בהגדרות.',
+        emoji:'נ·ן¸', phase:'before',
+        title:'׳©׳™׳ ׳•׳™ ׳§׳˜׳’׳•׳¨׳™׳”',
+        body:'׳§׳˜׳’׳•׳¨׳™׳•׳× ׳¢׳•׳–׳¨׳•׳× ׳׳¡׳“׳¨ ׳•׳׳¡׳ ׳ ׳׳× ׳”׳¨׳©׳™׳׳” ׳‘׳§׳׳•׳×.\n׳”׳׳₪׳׳™׳§׳¦׳™׳” ׳׳ ׳¡׳” ׳׳–׳”׳•׳× ׳§׳˜׳’׳•׳¨׳™׳” ׳׳•׳˜׳•׳׳˜׳™׳×.',
+        tip:'נ’¡ ׳ ׳™׳×׳ ׳׳™׳¦׳•׳¨ ׳§׳˜׳’׳•׳¨׳™׳•׳× ׳׳•׳×׳׳׳•׳× ׳׳™׳©׳™׳× ׳‘׳”׳’׳“׳¨׳•׳×.',
     },
     note: {
-        emoji:'📝', phase:'before',
-        title:'הוספת הערה',
-        body:'הוסף פרטים נוספים: לינק למוצר, הוראות מיוחדות, או כל מידע שחשוב לך.',
-        tip:'💡 הערות עם לינקים יהפכו ללחיצים אוטומטית.',
+        emoji:'נ“', phase:'before',
+        title:'׳”׳•׳¡׳₪׳× ׳”׳¢׳¨׳”',
+        body:'׳”׳•׳¡׳£ ׳₪׳¨׳˜׳™׳ ׳ ׳•׳¡׳₪׳™׳: ׳׳™׳ ׳§ ׳׳׳•׳¦׳¨, ׳”׳•׳¨׳׳•׳× ׳׳™׳•׳—׳“׳•׳×, ׳׳• ׳›׳ ׳׳™׳“׳¢ ׳©׳—׳©׳•׳‘ ׳׳.',
+        tip:'נ’¡ ׳”׳¢׳¨׳•׳× ׳¢׳ ׳׳™׳ ׳§׳™׳ ׳™׳”׳₪׳›׳• ׳׳׳—׳™׳¦׳™׳ ׳׳•׳˜׳•׳׳˜׳™׳×.',
     },
     reminder: {
-        emoji:'⏰', phase:'before',
-        title:'הגדרת תזכורת',
-        body:'קבע מתי תקבל התראה לפני תאריך היעד של הפריט.\nהתזכורות מגיעות גם כשהאפליקציה סגורה.',
-        tip:'💡 הגדר תזכורת של יומיים לפני לתכנון מראש.',
+        emoji:'ג°', phase:'before',
+        title:'׳”׳’׳“׳¨׳× ׳×׳–׳›׳•׳¨׳×',
+        body:'׳§׳‘׳¢ ׳׳×׳™ ׳×׳§׳‘׳ ׳”׳×׳¨׳׳” ׳׳₪׳ ׳™ ׳×׳׳¨׳™׳ ׳”׳™׳¢׳“ ׳©׳ ׳”׳₪׳¨׳™׳˜.\n׳”׳×׳–׳›׳•׳¨׳•׳× ׳׳’׳™׳¢׳•׳× ׳’׳ ׳›׳©׳”׳׳₪׳׳™׳§׳¦׳™׳” ׳¡׳’׳•׳¨׳”.',
+        tip:'נ’¡ ׳”׳’׳“׳¨ ׳×׳–׳›׳•׳¨׳× ׳©׳ ׳™׳•׳׳™׳™׳ ׳׳₪׳ ׳™ ׳׳×׳›׳ ׳•׳ ׳׳¨׳׳©.',
     },
     qtyPlus: {
-        emoji:'🔢', phase:'before',
-        title:'הגדלת כמות',
-        body:'לחץ + כדי להגדיל את מספר היחידות.\nהמחיר הכולל יתעדכן אוטומטית.',
-        tip:'💡 שנה כמות מהירה: לחץ ממושך על + לריבוי מהיר.',
+        emoji:'נ”¢', phase:'before',
+        title:'׳”׳’׳“׳׳× ׳›׳׳•׳×',
+        body:'׳׳—׳¥ + ׳›׳“׳™ ׳׳”׳’׳“׳™׳ ׳׳× ׳׳¡׳₪׳¨ ׳”׳™׳—׳™׳“׳•׳×.\n׳”׳׳—׳™׳¨ ׳”׳›׳•׳׳ ׳™׳×׳¢׳“׳›׳ ׳׳•׳˜׳•׳׳˜׳™׳×.',
+        tip:'נ’¡ ׳©׳ ׳” ׳›׳׳•׳× ׳׳”׳™׳¨׳”: ׳׳—׳¥ ׳׳׳•׳©׳ ׳¢׳ + ׳׳¨׳™׳‘׳•׳™ ׳׳”׳™׳¨.',
     },
     qtyMinus: {
-        emoji:'🔢', phase:'before',
-        title:'הפחתת כמות',
-        body:'לחץ − כדי להפחית יחידה.\nכמות מינימלית היא 1.',
-        tip:'💡 לחץ 🗑️ אם ברצונך למחוק לגמרי.',
+        emoji:'נ”¢', phase:'before',
+        title:'׳”׳₪׳—׳×׳× ׳›׳׳•׳×',
+        body:'׳׳—׳¥ גˆ’ ׳›׳“׳™ ׳׳”׳₪׳—׳™׳× ׳™׳—׳™׳“׳”.\n׳›׳׳•׳× ׳׳™׳ ׳™׳׳׳™׳× ׳”׳™׳ 1.',
+        tip:'נ’¡ ׳׳—׳¥ נ—‘ן¸ ׳׳ ׳‘׳¨׳¦׳•׳ ׳ ׳׳׳—׳•׳§ ׳׳’׳׳¨׳™.',
     },
     pasteBtn: {
-        emoji:'📋', phase:'before',
-        title:'ייבוא רשימה מטקסט',
-        body:'הדבק טקסט מוואטסאפ, אימייל או כל מקור אחר.\nהאפליקציה תזהה אוטומטית את הפריטים ותבנה רשימה.',
-        tip:'💡 עובד עם רשימות מוואטסאפ, הערות טלפון ועוד!',
+        emoji:'נ“‹', phase:'before',
+        title:'׳™׳™׳‘׳•׳ ׳¨׳©׳™׳׳” ׳׳˜׳§׳¡׳˜',
+        body:'׳”׳“׳‘׳§ ׳˜׳§׳¡׳˜ ׳׳•׳•׳׳˜׳¡׳׳₪, ׳׳™׳׳™׳™׳ ׳׳• ׳›׳ ׳׳§׳•׳¨ ׳׳—׳¨.\n׳”׳׳₪׳׳™׳§׳¦׳™׳” ׳×׳–׳”׳” ׳׳•׳˜׳•׳׳˜׳™׳× ׳׳× ׳”׳₪׳¨׳™׳˜׳™׳ ׳•׳×׳‘׳ ׳” ׳¨׳©׳™׳׳”.',
+        tip:'נ’¡ ׳¢׳•׳‘׳“ ׳¢׳ ׳¨׳©׳™׳׳•׳× ׳׳•׳•׳׳˜׳¡׳׳₪, ׳”׳¢׳¨׳•׳× ׳˜׳׳₪׳•׳ ׳•׳¢׳•׳“!',
     },
     excelBtn: {
-        emoji:'📊', phase:'before',
-        title:'ייבוא מאקסל / כרטיס אשראי',
-        body:'ייבא קובץ Excel (.xlsx) ישירות מהבנק או חברת האשראי.\nהאפליקציה תהפוך את העמודות לרשימת קניות חכמה.',
-        tip:'💡 תומך בקבצי Excel מבנק הפועלים, לאומי, כאל, ישראכרט ועוד.',
+        emoji:'נ“', phase:'before',
+        title:'׳™׳™׳‘׳•׳ ׳׳׳§׳¡׳ / ׳›׳¨׳˜׳™׳¡ ׳׳©׳¨׳׳™',
+        body:'׳™׳™׳‘׳ ׳§׳•׳‘׳¥ Excel (.xlsx) ׳™׳©׳™׳¨׳•׳× ׳׳”׳‘׳ ׳§ ׳׳• ׳—׳‘׳¨׳× ׳”׳׳©׳¨׳׳™.\n׳”׳׳₪׳׳™׳§׳¦׳™׳” ׳×׳”׳₪׳•׳ ׳׳× ׳”׳¢׳׳•׳“׳•׳× ׳׳¨׳©׳™׳׳× ׳§׳ ׳™׳•׳× ׳—׳›׳׳”.',
+        tip:'נ’¡ ׳×׳•׳׳ ׳‘׳§׳‘׳¦׳™ Excel ׳׳‘׳ ׳§ ׳”׳₪׳•׳¢׳׳™׳, ׳׳׳•׳׳™, ׳›׳׳, ׳™׳©׳¨׳׳›׳¨׳˜ ׳•׳¢׳•׳“.',
     },
     bankBtn: {
-        emoji:'🏦', phase:'before',
-        title:'ייבוא PDF מהבנק / אשראי',
-        body:'העלה קובץ PDF של דף חשבון, חיובי כרטיס אשראי או קבלה.\nהמערכת תסרוק את הנתונים ותייצר ממנם רשימה אוטומטית.',
-        tip:'💡 עובד עם PDF מחברות אשראי, דפי בנק וחשבוניות.',
+        emoji:'נ¦', phase:'before',
+        title:'׳™׳™׳‘׳•׳ PDF ׳׳”׳‘׳ ׳§ / ׳׳©׳¨׳׳™',
+        body:'׳”׳¢׳׳” ׳§׳•׳‘׳¥ PDF ׳©׳ ׳“׳£ ׳—׳©׳‘׳•׳, ׳—׳™׳•׳‘׳™ ׳›׳¨׳˜׳™׳¡ ׳׳©׳¨׳׳™ ׳׳• ׳§׳‘׳׳”.\n׳”׳׳¢׳¨׳›׳× ׳×׳¡׳¨׳•׳§ ׳׳× ׳”׳ ׳×׳•׳ ׳™׳ ׳•׳×׳™׳™׳¦׳¨ ׳׳׳ ׳ ׳¨׳©׳™׳׳” ׳׳•׳˜׳•׳׳˜׳™׳×.',
+        tip:'נ’¡ ׳¢׳•׳‘׳“ ׳¢׳ PDF ׳׳—׳‘׳¨׳•׳× ׳׳©׳¨׳׳™, ׳“׳₪׳™ ׳‘׳ ׳§ ׳•׳—׳©׳‘׳•׳ ׳™׳•׳×.',
     },
     myLists: {
-        emoji:'📚', phase:'before',
-        title:'הרשימות שלי',
-        body:'כאן תמצא את כל רשימות הקניות שלך.\nלחץ על רשימה לפתיחתה, או צור רשימה חדשה.',
-        tip:'💡 ניתן לגרור ולסדר את הרשימות בסדר הרצוי.',
+        emoji:'נ“', phase:'before',
+        title:'׳”׳¨׳©׳™׳׳•׳× ׳©׳׳™',
+        body:'׳›׳׳ ׳×׳׳¦׳ ׳׳× ׳›׳ ׳¨׳©׳™׳׳•׳× ׳”׳§׳ ׳™׳•׳× ׳©׳׳.\n׳׳—׳¥ ׳¢׳ ׳¨׳©׳™׳׳” ׳׳₪׳×׳™׳—׳×׳”, ׳׳• ׳¦׳•׳¨ ׳¨׳©׳™׳׳” ׳—׳“׳©׳”.',
+        tip:'נ’¡ ׳ ׳™׳×׳ ׳׳’׳¨׳•׳¨ ׳•׳׳¡׳“׳¨ ׳׳× ׳”׳¨׳©׳™׳׳•׳× ׳‘׳¡׳“׳¨ ׳”׳¨׳¦׳•׳™.',
     },
 };
 
-// ── Core: show a full-screen wizard card ───────────────────────────
+// ג”€ג”€ Core: show a full-screen wizard card ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€
 function wiz(key, phase, onDismiss) {
     if (!wizardMode) {
         if (onDismiss) onDismiss();
@@ -4750,7 +4763,7 @@ function wiz(key, phase, onDismiss) {
     const phaseLabel = document.getElementById('wizPhaseLabel');
     const isBefore   = (data.phase === 'before' || phase === 'before');
     phasePill.className = 'wiz-phase-pill ' + (isBefore ? 'wiz-phase-before' : 'wiz-phase-after');
-    phaseLabel.textContent = isBefore ? 'לפני הפעולה' : 'בוצע!';
+    phaseLabel.textContent = isBefore ? '׳׳₪׳ ׳™ ׳”׳₪׳¢׳•׳׳”' : '׳‘׳•׳¦׳¢!';
 
     const tipBox  = document.getElementById('wizTipBox');
     const tipText = document.getElementById('wizTipText');
@@ -4765,8 +4778,8 @@ function wiz(key, phase, onDismiss) {
     // Btn labels
     const okBtn   = document.getElementById('wizOkBtn');
     const skipBtn = document.getElementById('wizSkipBtn');
-    okBtn.textContent   = isBefore ? 'הבנתי, בואו נמשיך ✓' : 'מצוין! ✓';
-    skipBtn.textContent = 'דלג';
+    okBtn.textContent   = isBefore ? '׳”׳‘׳ ׳×׳™, ׳‘׳•׳׳• ׳ ׳׳©׳™׳ ג“' : '׳׳¦׳•׳™׳! ג“';
+    skipBtn.textContent = '׳“׳׳’';
 
     // Store callback
     _wizDismissCallback = onDismiss || null;
@@ -4784,7 +4797,7 @@ function wiz(key, phase, onDismiss) {
         });
     });
 
-    // After-phase: NO auto-dismiss — only button closes card
+    // After-phase: NO auto-dismiss ג€” only button closes card
 
     // Tap backdrop to dismiss
     overlay.onclick = (e) => {
@@ -4806,9 +4819,9 @@ function _wizForceClose() {
 }
 
 function _wizSkip() {
-    // סגור את כרטיס המדריך
+    // ׳¡׳’׳•׳¨ ׳׳× ׳›׳¨׳˜׳™׳¡ ׳”׳׳“׳¨׳™׳
     _wizDismiss();
-    // המתן לאנימציית הסגירה ואז כבה מדריך + toast
+    // ׳”׳׳×׳ ׳׳׳ ׳™׳׳¦׳™׳™׳× ׳”׳¡׳’׳™׳¨׳” ׳•׳׳– ׳›׳‘׳” ׳׳“׳¨׳™׳ + toast
     setTimeout(() => {
         if (wizardMode) {
             wizardMode = false;
@@ -4819,8 +4832,8 @@ function _wizSkip() {
             const panelPill = document.getElementById('wizardPanelPill');
             const panelTxt  = document.getElementById('wizardPanelText');
             if (panelPill) { panelPill.style.background=''; panelPill.style.color=''; }
-            if (panelTxt) panelTxt.textContent = 'מדריך';
-            _showToast({ message: '✨ מדריך כובה', type: 'success', duration: 3000 });
+            if (panelTxt) panelTxt.textContent = '׳׳“׳¨׳™׳';
+            _showToast({ message: 'ג¨ ׳׳“׳¨׳™׳ ׳›׳•׳‘׳”', type: 'success', duration: 3000 });
         }
     }, 320);
 }
@@ -4861,7 +4874,7 @@ function _wizShowWelcome() {
     });
 }
 
-// ── Toggle wizard mode ─────────────────────────────────────────────
+// ג”€ג”€ Toggle wizard mode ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€
 
 window._closeDemoPrompt = function() {
     var el = document.getElementById('demoWizardPrompt');
@@ -4871,30 +4884,30 @@ window._closeDemoPrompt = function() {
 function _askDemoBeforeWizard() {
     var hasRealData = Object.values(db.lists).some(function(l){ return l.items && l.items.length > 0 && !l.isDemo; });
     if (isDemoMode || hasRealData) {
-        // יש כבר נתונים — פתח מדריך ישירות
+        // ׳™׳© ׳›׳‘׳¨ ׳ ׳×׳•׳ ׳™׳ ג€” ׳₪׳×׳— ׳׳“׳¨׳™׳ ׳™׳©׳™׳¨׳•׳×
         _wizShowWelcome();
         return;
     }
-    // שאל על דמו
+    // ׳©׳׳ ׳¢׳ ׳“׳׳•
     var overlay = document.createElement('div');
     overlay.id = 'demoWizardPrompt';
     overlay.style.cssText = 'position:fixed;inset:0;z-index:99998;background:rgba(0,0,0,0.6);display:flex;align-items:flex-end;font-family:system-ui,sans-serif;';
     var sheet = document.createElement('div');
     sheet.style.cssText = 'background:white;border-radius:28px 28px 0 0;width:100%;padding:24px 20px 40px;animation:demoSheetIn 0.35s cubic-bezier(0.34,1.56,0.64,1);';
-    sheet.innerHTML = '<div style="display:flex;justify-content:flex-end;margin-bottom:6px;"><button onclick="window._closeDemoPrompt();" style="background:rgba(0,0,0,0.06);border:none;border-radius:50%;width:32px;height:32px;font-size:20px;cursor:pointer;color:#888;">×</button></div><div style="width:38px;height:4px;background:#e5e7eb;border-radius:99px;margin:0 auto 18px;"></div>'
-        + '<div style="font-size:44px;text-align:center;margin-bottom:10px;">🎯</div>'
-        + '<div style="font-size:19px;font-weight:900;color:#1e1b4b;text-align:center;margin-bottom:6px;">טרם התחלת להשתמש</div>'
-        + '<div style="font-size:13px;color:#6b7280;text-align:center;line-height:1.6;margin-bottom:20px;">רוצה לטעון 10 רשימות לדוגמה<br>כדי שהמדריך יהיה חי ומעניין יותר?</div>'
+    sheet.innerHTML = '<div style="display:flex;justify-content:flex-end;margin-bottom:6px;"><button onclick="window._closeDemoPrompt();" style="background:rgba(0,0,0,0.06);border:none;border-radius:50%;width:32px;height:32px;font-size:20px;cursor:pointer;color:#888;">ֳ—</button></div><div style="width:38px;height:4px;background:#e5e7eb;border-radius:99px;margin:0 auto 18px;"></div>'
+        + '<div style="font-size:44px;text-align:center;margin-bottom:10px;">נ¯</div>'
+        + '<div style="font-size:19px;font-weight:900;color:#1e1b4b;text-align:center;margin-bottom:6px;">׳˜׳¨׳ ׳”׳×׳—׳׳× ׳׳”׳©׳×׳׳©</div>'
+        + '<div style="font-size:13px;color:#6b7280;text-align:center;line-height:1.6;margin-bottom:20px;">׳¨׳•׳¦׳” ׳׳˜׳¢׳•׳ 10 ׳¨׳©׳™׳׳•׳× ׳׳“׳•׳’׳׳”<br>׳›׳“׳™ ׳©׳”׳׳“׳¨׳™׳ ׳™׳”׳™׳” ׳—׳™ ׳•׳׳¢׳ ׳™׳™׳ ׳™׳•׳×׳¨?</div>'
         + '<div style="display:flex;flex-direction:column;gap:10px;">'
-        + '<button onclick="window._closeDemoPrompt();loadDemoMode();_wizShowWelcome();" style="background:linear-gradient(135deg,#7367f0,#9055ff);color:white;border:none;border-radius:18px;padding:16px;font-size:15px;font-weight:900;cursor:pointer;font-family:system-ui,sans-serif;box-shadow:0 6px 20px rgba(115,103,240,0.35);">\uD83C\uDFAF כן, טען נתוני דמו</button>'
-        + '<button onclick="window._closeDemoPrompt();_wizShowWelcome();" style="background:#f3f4f6;color:#6b7280;border:none;border-radius:18px;padding:14px;font-size:14px;font-weight:700;cursor:pointer;font-family:system-ui,sans-serif;">לא תודה, התחל מדריך ריק</button>'
+        + '<button onclick="window._closeDemoPrompt();loadDemoMode();_wizShowWelcome();" style="background:linear-gradient(135deg,#7367f0,#9055ff);color:white;border:none;border-radius:18px;padding:16px;font-size:15px;font-weight:900;cursor:pointer;font-family:system-ui,sans-serif;box-shadow:0 6px 20px rgba(115,103,240,0.35);">\uD83C\uDFAF ׳›׳, ׳˜׳¢׳ ׳ ׳×׳•׳ ׳™ ׳“׳׳•</button>'
+        + '<button onclick="window._closeDemoPrompt();_wizShowWelcome();" style="background:#f3f4f6;color:#6b7280;border:none;border-radius:18px;padding:14px;font-size:14px;font-weight:700;cursor:pointer;font-family:system-ui,sans-serif;">׳׳ ׳×׳•׳“׳”, ׳”׳×׳—׳ ׳׳“׳¨׳™׳ ׳¨׳™׳§</button>'
         + '</div>'
         + '<style>@keyframes demoSheetIn{from{transform:translateY(100%)}to{transform:translateY(0)}}</style>';
     overlay.appendChild(sheet);
     document.body.appendChild(overlay);
 }
 
-// ── GitHub Token Management ──────────────────────────────────────
+// ג”€ג”€ GitHub Token Management ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€
 function loadGithubToken() {
     const token = localStorage.getItem('vplus_github_pat') || '';
     window.GITHUB_PAT = token;
@@ -4910,14 +4923,14 @@ function saveGithubToken() {
     if (!token) {
         localStorage.removeItem('vplus_github_pat');
         window.GITHUB_PAT = '';
-        showNotification('🗑️ Token נמחק');
+        showNotification('נ—‘ן¸ Token ׳ ׳׳—׳§');
     } else if (!token.startsWith('ghp_') && !token.startsWith('github_pat_')) {
-        showNotification('⚠️ Token לא תקין — חייב להתחיל ב-ghp_ או github_pat_', 'warning');
+        showNotification('ג ן¸ Token ׳׳ ׳×׳§׳™׳ ג€” ׳—׳™׳™׳‘ ׳׳”׳×׳—׳™׳ ׳‘-ghp_ ׳׳• github_pat_', 'warning');
         return;
     } else {
         localStorage.setItem('vplus_github_pat', token);
         window.GITHUB_PAT = token;
-        showNotification('✅ GitHub Token נשמר!');
+        showNotification('ג… GitHub Token ׳ ׳©׳׳¨!');
     }
     updateGithubTokenStatus();
 }
@@ -4928,13 +4941,13 @@ function updateGithubTokenStatus() {
     if (!status) return;
     const val = (input ? input.value : '') || localStorage.getItem('vplus_github_pat') || '';
     if (val.startsWith('ghp_') || val.startsWith('github_pat_')) {
-        status.textContent = '✅ מוגדר';
+        status.textContent = 'ג… ׳׳•׳’׳“׳¨';
         status.style.color = '#22c55e';
     } else if (val.length > 0) {
-        status.textContent = '⚠️ לא תקין';
+        status.textContent = 'ג ן¸ ׳׳ ׳×׳§׳™׳';
         status.style.color = '#f59e0b';
     } else {
-        status.textContent = '❌ לא מוגדר';
+        status.textContent = 'ג ׳׳ ׳׳•׳’׳“׳¨';
         status.style.color = '#ef4444';
     }
 }
@@ -4950,40 +4963,40 @@ function toggleWizardMode() {
     const panelTxt  = document.getElementById('wizardPanelText');
     if (wizardMode) {
         if (btn) btn.classList.add('wizard-active');
-        if (txt) txt.textContent = 'מדריך';
+        if (txt) txt.textContent = '׳׳“׳¨׳™׳';
         if (panelPill) { panelPill.style.background='#7367f0'; panelPill.style.color='white'; }
-        if (panelTxt) panelTxt.textContent = '✨ פעיל';
+        if (panelTxt) panelTxt.textContent = 'ג¨ ׳₪׳¢׳™׳';
         document.body.classList.add('wizard-mode-active');
-        // שאל על דמו לפני פתיחת המדריך
+        // ׳©׳׳ ׳¢׳ ׳“׳׳• ׳׳₪׳ ׳™ ׳₪׳×׳™׳—׳× ׳”׳׳“׳¨׳™׳
         _askDemoBeforeWizard();
     } else {
         if (btn) btn.classList.remove('wizard-active');
-        if (txt) txt.textContent = 'מדריך';
+        if (txt) txt.textContent = '׳׳“׳¨׳™׳';
         if (panelPill) { panelPill.style.background=''; panelPill.style.color=''; }
-        if (panelTxt) panelTxt.textContent = 'מדריך';
+        if (panelTxt) panelTxt.textContent = '׳׳“׳¨׳™׳';
         document.body.classList.remove('wizard-mode-active');
         // Close any open card
         const overlay = document.getElementById('wizCardOverlay');
         if (overlay) overlay.classList.remove('wiz-active');
         _wizDismissCallback = null;
         clearTimeout(_wizAutoTimer);
-        showNotification('מצב מדריך כובה');
+        showNotification('׳׳¦׳‘ ׳׳“׳¨׳™׳ ׳›׳•׳‘׳”');
     }
 }
 
-// ── handlePlusBtn ──────────────────────────────────────────────────
-// קונטקסטואלי: הרשימות שלי → רשימה חדשה | הרשימה שלי → הוסף מוצר
+// ג”€ג”€ handlePlusBtn ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€
+// ׳§׳•׳ ׳˜׳§׳¡׳˜׳•׳׳׳™: ׳”׳¨׳©׳™׳׳•׳× ׳©׳׳™ ג†’ ׳¨׳©׳™׳׳” ׳—׳“׳©׳” | ׳”׳¨׳©׳™׳׳” ׳©׳׳™ ג†’ ׳”׳•׳¡׳£ ׳׳•׳¦׳¨
 function handlePlusBtn(e) {
     if (e) e.stopPropagation();
     if (activePage === 'summary') {
-        // טאב הרשימות שלי — יצירת רשימה חדשה
+        // ׳˜׳׳‘ ׳”׳¨׳©׳™׳׳•׳× ׳©׳׳™ ג€” ׳™׳¦׳™׳¨׳× ׳¨׳©׳™׳׳” ׳—׳“׳©׳”
         if (wizardMode) {
             wiz('newList', 'before', () => openModal('newListModal'));
         } else {
             openModal('newListModal');
         }
     } else {
-        // טאב הרשימה שלי — הוספת מוצר
+        // ׳˜׳׳‘ ׳”׳¨׳©׳™׳׳” ׳©׳׳™ ג€” ׳”׳•׳¡׳₪׳× ׳׳•׳¦׳¨
         if (wizardMode) {
             wiz('plusBtn', 'before', () => openModal('inputForm'));
         } else {
@@ -4992,7 +5005,7 @@ function handlePlusBtn(e) {
     }
 }
 
-// ── Wrap core functions with wizard before/after ───────────────────
+// ג”€ג”€ Wrap core functions with wizard before/after ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€
 const _orig = {};
 
 // toggleItem
@@ -5064,7 +5077,7 @@ if (typeof toggleLock === 'function') {
     };
 }
 
-// openNotificationCenter — NOT wizard-intercepted (must open immediately, also from lock screen)
+// openNotificationCenter ג€” NOT wizard-intercepted (must open immediately, also from lock screen)
 
 // openEditItemNameModal
 if (typeof openEditItemNameModal === 'function') {
@@ -5162,7 +5175,7 @@ if (_origOpenModal) {
     };
 }
 
-// changeQty — wrap for qty tips
+// changeQty ג€” wrap for qty tips
 if (typeof changeQty === 'function') {
     _orig.changeQty = changeQty;
     window.changeQty = function(idx, d) {
@@ -5174,7 +5187,7 @@ if (typeof changeQty === 'function') {
     };
 }
 
-// ── Patch render to keep wizard mode indicator ─────────────────────
+// ג”€ג”€ Patch render to keep wizard mode indicator ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€
 if (typeof render === 'function') {
     const _origRender = render;
     window.render = function() {
@@ -5185,7 +5198,7 @@ if (typeof render === 'function') {
     };
 }
 
-// ── Stubs for legacy HTML compatibility ────────────────────────────
+// ג”€ג”€ Stubs for legacy HTML compatibility ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€
 function openWizard(type) {
     const map = {
         'addItem':      () => handlePlusBtn(null),
@@ -5202,7 +5215,7 @@ function wizardOverlayClick(e) {
     if (e && e.target === document.getElementById('wizardOverlay')) closeWizard();
 }
 
-// ── Init on DOMContentLoaded ───────────────────────────────────────
+// ג”€ג”€ Init on DOMContentLoaded ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€
 document.addEventListener('DOMContentLoaded', () => {
     const firstTime = !localStorage.getItem('wizardModeEverSet');
     if (firstTime) {
@@ -5215,7 +5228,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const btn = document.getElementById('wizardModeBtn');
         const txt = document.getElementById('wizardBtnText');
         if (btn) btn.classList.add('wizard-active');
-        if (txt) txt.textContent = 'מדריך';
+        if (txt) txt.textContent = '׳׳“׳¨׳™׳';
         document.body.classList.add('wizard-mode-active');
         // Show welcome on first time
         if (firstTime) {
@@ -5227,9 +5240,9 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 });
 
-// ══════════════════════════════════════════════════════════════
-// 🎙️ VOICE ACTION BUTTONS — "קניתי" & "לקנות"
-// ══════════════════════════════════════════════════════════════
+// ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•
+// נ™ן¸ VOICE ACTION BUTTONS ג€” "׳§׳ ׳™׳×׳™" & "׳׳§׳ ׳•׳×"
+// ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•
 
 let _voiceActionRecognition = null;
 let _voiceActionMode = null; // 'bought' | 'tobuy'
@@ -5237,7 +5250,7 @@ let _voiceActionActive = false;
 
 function initVoiceAction() {
     if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
-        showNotification('הדפדפן לא תומך בזיהוי קולי', 'error');
+        showNotification('׳”׳“׳₪׳“׳₪׳ ׳׳ ׳×׳•׳׳ ׳‘׳–׳™׳”׳•׳™ ׳§׳•׳׳™', 'error');
         return null;
     }
     const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -5250,7 +5263,7 @@ function initVoiceAction() {
     return r;
 }
 
-// Fuzzy match — returns best matching item index or -1
+// Fuzzy match ג€” returns best matching item index or -1
 function _fuzzyFindItem(transcript, items) {
     const q = transcript.trim().toLowerCase();
     let bestIdx = -1, bestScore = 0;
@@ -5286,7 +5299,7 @@ function _levenshtein(a, b) {
 function startVoiceAction(mode) {
     // mode = 'bought' | 'tobuy'
     if (!db.currentId || !db.lists[db.currentId]) {
-        showNotification('אין רשימה פעילה', 'error'); return;
+        showNotification('׳׳™׳ ׳¨׳©׳™׳׳” ׳₪׳¢׳™׳׳”', 'error'); return;
     }
 
     if (_voiceActionActive) {
@@ -5300,7 +5313,7 @@ function startVoiceAction(mode) {
     _voiceActionActive = true;
     _updateVoiceActionBtns(true);
 
-    const label = mode === 'bought' ? '🛒 אמור שם מוצר שקנית...' : '📋 אמור שם מוצר לרשימה...';
+    const label = mode === 'bought' ? 'נ›’ ׳׳׳•׳¨ ׳©׳ ׳׳•׳¦׳¨ ׳©׳§׳ ׳™׳×...' : 'נ“‹ ׳׳׳•׳¨ ׳©׳ ׳׳•׳¦׳¨ ׳׳¨׳©׳™׳׳”...';
     showNotification(label, 'success');
 
     _voiceActionRecognition.onresult = (e) => {
@@ -5311,8 +5324,8 @@ function startVoiceAction(mode) {
 
     _voiceActionRecognition.onerror = (e) => {
         _stopVoiceAction();
-        if (e.error === 'no-speech') showNotification('לא זוהה דיבור', 'warning');
-        else showNotification('שגיאת זיהוי קולי', 'error');
+        if (e.error === 'no-speech') showNotification('׳׳ ׳–׳•׳”׳” ׳“׳™׳‘׳•׳¨', 'warning');
+        else showNotification('׳©׳’׳™׳׳× ׳–׳™׳”׳•׳™ ׳§׳•׳׳™', 'error');
     };
 
     _voiceActionRecognition.onend = () => { _stopVoiceAction(); };
@@ -5350,12 +5363,12 @@ function _handleVoiceActionResult(transcripts, mode) {
 
     if (mode === 'bought') {
         if (bestIdx === -1) {
-            showNotification(`❌ לא מצאתי "${transcript}" ברשימה`, 'error');
+            showNotification(`ג ׳׳ ׳׳¦׳׳×׳™ "${transcript}" ׳‘׳¨׳©׳™׳׳”`, 'error');
             return;
         }
         const item = items[bestIdx];
         if (item.checked) {
-            showNotification(`ℹ️ "${item.name}" כבר מסומן כנרכש`, 'warning');
+            showNotification(`ג„¹ן¸ "${item.name}" ׳›׳‘׳¨ ׳׳¡׳•׳׳ ׳›׳ ׳¨׳›׳©`, 'warning');
             return;
         }
         // Mark as bought
@@ -5371,9 +5384,9 @@ function _handleVoiceActionResult(transcripts, mode) {
         if (bestIdx !== -1) {
             const item = items[bestIdx];
             if (!item.checked) {
-                showNotification(`ℹ️ "${item.name}" כבר ברשימה וממתין לרכישה`, 'warning');
+                showNotification(`ג„¹ן¸ "${item.name}" ׳›׳‘׳¨ ׳‘׳¨׳©׳™׳׳” ׳•׳׳׳×׳™׳ ׳׳¨׳›׳™׳©׳”`, 'warning');
             } else {
-                // Uncheck — move back to "to buy"
+                // Uncheck ג€” move back to "to buy"
                 item.checked = false;
                 lastCheckedItem = item;
                 lastCheckedIdx = bestIdx;
@@ -5383,7 +5396,7 @@ function _handleVoiceActionResult(transcripts, mode) {
                 showUndoCheckNotification(item.name, false);
             }
         } else {
-            // Not found — offer to add
+            // Not found ג€” offer to add
             _showAddItemPrompt(transcript);
         }
     }
@@ -5392,10 +5405,10 @@ function _handleVoiceActionResult(transcripts, mode) {
 function _showAddItemPrompt(name) {
     // Use existing toast system with a custom action
     _showToast({
-        message: `"${name}" לא ברשימה — להוסיף?`,
+        message: `"${name}" ׳׳ ׳‘׳¨׳©׳™׳׳” ג€” ׳׳”׳•׳¡׳™׳£?`,
         type: 'warning',
         undoCallback: () => _addItemByVoice(name),
-        undoLabel: '➕ הוסף',
+        undoLabel: 'ג• ׳”׳•׳¡׳£',
         duration: 7000
     });
 }
@@ -5418,39 +5431,39 @@ function _addItemByVoice(name) {
         cloudId: 'item_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9)
     });
     save();
-    showNotification(`✅ "${trimmed}" נוסף לרשימה!`, 'success');
+    showNotification(`ג… "${trimmed}" ׳ ׳•׳¡׳£ ׳׳¨׳©׳™׳׳”!`, 'success');
 }
 // ========== Bank Sync Functions ==========
 
 
-// ═══════════════════════════════════════════════════════
-// 💰 FINANCIAL MODALS — Credit Card + Bank Scraper
-// ═══════════════════════════════════════════════════════
+// ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•
+// נ’° FINANCIAL MODALS ג€” Credit Card + Bank Scraper
+// ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•
 
 let selectedCreditCompany = null;
 let selectedBank = null;
 
 const BANK_CONFIG = {
-    hapoalim:     { field1: 'userCode',  field1Label: 'קוד משתמש',    field2: null,  field2Label: '',                     hint: 'קוד המשתמש שלך באינטרנט פועלים' },
-    leumi:        { field1: 'username',  field1Label: 'שם משתמש',      field2: null,  field2Label: '',                     hint: 'שם המשתמש שלך בלאומי דיגיטל' },
-    mizrahi:      { field1: 'username',  field1Label: 'שם משתמש',      field2: null,  field2Label: '',                     hint: '' },
-    discount:     { field1: 'id',        field1Label: 'תעודת זהות',     field2: 'num', field2Label: 'מספר סניף (3 ספרות)', hint: 'נדרש: ת"ז + מספר סניף + סיסמה' },
-    otsarHahayal: { field1: 'username',  field1Label: 'שם משתמש',      field2: null,  field2Label: '',                     hint: '' },
-    yahav:        { field1: 'username',  field1Label: 'שם משתמש',      field2: null,  field2Label: '',                     hint: '' },
-    massad:       { field1: 'username',  field1Label: 'שם משתמש',      field2: null,  field2Label: '',                     hint: '' },
-    unionBank:    { field1: 'username',  field1Label: 'שם משתמש',      field2: null,  field2Label: '',                     hint: '' },
-    beinleumi:    { field1: 'username',  field1Label: 'שם משתמש',      field2: null,  field2Label: '',                     hint: '' },
+    hapoalim:     { field1: 'userCode',  field1Label: '׳§׳•׳“ ׳׳©׳×׳׳©',    field2: null,  field2Label: '',                     hint: '׳§׳•׳“ ׳”׳׳©׳×׳׳© ׳©׳׳ ׳‘׳׳™׳ ׳˜׳¨׳ ׳˜ ׳₪׳•׳¢׳׳™׳' },
+    leumi:        { field1: 'username',  field1Label: '׳©׳ ׳׳©׳×׳׳©',      field2: null,  field2Label: '',                     hint: '׳©׳ ׳”׳׳©׳×׳׳© ׳©׳׳ ׳‘׳׳׳•׳׳™ ׳“׳™׳’׳™׳˜׳' },
+    mizrahi:      { field1: 'username',  field1Label: '׳©׳ ׳׳©׳×׳׳©',      field2: null,  field2Label: '',                     hint: '' },
+    discount:     { field1: 'id',        field1Label: '׳×׳¢׳•׳“׳× ׳–׳”׳•׳×',     field2: 'num', field2Label: '׳׳¡׳₪׳¨ ׳¡׳ ׳™׳£ (3 ׳¡׳₪׳¨׳•׳×)', hint: '׳ ׳“׳¨׳©: ׳×"׳– + ׳׳¡׳₪׳¨ ׳¡׳ ׳™׳£ + ׳¡׳™׳¡׳׳”' },
+    otsarHahayal: { field1: 'username',  field1Label: '׳©׳ ׳׳©׳×׳׳©',      field2: null,  field2Label: '',                     hint: '' },
+    yahav:        { field1: 'username',  field1Label: '׳©׳ ׳׳©׳×׳׳©',      field2: null,  field2Label: '',                     hint: '' },
+    massad:       { field1: 'username',  field1Label: '׳©׳ ׳׳©׳×׳׳©',      field2: null,  field2Label: '',                     hint: '' },
+    unionBank:    { field1: 'username',  field1Label: '׳©׳ ׳׳©׳×׳׳©',      field2: null,  field2Label: '',                     hint: '' },
+    beinleumi:    { field1: 'username',  field1Label: '׳©׳ ׳׳©׳×׳׳©',      field2: null,  field2Label: '',                     hint: '' },
 };
 
 const BANK_NAMES = {
-    hapoalim: 'פועלים', leumi: 'לאומי', mizrahi: 'מזרחי',
-    discount: 'דיסקונט', otsarHahayal: 'אוצר החייל',
-    yahav: 'יהב', massad: 'מסד', unionBank: 'איגוד', beinleumi: 'בינלאומי'
+    hapoalim: '׳₪׳•׳¢׳׳™׳', leumi: '׳׳׳•׳׳™', mizrahi: '׳׳–׳¨׳—׳™',
+    discount: '׳“׳™׳¡׳§׳•׳ ׳˜', otsarHahayal: '׳׳•׳¦׳¨ ׳”׳—׳™׳™׳',
+    yahav: '׳™׳”׳‘', massad: '׳׳¡׳“', unionBank: '׳׳™׳’׳•׳“', beinleumi: '׳‘׳™׳ ׳׳׳•׳׳™'
 };
 
-const CREDIT_NAMES = { max: 'Max', visaCal: 'Cal', leumincard: 'לאומי קארד', isracard: 'ישראכרט' };
+const CREDIT_NAMES = { max: 'Max', visaCal: 'Cal', leumincard: '׳׳׳•׳׳™ ׳§׳׳¨׳“', isracard: '׳™׳©׳¨׳׳›׳¨׳˜' };
 
-// ── Legacy stub (keep pageBank button working) ──
+// ג”€ג”€ Legacy stub (keep pageBank button working) ג”€ג”€
 function openBankModal() { openModal('financialChoiceModal'); }
 function closeBankModal() { closeModal('financialChoiceModal'); }
 function openBankConnectModal() {
@@ -5459,20 +5472,20 @@ function openBankConnectModal() {
     document.getElementById('bankConnectPassword').value = '';
     document.getElementById('bankField2').value = '';
     document.getElementById('bankField2Wrap').style.display = 'none';
-    document.getElementById('bankField1').placeholder = 'שם משתמש';
+    document.getElementById('bankField1').placeholder = '׳©׳ ׳׳©׳×׳׳©';
     document.getElementById('bankConnectHint').style.display = 'none';
     document.querySelectorAll('#bankConnectModal .fin-btn').forEach(b => b.classList.remove('selected'));
     openModal('bankConnectModal');
 }
 
-// ── Credit company selector ──
+// ג”€ג”€ Credit company selector ג”€ג”€
 function selectCreditCompany(id, btn) {
     selectedCreditCompany = id;
     document.querySelectorAll('#creditCardModal .fin-btn').forEach(b => b.classList.remove('selected'));
     btn.classList.add('selected');
 }
 
-// ── Bank selector ──
+// ג”€ג”€ Bank selector ג”€ג”€
 function selectBank(bankId, btn) {
     selectedBank = bankId;
     document.querySelectorAll('#bankConnectModal .fin-btn').forEach(b => b.classList.remove('selected'));
@@ -5490,11 +5503,11 @@ function selectBank(bankId, btn) {
         f2.value = '';
     }
     const hint = document.getElementById('bankConnectHint');
-    if (cfg.hint) { hint.textContent = 'ℹ️ ' + cfg.hint; hint.style.display = 'block'; }
+    if (cfg.hint) { hint.textContent = 'ג„¹ן¸ ' + cfg.hint; hint.style.display = 'block'; }
     else { hint.style.display = 'none'; }
 }
 
-// ── Progress helpers ──
+// ג”€ג”€ Progress helpers ג”€ג”€
 function showFinProgress() {
     const el = document.getElementById('finProgressOverlay');
     if (el) { el.style.display = 'flex'; }
@@ -5513,16 +5526,16 @@ function setFinStage(step, icon, title, sub, pct) {
         const stage = document.getElementById('finStage' + i);
         dot.style.background = i < step ? '#7367f0' : i === step ? '#0ea5e9' : '#f3f4f6';
         dot.style.color = i <= step ? 'white' : '#9ca3af';
-        dot.textContent = i < step ? '✓' : String(i);
+        dot.textContent = i < step ? 'ג“' : String(i);
     }
 }
 
-// ── Debug log panel ──
-// ── Global debug log ──────────────────────────────────────────────
+// ג”€ג”€ Debug log panel ג”€ג”€
+// ג”€ג”€ Global debug log ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€
 const _globalDebugLogs = [];
 function dbgLog(msg, color) {
     const type = color === '#ff4444' ? 'error' : color === '#ffaa00' ? 'warn' : 'info';
-    const icon = color === '#ff4444' ? '🔴' : color === '#ffaa00' ? '🟡' : color === '#22c55e' ? '🟢' : '•';
+    const icon = color === '#ff4444' ? 'נ”´' : color === '#ffaa00' ? 'נ¡' : color === '#22c55e' ? 'נ¢' : 'ג€¢';
     _globalDebugLogs.push({ msg, type, icon, time: new Date().toLocaleTimeString('he-IL') });
     showDebugLog(_globalDebugLogs);
 }
@@ -5552,7 +5565,7 @@ function showDebugLog(logs) {
             'touch-action:none',
         ].join(';');
 
-        // ── Header (ידית גרירה) ──
+        // ג”€ג”€ Header (׳™׳“׳™׳× ׳’׳¨׳™׳¨׳”) ג”€ג”€
         const header = document.createElement('div');
         header.style.cssText = [
             'display:flex',
@@ -5567,24 +5580,24 @@ function showDebugLog(logs) {
         ].join(';');
 
         const title = document.createElement('span');
-        title.innerHTML = '⠿ 🐛 Debug Log';
+        title.innerHTML = 'ג ¿ נ› Debug Log';
         title.style.cssText = 'color:#e94560;font-weight:bold;font-size:12px;';
 
         const btnWrap = document.createElement('div');
         btnWrap.style.cssText = 'display:flex;gap:4px;';
 
         const copyBtn = document.createElement('button');
-        copyBtn.textContent = '📋';
-        copyBtn.title = 'העתק';
+        copyBtn.textContent = 'נ“‹';
+        copyBtn.title = '׳”׳¢׳×׳§';
         copyBtn.style.cssText = 'background:#1a6b8a;color:white;border:none;padding:3px 7px;border-radius:4px;cursor:pointer;font-size:11px;';
         copyBtn.onclick = () => {
             const c = document.getElementById('debugLogContent');
-            if (c) navigator.clipboard?.writeText(c.innerText).then(() => alert('הועתק!'));
+            if (c) navigator.clipboard?.writeText(c.innerText).then(() => alert('׳”׳•׳¢׳×׳§!'));
         };
 
         const clearBtn = document.createElement('button');
-        clearBtn.textContent = '🗑';
-        clearBtn.title = 'נקה';
+        clearBtn.textContent = 'נ—‘';
+        clearBtn.title = '׳ ׳§׳”';
         clearBtn.style.cssText = 'background:#555;color:white;border:none;padding:3px 7px;border-radius:4px;cursor:pointer;font-size:11px;';
         clearBtn.onclick = () => {
             _globalDebugLogs.length = 0;
@@ -5593,7 +5606,7 @@ function showDebugLog(logs) {
         };
 
         const closeBtn = document.createElement('button');
-        closeBtn.textContent = '✕';
+        closeBtn.textContent = 'ג•';
         closeBtn.style.cssText = 'background:#e94560;color:white;border:none;padding:3px 7px;border-radius:4px;cursor:pointer;font-size:11px;';
         closeBtn.onclick = () => { const p = document.getElementById('debugLogPanel'); if (p) p.remove(); };
 
@@ -5603,7 +5616,7 @@ function showDebugLog(logs) {
         header.appendChild(title);
         header.appendChild(btnWrap);
 
-        // ── Content ──
+        // ג”€ג”€ Content ג”€ג”€
         const content = document.createElement('div');
         content.id = 'debugLogContent';
         content.style.cssText = 'overflow-y:auto;flex:1;padding:6px 8px;direction:ltr;text-align:left;';
@@ -5612,7 +5625,7 @@ function showDebugLog(logs) {
         panel.appendChild(content);
         document.body.appendChild(panel);
 
-        // ── Drag logic (touch + mouse) ──
+        // ג”€ג”€ Drag logic (touch + mouse) ג”€ג”€
         let dragging = false, startX, startY, origLeft, origTop, origRight, origBottom;
 
         function dragStart(clientX, clientY) {
@@ -5622,7 +5635,7 @@ function showDebugLog(logs) {
             const rect = panel.getBoundingClientRect();
             origLeft = rect.left;
             origTop  = rect.top;
-            // עבור ל-left/top מדויק, בטל right
+            // ׳¢׳‘׳•׳¨ ׳-left/top ׳׳“׳•׳™׳§, ׳‘׳˜׳ right
             panel.style.left   = origLeft + 'px';
             panel.style.top    = origTop  + 'px';
             panel.style.right  = 'auto';
@@ -5669,15 +5682,15 @@ function showDebugLog(logs) {
     if (!content) return;
     content.innerHTML = logs.map(l => {
         const color = l.type==='error'?'#ff6b6b':l.type==='warn'?'#ffd93d':l.type==='success'?'#6bcb77':'#a8dadc';
-        return `<div style="color:${color};padding:2px 0;border-bottom:1px solid #2a2a4a;">${l.icon||'•'} [${l.time}] ${l.msg}</div>`;
+        return `<div style="color:${color};padding:2px 0;border-bottom:1px solid #2a2a4a;">${l.icon||'ג€¢'} [${l.time}] ${l.msg}</div>`;
     }).join('');
     content.scrollTop = content.scrollHeight;
 }
 
-// ── Shared fetch helper ──
+// ג”€ג”€ Shared fetch helper ג”€ג”€
 async function runFinancialFetch({ companyId, credentials, modalId, nameLabel }) {
     const debugLogs = [];
-    const log = (msg, type='info', icon='•') => {
+    const log = (msg, type='info', icon='ג€¢') => {
         debugLogs.push({ msg, type, icon, time: new Date().toLocaleTimeString('he-IL') });
         showDebugLog(debugLogs);
     };
@@ -5687,23 +5700,23 @@ async function runFinancialFetch({ companyId, credentials, modalId, nameLabel })
 
     try {
         const user = window.firebaseAuth?.currentUser;
-        log(`חברה: ${companyId}`, 'info', '🏦');
-        log(`currentUser: ${user ? user.email : 'null'}`, user ? 'success' : 'error', user ? '👤' : '❌');
-        if (!user) { hideFinProgress(); showNotification('❌ יש להתחבר לחשבון תחילה', 'error'); return; }
+        log(`׳—׳‘׳¨׳”: ${companyId}`, 'info', 'נ¦');
+        log(`currentUser: ${user ? user.email : 'null'}`, user ? 'success' : 'error', user ? 'נ‘₪' : 'ג');
+        if (!user) { hideFinProgress(); showNotification('ג ׳™׳© ׳׳”׳×׳—׳‘׳¨ ׳׳—׳©׳‘׳•׳ ׳×׳—׳™׳׳”', 'error'); return; }
 
         const userId = user.uid;
         const jobId  = 'job_' + Date.now();
 
-        setFinStage(1, '🔐', 'שולח לסנכרון...', 'מפעיל GitHub Actions', '15%');
+        setFinStage(1, 'נ”', '׳©׳•׳׳— ׳׳¡׳ ׳›׳¨׳•׳...', '׳׳₪׳¢׳™׳ GitHub Actions', '15%');
 
-        // ── שלח ל-GitHub Actions ──────────────────────────────────
+        // ג”€ג”€ ׳©׳׳— ׳-GitHub Actions ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€
         const GITHUB_TOKEN = window.GITHUB_PAT || '';
         const REPO         = 'ronmailx-boop/Shopping-list';
 
         if (!GITHUB_TOKEN) {
-            log('⚠️ חסר GITHUB_PAT — עיין בהגדרות', 'error', '❌');
+            log('ג ן¸ ׳—׳¡׳¨ GITHUB_PAT ג€” ׳¢׳™׳™׳ ׳‘׳”׳’׳“׳¨׳•׳×', 'error', 'ג');
             hideFinProgress();
-            showNotification('❌ חסר GitHub Token — הגדר GITHUB_PAT', 'error');
+            showNotification('ג ׳—׳¡׳¨ GitHub Token ג€” ׳”׳’׳“׳¨ GITHUB_PAT', 'error');
             return;
         }
 
@@ -5721,7 +5734,7 @@ async function runFinancialFetch({ companyId, credentials, modalId, nameLabel })
             }
         };
 
-        log('שולח ל-GitHub Actions...', 'info', '🚀');
+        log('׳©׳•׳׳— ׳-GitHub Actions...', 'info', 'נ€');
         const ghRes = await fetch(`https://api.github.com/repos/${REPO}/dispatches`, {
             method: 'POST',
             headers: {
@@ -5734,21 +5747,21 @@ async function runFinancialFetch({ companyId, credentials, modalId, nameLabel })
 
         if (!ghRes.ok) {
             const errText = await ghRes.text();
-            log(`שגיאת GitHub: ${ghRes.status} — ${errText}`, 'error', '❌');
+            log(`׳©׳’׳™׳׳× GitHub: ${ghRes.status} ג€” ${errText}`, 'error', 'ג');
             hideFinProgress();
-            showNotification('❌ שגיאת GitHub Actions', 'error');
+            showNotification('ג ׳©׳’׳™׳׳× GitHub Actions', 'error');
             return;
         }
 
-        log('GitHub Actions הופעל ✅', 'success', '🚀');
-        setFinStage(2, '⏳', 'ממתין לתוצאות...', 'זה לוקח עד 3 דקות', '40%');
+        log('GitHub Actions ׳”׳•׳₪׳¢׳ ג…', 'success', 'נ€');
+        setFinStage(2, 'ג³', '׳׳׳×׳™׳ ׳׳×׳•׳¦׳׳•׳×...', '׳–׳” ׳׳•׳§׳— ׳¢׳“ 3 ׳“׳§׳•׳×', '40%');
 
-        // ── המתן לתוצאות ב-Firestore ─────────────────────────────
+        // ג”€ג”€ ׳”׳׳×׳ ׳׳×׳•׳¦׳׳•׳× ׳‘-Firestore ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€
         const { doc, onSnapshot } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js');
         const jobRef = doc(window.firebaseDb, 'bankSync', userId, 'jobs', jobId);
 
         const transactions = await new Promise((resolve, reject) => {
-            const TIMEOUT = 8 * 60 * 1000; // 8 דקות
+            const TIMEOUT = 8 * 60 * 1000; // 8 ׳“׳§׳•׳×
             let settled = false;
 
             const timer = setTimeout(() => {
@@ -5758,10 +5771,10 @@ async function runFinancialFetch({ companyId, credentials, modalId, nameLabel })
             const unsubscribe = onSnapshot(jobRef, (snap) => {
                 if (!snap.exists()) return;
                 const data = snap.data();
-                log(`סטטוס: ${data.status}`, 'info', '📊');
+                log(`׳¡׳˜׳˜׳•׳¡: ${data.status}`, 'info', 'נ“');
 
                 if (data.status === 'running') {
-                    setFinStage(2, '🔐', 'מתחבר לבנק...', 'GitHub Actions פועל', '55%');
+                    setFinStage(2, 'נ”', '׳׳×׳—׳‘׳¨ ׳׳‘׳ ׳§...', 'GitHub Actions ׳₪׳•׳¢׳', '55%');
                 }
 
                 if (data.status === 'done') {
@@ -5769,11 +5782,11 @@ async function runFinancialFetch({ companyId, credentials, modalId, nameLabel })
                         settled = true;
                         clearTimeout(timer);
                         unsubscribe();
-                        // כל account → אובייקט נפרד עם מספר כרטיס + עסקאות ממוינות
+                        // ׳›׳ account ג†’ ׳׳•׳‘׳™׳™׳§׳˜ ׳ ׳₪׳¨׳“ ׳¢׳ ׳׳¡׳₪׳¨ ׳›׳¨׳˜׳™׳¡ + ׳¢׳¡׳§׳׳•׳× ׳׳׳•׳™׳ ׳•׳×
                         const accounts = (data.accounts || []).map(acc => {
                             const txns = (acc.txns || [])
                                 .map(t => ({
-                                    name:   t.description || 'עסקה',
+                                    name:   t.description || '׳¢׳¡׳§׳”',
                                     amount: Math.abs(t.amount || 0),
                                     price:  Math.abs(t.amount || 0),
                                     date:   t.date || '',
@@ -5785,7 +5798,7 @@ async function runFinancialFetch({ companyId, credentials, modalId, nameLabel })
                             };
                         });
                         const totalTxns = accounts.reduce((s, a) => s + a.txns.length, 0);
-                        log(`התקבלו ${totalTxns} עסקאות ב-${accounts.length} כרטיסים ✅`, 'success', '✅');
+                        log(`׳”׳×׳§׳‘׳׳• ${totalTxns} ׳¢׳¡׳§׳׳•׳× ׳‘-${accounts.length} ׳›׳¨׳˜׳™׳¡׳™׳ ג…`, 'success', 'ג…');
                         resolve(accounts);
                     }
                 }
@@ -5795,7 +5808,7 @@ async function runFinancialFetch({ companyId, credentials, modalId, nameLabel })
                         settled = true;
                         clearTimeout(timer);
                         unsubscribe();
-                        reject(new Error(data.errorMessage || data.errorType || 'שגיאה'));
+                        reject(new Error(data.errorMessage || data.errorType || '׳©׳’׳™׳׳”'));
                     }
                 }
             }, (err) => {
@@ -5803,16 +5816,16 @@ async function runFinancialFetch({ companyId, credentials, modalId, nameLabel })
             });
         });
 
-        // ── הצג סיום ─────────────────────────────────────────────
-        setFinStage(3, '⚙️', 'מעבד נתונים...', 'עוד רגע...', '85%');
+        // ג”€ג”€ ׳”׳¦׳’ ׳¡׳™׳•׳ ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€
+        setFinStage(3, 'ג™ן¸', '׳׳¢׳‘׳“ ׳ ׳×׳•׳ ׳™׳...', '׳¢׳•׳“ ׳¨׳’׳¢...', '85%');
         await new Promise(r => setTimeout(r, 800));
 
         document.getElementById('finProgressBar').style.width = '100%';
-        document.getElementById('finProgressIcon').textContent = '✅';
-        document.getElementById('finProgressTitle').textContent = 'הושלם בהצלחה!';
-        document.getElementById('finProgressSub').textContent = `יובאו ${transactions.length} עסקאות`;
+        document.getElementById('finProgressIcon').textContent = 'ג…';
+        document.getElementById('finProgressTitle').textContent = '׳”׳•׳©׳׳ ׳‘׳”׳¦׳׳—׳”!';
+        document.getElementById('finProgressSub').textContent = `׳™׳•׳‘׳׳• ${transactions.length} ׳¢׳¡׳§׳׳•׳×`;
         for (let i = 1; i <= 3; i++) {
-            document.getElementById('finDot' + i).textContent = '✓';
+            document.getElementById('finDot' + i).textContent = 'ג“';
             document.getElementById('finDot' + i).style.background = '#7367f0';
             document.getElementById('finDot' + i).style.color = 'white';
         }
@@ -5820,13 +5833,13 @@ async function runFinancialFetch({ companyId, credentials, modalId, nameLabel })
         hideFinProgress();
 
         if (transactions.length > 0) {
-            // כל account+חודש מקבל רשימה נפרדת
-            const MONTHS_HE = ['ינואר','פברואר','מרץ','אפריל','מאי','יוני','יולי','אוגוסט','ספטמבר','אוקטובר','נובמבר','דצמבר'];
+            // ׳›׳ account+׳—׳•׳“׳© ׳׳§׳‘׳ ׳¨׳©׳™׳׳” ׳ ׳₪׳¨׳“׳×
+            const MONTHS_HE = ['׳™׳ ׳•׳׳¨','׳₪׳‘׳¨׳•׳׳¨','׳׳¨׳¥','׳׳₪׳¨׳™׳','׳׳׳™','׳™׳•׳ ׳™','׳™׳•׳׳™','׳׳•׳’׳•׳¡׳˜','׳¡׳₪׳˜׳׳‘׳¨','׳׳•׳§׳˜׳•׳‘׳¨','׳ ׳•׳‘׳׳‘׳¨','׳“׳¦׳׳‘׳¨'];
             let totalImported = 0;
             transactions.forEach(acc => {
                 if (!acc.txns || acc.txns.length === 0) return;
                 const cardSuffix = acc.accountNumber ? ` ${acc.accountNumber}` : '';
-                // קבץ לפי חודש
+                // ׳§׳‘׳¥ ׳׳₪׳™ ׳—׳•׳“׳©
                 const byMonth = {};
                 acc.txns.forEach(t => {
                     const d = new Date(t.date);
@@ -5834,54 +5847,54 @@ async function runFinancialFetch({ companyId, credentials, modalId, nameLabel })
                     if (!byMonth[key]) byMonth[key] = { year: d.getFullYear(), month: d.getMonth(), txns: [] };
                     byMonth[key].txns.push(t);
                 });
-                // מיון מחודש חדש לישן
+                // ׳׳™׳•׳ ׳׳—׳•׳“׳© ׳—׳“׳© ׳׳™׳©׳
                 Object.values(byMonth)
                     .sort((a, b) => b.year !== a.year ? b.year - a.year : b.month - a.month)
                     .forEach(({ year, month, txns }) => {
                         const monthLabel = `${MONTHS_HE[month]} ${year}`;
                         const listName = `${nameLabel}${cardSuffix} - ${monthLabel}`;
-                        // מיין עסקאות מחדש לישן
+                        // ׳׳™׳™׳ ׳¢׳¡׳§׳׳•׳× ׳׳—׳“׳© ׳׳™׳©׳
                         txns.sort((a, b) => new Date(b.date) - new Date(a.date));
                         importFinancialTransactions(txns, listName);
                         totalImported += txns.length;
                     });
             });
-            if (totalImported === 0) showNotification('ℹ️ לא נמצאו עסקאות', 'warning');
+            if (totalImported === 0) showNotification('ג„¹ן¸ ׳׳ ׳ ׳׳¦׳׳• ׳¢׳¡׳§׳׳•׳×', 'warning');
         } else {
-            showNotification('ℹ️ לא נמצאו עסקאות', 'warning');
+            showNotification('ג„¹ן¸ ׳׳ ׳ ׳׳¦׳׳• ׳¢׳¡׳§׳׳•׳×', 'warning');
         }
 
     } catch (err) {
-        const msg = err.message === 'timeout' ? 'פסק הזמן — נסה שוב' : err.message;
-        log(`שגיאה: ${msg}`, 'error', '💥');
+        const msg = err.message === 'timeout' ? '׳₪׳¡׳§ ׳”׳–׳׳ ג€” ׳ ׳¡׳” ׳©׳•׳‘' : err.message;
+        log(`׳©׳’׳™׳׳”: ${msg}`, 'error', 'נ’¥');
         hideFinProgress();
-        showNotification('❌ ' + msg, 'error');
+        showNotification('ג ' + msg, 'error');
     }
 }
 
-// ── Credit card fetch ──
+// ג”€ג”€ Credit card fetch ג”€ג”€
 async function startCreditCardFetch() {
-    if (!selectedCreditCompany) { showNotification('⚠️ בחר חברת אשראי תחילה', 'warning'); return; }
+    if (!selectedCreditCompany) { showNotification('ג ן¸ ׳‘׳—׳¨ ׳—׳‘׳¨׳× ׳׳©׳¨׳׳™ ׳×׳—׳™׳׳”', 'warning'); return; }
     const username = document.getElementById('creditUsername').value.trim();
     const password = document.getElementById('creditPassword').value.trim();
-    if (!username || !password) { showNotification('⚠️ הזן שם משתמש וסיסמה', 'warning'); return; }
+    if (!username || !password) { showNotification('ג ן¸ ׳”׳–׳ ׳©׳ ׳׳©׳×׳׳© ׳•׳¡׳™׳¡׳׳”', 'warning'); return; }
     await runFinancialFetch({
         companyId: selectedCreditCompany,
         credentials: { username, password },
         modalId: 'creditCardModal',
-        nameLabel: '💳 ' + (CREDIT_NAMES[selectedCreditCompany] || 'אשראי')
+        nameLabel: 'נ’³ ' + (CREDIT_NAMES[selectedCreditCompany] || '׳׳©׳¨׳׳™')
     });
 }
 
-// ── Bank fetch ──
+// ג”€ג”€ Bank fetch ג”€ג”€
 async function startBankFetch() {
-    if (!selectedBank) { showNotification('⚠️ בחר בנק תחילה', 'warning'); return; }
+    if (!selectedBank) { showNotification('ג ן¸ ׳‘׳—׳¨ ׳‘׳ ׳§ ׳×׳—׳™׳׳”', 'warning'); return; }
     const cfg = BANK_CONFIG[selectedBank];
     const field1Val = document.getElementById('bankField1').value.trim();
     const password  = document.getElementById('bankConnectPassword').value.trim();
     const field2Val = document.getElementById('bankField2').value.trim();
-    if (!field1Val || !password) { showNotification('⚠️ הזן את כל פרטי ההתחברות', 'warning'); return; }
-    if (cfg.field2 && !field2Val) { showNotification('⚠️ ' + cfg.field2Label + ' נדרש', 'warning'); return; }
+    if (!field1Val || !password) { showNotification('ג ן¸ ׳”׳–׳ ׳׳× ׳›׳ ׳₪׳¨׳˜׳™ ׳”׳”׳×׳—׳‘׳¨׳•׳×', 'warning'); return; }
+    if (cfg.field2 && !field2Val) { showNotification('ג ן¸ ' + cfg.field2Label + ' ׳ ׳“׳¨׳©', 'warning'); return; }
     const credentials = { password };
     credentials[cfg.field1] = field1Val;
     if (cfg.field2) credentials[cfg.field2] = field2Val;
@@ -5889,20 +5902,20 @@ async function startBankFetch() {
         companyId: selectedBank,
         credentials,
         modalId: 'bankConnectModal',
-        nameLabel: '🏛️ ' + (BANK_NAMES[selectedBank] || 'בנק')
+        nameLabel: 'נ›ן¸ ' + (BANK_NAMES[selectedBank] || '׳‘׳ ׳§')
     });
 }
 
-// ── Import transactions to list ──
+// ג”€ג”€ Import transactions to list ג”€ג”€
 function importFinancialTransactions(transactions, nameLabel) {
     const today = new Date().toLocaleDateString('he-IL');
     const newId = 'L' + Date.now();
     const items = transactions.map(t => ({
-        name: t.name || t.description || 'עסקה',
+        name: t.name || t.description || '׳¢׳¡׳§׳”',
         price: parseFloat(t.amount || t.price || 0),
         qty: 1, checked: false, isPaid: true,
         category: detectCategory(t.name || t.description || ''),
-        note: t.date ? '📅 ' + new Date(t.date).toLocaleDateString('he-IL') : '',
+        note: t.date ? 'נ“… ' + new Date(t.date).toLocaleDateString('he-IL') : '',
         dueDate: '', paymentUrl: '',
         lastUpdated: Date.now(),
         cloudId: 'item_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9)
@@ -5911,46 +5924,46 @@ function importFinancialTransactions(transactions, nameLabel) {
     db.currentId = newId;
     activePage = 'lists';
     save();
-    showNotification('✅ יובאו ' + items.length + ' רשומות מ' + nameLabel + '!');
+    showNotification('ג… ׳™׳•׳‘׳׳• ' + items.length + ' ׳¨׳©׳•׳׳•׳× ׳' + nameLabel + '!');
 }
 
-// ── Dynamic padding for list name bar ──
+// ג”€ג”€ Dynamic padding for list name bar ג”€ג”€
 function adjustContentPadding() {
     const bar = document.getElementById('listNameBar');
     const spacer = document.getElementById('barSpacer');
     if (bar && spacer) {
         const barRect = bar.getBoundingClientRect();
-        // גובה הבר + מיקומו מהחלק העליון של הדף
+        // ׳’׳•׳‘׳” ׳”׳‘׳¨ + ׳׳™׳§׳•׳׳• ׳׳”׳—׳׳§ ׳”׳¢׳׳™׳•׳ ׳©׳ ׳”׳“׳£
         const totalHeight = barRect.bottom + 8;
         spacer.style.height = totalHeight + 'px';
         document.documentElement.style.setProperty('--lnb-height', barRect.height + 'px');
     }
 }
 
-// ResizeObserver — עוקב אחרי גובה הבר בזמן אמת
+// ResizeObserver ג€” ׳¢׳•׳§׳‘ ׳׳—׳¨׳™ ׳’׳•׳‘׳” ׳”׳‘׳¨ ׳‘׳–׳׳ ׳׳׳×
 (function initBarObserver() {
     const bar = document.getElementById('listNameBar');
     if (!bar) { setTimeout(initBarObserver, 100); return; }
     const observer = new ResizeObserver(() => adjustContentPadding());
     observer.observe(bar);
     adjustContentPadding();
-    // רץ שוב אחרי טעינת פונטים
+    // ׳¨׳¥ ׳©׳•׳‘ ׳׳—׳¨׳™ ׳˜׳¢׳™׳ ׳× ׳₪׳•׳ ׳˜׳™׳
     setTimeout(adjustContentPadding, 100);
     setTimeout(adjustContentPadding, 400);
     setTimeout(adjustContentPadding, 800);
 })();
 
-// ── Compact Mode ──
+// ג”€ג”€ Compact Mode ג”€ג”€
 
 
-// ════════════════════════════════════════════════
-// ✏️ סדר רשימות — Edit Mode
-// ════════════════════════════════════════════════
+// ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•
+// גן¸ ׳¡׳“׳¨ ׳¨׳©׳™׳׳•׳× ג€” Edit Mode
+// ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•
 function toggleListEditMode() {
     listEditMode = !listEditMode;
     const btn = document.getElementById('listEditModeBtn');
     if (btn) {
-        btn.textContent = listEditMode ? '✅ סיום' : '✏️ סדר רשימות';
+        btn.textContent = listEditMode ? 'ג… ׳¡׳™׳•׳' : 'גן¸ ׳¡׳“׳¨ ׳¨׳©׳™׳׳•׳×';
         btn.style.background = listEditMode ? '#7367f0' : 'rgba(115,103,240,0.08)';
         btn.style.color = listEditMode ? '#fff' : '#7367f0';
         btn.style.borderColor = listEditMode ? '#7367f0' : 'rgba(115,103,240,0.25)';
@@ -6040,14 +6053,14 @@ function setupListDrag() {
     }, { signal: sig });
 }
 
-// ════════════════════════════════════════════════
-// ✏️ סדר מוצרים — Item Edit Mode
-// ════════════════════════════════════════════════
+// ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•
+// גן¸ ׳¡׳“׳¨ ׳׳•׳¦׳¨׳™׳ ג€” Item Edit Mode
+// ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•
 function toggleItemEditMode() {
     itemEditMode = !itemEditMode;
     const btn = document.getElementById('itemEditModeBtn');
     if (btn) {
-        btn.textContent = itemEditMode ? '✅ סיום' : '✏️ סדר מוצרים';
+        btn.textContent = itemEditMode ? 'ג… ׳¡׳™׳•׳' : 'גן¸ ׳¡׳“׳¨ ׳׳•׳¦׳¨׳™׳';
         btn.style.background = itemEditMode ? '#7367f0' : 'rgba(115,103,240,0.08)';
         btn.style.color = itemEditMode ? '#fff' : '#7367f0';
         btn.style.borderColor = itemEditMode ? '#7367f0' : 'rgba(115,103,240,0.25)';
@@ -6131,14 +6144,14 @@ function setupItemDrag() {
     }, { signal: sig });
 }
 
-// ════════════════════════════════════════════════
-// 📊 הצג סכום ב-compact mode
-// ════════════════════════════════════════════════
+// ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•
+// נ“ ׳”׳¦׳’ ׳¡׳›׳•׳ ׳‘-compact mode
+// ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•
 function toggleCompactStats() {
     compactStatsOpen = !compactStatsOpen;
     const btn1 = document.getElementById('summaryStatsBtn');
     const btn2 = document.getElementById('listsStatsBtn');
-    const label = compactStatsOpen ? '✕ הסתר סכום' : '📊 הצג סכום';
+    const label = compactStatsOpen ? 'ג• ׳”׳¡׳×׳¨ ׳¡׳›׳•׳' : 'נ“ ׳”׳¦׳’ ׳¡׳›׳•׳';
     const bgActive = compactStatsOpen ? '#7367f0' : 'rgba(115,103,240,0.08)';
     const colActive = compactStatsOpen ? '#fff' : '#7367f0';
     [btn1, btn2].forEach(b => { if (b) { b.textContent = label; b.style.background = bgActive; b.style.color = colActive; } });
@@ -6160,7 +6173,7 @@ function _restoreCompactTabs() {
     if (statsRow) statsRow.style.display = 'none';
     const btn1 = document.getElementById('summaryStatsBtn');
     const btn2 = document.getElementById('listsStatsBtn');
-    [btn1, btn2].forEach(b => { if (b) { b.textContent = '📊 הצג סכום'; b.style.background = 'rgba(115,103,240,0.08)'; b.style.color = '#7367f0'; } });
+    [btn1, btn2].forEach(b => { if (b) { b.textContent = 'נ“ ׳”׳¦׳’ ׳¡׳›׳•׳'; b.style.background = 'rgba(115,103,240,0.08)'; b.style.color = '#7367f0'; } });
     compactStatsOpen = false;
 }
 
@@ -6209,14 +6222,14 @@ function toggleCompactMode() {
 function handleCompactPlus() {
     const page = (typeof activePage !== 'undefined') ? activePage : 'lists';
     if (page === 'summary') {
-        // רשימות שלי — רשימה חדשה
+        // ׳¨׳©׳™׳׳•׳× ׳©׳׳™ ג€” ׳¨׳©׳™׳׳” ׳—׳“׳©׳”
         if (typeof wizardMode !== 'undefined' && wizardMode) {
             wiz('newList', 'before', () => openModal('newListModal'));
         } else {
             openModal('newListModal');
         }
     } else {
-        // רשימה שלי — פתח actions
+        // ׳¨׳©׳™׳׳” ׳©׳׳™ ג€” ׳₪׳×׳— actions
         compactActionsOpen = true;
         const actionsRow = document.getElementById('compactActionsRow');
         const tabsRow    = document.getElementById('tabsRowWrap');
@@ -6244,18 +6257,18 @@ function closeCompactActions() {
 function toggleCompactActions() { handleCompactPlus(); }
 function _resetCompactPlusIcon() {}
 
-// ── Legacy startBankSync stub ──
+// ג”€ג”€ Legacy startBankSync stub ג”€ג”€
 async function startBankSync() { startBankFetch(); }
 
 function renderBankData() {
     const container = document.getElementById('bankDataContainer');
     if (!container) return;
-    container.innerHTML = '<div class="text-center text-gray-400 py-10 bg-white rounded-3xl shadow-sm border border-gray-100"><span class="text-5xl block mb-4">🏦</span><p class="font-medium">השתמש בכפתור פיננסי לשליפת נתונים.</p></div>';
+    container.innerHTML = '<div class="text-center text-gray-400 py-10 bg-white rounded-3xl shadow-sm border border-gray-100"><span class="text-5xl block mb-4">נ¦</span><p class="font-medium">׳”׳©׳×׳׳© ׳‘׳›׳₪׳×׳•׳¨ ׳₪׳™׳ ׳ ׳¡׳™ ׳׳©׳׳™׳₪׳× ׳ ׳×׳•׳ ׳™׳.</p></div>';
 }
 
 
 
-// ══ LIST NAME BAR — ACTIONS PANEL ══
+// ג•ג• LIST NAME BAR ג€” ACTIONS PANEL ג•ג•
 let _listPanelOpen = false;
 
 function _positionActionsPanel() {
@@ -6287,7 +6300,7 @@ function closeListActionsPanel() {
     if (arrow) arrow.classList.remove('open');
 }
 
-// עדכון מיקום הפאנל והבר לפי גובה ה-header בפועל
+// ׳¢׳“׳›׳•׳ ׳׳™׳§׳•׳ ׳”׳₪׳׳ ׳ ׳•׳”׳‘׳¨ ׳׳₪׳™ ׳’׳•׳‘׳” ׳”-header ׳‘׳₪׳•׳¢׳
 function _positionListNameBar() {
     const header = document.querySelector('.app-header');
     const bar    = document.getElementById('listNameBar');
@@ -6303,7 +6316,7 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 setTimeout(_positionListNameBar, 300);
 
-// סגירה בלחיצה מחוץ לפאנל
+// ׳¡׳’׳™׳¨׳” ׳‘׳׳—׳™׳¦׳” ׳׳—׳•׳¥ ׳׳₪׳׳ ׳
 document.addEventListener('click', function(e) {
     if (!_listPanelOpen) return;
     const arrow  = document.getElementById('lnbArrow');
@@ -6313,11 +6326,11 @@ document.addEventListener('click', function(e) {
     }
 });
 
-// ── עדכון תווית כפתור + לפי טאב ──
+// ג”€ג”€ ׳¢׳“׳›׳•׳ ׳×׳•׳•׳™׳× ׳›׳₪׳×׳•׳¨ + ׳׳₪׳™ ׳˜׳׳‘ ג”€ג”€
 function _updatePlusBtnLabel() {
     const lbl = document.getElementById('plusBtnLabel');
     if (!lbl) return;
-    lbl.textContent = (activePage === 'summary') ? 'רשימה חדשה' : 'הוסף מוצר';
+    lbl.textContent = (activePage === 'summary') ? '׳¨׳©׳™׳׳” ׳—׳“׳©׳”' : '׳”׳•׳¡׳£ ׳׳•׳¦׳¨';
 }
 
 // Hook into showPage
@@ -6334,3 +6347,82 @@ document.addEventListener('DOMContentLoaded', _updatePlusBtnLabel);
 setTimeout(_updatePlusBtnLabel, 500);
 
 
+
+
+
+// ============================================================
+//  Expose public API to window (for HTML onclick= handlers)
+// ============================================================
+// Core store & state
+window.db               = db;
+window.save             = save;
+window.t                = t;
+window.setActivePage    = setActivePage;
+window.detectCategory   = detectCategory;
+window.exportData       = exportData;
+window.importData       = importData;
+
+// Firebase / Cloud
+window.loginWithGoogle  = loginWithGoogle;
+window.logoutFromCloud  = logoutFromCloud;
+window.syncToCloud      = syncToCloud;
+window.updateCloudIndicator = updateCloudIndicator;
+
+// UI — modals & notifications
+window.openModal                = openModal;
+window.closeModal               = closeModal;
+window.showNotification         = showNotification;
+window.updateNotificationBadge  = updateNotificationBadge;
+window.openNotificationCenter   = openNotificationCenter;
+window.dismissNotification      = dismissNotification;
+window.dismissAllNotifications  = dismissAllNotifications;
+window.showUrgentAlertModal     = showUrgentAlertModal;
+window.goToItemFromAlert        = goToItemFromAlert;
+window.jumpToItem               = jumpToItem;
+
+// UI — lists & charts
+window.render                   = render;
+window.renderStats              = renderStats;
+window.renderBankData           = renderBankData;
+window.renderHistory            = renderHistory;
+window.renderTemplates          = renderTemplates;
+window.showCompletedListsModal  = showCompletedListsModal;
+window.renderCompletedLists     = renderCompletedLists;
+window.adjustContentPadding     = adjustContentPadding;
+window.searchInList             = searchInList;
+window.searchInSummary          = searchInSummary;
+window.scrollToListTop          = scrollToListTop;
+window.scrollToCheckedItems     = scrollToCheckedItems;
+window.clearListSearch          = clearListSearch;
+window.reorderLists             = reorderLists;
+
+// Notifications / reminders
+window.initNotificationSystem   = initNotificationSystem;
+window.checkUrgentPayments      = checkUrgentPayments;
+window.snoozeUrgentAlert        = snoozeUrgentAlert;
+window.closeUrgentAlert         = closeUrgentAlert;
+window.applyCustomSnooze        = applyCustomSnooze;
+window.openCustomSnooze         = openCustomSnooze;
+window.updateAppBadge           = updateAppBadge;
+
+// Import / Export / Voice
+window.importFromText           = importFromText;
+window.openManualImport         = openManualImport;
+window.showClipboardImportModal = showClipboardImportModal;
+window.acceptClipboardImport    = acceptClipboardImport;
+window.dismissClipboardImport   = dismissClipboardImport;
+window.importTextToList         = importTextToList;
+window.detectListType           = detectListType;
+window.changeDetectedType       = changeDetectedType;
+window.toggleClipboardAutoOpen  = toggleClipboardAutoOpen;
+window.updateDetectedTypeFromInput = updateDetectedTypeFromInput;
+window.performTranslation       = performTranslation;
+window.processReceipt           = processReceipt;
+window.startVoiceInput          = startVoiceInput;
+window.stopVoiceInput           = stopVoiceInput;
+window.startVoiceAction         = startVoiceAction;
+window.checkClipboardOnStartup  = checkClipboardOnStartup;
+
+// Formatting helpers
+window.formatReminderText       = formatReminderText;
+window.showDetailedError        = showDetailedError;
