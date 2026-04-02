@@ -2638,12 +2638,16 @@ function render() {
 
                 if (compactMode) {
                     div.style.padding = '10px 14px';
+                    const isDelSelected = listDeleteMode && listDeleteSelected.has(id);
                     div.innerHTML = `
                         <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;">
                             <div style="display:flex;align-items:center;gap:6px;flex:1;min-width:0;">
                                 <div class="list-drag-handle" data-drag="true" style="display:${listEditMode ? 'flex' : 'none'};align-items:center;justify-content:center;width:26px;height:26px;flex-shrink:0;cursor:grab;color:#a89fff;touch-action:none;"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" style="pointer-events:none"><rect x="2" y="3" width="12" height="2" rx="1" fill="currentColor"/><rect x="2" y="7" width="12" height="2" rx="1" fill="currentColor"/><rect x="2" y="11" width="12" height="2" rx="1" fill="currentColor"/></svg></div>
-                                <input type="checkbox" ${isSel ? 'checked' : ''} onchange="toggleSum('${id}')" class="w-7 h-7 accent-indigo-600" style="flex-shrink:0;">
-                                <span class="font-bold cursor-pointer" style="font-size:15px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" onclick="selectListAndImport('${id}'); showPage('lists')">
+                                ${listDeleteMode
+                                    ? `<input type="checkbox" ${isDelSelected ? 'checked' : ''} onchange="listDeleteToggle('${id}')" class="w-7 h-7 accent-red-500" style="flex-shrink:0;accent-color:#ef4444;">`
+                                    : `<input type="checkbox" ${isSel ? 'checked' : ''} onchange="toggleSum('${id}')" class="w-7 h-7 accent-indigo-600" style="flex-shrink:0;">`
+                                }
+                                <span class="font-bold cursor-pointer" style="font-size:15px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;${isDelSelected ? 'color:#ef4444;text-decoration:line-through;' : ''}" onclick="${listDeleteMode ? `listDeleteToggle('${id}')` : `selectListAndImport('${id}'); showPage('lists')`}">
                                     ${templateBadge}${l.name}
                                 </span>
                             </div>
@@ -10633,6 +10637,67 @@ function compactDeleteExec() {
     toggleCompactDeleteMode(); // סגור מצב מחיקה
 }
 
+// ══ LIST DELETE MODE — מחיקת רשימות מרובות מתוך הרשימות שלי (compact) ══
+let listDeleteMode = false;
+let listDeleteSelected = new Set();
+
+function toggleListDeleteMode() {
+    listDeleteMode = !listDeleteMode;
+    listDeleteSelected.clear();
+    const summaryBtns  = document.getElementById('summaryCompactBtns');
+    const actionRow    = document.getElementById('listDeleteActionRow');
+    if (listDeleteMode) {
+        if (summaryBtns) summaryBtns.style.display = 'none';
+        if (actionRow)   actionRow.style.display   = 'flex';
+    } else {
+        if (summaryBtns) summaryBtns.style.display = 'flex';
+        if (actionRow)   actionRow.style.display   = 'none';
+    }
+    _listDeleteUpdateBar();
+    render();
+}
+
+function listDeleteToggle(id) {
+    if (listDeleteSelected.has(id)) listDeleteSelected.delete(id);
+    else listDeleteSelected.add(id);
+    _listDeleteUpdateBar();
+    render();
+}
+
+function _listDeleteUpdateBar() {
+    const n = listDeleteSelected.size;
+    const hint    = document.getElementById('listDeleteHint');
+    const execBtn = document.getElementById('listDeleteExecBtn');
+    const badge   = document.getElementById('listDeleteBadge');
+    if (hint)    hint.textContent = n > 0 ? n + ' רשימות נבחרו' : 'בחר רשימות למחיקה';
+    if (badge)   { badge.textContent = n; badge.style.display = n > 0 ? 'inline-flex' : 'none'; }
+    if (execBtn) { execBtn.style.opacity = n > 0 ? '1' : '0.4'; execBtn.style.pointerEvents = n > 0 ? 'all' : 'none'; }
+}
+
+function listDeleteConfirm() {
+    const n = listDeleteSelected.size;
+    if (n === 0) return;
+    const names = [...listDeleteSelected].map(id => '• ' + (db.lists[id]?.name || '')).join('\n');
+    if (!confirm(`למחוק ${n} רשימות?\n\n${names}`)) return;
+    listDeleteExec();
+}
+
+function listDeleteExec() {
+    listDeleteSelected.forEach(id => {
+        delete db.lists[id];
+        // הסר מהנבחרים אם היה שם
+        const idx = db.selectedInSummary.indexOf(id);
+        if (idx !== -1) db.selectedInSummary.splice(idx, 1);
+        // אם זו הרשימה הנוכחית — עבור לראשונה
+        if (db.currentId === id) {
+            const remaining = Object.keys(db.lists);
+            db.currentId = remaining.length > 0 ? remaining[0] : null;
+        }
+    });
+    if (typeof save === 'function') save();
+    toggleListDeleteMode();
+}
+
 function toggleCompactMode() {
     compactMode = !compactMode;
     expandedItemIdx = -1;
@@ -10664,6 +10729,13 @@ function toggleCompactMode() {
         if (itemEditWrapOff) { itemEditWrapOff.style.display = 'none'; itemEditMode = false; }
         const summaryBtnsOff = document.getElementById('summaryCompactBtns');
         if (summaryBtnsOff) summaryBtnsOff.style.display = 'none';
+        // סגור מצב מחיקת רשימות אם פתוח
+        if (listDeleteMode) {
+            listDeleteMode = false;
+            listDeleteSelected.clear();
+            const lda = document.getElementById('listDeleteActionRow');
+            if (lda) lda.style.display = 'none';
+        }
         if (compactStatsOpen) { compactStatsOpen = false; _restoreCompactTabs(); }
         if (barActions) { barActions.style.display = 'flex'; barActions.style.padding = '10px 12px 18px'; }
         if (barStats)   barStats.style.display   = 'none';
