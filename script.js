@@ -2596,8 +2596,20 @@ function render() {
         const searchInput = document.getElementById('listSearchInput') || document.getElementById('searchInput');
         const searchTerm = searchInput ? searchInput.value.toLowerCase() : '';
 
+        // Tile color classes (cycling)
+        const TILE_COLORS = ['stile-0','stile-1','stile-2','stile-3','stile-4','stile-5','stile-6','stile-7','stile-8','stile-9'];
+        const LIST_ICONS = ['🛒','💳','📋','🏠','✏️','🎯','📦','🍎','💡','⭐'];
+
         if (container) {
             container.innerHTML = '';
+
+            if (compactMode) {
+                container.classList.add('compact-lists');
+            } else {
+                container.classList.remove('compact-lists');
+            }
+
+            let tileIdx = 0;
             Object.keys(db.lists).forEach(id => {
                 const l = db.lists[id];
 
@@ -2619,64 +2631,47 @@ function render() {
                     paid += lP;
                 }
 
-                const templateBadge = l.isTemplate ? '<span class="template-badge">תבנית</span>' : '';
+                const colorClass = TILE_COLORS[tileIdx % TILE_COLORS.length];
+                const icon = LIST_ICONS[tileIdx % LIST_ICONS.length];
+                tileIdx++;
+
                 const isHighlighted = highlightedListId === id;
                 const div = document.createElement('div');
-                div.className = "item-card";
                 div.dataset.id = id;
-                div.style.background = isHighlighted ? 'linear-gradient(135deg, #e0f2fe 0%, #bae6fd 100%)' : '';
-                div.style.border = isHighlighted ? '3px solid #0ea5e9' : '2px solid #7367f0';
-                div.style.boxShadow = isHighlighted ? '0 8px 20px rgba(14, 165, 233, 0.3)' : '';
-
-                const webBtn = l.url ? `
-                    <button onclick="window.location.href='${l.url.startsWith('http') ? l.url : 'https://' + l.url}'" class="w-10 h-10 rounded-full bg-indigo-50 text-indigo-600 flex items-center justify-center border border-indigo-100 shadow-sm ml-2">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9"></path>
-                        </svg>
-                    </button>
-                ` : '';
 
                 if (compactMode) {
-                    div.style.padding = '10px 14px';
+                    // ── COMPACT: colorful wide rectangular row ──
                     const isDelSelected = listDeleteMode && listDeleteSelected.has(id);
+                    div.className = 'summary-compact-row ' + colorClass;
+                    if (isDelSelected) {
+                        div.style.opacity = '0.6';
+                        div.style.outline = '2.5px solid #ef4444';
+                    }
+                    div.setAttribute('data-drag', listEditMode ? 'true' : 'false');
                     div.innerHTML = `
-                        <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;">
-                            <div style="display:flex;align-items:center;gap:6px;flex:1;min-width:0;">
-                                <div class="list-drag-handle" data-drag="true" style="display:${listEditMode ? 'flex' : 'none'};align-items:center;justify-content:center;width:26px;height:26px;flex-shrink:0;cursor:grab;color:#a89fff;touch-action:none;"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" style="pointer-events:none"><rect x="2" y="3" width="12" height="2" rx="1" fill="currentColor"/><rect x="2" y="7" width="12" height="2" rx="1" fill="currentColor"/><rect x="2" y="11" width="12" height="2" rx="1" fill="currentColor"/></svg></div>
-                                ${listDeleteMode
-                                    ? `<input type="checkbox" ${isDelSelected ? 'checked' : ''} onchange="listDeleteToggle('${id}')" class="w-7 h-7 accent-red-500" style="flex-shrink:0;accent-color:#ef4444;">`
-                                    : `<input type="checkbox" ${isSel ? 'checked' : ''} onchange="toggleSum('${id}')" class="w-7 h-7 accent-indigo-600" style="flex-shrink:0;">`
-                                }
-                                <span class="font-bold cursor-pointer" style="font-size:15px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;${isDelSelected ? 'color:#ef4444;text-decoration:line-through;' : ''}" onclick="${listDeleteMode ? `listDeleteToggle('${id}')` : `selectListAndImport('${id}'); showPage('lists')`}">
-                                    ${templateBadge}${l.name}
-                                </span>
-                            </div>
-                            <span class="font-black text-indigo-600" style="font-size:15px;flex-shrink:0;">₪${lT.toFixed(2)}</span>
-                        </div>
+                        ${listEditMode ? `<div class="list-drag-handle" data-drag="true" style="display:flex;align-items:center;justify-content:center;width:24px;height:24px;flex-shrink:0;cursor:grab;color:rgba(255,255,255,0.7);touch-action:none;"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" style="pointer-events:none"><rect x="2" y="3" width="12" height="2" rx="1" fill="currentColor"/><rect x="2" y="7" width="12" height="2" rx="1" fill="currentColor"/><rect x="2" y="11" width="12" height="2" rx="1" fill="currentColor"/></svg></div>` : ''}
+                        ${listDeleteMode
+                            ? `<div class="crow-cb ${isDelSelected ? 'checked' : ''}" onclick="event.stopPropagation();listDeleteToggle('${id}')"></div>`
+                            : `<div class="crow-cb ${isSel ? 'checked' : ''}" onclick="event.stopPropagation();toggleSum('${id}')"></div>`
+                        }
+                        <span class="crow-name" onclick="${listDeleteMode ? `listDeleteToggle('${id}')` : `selectListAndImport('${id}'); showPage('lists')`}"
+                            style="${isDelSelected ? 'text-decoration:line-through;opacity:0.7;' : ''}">${l.name}</span>
+                        <span class="crow-amount">₪${lT.toFixed(2)}</span>
                     `;
                 } else {
-                div.innerHTML = `
-                    <div class="flex justify-between items-center mb-4">
-                        <div class="flex items-center gap-3 flex-1">
-                            <input type="checkbox" ${isSel ? 'checked' : ''} onchange="toggleSum('${id}')" class="w-7 h-7 accent-indigo-600">
-                            <div class="flex-1 text-2xl font-bold cursor-pointer" onclick="selectListAndImport('${id}'); showPage('lists')">
-                                ${templateBadge}${l.name}
-                            </div>
-                        </div>
-                        <div class="flex items-center">
-                            ${webBtn}
-                            <button onclick="prepareDeleteList('${id}')" class="trash-btn">
-                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path>
-                                </svg>
-                            </button>
-                        </div>
-                    </div>
-                    <div class="flex justify-between items-center">
-                        <div class="text-sm text-gray-500">${l.items.length} ${t('items')}</div>
-                        <span class="text-2xl font-black text-indigo-600">₪${lT.toFixed(2)}</span>
-                    </div>
-                `;
+                    // ── FULL: colorful square tile ──
+                    div.className = 'summary-tile ' + colorClass + (isHighlighted ? ' highlighted-tile' : '');
+                    div.innerHTML = `
+                        <div class="tile-cb ${isSel ? 'checked' : ''}" onclick="event.stopPropagation();toggleSum('${id}')"></div>
+                        <div class="tile-icon">${icon}</div>
+                        <div class="tile-name">${l.name}</div>
+                        <div class="tile-meta">${l.items.length} ${t('items')}</div>
+                        <div class="tile-amount">₪${lT.toFixed(2)}</div>
+                    `;
+                    div.addEventListener('click', function(e) {
+                        if (e.target.classList.contains('tile-cb')) return;
+                        selectListAndImport(id); showPage('lists');
+                    });
                 }
                 container.appendChild(div);
             });
