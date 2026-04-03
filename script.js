@@ -859,7 +859,7 @@ function showPage(p) {
 
     activePage = p;
     // שחזר מצב מתאים לפי הדף שנכנסים אליו
-    if (p === 'summary') compactMode = summaryCompactMode;
+    if (p === 'summary') { compactMode = false; summaryCompactMode = false; }
     if (p === 'lists')   compactMode = listsCompactMode;
     // פתיחת הבר אוטומטית ועדכון טאבי הניווט בבר הפתוח
     if (p === 'lists' || p === 'summary') {
