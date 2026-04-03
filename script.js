@@ -2677,17 +2677,21 @@ function render() {
                 } else {
                     // ── FULL: colorful square tile ──
                     div.className = 'summary-tile ' + colorClass + (isHighlighted ? ' highlighted-tile' : '');
+                    div.setAttribute('data-drag', listEditMode ? 'true' : 'false');
                     div.innerHTML = `
+                        ${listEditMode ? `<div class="list-drag-handle" data-drag="true" style="position:absolute;top:8px;right:8px;display:flex;align-items:center;justify-content:center;width:26px;height:26px;cursor:grab;color:rgba(115,103,240,0.5);touch-action:none;z-index:2;"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" style="pointer-events:none"><rect x="2" y="3" width="12" height="2" rx="1" fill="currentColor"/><rect x="2" y="7" width="12" height="2" rx="1" fill="currentColor"/><rect x="2" y="11" width="12" height="2" rx="1" fill="currentColor"/></svg></div>` : ''}
                         <div class="tile-cb ${isSel ? 'checked' : ''}" onclick="event.stopPropagation();toggleSum('${id}')"></div>
                         <div class="tile-icon">${icon}</div>
                         <div class="tile-name">${l.name}</div>
                         <div class="tile-meta">${l.items.length} ${t('items')}</div>
                         <div class="tile-amount">₪${lT.toFixed(2)}</div>
                     `;
-                    div.addEventListener('click', function(e) {
-                        if (e.target.classList.contains('tile-cb')) return;
-                        selectListAndImport(id); showPage('lists');
-                    });
+                    if (!listEditMode) {
+                        div.addEventListener('click', function(e) {
+                            if (e.target.classList.contains('tile-cb')) return;
+                            selectListAndImport(id); showPage('lists');
+                        });
+                    }
                 }
                 container.appendChild(div);
             });
@@ -10407,7 +10411,7 @@ function setupListDrag() {
     function mkGhost(item) {
         const g = document.createElement('div');
         g.style.cssText = 'position:fixed;pointer-events:none;z-index:9999;background:#fff;border:2px solid #7367f0;border-radius:12px;padding:10px 14px;display:flex;align-items:center;gap:8px;box-shadow:0 12px 40px rgba(115,103,240,0.4);direction:rtl;transform:rotate(1.5deg) scale(1.03);font-family:inherit;';
-        const name = item.querySelector('.font-bold.cursor-pointer')?.textContent?.trim() || '';
+        const name = (item.querySelector('.tile-name') || item.querySelector('.crow-name') || item.querySelector('.font-bold'))?.textContent?.trim() || '';
         g.innerHTML = '<span style="font-size:15px;font-weight:700;color:#1a1a2e;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + name + '</span>';
         document.body.appendChild(g);
         return g;
@@ -10416,7 +10420,7 @@ function setupListDrag() {
     container.addEventListener('touchstart', e => {
         const handle = e.target.closest('[data-drag]');
         if (!handle || !listEditMode) return;
-        const item = handle.closest('.item-card');
+        const item = handle.closest('[data-id]');
         if (!item) return;
         const rect = item.getBoundingClientRect(), t = e.touches[0];
         ox = t.clientX - rect.left; oy = t.clientY - rect.top;
@@ -10434,8 +10438,8 @@ function setupListDrag() {
         const t = e.touches[0];
         if (Math.abs(t.clientY - startY) > 5) didDrag = true;
         ghost.style.top = (t.clientY - oy) + 'px';
-        container.querySelectorAll('.item-card').forEach(el => el.style.outline = '');
-        container.querySelectorAll('.item-card').forEach(el => {
+        container.querySelectorAll('[data-id]').forEach(el => el.style.outline = '');
+        container.querySelectorAll('[data-id]').forEach(el => {
             const r = el.getBoundingClientRect();
             if (el !== src && t.clientY > r.top && t.clientY < r.bottom)
                 el.style.outline = '2px solid #7367f0';
@@ -10448,7 +10452,7 @@ function setupListDrag() {
         if (ghost) { ghost.remove(); ghost = null; }
         const t = e.changedTouches[0];
         let target = null;
-        container.querySelectorAll('.item-card').forEach(el => {
+        container.querySelectorAll('[data-id]').forEach(el => {
             el.style.outline = '';
             const r = el.getBoundingClientRect();
             if (el !== src && t.clientY > r.top && t.clientY < r.bottom) target = el;
