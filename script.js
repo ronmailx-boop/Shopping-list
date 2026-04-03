@@ -854,6 +854,10 @@ function toggleDarkMode() {
 
 function showPage(p) {
     activePage = p;
+    // שחזר מצב כרטיסיות כשחוזרים לדף הרשימות שלי
+    if (p === 'summary') {
+        compactMode = summaryCompactMode;
+    }
     // פתיחת הבר אוטומטית ועדכון טאבי הניווט בבר הפתוח
     if (p === 'lists' || p === 'summary') {
         if (typeof openSmartBar === 'function') openSmartBar();
@@ -2148,6 +2152,7 @@ function generateItemMetadataHTML(item, idx) {
 }
 
 let compactMode = false;
+let summaryCompactMode = false; // שומר את מצב הכרטיסיות של דף הרשימות שלי
 let compactActionsOpen = false;
 let expandedItemIdx = -1; // מוצר מורחב ב-compact mode
 let listEditMode = false;  // מצב עריכת סדר רשימות
@@ -7867,6 +7872,7 @@ function createNewList() {
 // Select existing list and import pending text if exists
 function selectListAndImport(listId) {
     db.currentId = listId;
+    summaryCompactMode = compactMode; // שמור את מצב הכרטיסיות לפני מעבר לרשימה
     compactMode = true;
     
     // Check if there's pending import text
@@ -10714,6 +10720,10 @@ function listDeleteExec() {
 
 function toggleCompactMode() {
     compactMode = !compactMode;
+    // אם אנחנו בדף הרשימות שלי, עדכן גם את המצב הנשמר
+    if (activePage === 'summary') {
+        summaryCompactMode = compactMode;
+    }
     expandedItemIdx = -1;
     compactActionsOpen = false;
 
