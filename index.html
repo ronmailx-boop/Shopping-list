@@ -3999,15 +3999,8 @@ ${error.message}
             if (typeof showPage === 'function') showPage(page);
             if (typeof render === 'function') render();
         }
-        // עדכן תצוגה — בcompact mode לא מציגים barActionsRow
-        var isCompact = (typeof compactMode !== 'undefined' && compactMode);
-        if (_activeMode === 'buttons') {
-            if (actions) { actions.style.display = isCompact ? 'none' : 'flex'; if(!isCompact) actions.style.padding='10px 12px 18px'; }
-            if (stats)   stats.style.display = 'none';
-        } else {
-            if (actions) actions.style.display = 'none';
-            if (stats)   { stats.style.display = isCompact ? 'none' : 'flex'; if(!isCompact) stats.style.padding='10px 12px 18px'; }
-        }
+        // עדכן תצוגה — barActionsRow הוסר, תמיד compact
+        if (stats) stats.style.display = 'none';
         updateSvgTabs(_activePage);
     }
 
