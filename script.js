@@ -2197,12 +2197,12 @@ function render() {
         document.getElementById('itemCountDisplay').innerText = `${list.items.length} ${t('items')}`;
         setTimeout(adjustContentPadding, 50);
 
-        // ── כותרת רשימה — רקע עדין + מסגרת סגולה ──
+        // ── כותרת רשימה — איפוס ל-CSS ברירת מחדל (סגול כהה) ──
         const _lnb = document.getElementById('listNameBar');
         if (_lnb) {
-            _lnb.style.background = 'linear-gradient(135deg,#f0eeff 0%,#ede9fe 100%)';
-            _lnb.style.boxShadow = '0 8px 20px rgba(115,103,240,0.15)';
-            _lnb.style.borderBottom = '1.5px solid rgba(115,103,240,0.25)';
+            _lnb.style.background = '';
+            _lnb.style.boxShadow = '';
+            _lnb.style.borderBottom = '';
         }
 
 
@@ -2600,6 +2600,14 @@ function render() {
         document.getElementById('listNameDisplay').innerText = 'הרשימות שלי';
         setTimeout(adjustContentPadding, 50);
         document.getElementById('itemCountDisplay').innerText = `${Object.keys(db.lists).length} רשימות`;
+
+        // ── איפוס לסגול כהה (CSS ברירת מחדל) ──
+        const _lnb2 = document.getElementById('listNameBar');
+        if (_lnb2) {
+            _lnb2.style.background = '';
+            _lnb2.style.boxShadow = '';
+            _lnb2.style.borderBottom = '';
+        }
 
         const searchInput = document.getElementById('listSearchInput') || document.getElementById('searchInput');
         const searchTerm = searchInput ? searchInput.value.toLowerCase() : '';
