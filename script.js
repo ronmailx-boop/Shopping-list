@@ -853,11 +853,14 @@ function toggleDarkMode() {
 }
 
 function showPage(p) {
+    // שמור מצב נוכחי לפני המעבר
+    if (activePage === 'lists')   listsCompactMode   = compactMode;
+    if (activePage === 'summary') summaryCompactMode = compactMode;
+
     activePage = p;
-    // שחזר מצב כרטיסיות כשחוזרים לדף הרשימות שלי
-    if (p === 'summary') {
-        compactMode = summaryCompactMode;
-    }
+    // שחזר מצב מתאים לפי הדף שנכנסים אליו
+    if (p === 'summary') compactMode = summaryCompactMode;
+    if (p === 'lists')   compactMode = listsCompactMode;
     // פתיחת הבר אוטומטית ועדכון טאבי הניווט בבר הפתוח
     if (p === 'lists' || p === 'summary') {
         if (typeof openSmartBar === 'function') openSmartBar();
@@ -2153,6 +2156,7 @@ function generateItemMetadataHTML(item, idx) {
 
 let compactMode = false;
 let summaryCompactMode = false; // שומר את מצב הכרטיסיות של דף הרשימות שלי
+let listsCompactMode = true;   // שומר את מצב compact של דף המוצרים
 let compactActionsOpen = false;
 let expandedItemIdx = -1; // מוצר מורחב ב-compact mode
 let listEditMode = false;  // מצב עריכת סדר רשימות
@@ -7873,7 +7877,7 @@ function createNewList() {
 function selectListAndImport(listId) {
     db.currentId = listId;
     summaryCompactMode = compactMode; // שמור את מצב הכרטיסיות לפני מעבר לרשימה
-    compactMode = true;
+    compactMode = listsCompactMode;
     
     // Check if there's pending import text
     if (pendingImportText && detectedListType) {
@@ -10720,10 +10724,9 @@ function listDeleteExec() {
 
 function toggleCompactMode() {
     compactMode = !compactMode;
-    // אם אנחנו בדף הרשימות שלי, עדכן גם את המצב הנשמר
-    if (activePage === 'summary') {
-        summaryCompactMode = compactMode;
-    }
+    // עדכן את המצב הנשמר לפי הדף הנוכחי
+    if (activePage === 'summary') summaryCompactMode = compactMode;
+    if (activePage === 'lists')   listsCompactMode   = compactMode;
     expandedItemIdx = -1;
     compactActionsOpen = false;
 
