@@ -967,6 +967,7 @@
         #summaryContainer {
             display: grid;
             grid-template-columns: 1fr 1fr;
+            grid-auto-rows: 150px;
             gap: 12px;
             padding: 4px 2px;
         }
@@ -976,8 +977,6 @@
             display: flex;
             flex-direction: column;
             gap: 6px;
-            min-height: 130px;
-            height: 150px;
             position: relative;
             overflow: hidden;
             cursor: pointer;
@@ -988,8 +987,8 @@
         #summaryContainer .summary-tile .tile-icon { font-size: 26px; line-height: 1; position: absolute; top: 10px; left: 10px; }
         #summaryContainer .summary-tile .tile-name {
             font-size: 14px; font-weight: 800; color: #7367f0;
-            line-height: 1.25; overflow: hidden;
-            display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+            line-height: 1.25;
+            overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
         }
         #summaryContainer .summary-tile .tile-meta {
             font-size: 11px; color: rgba(115,103,240,0.7); font-weight: 600; margin-top: auto;
