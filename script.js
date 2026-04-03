@@ -2197,26 +2197,12 @@ function render() {
         document.getElementById('itemCountDisplay').innerText = `${list.items.length} ${t('items')}`;
         setTimeout(adjustContentPadding, 50);
 
-        // ── צבע כותרת הרשימה תואם לצבע הטייל שלה בהרשימות שלי ──
+        // ── כותרת רשימה — רקע עדין + מסגרת סגולה ──
         const _lnb = document.getElementById('listNameBar');
         if (_lnb) {
-            const _STILE_GRADS = [
-                'linear-gradient(135deg,#6c63ff,#9b5de5)',
-                'linear-gradient(135deg,#f59e0b,#f97316)',
-                'linear-gradient(135deg,#10b981,#0ea5e9)',
-                'linear-gradient(135deg,#ef4444,#f43f5e)',
-                'linear-gradient(135deg,#3b82f6,#6366f1)',
-                'linear-gradient(135deg,#8b5cf6,#ec4899)',
-                'linear-gradient(135deg,#0ea5e9,#10b981)',
-                'linear-gradient(135deg,#f97316,#ef4444)',
-                'linear-gradient(135deg,#a855f7,#6c63ff)',
-                'linear-gradient(135deg,#06b6d4,#3b82f6)',
-            ];
-            const _lIdx = Object.keys(db.lists).indexOf(db.currentId);
-            _lnb.style.background = _lIdx >= 0
-                ? _STILE_GRADS[_lIdx % 10]
-                : 'linear-gradient(135deg,#7367f0 0%,#9055ff 100%)';
-            _lnb.style.boxShadow = '0 8px 20px rgba(0,0,0,0.25)';
+            _lnb.style.background = 'linear-gradient(135deg,#f0eeff 0%,#ede9fe 100%)';
+            _lnb.style.boxShadow = '0 8px 20px rgba(115,103,240,0.15)';
+            _lnb.style.borderBottom = '1.5px solid rgba(115,103,240,0.25)';
         }
 
 
@@ -2612,9 +2598,6 @@ function render() {
         document.getElementById('pageSummary').classList.remove('hidden');
         document.getElementById('pageStats').classList.add('hidden');
         document.getElementById('listNameDisplay').innerText = 'הרשימות שלי';
-        // ── אפס צבע כותרת לסגול הרגיל ──
-        const _lnbSum = document.getElementById('listNameBar');
-        if (_lnbSum) { _lnbSum.style.background = 'linear-gradient(135deg,#7367f0 0%,#9055ff 100%)'; _lnbSum.style.boxShadow = '0 8px 20px rgba(115,103,240,0.35)'; }
         setTimeout(adjustContentPadding, 50);
         document.getElementById('itemCountDisplay').innerText = `${Object.keys(db.lists).length} רשימות`;
 
