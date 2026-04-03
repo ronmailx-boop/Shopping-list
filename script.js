@@ -7867,6 +7867,7 @@ function createNewList() {
 // Select existing list and import pending text if exists
 function selectListAndImport(listId) {
     db.currentId = listId;
+    compactMode = true;
     
     // Check if there's pending import text
     if (pendingImportText && detectedListType) {
