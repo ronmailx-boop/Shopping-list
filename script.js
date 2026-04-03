@@ -10731,9 +10731,7 @@ function toggleCompactMode() {
     compactActionsOpen = false;
 
     const btn        = document.getElementById('compactModeBtn');
-    const plusWrap   = document.getElementById('compactPlusWrap');
     const actionsRow = document.getElementById('compactActionsRow');
-    const barActions = document.getElementById('barActionsRow');
     const barStats   = document.getElementById('barStatsRow');
     const tabsRow    = document.getElementById('tabsRowWrap');
     const bar        = document.getElementById('smartBottomBar');
@@ -10744,11 +10742,9 @@ function toggleCompactMode() {
         if (itemEditWrap) itemEditWrap.style.display = 'flex';
         const summaryBtns = document.getElementById('summaryCompactBtns');
         if (summaryBtns) summaryBtns.style.display = 'flex';
-        if (barActions) barActions.style.display = 'none';
         if (barStats)   barStats.style.display   = 'none';
         if (tabsRow)    tabsRow.style.display     = 'block';
         if (actionsRow) actionsRow.style.display  = 'none';
-        if (plusWrap)   plusWrap.style.display    = 'block';
         if (bar)        bar.style.overflow        = 'hidden';
     } else {
         if (btn) { btn.style.background = 'rgba(255,255,255,0.2)'; btn.style.borderColor = 'rgba(255,255,255,0.3)'; }
@@ -10764,9 +10760,7 @@ function toggleCompactMode() {
             if (lda) lda.style.display = 'none';
         }
         if (compactStatsOpen) { compactStatsOpen = false; _restoreCompactTabs(); }
-        if (barActions) { barActions.style.display = 'flex'; barActions.style.padding = '10px 12px 18px'; }
         if (barStats)   barStats.style.display   = 'none';
-        if (plusWrap)   plusWrap.style.display   = 'none';
         if (actionsRow) actionsRow.style.display = 'none';
         if (tabsRow)    tabsRow.style.display    = 'block';
         if (bar)        bar.style.overflow       = 'hidden';
