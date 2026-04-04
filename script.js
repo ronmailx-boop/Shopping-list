@@ -10751,7 +10751,7 @@ function toggleCompactMode() {
         const itemEditWrapOff = document.getElementById('itemEditModeWrap');
         if (itemEditWrapOff) { itemEditWrapOff.style.display = 'none'; itemEditMode = false; }
         const summaryBtnsOff = document.getElementById('summaryCompactBtns');
-        if (summaryBtnsOff) summaryBtnsOff.style.display = 'none';
+        if (summaryBtnsOff) summaryBtnsOff.style.display = 'flex'; // תמיד גלוי ב-summary
         // סגור מצב מחיקת רשימות אם פתוח
         if (listDeleteMode) {
             listDeleteMode = false;
