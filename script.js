@@ -2685,19 +2685,18 @@ function render() {
                     `;
                 } else {
                     // ── FULL: colorful square tile ──
-                    const isDelSelected = listDeleteMode && listDeleteSelected.has(id);
+                    const isDelSel = listDeleteMode && listDeleteSelected.has(id);
                     div.className = 'summary-tile ' + colorClass + (isHighlighted ? ' highlighted-tile' : '');
-                    if (isDelSelected) { div.style.opacity = '0.6'; div.style.outline = '2.5px solid #ef4444'; }
+                    if (isDelSel) { div.style.opacity = '0.6'; div.style.outline = '2.5px solid #ef4444'; }
                     div.setAttribute('data-drag', listEditMode ? 'true' : 'false');
-                    div.innerHTML = `
-                        ${listEditMode ? `<div class="list-drag-handle" data-drag="true" style="position:absolute;top:8px;right:8px;display:flex;align-items:center;justify-content:center;width:26px;height:26px;cursor:grab;color:rgba(115,103,240,0.5);touch-action:none;z-index:2;"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" style="pointer-events:none"><rect x="2" y="3" width="12" height="2" rx="1" fill="currentColor"/><rect x="2" y="7" width="12" height="2" rx="1" fill="currentColor"/><rect x="2" y="11" width="12" height="2" rx="1" fill="currentColor"/></svg></div>` : ''}
-                        ${listDeleteMode
-                            ? `<div class="tile-cb ${isDelSelected ? 'checked' : ''}" onclick="event.stopPropagation();listDeleteToggle('${id}')"></div>`
-                            : `<div class="tile-cb ${isSel ? 'checked' : ''}" onclick="event.stopPropagation();toggleSum('${id}')"></div>`
-                        }
-                        <div class="tile-name" style="${isDelSelected ? 'text-decoration:line-through;opacity:0.7;' : ''}">${l.name}</div>
-                        <div class="tile-amount">₪${lT.toFixed(2)}</div>
-                    `;
+                    const dragHandle = listEditMode ? '<div class="list-drag-handle" data-drag="true" style="position:absolute;top:8px;right:8px;display:flex;align-items:center;justify-content:center;width:26px;height:26px;cursor:grab;color:rgba(115,103,240,0.5);touch-action:none;z-index:2;"><svg width=\"14\" height=\"14\" viewBox=\"0 0 16 16\" fill=\"none\" style=\"pointer-events:none\"><rect x=\"2\" y=\"3\" width=\"12\" height=\"2\" rx=\"1\" fill=\"currentColor\"/><rect x=\"2\" y=\"7\" width=\"12\" height=\"2\" rx=\"1\" fill=\"currentColor\"/><rect x=\"2\" y=\"11\" width=\"12\" height=\"2\" rx=\"1\" fill=\"currentColor\"/></svg></div>' : '';
+                    const cbClass = listDeleteMode ? (isDelSel ? 'checked' : '') : (isSel ? 'checked' : '');
+                    const cbClick = listDeleteMode ? "event.stopPropagation();listDeleteToggle('" + id + "')" : "event.stopPropagation();toggleSum('" + id + "')";
+                    const nameStyle = isDelSel ? 'text-decoration:line-through;opacity:0.7;' : '';
+                    div.innerHTML = dragHandle +
+                        '<div class="tile-cb ' + cbClass + '" onclick="' + cbClick + '"></div>' +
+                        '<div class="tile-name" style="' + nameStyle + '">' + l.name + '</div>' +
+                        '<div class="tile-amount">₪' + lT.toFixed(2) + '</div>';
                     if (!listEditMode) {
                         div.addEventListener('click', function(e) {
                             if (e.target.classList.contains('tile-cb')) return;
@@ -10757,7 +10756,7 @@ function toggleCompactMode() {
         const itemEditWrapOff = document.getElementById('itemEditModeWrap');
         if (itemEditWrapOff) { itemEditWrapOff.style.display = 'none'; itemEditMode = false; }
         const summaryBtnsOff = document.getElementById('summaryCompactBtns');
-        if (summaryBtnsOff) summaryBtnsOff.style.display = 'flex'; // תמיד גלוי ב-summary
+        if (summaryBtnsOff) summaryBtnsOff.style.display = 'flex';
         // סגור מצב מחיקת רשימות אם פתוח
         if (listDeleteMode) {
             listDeleteMode = false;
