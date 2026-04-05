@@ -853,12 +853,9 @@ function toggleDarkMode() {
 }
 
 function showPage(p) {
-    // שמור מצב נוכחי לפני המעבר
     if (activePage === 'lists')   listsCompactMode   = compactMode;
     if (activePage === 'summary') summaryCompactMode = compactMode;
-
     activePage = p;
-    // שחזר מצב מתאים לפי הדף שנכנסים אליו
     if (p === 'summary') { compactMode = false; summaryCompactMode = false; }
     if (p === 'lists')   compactMode = listsCompactMode;
     // פתיחת הבר אוטומטית ועדכון טאבי הניווט בבר הפתוח
@@ -2155,8 +2152,8 @@ function generateItemMetadataHTML(item, idx) {
 }
 
 let compactMode = false;
-let summaryCompactMode = false; // שומר את מצב הכרטיסיות של דף הרשימות שלי
-let listsCompactMode = true;   // שומר את מצב compact של דף המוצרים
+let summaryCompactMode = false;
+let listsCompactMode = true;
 let compactActionsOpen = false;
 let expandedItemIdx = -1; // מוצר מורחב ב-compact mode
 let listEditMode = false;  // מצב עריכת סדר רשימות
@@ -2685,22 +2682,19 @@ function render() {
                     `;
                 } else {
                     // ── FULL: colorful square tile ──
-                    const isDelSel = listDeleteMode && listDeleteSelected.has(id);
                     div.className = 'summary-tile ' + colorClass + (isHighlighted ? ' highlighted-tile' : '');
-                    if (isDelSel) { div.style.opacity = '0.6'; div.style.outline = '2.5px solid #ef4444'; }
                     div.setAttribute('data-drag', listEditMode ? 'true' : 'false');
-                    const dragHandle = listEditMode ? '<div class="list-drag-handle" data-drag="true" style="position:absolute;top:8px;right:8px;display:flex;align-items:center;justify-content:center;width:26px;height:26px;cursor:grab;color:rgba(115,103,240,0.5);touch-action:none;z-index:2;"><svg width=\"14\" height=\"14\" viewBox=\"0 0 16 16\" fill=\"none\" style=\"pointer-events:none\"><rect x=\"2\" y=\"3\" width=\"12\" height=\"2\" rx=\"1\" fill=\"currentColor\"/><rect x=\"2\" y=\"7\" width=\"12\" height=\"2\" rx=\"1\" fill=\"currentColor\"/><rect x=\"2\" y=\"11\" width=\"12\" height=\"2\" rx=\"1\" fill=\"currentColor\"/></svg></div>' : '';
-                    const cbClass = listDeleteMode ? (isDelSel ? 'checked' : '') : (isSel ? 'checked' : '');
-                    const cbClick = listDeleteMode ? "event.stopPropagation();listDeleteToggle('" + id + "')" : "event.stopPropagation();toggleSum('" + id + "')";
-                    const nameStyle = isDelSel ? 'text-decoration:line-through;opacity:0.7;' : '';
-                    div.innerHTML = dragHandle +
-                        '<div class="tile-cb ' + cbClass + '" onclick="' + cbClick + '"></div>' +
-                        '<div class="tile-name" style="' + nameStyle + '">' + l.name + '</div>' +
-                        '<div class="tile-amount">₪' + lT.toFixed(2) + '</div>';
+                    div.innerHTML = `
+                        ${listEditMode ? `<div class="list-drag-handle" data-drag="true" style="position:absolute;top:8px;right:8px;display:flex;align-items:center;justify-content:center;width:26px;height:26px;cursor:grab;color:rgba(115,103,240,0.5);touch-action:none;z-index:2;"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" style="pointer-events:none"><rect x="2" y="3" width="12" height="2" rx="1" fill="currentColor"/><rect x="2" y="7" width="12" height="2" rx="1" fill="currentColor"/><rect x="2" y="11" width="12" height="2" rx="1" fill="currentColor"/></svg></div>` : ''}
+                        <div class="tile-cb ${isSel ? 'checked' : ''}" onclick="event.stopPropagation();toggleSum('${id}')"></div>
+                        <div class="tile-icon">${icon}</div>
+                        <div class="tile-name">${l.name}</div>
+                        <div class="tile-meta">${l.items.length} ${t('items')}</div>
+                        <div class="tile-amount">₪${lT.toFixed(2)}</div>
+                    `;
                     if (!listEditMode) {
                         div.addEventListener('click', function(e) {
                             if (e.target.classList.contains('tile-cb')) return;
-                            if (listDeleteMode) { listDeleteToggle(id); return; }
                             selectListAndImport(id); showPage('lists');
                         });
                     }
@@ -7881,8 +7875,6 @@ function createNewList() {
 // Select existing list and import pending text if exists
 function selectListAndImport(listId) {
     db.currentId = listId;
-    summaryCompactMode = compactMode; // שמור את מצב הכרטיסיות לפני מעבר לרשימה
-    compactMode = listsCompactMode;
     
     // Check if there's pending import text
     if (pendingImportText && detectedListType) {
@@ -10671,6 +10663,11 @@ let listDeleteMode = false;
 let listDeleteSelected = new Set();
 
 function toggleListDeleteMode() {
+    // בכרטיסיות — עבור למצב compact כדי שניתן יהיה למחוק
+    if (!compactMode && !listDeleteMode && activePage === 'summary') {
+        compactMode = true;
+        if (typeof render === 'function') render();
+    }
     listDeleteMode = !listDeleteMode;
     listDeleteSelected.clear();
     const summaryBtns  = document.getElementById('summaryCompactBtns');
@@ -10729,11 +10726,11 @@ function listDeleteExec() {
 
 function toggleCompactMode() {
     compactMode = !compactMode;
-    // עדכן את המצב הנשמר לפי הדף הנוכחי
-    if (activePage === 'summary') summaryCompactMode = compactMode;
-    if (activePage === 'lists')   listsCompactMode   = compactMode;
     expandedItemIdx = -1;
     compactActionsOpen = false;
+
+    if (activePage === 'summary') summaryCompactMode = compactMode;
+    if (activePage === 'lists')   listsCompactMode   = compactMode;
 
     const btn        = document.getElementById('compactModeBtn');
     const actionsRow = document.getElementById('compactActionsRow');
