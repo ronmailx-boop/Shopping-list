@@ -1,19 +1,12 @@
-// Version v2.0.1 - removed external CDN URLs from precache (CORS fix)
-const CACHE_NAME = 'vplus-pro-v2.0.1';
+// Version v2.0.2 - fixed urlsToCache to match single-file structure
+const CACHE_NAME = 'vplus-pro-v2.0.2';
 const urlsToCache = [
   '/',
   '/index.html',
-  '/manifest.json',
-  '/sw.js',
-  '/notification-handler.js',
-  '/constants.js',
-  '/store.js',
-  '/services.js',
-  '/importers.js',
-  '/ui.js',
-  '/app.js'
-  // External CDNs removed - they caused CORS errors during SW install
-  // They will be cached automatically by the fetch handler below
+  '/script.js',
+  '/manifest.json'
+  // Only local files that actually exist.
+  // External CDNs and missing module files removed — they cause SW install failure.
 ];
 
 self.addEventListener('install', event => {
