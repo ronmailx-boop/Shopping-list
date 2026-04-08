@@ -1032,19 +1032,25 @@
         }
         #summaryContainer.compact-lists .summary-compact-row {
             border-radius: 16px;
-            padding: 12px 16px;
+            padding: 10px 16px;
             display: flex;
             align-items: center;
             gap: 10px;
             cursor: pointer;
             transition: transform 0.15s;
             box-shadow: 0 3px 10px rgba(0,0,0,0.12);
-            min-height: 52px;
+            height: 68px;
+            box-sizing: border-box;
         }
         #summaryContainer.compact-lists .summary-compact-row:active { transform: scale(0.98); }
         #summaryContainer.compact-lists .summary-compact-row .crow-name {
-            flex: 1; font-size: 15px; font-weight: 800; color: #7367f0;
-            overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+            flex: 1; font-size: 14px; font-weight: 800; color: #7367f0;
+            overflow: hidden;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            line-height: 1.35;
+            word-break: break-word;
         }
         #summaryContainer.compact-lists .summary-compact-row .crow-amount {
             font-size: 14px; font-weight: 900; color: #7367f0; flex-shrink: 0;
@@ -2509,23 +2515,26 @@ ${error.message}
         </h1>
         <script>
         document.addEventListener('DOMContentLoaded', function() {
+            var pressTimer;
             var el = document.getElementById('appLogo');
             if (!el) return;
-            // דאבל-קליק (דסקטופ)
-            el.addEventListener('dblclick', function(e) {
-                e.preventDefault();
-                if (typeof toggleDebugLog === 'function') toggleDebugLog();
-            });
-            // דאבל-טאפ (מובייל)
-            var lastTap = 0;
-            el.addEventListener('touchend', function(e) {
-                var now = Date.now();
-                if (now - lastTap < 350) {
-                    e.preventDefault();
-                    if (typeof toggleDebugLog === 'function') toggleDebugLog();
-                }
-                lastTap = now;
-            });
+            function startPress(e) {
+                pressTimer = setTimeout(function() {
+                    var p = document.getElementById('debugLogPanel');
+                    if (p) {
+                        p.style.display = (p.style.display === 'none' ? 'block' : 'none');
+                    } else {
+                        if (typeof dbgLog === 'function') dbgLog('🐛 Debug Panel נפתח', '#22c55e');
+                    }
+                }, 800);
+            }
+            function cancelPress() { clearTimeout(pressTimer); }
+            el.addEventListener('touchstart', startPress, { passive: true });
+            el.addEventListener('touchend', cancelPress);
+            el.addEventListener('touchmove', cancelPress);
+            el.addEventListener('mousedown', startPress);
+            el.addEventListener('mouseup', cancelPress);
+            el.addEventListener('mouseleave', cancelPress);
         });
         </script>
 
