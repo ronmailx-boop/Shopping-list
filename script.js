@@ -2681,9 +2681,7 @@ function render() {
                     div.innerHTML = `
                         ${listEditMode ? `<div class="list-drag-handle" data-drag="true" style="position:absolute;top:8px;right:8px;display:flex;align-items:center;justify-content:center;width:26px;height:26px;cursor:grab;color:rgba(115,103,240,0.5);touch-action:none;z-index:2;"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" style="pointer-events:none"><rect x="2" y="3" width="12" height="2" rx="1" fill="currentColor"/><rect x="2" y="7" width="12" height="2" rx="1" fill="currentColor"/><rect x="2" y="11" width="12" height="2" rx="1" fill="currentColor"/></svg></div>` : ''}
                         <div class="tile-cb ${isSel ? 'checked' : ''}" onclick="event.stopPropagation();toggleSum('${id}')"></div>
-                        <div class="tile-icon">${icon}</div>
                         <div class="tile-name">${l.name}</div>
-                        <div class="tile-meta">${l.items.length} ${t('items')}</div>
                         <div class="tile-amount">₪${lT.toFixed(2)}</div>
                     `;
                     if (!listEditMode) {
@@ -7869,6 +7867,7 @@ function createNewList() {
 // Select existing list and import pending text if exists
 function selectListAndImport(listId) {
     db.currentId = listId;
+    compactMode = true;
     
     // Check if there's pending import text
     if (pendingImportText && detectedListType) {
