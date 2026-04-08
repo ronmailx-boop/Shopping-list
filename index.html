@@ -32,7 +32,7 @@
         body {
             font-family: system-ui, sans-serif;
             background: linear-gradient(135deg, #f4f7fa 0%, #e8ecf3 100%);
-            padding-bottom: 80px;
+            padding-bottom: 200px;
             min-height: 100vh;
             transition: background 0.3s;
             margin: 0;
@@ -2792,7 +2792,7 @@ ${error.message}
             <div id="tabLists"   onclick="tapTab('summary')" style="position:absolute;top:0;right:0;width:50%;bottom:0;z-index:10;cursor:pointer;"></div>
             <div id="tabSummary" onclick="tapTab('lists')"   style="position:absolute;top:0;left:0;width:50%;bottom:0;z-index:10;cursor:pointer;"></div>
 
-            <!-- כפתור + קטן במרכז הטאבים (compact mode) -->
+            <!-- כפתור + קטן במרכז הטאבים -->
             <div id="compactPlusWrap" style="display:block;position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);z-index:50;">
                 <button id="compactPlusBtn" onclick="handleCompactPlus()"
                     style="width:32px;height:32px;border-radius:50%;background:#22c55e;border:2px solid rgba(255,255,255,0.5);display:flex;align-items:center;justify-content:center;box-shadow:0 3px 10px rgba(34,197,94,0.6);cursor:pointer;transition:transform 0.2s;"
@@ -2878,7 +2878,7 @@ ${error.message}
 
         </div>
 
-        <!-- שורת פעולות ראשית -->
+        <!-- שורת פעולות ראשית — מוסתר, הוחלף בcompactActionsRow -->
         <div id="barActionsRow" style="display:none;align-items:center;gap:8px;padding:10px 12px 18px;">
 
             <!-- + הירוק הגדול — ימין ראשון -->
@@ -2988,10 +2988,7 @@ ${error.message}
         var _scrollTimer = null;
         var _isScrolling = false;
 
-        // החלפת שורת פעולות ↔ נתונים בגלילה — מבוטל (בר תמיד compact)
-        window.addEventListener('scroll', function() {
-            // בר תמיד במצב compact — אין צורך להחליף שורות
-        }, { passive: true });
+        // scroll listener הוסר — barActionsRow אינו בשימוש יותר
 
         function updateNavPill(page) { if(typeof updateSvgTabs==='function') updateSvgTabs(page); }
 
@@ -4002,15 +3999,8 @@ ${error.message}
             if (typeof showPage === 'function') showPage(page);
             if (typeof render === 'function') render();
         }
-        // עדכן תצוגה — בcompact mode לא מציגים barActionsRow
-        var isCompact = (typeof compactMode !== 'undefined' && compactMode);
-        if (_activeMode === 'buttons') {
-            if (actions) { actions.style.display = isCompact ? 'none' : 'flex'; if(!isCompact) actions.style.padding='10px 12px 18px'; }
-            if (stats)   stats.style.display = 'none';
-        } else {
-            if (actions) actions.style.display = 'none';
-            if (stats)   { stats.style.display = isCompact ? 'none' : 'flex'; if(!isCompact) stats.style.padding='10px 12px 18px'; }
-        }
+        // עדכן תצוגה — barActionsRow הוסר, תמיד compact
+        if (stats) stats.style.display = 'none';
         updateSvgTabs(_activePage);
     }
 

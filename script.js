@@ -853,7 +853,14 @@ function toggleDarkMode() {
 }
 
 function showPage(p) {
+    // שמור מצב נוכחי לפני המעבר
+    if (activePage === 'lists')   listsCompactMode   = compactMode;
+    if (activePage === 'summary') summaryCompactMode = compactMode;
+
     activePage = p;
+    // שחזר מצב מתאים לפי הדף שנכנסים אליו
+    if (p === 'summary') { compactMode = false; summaryCompactMode = false; }
+    if (p === 'lists')   compactMode = listsCompactMode;
     // פתיחת הבר אוטומטית ועדכון טאבי הניווט בבר הפתוח
     if (p === 'lists' || p === 'summary') {
         if (typeof openSmartBar === 'function') openSmartBar();
@@ -2147,7 +2154,9 @@ function generateItemMetadataHTML(item, idx) {
     return html;
 }
 
-let compactMode = true;
+let compactMode = false;
+let summaryCompactMode = false; // שומר את מצב הכרטיסיות של דף הרשימות שלי
+let listsCompactMode = true;   // שומר את מצב compact של דף המוצרים
 let compactActionsOpen = false;
 let expandedItemIdx = -1; // מוצר מורחב ב-compact mode
 let listEditMode = false;  // מצב עריכת סדר רשימות
@@ -7343,21 +7352,6 @@ document.addEventListener('DOMContentLoaded', function() {
     updateGithubTokenStatus();
     setTimeout(() => { checkUrgentPayments(); }, 1000);
     checkFirstRunDemo();
-
-    // ── אכוף מצב compact תמיד ──
-    setTimeout(function() {
-        var barActions = document.getElementById('barActionsRow');
-        var barStats   = document.getElementById('barStatsRow');
-        var plusWrap   = document.getElementById('compactPlusWrap');
-        var actionsRow = document.getElementById('compactActionsRow');
-        var bar        = document.getElementById('smartBottomBar');
-        if (barActions) barActions.style.display = 'none';
-        if (barStats)   barStats.style.display   = 'none';
-        if (actionsRow) actionsRow.style.display  = 'none';
-        if (plusWrap)   plusWrap.style.display    = 'block';
-        if (bar)        bar.style.overflow        = 'hidden';
-        compactMode = true;
-    }, 200);
 });
 
 // Override the original render function to include Peace of Mind display elements
@@ -7882,7 +7876,8 @@ function createNewList() {
 // Select existing list and import pending text if exists
 function selectListAndImport(listId) {
     db.currentId = listId;
-    compactMode = true;
+    summaryCompactMode = compactMode; // שמור את מצב הכרטיסיות לפני מעבר לרשימה
+    compactMode = listsCompactMode;
     
     // Check if there's pending import text
     if (pendingImportText && detectedListType) {
@@ -10729,13 +10724,14 @@ function listDeleteExec() {
 
 function toggleCompactMode() {
     compactMode = !compactMode;
+    // עדכן את המצב הנשמר לפי הדף הנוכחי
+    if (activePage === 'summary') summaryCompactMode = compactMode;
+    if (activePage === 'lists')   listsCompactMode   = compactMode;
     expandedItemIdx = -1;
     compactActionsOpen = false;
 
     const btn        = document.getElementById('compactModeBtn');
-    const plusWrap   = document.getElementById('compactPlusWrap');
     const actionsRow = document.getElementById('compactActionsRow');
-    const barActions = document.getElementById('barActionsRow');
     const barStats   = document.getElementById('barStatsRow');
     const tabsRow    = document.getElementById('tabsRowWrap');
     const bar        = document.getElementById('smartBottomBar');
@@ -10746,11 +10742,9 @@ function toggleCompactMode() {
         if (itemEditWrap) itemEditWrap.style.display = 'flex';
         const summaryBtns = document.getElementById('summaryCompactBtns');
         if (summaryBtns) summaryBtns.style.display = 'flex';
-        if (barActions) barActions.style.display = 'none';
         if (barStats)   barStats.style.display   = 'none';
         if (tabsRow)    tabsRow.style.display     = 'block';
         if (actionsRow) actionsRow.style.display  = 'none';
-        if (plusWrap)   plusWrap.style.display    = 'block';
         if (bar)        bar.style.overflow        = 'hidden';
     } else {
         if (btn) { btn.style.background = 'rgba(255,255,255,0.2)'; btn.style.borderColor = 'rgba(255,255,255,0.3)'; }
@@ -10766,9 +10760,7 @@ function toggleCompactMode() {
             if (lda) lda.style.display = 'none';
         }
         if (compactStatsOpen) { compactStatsOpen = false; _restoreCompactTabs(); }
-        if (barActions) { barActions.style.display = 'flex'; barActions.style.padding = '10px 12px 18px'; }
         if (barStats)   barStats.style.display   = 'none';
-        if (plusWrap)   plusWrap.style.display   = 'none';
         if (actionsRow) actionsRow.style.display = 'none';
         if (tabsRow)    tabsRow.style.display    = 'block';
         if (bar)        bar.style.overflow       = 'hidden';
