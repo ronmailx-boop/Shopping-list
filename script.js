@@ -853,11 +853,7 @@ function toggleDarkMode() {
 }
 
 function showPage(p) {
-    if (activePage === 'lists')   listsCompactMode   = compactMode;
-    if (activePage === 'summary') summaryCompactMode = compactMode;
     activePage = p;
-    if (p === 'summary') { compactMode = false; summaryCompactMode = false; }
-    if (p === 'lists')   compactMode = listsCompactMode;
     // פתיחת הבר אוטומטית ועדכון טאבי הניווט בבר הפתוח
     if (p === 'lists' || p === 'summary') {
         if (typeof openSmartBar === 'function') openSmartBar();
@@ -2152,8 +2148,6 @@ function generateItemMetadataHTML(item, idx) {
 }
 
 let compactMode = false;
-let summaryCompactMode = false;
-let listsCompactMode = true;
 let compactActionsOpen = false;
 let expandedItemIdx = -1; // מוצר מורחב ב-compact mode
 let listEditMode = false;  // מצב עריכת סדר רשימות
@@ -10663,11 +10657,6 @@ let listDeleteMode = false;
 let listDeleteSelected = new Set();
 
 function toggleListDeleteMode() {
-    // בכרטיסיות — עבור למצב compact כדי שניתן יהיה למחוק
-    if (!compactMode && !listDeleteMode && activePage === 'summary') {
-        compactMode = true;
-        if (typeof render === 'function') render();
-    }
     listDeleteMode = !listDeleteMode;
     listDeleteSelected.clear();
     const summaryBtns  = document.getElementById('summaryCompactBtns');
@@ -10729,11 +10718,10 @@ function toggleCompactMode() {
     expandedItemIdx = -1;
     compactActionsOpen = false;
 
-    if (activePage === 'summary') summaryCompactMode = compactMode;
-    if (activePage === 'lists')   listsCompactMode   = compactMode;
-
     const btn        = document.getElementById('compactModeBtn');
+    const plusWrap   = document.getElementById('compactPlusWrap');
     const actionsRow = document.getElementById('compactActionsRow');
+    const barActions = document.getElementById('barActionsRow');
     const barStats   = document.getElementById('barStatsRow');
     const tabsRow    = document.getElementById('tabsRowWrap');
     const bar        = document.getElementById('smartBottomBar');
@@ -10744,16 +10732,18 @@ function toggleCompactMode() {
         if (itemEditWrap) itemEditWrap.style.display = 'flex';
         const summaryBtns = document.getElementById('summaryCompactBtns');
         if (summaryBtns) summaryBtns.style.display = 'flex';
+        if (barActions) barActions.style.display = 'none';
         if (barStats)   barStats.style.display   = 'none';
         if (tabsRow)    tabsRow.style.display     = 'block';
         if (actionsRow) actionsRow.style.display  = 'none';
+        if (plusWrap)   plusWrap.style.display    = 'block';
         if (bar)        bar.style.overflow        = 'hidden';
     } else {
         if (btn) { btn.style.background = 'rgba(255,255,255,0.2)'; btn.style.borderColor = 'rgba(255,255,255,0.3)'; }
         const itemEditWrapOff = document.getElementById('itemEditModeWrap');
         if (itemEditWrapOff) { itemEditWrapOff.style.display = 'none'; itemEditMode = false; }
         const summaryBtnsOff = document.getElementById('summaryCompactBtns');
-        if (summaryBtnsOff) summaryBtnsOff.style.display = 'flex';
+        if (summaryBtnsOff) summaryBtnsOff.style.display = 'none';
         // סגור מצב מחיקת רשימות אם פתוח
         if (listDeleteMode) {
             listDeleteMode = false;
@@ -10762,7 +10752,9 @@ function toggleCompactMode() {
             if (lda) lda.style.display = 'none';
         }
         if (compactStatsOpen) { compactStatsOpen = false; _restoreCompactTabs(); }
+        if (barActions) { barActions.style.display = 'flex'; barActions.style.padding = '10px 12px 18px'; }
         if (barStats)   barStats.style.display   = 'none';
+        if (plusWrap)   plusWrap.style.display   = 'none';
         if (actionsRow) actionsRow.style.display = 'none';
         if (tabsRow)    tabsRow.style.display    = 'block';
         if (bar)        bar.style.overflow       = 'hidden';
