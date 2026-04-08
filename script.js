@@ -2683,6 +2683,7 @@ function render() {
                             style="${isDelSelected ? 'text-decoration:line-through;opacity:0.7;' : ''}">${l.name}</span>
                         <span class="crow-amount">₪${lT.toFixed(2)}</span>
                     `;
+                }
                 container.appendChild(div);
             });
 
