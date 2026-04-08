@@ -859,7 +859,7 @@ function showPage(p) {
 
     activePage = p;
     // שחזר מצב מתאים לפי הדף שנכנסים אליו
-    if (p === 'summary') { compactMode = false; summaryCompactMode = false; }
+    if (p === 'summary') { compactMode = true; summaryCompactMode = true; }
     if (p === 'lists')   compactMode = listsCompactMode;
     // פתיחת הבר אוטומטית ועדכון טאבי הניווט בבר הפתוח
     if (p === 'lists' || p === 'summary') {
@@ -2155,7 +2155,7 @@ function generateItemMetadataHTML(item, idx) {
 }
 
 let compactMode = false;
-let summaryCompactMode = false; // שומר את מצב הכרטיסיות של דף הרשימות שלי
+let summaryCompactMode = true; // הרשימות שלי — תמיד compact rows
 let listsCompactMode = true;   // שומר את מצב compact של דף המוצרים
 let compactActionsOpen = false;
 let expandedItemIdx = -1; // מוצר מורחב ב-compact mode
@@ -2683,23 +2683,6 @@ function render() {
                             style="${isDelSelected ? 'text-decoration:line-through;opacity:0.7;' : ''}">${l.name}</span>
                         <span class="crow-amount">₪${lT.toFixed(2)}</span>
                     `;
-                } else {
-                    // ── FULL: colorful square tile ──
-                    div.className = 'summary-tile ' + colorClass + (isHighlighted ? ' highlighted-tile' : '');
-                    div.setAttribute('data-drag', listEditMode ? 'true' : 'false');
-                    div.innerHTML = `
-                        ${listEditMode ? `<div class="list-drag-handle" data-drag="true" style="position:absolute;top:8px;right:8px;display:flex;align-items:center;justify-content:center;width:26px;height:26px;cursor:grab;color:rgba(115,103,240,0.5);touch-action:none;z-index:2;"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" style="pointer-events:none"><rect x="2" y="3" width="12" height="2" rx="1" fill="currentColor"/><rect x="2" y="7" width="12" height="2" rx="1" fill="currentColor"/><rect x="2" y="11" width="12" height="2" rx="1" fill="currentColor"/></svg></div>` : ''}
-                        <div class="tile-cb ${isSel ? 'checked' : ''}" onclick="event.stopPropagation();toggleSum('${id}')"></div>
-                        <div class="tile-name">${l.name}</div>
-                        <div class="tile-amount">₪${lT.toFixed(2)}</div>
-                    `;
-                    if (!listEditMode) {
-                        div.addEventListener('click', function(e) {
-                            if (e.target.classList.contains('tile-cb')) return;
-                            selectListAndImport(id); showPage('lists');
-                        });
-                    }
-                }
                 container.appendChild(div);
             });
 
@@ -9960,18 +9943,7 @@ function dbgLog(msg, color) {
     const type = color === '#ff4444' ? 'error' : color === '#ffaa00' ? 'warn' : 'info';
     const icon = color === '#ff4444' ? '🔴' : color === '#ffaa00' ? '🟡' : color === '#22c55e' ? '🟢' : '•';
     _globalDebugLogs.push({ msg, type, icon, time: new Date().toLocaleTimeString('he-IL') });
-    // פאנל מתעדכן רק אם כבר פתוח
-    const panel = document.getElementById('debugLogPanel');
-    if (panel) showDebugLog(_globalDebugLogs);
-}
-
-function toggleDebugLog() {
-    const panel = document.getElementById('debugLogPanel');
-    if (panel) {
-        panel.remove();
-    } else {
-        showDebugLog(_globalDebugLogs);
-    }
+    showDebugLog(_globalDebugLogs);
 }
 
 function showDebugLog(logs) {
@@ -10734,6 +10706,8 @@ function listDeleteExec() {
 }
 
 function toggleCompactMode() {
+    // הרשימות שלי — תמיד compact, אין toggle
+    if (activePage === 'summary') return;
     compactMode = !compactMode;
     // עדכן את המצב הנשמר לפי הדף הנוכחי
     if (activePage === 'summary') summaryCompactMode = compactMode;
