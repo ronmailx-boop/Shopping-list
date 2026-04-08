@@ -10411,7 +10411,7 @@ function setupListDrag() {
     }
 
     container.addEventListener('touchstart', e => {
-        const handle = e.target.closest('[data-drag]');
+        const handle = e.target.closest('.list-drag-handle');
         if (!handle || !listEditMode) return;
         const item = handle.closest('[data-id]');
         if (!item) return;
