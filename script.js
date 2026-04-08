@@ -2147,7 +2147,7 @@ function generateItemMetadataHTML(item, idx) {
     return html;
 }
 
-let compactMode = false;
+let compactMode = true;
 let compactActionsOpen = false;
 let expandedItemIdx = -1; // מוצר מורחב ב-compact mode
 let listEditMode = false;  // מצב עריכת סדר רשימות
@@ -7343,6 +7343,21 @@ document.addEventListener('DOMContentLoaded', function() {
     updateGithubTokenStatus();
     setTimeout(() => { checkUrgentPayments(); }, 1000);
     checkFirstRunDemo();
+
+    // ── אכוף מצב compact תמיד ──
+    setTimeout(function() {
+        var barActions = document.getElementById('barActionsRow');
+        var barStats   = document.getElementById('barStatsRow');
+        var plusWrap   = document.getElementById('compactPlusWrap');
+        var actionsRow = document.getElementById('compactActionsRow');
+        var bar        = document.getElementById('smartBottomBar');
+        if (barActions) barActions.style.display = 'none';
+        if (barStats)   barStats.style.display   = 'none';
+        if (actionsRow) actionsRow.style.display  = 'none';
+        if (plusWrap)   plusWrap.style.display    = 'block';
+        if (bar)        bar.style.overflow        = 'hidden';
+        compactMode = true;
+    }, 200);
 });
 
 // Override the original render function to include Peace of Mind display elements
