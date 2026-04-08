@@ -2505,14 +2505,16 @@ function render() {
                             // Compact view רגיל / מצב מחיקה
                             const isDelSelected = compactDeleteMode && compactDeleteSelected.has(idx);
                             div.style.padding = '10px 14px';
+                            div.style.height = '68px';
+                            div.style.boxSizing = 'border-box';
                             if (isDelSelected) {
                                 div.style.background = 'rgba(239,68,68,0.06)';
                                 div.style.border = '1.5px solid rgba(239,68,68,0.4)';
                                 div.style.borderRadius = '25px';
                             }
                             div.innerHTML = `
-                                <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;">
-                                    <div style="display:flex;align-items:center;gap:6px;flex:1;min-width:0;">
+                                <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;height:100%;">
+                                    <div style="display:flex;align-items:center;gap:6px;flex:1;min-width:0;height:100%;">
                                         ${compactDeleteMode ? `
                                         <div onclick="compactDeleteToggle(${idx})" style="width:24px;height:24px;border-radius:7px;border:2px solid ${isDelSelected ? '#ef4444' : '#ddd'};background:${isDelSelected ? '#ef4444' : 'white'};display:flex;align-items:center;justify-content:center;flex-shrink:0;cursor:pointer;transition:all 0.15s;">
                                             ${isDelSelected ? '<svg width="13" height="13" viewBox="0 0 13 13" fill="none"><path d="M2 6.5L5.5 10L11 3" stroke="white" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>' : ''}
@@ -2521,7 +2523,7 @@ function render() {
                                         <div class="item-drag-handle" data-drag="true" style="display:${itemEditMode ? 'flex' : 'none'};align-items:center;justify-content:center;width:26px;height:26px;flex-shrink:0;cursor:grab;color:#a89fff;touch-action:none;"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" style="pointer-events:none"><rect x="2" y="3" width="12" height="2" rx="1" fill="currentColor"/><rect x="2" y="7" width="12" height="2" rx="1" fill="currentColor"/><rect x="2" y="11" width="12" height="2" rx="1" fill="currentColor"/></svg></div>
                                         <input type="checkbox" ${item.checked ? 'checked' : ''} onchange="toggleItem(${idx})" class="w-7 h-7 accent-indigo-600" style="flex-shrink:0;" onclick="event.stopPropagation()">
                                         `}
-                                        <span class="font-bold ${item.checked && !compactDeleteMode ? 'line-through text-gray-300' : ''}" style="font-size:15px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;cursor:pointer;">
+                                        <span class="font-bold ${item.checked && !compactDeleteMode ? 'line-through text-gray-300' : ''}" style="font-size:15px;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;line-height:1.35;cursor:pointer;word-break:break-word;">
                                             <span class="item-number">${idx + 1}.</span> ${item.name}
                                         </span>
                                     </div>
