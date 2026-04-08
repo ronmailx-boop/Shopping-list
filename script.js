@@ -9960,7 +9960,18 @@ function dbgLog(msg, color) {
     const type = color === '#ff4444' ? 'error' : color === '#ffaa00' ? 'warn' : 'info';
     const icon = color === '#ff4444' ? '🔴' : color === '#ffaa00' ? '🟡' : color === '#22c55e' ? '🟢' : '•';
     _globalDebugLogs.push({ msg, type, icon, time: new Date().toLocaleTimeString('he-IL') });
-    showDebugLog(_globalDebugLogs);
+    // פאנל מתעדכן רק אם כבר פתוח
+    const panel = document.getElementById('debugLogPanel');
+    if (panel) showDebugLog(_globalDebugLogs);
+}
+
+function toggleDebugLog() {
+    const panel = document.getElementById('debugLogPanel');
+    if (panel) {
+        panel.remove();
+    } else {
+        showDebugLog(_globalDebugLogs);
+    }
 }
 
 function showDebugLog(logs) {

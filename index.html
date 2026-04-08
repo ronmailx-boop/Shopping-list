@@ -2509,26 +2509,23 @@ ${error.message}
         </h1>
         <script>
         document.addEventListener('DOMContentLoaded', function() {
-            var pressTimer;
             var el = document.getElementById('appLogo');
             if (!el) return;
-            function startPress(e) {
-                pressTimer = setTimeout(function() {
-                    var p = document.getElementById('debugLogPanel');
-                    if (p) {
-                        p.style.display = (p.style.display === 'none' ? 'block' : 'none');
-                    } else {
-                        if (typeof dbgLog === 'function') dbgLog('🐛 Debug Panel נפתח', '#22c55e');
-                    }
-                }, 800);
-            }
-            function cancelPress() { clearTimeout(pressTimer); }
-            el.addEventListener('touchstart', startPress, { passive: true });
-            el.addEventListener('touchend', cancelPress);
-            el.addEventListener('touchmove', cancelPress);
-            el.addEventListener('mousedown', startPress);
-            el.addEventListener('mouseup', cancelPress);
-            el.addEventListener('mouseleave', cancelPress);
+            // דאבל-קליק (דסקטופ)
+            el.addEventListener('dblclick', function(e) {
+                e.preventDefault();
+                if (typeof toggleDebugLog === 'function') toggleDebugLog();
+            });
+            // דאבל-טאפ (מובייל)
+            var lastTap = 0;
+            el.addEventListener('touchend', function(e) {
+                var now = Date.now();
+                if (now - lastTap < 350) {
+                    e.preventDefault();
+                    if (typeof toggleDebugLog === 'function') toggleDebugLog();
+                }
+                lastTap = now;
+            });
         });
         </script>
 
