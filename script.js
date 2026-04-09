@@ -4903,6 +4903,8 @@ function setupFirestoreListener(user) {
                     mergedDb.currentId = 'L1';
                 }
 
+                // שמור את activePage הנוכחי — אל תאפשר לענן לדרוס אותו
+                mergedDb.lastActivePage = activePage;
                 db = mergedDb;
                 localStorage.setItem('BUDGET_FINAL_V28', JSON.stringify(db));
                 render();
