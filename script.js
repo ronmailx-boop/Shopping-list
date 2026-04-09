@@ -2605,6 +2605,9 @@ function render() {
         }
 
     } else if (activePage === 'summary') {
+        // סאמרי תמיד compact — וודא שהמצב נכון גם בטעינה ראשונה ללא showPage
+        compactMode = true;
+        summaryCompactMode = true;
         document.getElementById('pageLists').classList.add('hidden');
         document.getElementById('pageSummary').classList.remove('hidden');
         document.getElementById('pageStats').classList.add('hidden');
@@ -4903,8 +4906,6 @@ function setupFirestoreListener(user) {
                     mergedDb.currentId = 'L1';
                 }
 
-                // שמור את activePage הנוכחי — אל תאפשר לענן לדרוס אותו
-                mergedDb.lastActivePage = activePage;
                 db = mergedDb;
                 localStorage.setItem('BUDGET_FINAL_V28', JSON.stringify(db));
                 render();
