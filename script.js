@@ -9944,17 +9944,14 @@ function setFinStage(step, icon, title, sub, pct) {
     }
 }
 
-// ── Debug log panel ──
-// ── Global debug log ──────────────────────────────────────────────
-const _globalDebugLogs = [];
-function dbgLog(msg, color) {
-    const type = color === '#ff4444' ? 'error' : color === '#ffaa00' ? 'warn' : 'info';
-    const icon = color === '#ff4444' ? '🔴' : color === '#ffaa00' ? '🟡' : color === '#22c55e' ? '🟢' : '•';
-    _globalDebugLogs.push({ msg, type, icon, time: new Date().toLocaleTimeString('he-IL') });
-    showDebugLog(_globalDebugLogs);
-}
-
+// ── [Debug panel removed] ──
 function showDebugLog(logs) {
+    // no-op: debug panel removed
+    return;
+}
+/* _showDebugLog_DISABLED - removed */
+function _showDebugLog_REMOVED_PLACEHOLDER() {
+    // placeholder - dead code kept for reference only
     let panel = document.getElementById('debugLogPanel');
     if (!panel) {
         panel = document.createElement('div');
@@ -10103,10 +10100,8 @@ function showDebugLog(logs) {
 
 // ── Shared fetch helper ──
 async function runFinancialFetch({ companyId, credentials, modalId, nameLabel }) {
-    const debugLogs = [];
     const log = (msg, type='info', icon='•') => {
-        debugLogs.push({ msg, type, icon, time: new Date().toLocaleTimeString('he-IL') });
-        showDebugLog(debugLogs);
+        console.log(`[BankSync][${type}] ${icon} ${msg}`);
     };
 
     closeModal(modalId);
