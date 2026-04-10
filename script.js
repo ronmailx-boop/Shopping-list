@@ -2158,9 +2158,10 @@ function generateItemMetadataHTML(item, idx) {
     return html;
 }
 
-let compactMode = false;
 let summaryCompactMode = true; // הרשימות שלי — תמיד compact rows
 let listsCompactMode = true;   // שומר את מצב compact של דף המוצרים
+// אתחול compactMode לפי הדף הנשמר — כדי שrender() הראשון יציג נכון
+let compactMode = (activePage === 'summary') ? summaryCompactMode : listsCompactMode;
 let compactActionsOpen = false;
 let expandedItemIdx = -1; // מוצר מורחב ב-compact mode
 let listEditMode = false;  // מצב עריכת סדר רשימות
