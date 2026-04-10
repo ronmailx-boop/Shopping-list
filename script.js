@@ -1,126 +1,3 @@
-// ═══════════════════════════════════════════════════════════════════
-// 🐛 PERSISTENT DEBUG LOGGER — survives page refresh via sessionStorage
-// ═══════════════════════════════════════════════════════════════════
-(function() {
-    var STORE_KEY = 'vplus_dbg_logs';
-    var MAX = 200;
-
-    function _load() {
-        try { return JSON.parse(sessionStorage.getItem(STORE_KEY) || '[]'); } catch(e) { return []; }
-    }
-    function _save(logs) {
-        try { sessionStorage.setItem(STORE_KEY, JSON.stringify(logs.slice(-MAX))); } catch(e) {}
-    }
-
-    var logs = _load();
-
-    function addLog(msg, level) {
-        var icons = { info:'🔵', warn:'🟡', error:'🔴', ok:'🟢', trace:'⚪' };
-        var ts = new Date().toLocaleTimeString('he-IL', { hour12: false });
-        var entry = { ts: ts, icon: icons[level] || '•', msg: String(msg), level: level || 'info' };
-        logs.push(entry);
-        _save(logs);
-        console.log('[DBG ' + ts + '] ' + entry.icon + ' ' + msg);
-        refreshPanel();
-    }
-
-    var panel = null;
-    var visible = false;
-
-    function refreshPanel() {
-        if (!panel || !visible) return;
-        var body = document.getElementById('_dbgBody');
-        if (!body) return;
-        var html = '';
-        var slice = logs.slice(-80).reverse();
-        for (var i = 0; i < slice.length; i++) {
-            var e = slice[i];
-            var col = e.level === 'error' ? '#ff6b6b' : e.level === 'warn' ? '#ffd93d' : e.level === 'ok' ? '#6bcb77' : '#d4d4d4';
-            html += '<div style="padding:2px 0;border-bottom:1px solid rgba(255,255,255,0.05);color:' + col + ';word-break:break-all;">' +
-                '<span style="color:#666;font-size:10px;">' + e.ts + '</span> ' + e.icon + ' ' + e.msg + '</div>';
-        }
-        body.innerHTML = html;
-    }
-
-    function toggle() {
-        if (!panel) createPanel();
-        visible = !visible;
-        panel.style.display = visible ? 'flex' : 'none';
-        if (visible) refreshPanel();
-    }
-
-    function createPanel() {
-        panel = document.createElement('div');
-        panel.style.cssText = 'position:fixed;bottom:90px;left:6px;right:50px;z-index:99999;background:#1a1a2e;border:2px solid #e94560;border-radius:12px;font-family:monospace;font-size:11px;max-height:44vh;flex-direction:column;overflow:hidden;box-shadow:0 8px 32px rgba(0,0,0,0.7);display:none;';
-
-        var hdr = document.createElement('div');
-        hdr.style.cssText = 'display:flex;justify-content:space-between;align-items:center;padding:6px 10px;background:#0f3460;flex-shrink:0;gap:4px;';
-        hdr.innerHTML = '<span style="color:#e94560;font-weight:bold;font-size:11px;">🐛 Debug Log</span>';
-
-        var clearBtn = document.createElement('button');
-        clearBtn.textContent = '🗑️ נקה';
-        clearBtn.style.cssText = 'background:#374151;border:none;color:#9ca3af;font-size:10px;padding:2px 8px;border-radius:6px;cursor:pointer;';
-        clearBtn.onclick = function() { logs = []; _save(logs); refreshPanel(); };
-
-        var copyBtn = document.createElement('button');
-        copyBtn.textContent = '📋 העתק';
-        copyBtn.style.cssText = 'background:#7367f0;border:none;color:white;font-size:10px;padding:2px 8px;border-radius:6px;cursor:pointer;';
-        copyBtn.onclick = function() {
-            var txt = logs.map(function(l){ return l.ts + ' ' + l.icon + ' ' + l.msg; }).join('\n');
-            navigator.clipboard && navigator.clipboard.writeText(txt).then(function(){ alert('הועתק!'); });
-        };
-
-        var closeBtn = document.createElement('button');
-        closeBtn.textContent = '✕';
-        closeBtn.style.cssText = 'background:#ef4444;border:none;color:white;font-size:10px;padding:2px 8px;border-radius:6px;cursor:pointer;';
-        closeBtn.onclick = function() { toggle(); };
-
-        hdr.appendChild(clearBtn);
-        hdr.appendChild(copyBtn);
-        hdr.appendChild(closeBtn);
-
-        var body = document.createElement('div');
-        body.id = '_dbgBody';
-        body.style.cssText = 'overflow-y:auto;padding:6px 10px;flex:1;direction:ltr;';
-
-        panel.appendChild(hdr);
-        panel.appendChild(body);
-        document.body.appendChild(panel);
-
-        // FAB button
-        var fab = document.createElement('button');
-        fab.textContent = '🐛';
-        fab.title = 'Debug Log — לחץ לפתיחה';
-        fab.onclick = function() { toggle(); };
-        fab.style.cssText = 'position:fixed;bottom:90px;right:8px;z-index:99998;width:36px;height:36px;border-radius:50%;background:#e94560;border:2px solid white;color:white;font-size:16px;cursor:pointer;box-shadow:0 4px 12px rgba(233,69,96,0.5);';
-        document.body.appendChild(fab);
-    }
-
-    // Catch ALL uncaught JS errors
-    window.onerror = function(msg, src, line, col, err) {
-        addLog('💥 ERROR: ' + msg + ' | ' + (src||'').split('/').pop() + ':' + line + ':' + col, 'error');
-        return false;
-    };
-
-    // Catch unhandled promise rejections
-    window.addEventListener('unhandledrejection', function(e) {
-        addLog('💥 PROMISE REJECT: ' + (e.reason && e.reason.message ? e.reason.message : String(e.reason)), 'error');
-    });
-
-    // Create FAB after DOM ready
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', createPanel);
-    } else {
-        setTimeout(createPanel, 0);
-    }
-
-    // Expose globally
-    window._DBG = { log: addLog, toggle: toggle, logs: logs };
-
-    // Log that we survived the refresh
-    addLog('📋 Logger init — ' + logs.length + ' prev logs loaded. readyState=' + document.readyState, 'info');
-})();
-
 // ========== Firebase Configuration ==========
 // Firebase methods are attached to window in index.html
 let unsubscribeSnapshot = null;
@@ -152,6 +29,10 @@ let undoCheckTimeout = null;
 // ========== Global Variables for Clipboard Import ==========
 let pendingImportText = null;
 let detectedListType = null;
+
+// ========== Global Variables for List Delete Mode ==========
+let listDeleteMode = false;
+let listDeleteSelected = new Set();
 
 // ========== Reminder Time Conversion ==========
 function getReminderMilliseconds(value, unit) {
@@ -976,7 +857,6 @@ function toggleDarkMode() {
 }
 
 function showPage(p) {
-    _DBG.log('📄 showPage("' + p + '") — from="' + activePage + '" compactMode=' + compactMode, 'info');
     // שמור מצב נוכחי לפני המעבר
     if (activePage === 'lists')   listsCompactMode   = compactMode;
     if (activePage === 'summary') summaryCompactMode = compactMode;
@@ -985,7 +865,6 @@ function showPage(p) {
     // שחזר מצב מתאים לפי הדף שנכנסים אליו
     if (p === 'summary') { compactMode = true; summaryCompactMode = true; }
     if (p === 'lists')   compactMode = listsCompactMode;
-    _DBG.log('📄 showPage("' + p + '") resolved → compactMode=' + compactMode, 'ok');
     // פתיחת הבר אוטומטית ועדכון טאבי הניווט בבר הפתוח
     if (p === 'lists' || p === 'summary') {
         if (typeof openSmartBar === 'function') openSmartBar();
@@ -2279,18 +2158,9 @@ function generateItemMetadataHTML(item, idx) {
     return html;
 }
 
-// ════════════════════════════════════════════════════════════════
-// 🐛 BUG FIX: initialize compactMode from activePage
-//    On page refresh, activePage is restored from localStorage but
-//    compactMode was always initialized to false, so the summary
-//    page rendered empty tiles (tiles existed but had no innerHTML).
-// ════════════════════════════════════════════════════════════════
+let compactMode = false;
 let summaryCompactMode = true; // הרשימות שלי — תמיד compact rows
 let listsCompactMode = true;   // שומר את מצב compact של דף המוצרים
-// FIX: derive initial compactMode from activePage instead of hardcoding false
-let compactMode = (activePage === 'summary') ? true : false;
-_DBG.log('⚙️ INIT — activePage="' + activePage + '" compactMode=' + compactMode + ' lists=' + Object.keys(db.lists).length + ' lastActivePage="' + db.lastActivePage + '"', 'info');
-
 let compactActionsOpen = false;
 let expandedItemIdx = -1; // מוצר מורחב ב-compact mode
 let listEditMode = false;  // מצב עריכת סדר רשימות
@@ -2300,7 +2170,6 @@ let compactDeleteMode = false;   // מצב מחיקה מרובה ב-compact
 let compactDeleteSelected = new Set(); // אינדקסים שנבחרו למחיקה
 
 function render() {
-    _DBG.log('🎨 render() — page="' + activePage + '" compactMode=' + compactMode + ' lists=' + Object.keys(db.lists||{}).length + ' currentId="' + db.currentId + '"', 'trace');
     const container = document.getElementById(activePage === 'lists' ? 'itemsContainer' : activePage === 'summary' ? 'summaryContainer' : null);
     let total = 0, paid = 0;
 
@@ -2740,7 +2609,6 @@ function render() {
         }
 
     } else if (activePage === 'summary') {
-        _DBG.log('🗂️ render→summary: compactMode=' + compactMode + ' lists=' + Object.keys(db.lists||{}).length + ' container=' + (container ? '✅' : '❌NULL'), compactMode ? 'ok' : 'error');
         document.getElementById('pageLists').classList.add('hidden');
         document.getElementById('pageSummary').classList.remove('hidden');
         document.getElementById('pageStats').classList.add('hidden');
@@ -5001,13 +4869,11 @@ function updateCloudIndicator(status) {
 }
 
 function setupFirestoreListener(user) {
-    _DBG.log('📡 setupFirestoreListener — UID: ' + user.uid, 'info');
     console.log('📡 מגדיר Firestore listener עבור UID:', user.uid);
 
     const userDocRef = window.doc(window.firebaseDb, "shopping_lists", user.uid);
 
     unsubscribeSnapshot = window.onSnapshot(userDocRef, (docSnap) => {
-    _DBG.log('☁️ Firestore snapshot fired — exists=' + docSnap.exists() + ' activePage="' + activePage + '" compactMode=' + compactMode, 'info');
         if (docSnap.exists()) {
             console.log('☁️ מסמך נמצא בענן');
             const cloudData = docSnap.data();
@@ -5043,7 +4909,6 @@ function setupFirestoreListener(user) {
 
                 db = mergedDb;
                 localStorage.setItem('BUDGET_FINAL_V28', JSON.stringify(db));
-                _DBG.log('☁️ Cloud merge done → activePage="' + activePage + '" compactMode=' + compactMode + ' lists=' + Object.keys(db.lists||{}).length, 'ok');
                 render();
                 showNotification('☁️ סונכרן מהענן!', 'success');
             }
@@ -5185,7 +5050,6 @@ if (currentLang === 'he') {
     html.setAttribute('lang', currentLang);
 }
 
-_DBG.log('🚀 APP START — activePage="' + activePage + '" compactMode=' + compactMode + ' lists=' + Object.keys(db.lists||{}).length, 'ok');
 render();
 updateUILanguage();
 
@@ -10788,9 +10652,6 @@ function compactDeleteExec() {
 }
 
 // ══ LIST DELETE MODE — מחיקת רשימות מרובות מתוך הרשימות שלי (compact) ══
-let listDeleteMode = false;
-let listDeleteSelected = new Set();
-
 function toggleListDeleteMode() {
     listDeleteMode = !listDeleteMode;
     listDeleteSelected.clear();
