@@ -769,6 +769,8 @@ let categorySortEnabled = localStorage.getItem('categorySortEnabled') === 'true'
 // Backwards compatibility: Initialize new properties if they don't exist
 if (!db.customCategories) db.customCategories = [];
 if (!db.categoryMemory) db.categoryMemory = {};
+// סדר רשימות מפורש — מונע שינוי סדר בטעינה מ-Firebase
+if (!db.listsOrder) db.listsOrder = Object.keys(db.lists);
 
 
 // ========== Core Functions ==========
@@ -1655,6 +1657,8 @@ function createListFromReceipt(items) {
         isTemplate: false,
         items: items
     };
+    if (!db.listsOrder) db.listsOrder = Object.keys(db.lists).filter(id => id !== newId);
+    if (!db.listsOrder.includes(newId)) db.listsOrder.push(newId);
 
     db.currentId = newId;
     activePage = 'lists';
@@ -2642,7 +2646,8 @@ function render() {
             }
 
             let tileIdx = 0;
-            Object.keys(db.lists).forEach(id => {
+            const _orderedIds = (db.listsOrder || Object.keys(db.lists)).filter(id => db.lists[id]);
+            _orderedIds.forEach(id => {
                 const l = db.lists[id];
 
                 const matchesName = l.name.toLowerCase().includes(searchTerm);
@@ -3270,6 +3275,8 @@ function createFromTemplate(templateId) {
         }))))
     };
 
+    if (!db.listsOrder) db.listsOrder = Object.keys(db.lists).filter(id => id !== newId);
+    if (!db.listsOrder.includes(newId)) db.listsOrder.push(newId);
     db.currentId = newId;
     activePage = 'lists';
     closeModal('templatesModal');
@@ -3372,6 +3379,8 @@ function executeRestoreList(targetId, histIdx, source) {
             isTemplate: false,
             items: restoredItems
         };
+        if (!db.listsOrder) db.listsOrder = Object.keys(db.lists).filter(id => id !== finalId);
+        if (!db.listsOrder.includes(finalId)) db.listsOrder.push(finalId);
     } else {
         // Add items to existing list — insert each before first checked item
         finalId = targetId;
@@ -3810,6 +3819,8 @@ function addItemToList(event) {
 
         // Save to category memory for future auto-assignment
         if (!db.categoryMemory) db.categoryMemory = {};
+// סדר רשימות מפורש — מונע שינוי סדר בטעינה מ-Firebase
+if (!db.listsOrder) db.listsOrder = Object.keys(db.lists);
         db.categoryMemory[n.toLowerCase().trim()] = finalCategory;
 
         // עדכון מחיר בהיסטוריה אם השתנה
@@ -3957,6 +3968,8 @@ function saveNewList() {
             isTemplate: t,
             items: []
         };
+        if (!db.listsOrder) db.listsOrder = Object.keys(db.lists).filter(lid => lid !== id);
+        if (!db.listsOrder.includes(id)) db.listsOrder.push(id);
         db.currentId = id;
         activePage = 'lists';
         closeModal('newListModal');
@@ -3970,7 +3983,8 @@ function saveNewList() {
 function deleteFullList() {
     if (listToDelete) {
         delete db.lists[listToDelete];
-        const keys = Object.keys(db.lists);
+        if (db.listsOrder) db.listsOrder = db.listsOrder.filter(id => id !== listToDelete);
+        const keys = db.listsOrder && db.listsOrder.length ? db.listsOrder : Object.keys(db.lists);
         if (db.currentId === listToDelete) {
             db.currentId = keys[0] || (db.lists['L1'] = { name: 'הרשימה שלי', url: '', budget: 0, isTemplate: false, items: [] }, 'L1');
         }
@@ -4355,6 +4369,8 @@ function selectCategory(categoryName) {
         
         // Update category memory for this product
         if (!db.categoryMemory) db.categoryMemory = {};
+// סדר רשימות מפורש — מונע שינוי סדר בטעינה מ-Firebase
+if (!db.listsOrder) db.listsOrder = Object.keys(db.lists);
         db.categoryMemory[item.name.toLowerCase().trim()] = categoryName;
         
         save();
@@ -4379,6 +4395,8 @@ function saveCustomCategory() {
         
         // Update category memory for this product
         if (!db.categoryMemory) db.categoryMemory = {};
+// סדר רשימות מפורש — מונע שינוי סדר בטעינה מ-Firebase
+if (!db.listsOrder) db.listsOrder = Object.keys(db.lists);
         db.categoryMemory[item.name.toLowerCase().trim()] = customCategory;
         
         // Add custom category to CATEGORIES object for color assignment if not exists
@@ -5015,6 +5033,15 @@ function mergeCloudWithLocal(cloudData, localData) {
         }
     });
 
+    // ── שמר סדר רשימות ────────────────────────────────────────────
+    // מקור האמת לסדר: localData.listsOrder (מה שהמשתמש סידר)
+    // רשימות חדשות שבענן אבל לא במקומי — נוסיף לסוף
+    const localOrder = (localData.listsOrder || Object.keys(localData.lists || {}))
+        .filter(id => merged.lists[id]);
+    const allMergedIds = Object.keys(merged.lists);
+    const missingFromOrder = allMergedIds.filter(id => !localOrder.includes(id));
+    merged.listsOrder = [...localOrder, ...missingFromOrder];
+
     return merged;
 }
 
@@ -5328,6 +5355,8 @@ async function handleExcelUpload(event) {
                 isTemplate: false,
                 cloudId: 'list_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9)
             };
+            if (!db.listsOrder) db.listsOrder = Object.keys(db.lists).filter(id => id !== listId);
+            if (!db.listsOrder.includes(listId)) db.listsOrder.push(listId);
 
             // הוספת כל העסקאות לרשימה
             for (let i = 0; i < transactions.length; i++) {
@@ -5902,6 +5931,8 @@ async function saveTransactionsToFirebase(transactions) {
         completed: false,
         isTemplate: false
     };
+    if (!db.listsOrder) db.listsOrder = Object.keys(db.lists).filter(id => id !== newListId);
+    if (!db.listsOrder.includes(newListId)) db.listsOrder.push(newListId);
 
     // ג. מעבר אוטומטי לרשימה החדשה
     db.currentId = newListId;
@@ -6363,6 +6394,8 @@ function addBankItemsToList(items) {
         isTemplate: false,
         items: []
     };
+    if (!db.listsOrder) db.listsOrder = Object.keys(db.lists).filter(id => id !== newListId);
+    if (!db.listsOrder.includes(newListId)) db.listsOrder.push(newListId);
 
     let addedCount = 0;
 
@@ -6894,6 +6927,8 @@ function handleExcelUpload(event) {
                 isTemplate: false,
                 items: products
             };
+            if (!db.listsOrder) db.listsOrder = Object.keys(db.lists).filter(id => id !== newListId);
+            if (!db.listsOrder.includes(newListId)) db.listsOrder.push(newListId);
 
             // Switch to the new list
             db.currentId = newListId;
@@ -7851,6 +7886,8 @@ function createNewList() {
             isTemplate: false,
             items: []
         };
+        if (!db.listsOrder) db.listsOrder = Object.keys(db.lists).filter(lid => lid !== id);
+        if (!db.listsOrder.includes(id)) db.listsOrder.push(id);
         db.currentId = id;
         
         // Check if there's pending import text
@@ -9944,14 +9981,17 @@ function setFinStage(step, icon, title, sub, pct) {
     }
 }
 
-// ── [Debug panel removed] ──
-function showDebugLog(logs) {
-    // no-op: debug panel removed
-    return;
+// ── Debug log panel ──
+// ── Global debug log ──────────────────────────────────────────────
+const _globalDebugLogs = [];
+function dbgLog(msg, color) {
+    const type = color === '#ff4444' ? 'error' : color === '#ffaa00' ? 'warn' : 'info';
+    const icon = color === '#ff4444' ? '🔴' : color === '#ffaa00' ? '🟡' : color === '#22c55e' ? '🟢' : '•';
+    _globalDebugLogs.push({ msg, type, icon, time: new Date().toLocaleTimeString('he-IL') });
+    showDebugLog(_globalDebugLogs);
 }
-/* _showDebugLog_DISABLED - removed */
-function _showDebugLog_REMOVED_PLACEHOLDER() {
-    // placeholder - dead code kept for reference only
+
+function showDebugLog(logs) {
     let panel = document.getElementById('debugLogPanel');
     if (!panel) {
         panel = document.createElement('div');
@@ -10100,8 +10140,10 @@ function _showDebugLog_REMOVED_PLACEHOLDER() {
 
 // ── Shared fetch helper ──
 async function runFinancialFetch({ companyId, credentials, modalId, nameLabel }) {
+    const debugLogs = [];
     const log = (msg, type='info', icon='•') => {
-        console.log(`[BankSync][${type}] ${icon} ${msg}`);
+        debugLogs.push({ msg, type, icon, time: new Date().toLocaleTimeString('he-IL') });
+        showDebugLog(debugLogs);
     };
 
     closeModal(modalId);
@@ -10382,14 +10424,14 @@ function toggleListEditMode() {
 }
 
 function reorderLists(fromId, toId) {
-    const keys = Object.keys(db.lists);
+    // עדכן listsOrder (מקור האמת לסדר)
+    if (!db.listsOrder) db.listsOrder = Object.keys(db.lists);
+    const keys = db.listsOrder.filter(id => db.lists[id]);
     const fi = keys.indexOf(fromId), ti = keys.indexOf(toId);
     if (fi === -1 || ti === -1) return;
     keys.splice(fi, 1);
     keys.splice(ti, 0, fromId);
-    const newLists = {};
-    keys.forEach(k => newLists[k] = db.lists[k]);
-    db.lists = newLists;
+    db.listsOrder = keys;
     save();
 }
 
@@ -10692,12 +10734,13 @@ function listDeleteConfirm() {
 function listDeleteExec() {
     listDeleteSelected.forEach(id => {
         delete db.lists[id];
+        if (db.listsOrder) db.listsOrder = db.listsOrder.filter(lid => lid !== id);
         // הסר מהנבחרים אם היה שם
         const idx = db.selectedInSummary.indexOf(id);
         if (idx !== -1) db.selectedInSummary.splice(idx, 1);
         // אם זו הרשימה הנוכחית — עבור לראשונה
         if (db.currentId === id) {
-            const remaining = Object.keys(db.lists);
+            const remaining = db.listsOrder && db.listsOrder.length ? db.listsOrder : Object.keys(db.lists);
             db.currentId = remaining.length > 0 ? remaining[0] : null;
         }
     });
