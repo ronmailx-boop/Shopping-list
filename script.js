@@ -2209,6 +2209,8 @@ function render() {
         document.getElementById('pageLists').classList.remove('hidden');
         document.getElementById('pageSummary').classList.add('hidden');
         document.getElementById('pageStats').classList.add('hidden');
+        // פאנל 'סדר מוצרים' תמיד מוצג בעמוד זה
+        if (!compactDeleteMode) { const _iew = document.getElementById('itemEditModeWrap'); if (_iew) _iew.style.display = 'flex'; }
 
         const list = db.lists[db.currentId] || { name: 'רשימה', items: [] };
         document.getElementById('listNameDisplay').innerText = list.name;
@@ -2618,6 +2620,8 @@ function render() {
         document.getElementById('pageSummary').classList.remove('hidden');
         document.getElementById('pageStats').classList.add('hidden');
         document.getElementById('listNameDisplay').innerText = 'הרשימות שלי';
+        // פאנל 'סדר רשימות' תמיד מוצג בעמוד זה
+        if (!listDeleteMode) { const _scb = document.getElementById('summaryCompactBtns'); if (_scb) _scb.style.display = 'flex'; }
         setTimeout(adjustContentPadding, 50);
         document.getElementById('itemCountDisplay').innerText = `${Object.keys(db.lists).length} רשימות`;
 
@@ -10611,20 +10615,15 @@ function toggleCompactMode() {
 
     if (compactMode) {
         if (btn) { btn.style.background = 'rgba(255,255,255,0.4)'; btn.style.borderColor = 'white'; }
-        const itemEditWrap = document.getElementById('itemEditModeWrap');
-        if (itemEditWrap) itemEditWrap.style.display = 'flex';
-        const summaryBtns = document.getElementById('summaryCompactBtns');
-        if (summaryBtns) summaryBtns.style.display = 'flex';
+        // itemEditModeWrap ו-summaryCompactBtns תמיד מוצגים — אין צורך לעדכן
         if (barStats)   barStats.style.display   = 'none';
         if (tabsRow)    tabsRow.style.display     = 'block';
         if (actionsRow) actionsRow.style.display  = 'none';
         if (bar)        bar.style.overflow        = 'hidden';
     } else {
         if (btn) { btn.style.background = 'rgba(255,255,255,0.2)'; btn.style.borderColor = 'rgba(255,255,255,0.3)'; }
-        const itemEditWrapOff = document.getElementById('itemEditModeWrap');
-        if (itemEditWrapOff) { itemEditWrapOff.style.display = 'none'; itemEditMode = false; }
-        const summaryBtnsOff = document.getElementById('summaryCompactBtns');
-        if (summaryBtnsOff) summaryBtnsOff.style.display = 'none';
+        // itemEditModeWrap ו-summaryCompactBtns תמיד מוצגים
+        itemEditMode = false;
         // סגור מצב מחיקת רשימות אם פתוח
         if (listDeleteMode) {
             listDeleteMode = false;

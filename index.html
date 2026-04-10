@@ -2623,7 +2623,7 @@ ${error.message}
             <!-- hidden placeholders for JS compatibility -->
             <div id="statusTag" style="display:none;"></div>
             <div id="budgetWarning" class="hidden text-[10px] font-bold mt-2 bg-red-500 text-white py-1 px-3 rounded-full inline-block" style="margin:0 16px;"></div>
-            <div id="itemEditModeWrap" style="display:none;align-items:center;gap:8px;margin-bottom:8px;">
+            <div id="itemEditModeWrap" style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
                 <button id="itemEditModeBtn" onclick="toggleItemEditMode()" style="background:rgba(115,103,240,0.08);border:1.5px solid rgba(115,103,240,0.25);color:#7367f0;border-radius:20px;padding:6px 16px;font-size:13px;font-weight:800;cursor:pointer;font-family:inherit;transition:all 0.2s;">✏️ סדר מוצרים</button>
                 <button id="listsStatsBtn" onclick="toggleCompactStats()" style="background:rgba(115,103,240,0.08);border:1.5px solid rgba(115,103,240,0.25);color:#7367f0;border-radius:20px;padding:6px 16px;font-size:13px;font-weight:800;cursor:pointer;font-family:inherit;transition:all 0.2s;">📊 הצג סכום</button>
                 <button onclick="toggleCompactDeleteMode()" style="background:rgba(239,68,68,0.08);border:1.5px solid rgba(239,68,68,0.25);color:#ef4444;border-radius:20px;padding:6px 14px;font-size:13px;font-weight:800;cursor:pointer;font-family:inherit;transition:all 0.2s;">🗑️ מחק</button>
@@ -2640,7 +2640,7 @@ ${error.message}
         </div>
 
         <div id="pageSummary" class="hidden">
-            <div id="summaryCompactBtns" style="display:none;align-items:center;gap:6px;margin-bottom:10px;">
+            <div id="summaryCompactBtns" style="display:flex;align-items:center;gap:6px;margin-bottom:10px;">
                 <button id="listEditModeBtn" onclick="toggleListEditMode()" style="background:rgba(115,103,240,0.08);border:1.5px solid rgba(115,103,240,0.25);color:#7367f0;border-radius:20px;padding:6px 10px;font-size:12px;font-weight:800;cursor:pointer;font-family:inherit;transition:all 0.2s;white-space:nowrap;flex:1;">✏️ סדר רשימות</button>
                 <button id="summaryStatsBtn" onclick="toggleCompactStats()" style="background:rgba(115,103,240,0.08);border:1.5px solid rgba(115,103,240,0.25);color:#7367f0;border-radius:20px;padding:6px 10px;font-size:12px;font-weight:800;cursor:pointer;font-family:inherit;transition:all 0.2s;white-space:nowrap;flex:1;">📊 הצג סכום</button>
                 <button onclick="toggleListDeleteMode()" style="background:rgba(239,68,68,0.08);border:1.5px solid rgba(239,68,68,0.25);color:#ef4444;border-radius:20px;padding:6px 10px;font-size:12px;font-weight:800;cursor:pointer;font-family:inherit;transition:all 0.2s;white-space:nowrap;flex:1;">🗑️ מחק</button>
