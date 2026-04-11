@@ -393,7 +393,7 @@ const CATEGORY_KEYWORDS = {
         'שרשרת', 'necklace', 'עגיל', 'earring', 'שעון', 'watch',
         'תיק', 'bag', 'נעליים', 'shoes', 'בגדים', 'clothes', 'clothing',
         'חולצה', 'shirt', 'מכנסיים', 'pants', 'שמלה', 'dress',
-        'מעיל', 'coat', 'jacket', 'ג'קט', 'סריג', 'sweater',
+        'מעיל', 'coat', 'jacket', 'ג׳קט', 'סריג', 'sweater',
         'דביר', 'michael kors', 'louis vuitton', 'gucci', 'fashion'
     ],
     'אלקטרוניקה': [
@@ -11057,14 +11057,7 @@ function recategorizeCurrentList() {
 
     let onlyOther = false;
     if (hasNonOther) {
-        const choice = confirm(
-            'איזה פריטים לסווג מחדש?
-
-' +
-            '• לחץ OK — רק פריטים עם קטגוריה "אחר"
-' +
-            '• לחץ ביטול — כל הפריטים (מחליף גם קטגוריות קיימות)'
-        );
+        const choice = confirm('איזה פריטים לסווג מחדש?\n\n• לחץ OK — רק פריטים עם קטגוריה "אחר"\n• לחץ ביטול — כל הפריטים (מחליף גם קטגוריות קיימות)');
         onlyOther = choice; // OK = true = only "אחר"
     }
 
@@ -11078,14 +11071,7 @@ function recategorizeCurrentList() {
 }
 
 function recategorizeAllLists() {
-    const choice = confirm(
-        'סיווג מחדש לכל הרשימות:
-
-' +
-        '• לחץ OK — רק פריטים עם קטגוריה "אחר"
-' +
-        '• לחץ ביטול — כל הפריטים (מחליף גם קטגוריות קיימות)'
-    );
+    const choice = confirm('סיווג מחדש לכל הרשימות:\n\n• לחץ OK — רק פריטים עם קטגוריה "אחר"\n• לחץ ביטול — כל הפריטים (מחליף גם קטגוריות קיימות)');
     // cancel = false means user clicked cancel = recategorize ALL
     // ok = true = only "אחר"
     const onlyOther = choice;
