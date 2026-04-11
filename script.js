@@ -2877,6 +2877,7 @@ function renderStats() {
     renderMonthlyChart();
     renderCategoryDoughnutChart();
     renderPopularItems();
+    renderCategoryAnalysis();
 }
 
 function showCompletedListsModal() {
@@ -3224,6 +3225,184 @@ function renderPopularItems() {
     if (sorted.length === 0) {
         container.innerHTML = '<p class="text-gray-400 text-center">אין מספיק נתונים</p>';
     }
+}
+
+
+// ══════════════════════════════════════════════════════════
+// ניתוח קטגוריות מכל הרשימות — Category Analysis
+// ══════════════════════════════════════════════════════════
+
+const CAT_ANALYSIS_CFG = {
+    'פירות וירקות': { bg:'#dcfce7', hex:'#22c55e', icon:'🥦' },
+    'בשר ודגים':    { bg:'#fce7f3', hex:'#ec4899', icon:'🥩' },
+    'חלב וביצים':   { bg:'#fef9c3', hex:'#eab308', icon:'🥛' },
+    'לחם ומאפים':   { bg:'#ffedd5', hex:'#f97316', icon:'🍞' },
+    'שימורים':      { bg:'#e0f2fe', hex:'#0ea5e9', icon:'🥫' },
+    'חטיפים':       { bg:'#fef3c7', hex:'#f59e0b', icon:'🍿' },
+    'משקאות':       { bg:'#ede9fe', hex:'#8b5cf6', icon:'🧃' },
+    'ניקיון':       { bg:'#dbeafe', hex:'#3b82f6', icon:'🧹' },
+    'היגיינה':      { bg:'#fce7f3', hex:'#db2777', icon:'🧴' },
+    'רכב':          { bg:'#fef3c7', hex:'#d97706', icon:'🚗' },
+    'מנויים':       { bg:'#ede9fe', hex:'#7c3aed', icon:'📱' },
+    'מזון':         { bg:'#dcfce7', hex:'#16a34a', icon:'🛒' },
+    'חשבונות':      { bg:'#dbeafe', hex:'#1d4ed8', icon:'💡' },
+    'פנאי':         { bg:'#ffedd5', hex:'#ea580c', icon:'🎬' },
+    'בריאות':       { bg:'#f0fdf4', hex:'#15803d', icon:'💊' },
+    'ביגוד':        { bg:'#fdf4ff', hex:'#a855f7', icon:'👕' },
+    'אלקטרוניקה':   { bg:'#f0f9ff', hex:'#0284c7', icon:'💻' },
+    'כללי':         { bg:'#f3f4f6', hex:'#6b7280', icon:'📦' },
+    'אחר':          { bg:'#f3f4f6', hex:'#9ca3af', icon:'📦' },
+};
+
+function getCatCfg(cat) {
+    return CAT_ANALYSIS_CFG[cat] || { bg:'#f3f4f6', hex:'#7367f0', icon:'📦' };
+}
+
+function renderCategoryAnalysis() {
+    const listEl  = document.getElementById('catAnalysisList');
+    const grandEl = document.getElementById('catGrandTotal');
+    const catsEl  = document.getElementById('catTotalCats');
+    const itemsEl = document.getElementById('catTotalItems');
+    if (!listEl) return;
+
+    // צבור כל הפריטים מכל הרשימות
+    const catMap = {};
+    let grandTotal = 0;
+    let itemCount  = 0;
+
+    Object.entries(db.lists).forEach(([listId, list]) => {
+        if (list.isTemplate) return;
+        (list.items || []).forEach(item => {
+            const cat = item.category || 'כללי';
+            const price = (item.price || 0) * (item.qty || 1);
+            if (!catMap[cat]) catMap[cat] = { sum: 0, items: [] };
+            catMap[cat].sum   += price;
+            catMap[cat].items.push({ ...item, _listId: listId, _listName: list.name });
+            grandTotal += price;
+            itemCount++;
+        });
+    });
+
+    // עדכן כותרת
+    if (grandEl) grandEl.textContent = '₪' + grandTotal.toFixed(0);
+    if (catsEl)  catsEl.textContent  = Object.keys(catMap).length;
+    if (itemsEl) itemsEl.textContent = itemCount;
+
+    // מיין לפי סכום
+    const cats = Object.entries(catMap).sort((a, b) => b[1].sum - a[1].sum);
+
+    listEl.innerHTML = '';
+    if (!cats.length) {
+        listEl.innerHTML = '<p style="text-align:center;color:#9ca3af;padding:20px 0;">אין פריטים ברשימות</p>';
+        return;
+    }
+
+    cats.forEach(([cat, data]) => {
+        const cfg = getCatCfg(cat);
+        const pct = grandTotal > 0 ? Math.round(data.sum / grandTotal * 100) : 0;
+        const srcCount = new Set(data.items.map(i => i._listId)).size;
+
+        const row = document.createElement('div');
+        row.className = 'cat-analysis-row';
+        row.innerHTML = `
+            <div class="cat-analysis-icon" style="background:${cfg.bg};">${cfg.icon}</div>
+            <div class="cat-analysis-body">
+                <div class="cat-analysis-name">${cat}</div>
+                <div class="cat-analysis-meta">${data.items.length} פריטים · ${srcCount} רשימות</div>
+                <div class="cat-analysis-bar-track">
+                    <div class="cat-analysis-bar-fill" style="width:${pct}%;background:${cfg.hex};"></div>
+                </div>
+            </div>
+            <div class="cat-analysis-right">
+                <div class="cat-analysis-amount">₪${data.sum.toFixed(0)}</div>
+                <div class="cat-analysis-pct">${pct}%</div>
+                <div class="cat-analysis-arrow">← פירוט</div>
+            </div>
+        `;
+        row.onclick = () => openCatDrill(cat, data, cfg, pct, grandTotal);
+        listEl.appendChild(row);
+    });
+}
+
+function openCatDrill(cat, data, cfg, pct, grand) {
+    const overlay = document.getElementById('catDrillOverlay');
+    if (!overlay) return;
+
+    // כותרת
+    const hdr = document.getElementById('catDrillHeader');
+    if (hdr) hdr.style.background = `linear-gradient(135deg, ${cfg.hex}cc, ${cfg.hex})`;
+    const iconEl = document.getElementById('catDrillIcon');
+    if (iconEl) iconEl.textContent = cfg.icon;
+    const nameEl = document.getElementById('catDrillName');
+    if (nameEl) nameEl.textContent = cat;
+    const totEl = document.getElementById('catDrillTotal');
+    if (totEl) totEl.textContent = '₪' + data.sum.toFixed(2) + ' סה"כ';
+
+    // סטטיסטיקות
+    const srcCount = new Set(data.items.map(i => i._listId)).size;
+    const avg = data.sum / data.items.length;
+    const dsLists = document.getElementById('cds-lists');
+    const dsItems = document.getElementById('cds-items');
+    const dsPct   = document.getElementById('cds-pct');
+    const dsAvg   = document.getElementById('cds-avg');
+    if (dsLists) dsLists.textContent = srcCount;
+    if (dsItems) dsItems.textContent = data.items.length;
+    if (dsPct)   dsPct.textContent   = pct + '%';
+    if (dsAvg)   dsAvg.textContent   = '₪' + avg.toFixed(0);
+
+    // קיבוץ לפי רשימה
+    const byList = {};
+    data.items.forEach(it => {
+        const key = it._listId;
+        if (!byList[key]) byList[key] = { name: it._listName, items: [] };
+        byList[key].items.push(it);
+    });
+
+    const body = document.getElementById('catDrillBody');
+    if (!body) return;
+    body.innerHTML = '';
+
+    Object.entries(byList)
+        .sort((a, b) => {
+            const sa = b[1].items.reduce((s,i) => s + (i.price||0)*(i.qty||1), 0);
+            const sb = a[1].items.reduce((s,i) => s + (i.price||0)*(i.qty||1), 0);
+            return sa - sb;
+        })
+        .forEach(([listId, group]) => {
+            const listSum = group.items.reduce((s, i) => s + (i.price||0)*(i.qty||1), 0);
+
+            const lbl = document.createElement('div');
+            lbl.className = 'cat-source-label';
+            lbl.innerHTML = `
+                <span>📋 ${group.name}</span>
+                <div class="cat-source-line"></div>
+                <span class="cat-source-sum">₪${listSum.toFixed(0)}</span>
+            `;
+            body.appendChild(lbl);
+
+            group.items
+                .sort((a,b) => (b.price||0)*(b.qty||1) - (a.price||0)*(a.qty||1))
+                .forEach(it => {
+                    const sub = (it.price||0) * (it.qty||1);
+                    const div = document.createElement('div');
+                    div.className = 'cat-drill-item';
+                    div.innerHTML = `
+                        <input type="checkbox" ${it.checked?'checked':''} style="width:20px;height:20px;accent-color:#7367f0;flex-shrink:0;" onclick="event.stopPropagation()">
+                        <span style="flex:1;font-size:14px;font-weight:700;${it.checked?'text-decoration:line-through;opacity:0.45;':''}">${it.name}</span>
+                        ${it.qty > 1 ? `<span style="font-size:11px;color:#9ca3af;flex-shrink:0;">×${it.qty}</span>` : ''}
+                        <span class="cat-drill-item-price">₪${sub.toFixed(2)}</span>
+                    `;
+                    body.appendChild(div);
+                });
+        });
+
+    overlay.classList.add('open');
+    overlay.scrollTop = 0;
+}
+
+function closeCatDrill() {
+    const overlay = document.getElementById('catDrillOverlay');
+    if (overlay) overlay.classList.remove('open');
 }
 
 function renderHistory() {

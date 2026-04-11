@@ -2728,6 +2728,28 @@ ${error.message}
             </div>
 
             <div class="stat-card">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+                    <h3 class="text-xl font-bold">🗂️ הוצאות לפי קטגוריה</h3>
+                    <span style="font-size:11px;color:#9ca3af;font-weight:700;">מכל הרשימות</span>
+                </div>
+                <div style="display:flex;gap:8px;margin-bottom:14px;">
+                    <div style="flex:1;background:#f5f3ff;border-radius:12px;padding:10px;text-align:center;">
+                        <div style="font-size:17px;font-weight:900;color:#7367f0;" id="catGrandTotal">₪0</div>
+                        <div style="font-size:10px;color:#9ca3af;font-weight:700;margin-top:2px;">סה"כ הוצאות</div>
+                    </div>
+                    <div style="flex:1;background:#f5f3ff;border-radius:12px;padding:10px;text-align:center;">
+                        <div style="font-size:17px;font-weight:900;color:#7367f0;" id="catTotalCats">0</div>
+                        <div style="font-size:10px;color:#9ca3af;font-weight:700;margin-top:2px;">קטגוריות</div>
+                    </div>
+                    <div style="flex:1;background:#f5f3ff;border-radius:12px;padding:10px;text-align:center;">
+                        <div style="font-size:17px;font-weight:900;color:#7367f0;" id="catTotalItems">0</div>
+                        <div style="font-size:10px;color:#9ca3af;font-weight:700;margin-top:2px;">פריטים</div>
+                    </div>
+                </div>
+                <div id="catAnalysisList" style="padding:0 4px;"></div>
+            </div>
+
+            <div class="stat-card">
                 <h3 class="text-xl font-bold mb-4" id="historyStatsTitle">📁 היסטוריה</h3>
                 <button onclick="openModal('historyModal')"
                     class="w-full bg-indigo-600 text-white py-3 rounded-xl font-bold">
@@ -2931,6 +2953,122 @@ ${error.message}
             from { opacity: 0; transform: translateY(4px); }
             to   { opacity: 1; transform: translateY(0); }
         }
+
+        /* ── Category Analysis Section ── */
+        .cat-analysis-row {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 4px;
+            border-bottom: 1px solid #f3f4f6;
+            cursor: pointer;
+            border-radius: 12px;
+            transition: background 0.15s;
+        }
+        .cat-analysis-row:last-child { border-bottom: none; }
+        .cat-analysis-row:active { background: #faf5ff; }
+        .cat-analysis-icon {
+            width: 40px; height: 40px;
+            border-radius: 13px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 19px;
+            flex-shrink: 0;
+        }
+        .cat-analysis-body { flex: 1; min-width: 0; }
+        .cat-analysis-name { font-size: 14px; font-weight: 800; color: #1e1b4b; }
+        .cat-analysis-meta { font-size: 11px; color: #9ca3af; margin-top: 2px; }
+        .cat-analysis-bar-track { height: 3px; background: #f3f4f6; border-radius: 99px; margin-top: 6px; }
+        .cat-analysis-bar-fill { height: 3px; border-radius: 99px; }
+        .cat-analysis-right { text-align: left; flex-shrink: 0; }
+        .cat-analysis-amount { font-size: 15px; font-weight: 900; color: #7367f0; }
+        .cat-analysis-pct { font-size: 11px; color: #9ca3af; font-weight: 700; margin-top: 1px; }
+        .cat-analysis-arrow { font-size: 10px; color: #d1d5db; margin-top: 3px; }
+
+        /* Drill-down overlay */
+        #catDrillOverlay {
+            position: fixed;
+            inset: 0;
+            background: #f5f3ff;
+            z-index: 8000;
+            transform: translateX(-100%);
+            transition: transform 0.3s cubic-bezier(.4,0,.2,1);
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+        }
+        #catDrillOverlay.open { transform: translateX(0); }
+        .cat-drill-header {
+            padding: 20px 16px 16px;
+            color: white;
+            flex-shrink: 0;
+        }
+        .cat-drill-back {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 13px;
+            font-weight: 800;
+            cursor: pointer;
+            margin-bottom: 16px;
+            background: none;
+            border: none;
+            color: white;
+            font-family: inherit;
+            opacity: 0.9;
+        }
+        .cat-drill-hero { display: flex; align-items: center; gap: 14px; }
+        .cat-drill-hero-icon {
+            width: 52px; height: 52px;
+            background: rgba(255,255,255,0.2);
+            border-radius: 17px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 25px;
+            border: 1.5px solid rgba(255,255,255,0.3);
+        }
+        .cat-drill-stats-row {
+            display: flex;
+            gap: 8px;
+            padding: 12px;
+        }
+        .cat-drill-stat {
+            flex: 1;
+            background: white;
+            border-radius: 13px;
+            padding: 9px 10px;
+            text-align: center;
+            box-shadow: 0 1px 8px rgba(115,103,240,0.08);
+        }
+        .cat-drill-stat-val { font-size: 17px; font-weight: 900; color: #7367f0; }
+        .cat-drill-stat-label { font-size: 9px; color: #9ca3af; font-weight: 700; margin-top: 2px; }
+        .cat-source-label {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 4px 8px;
+            font-size: 12px;
+            font-weight: 800;
+            color: #6b7280;
+        }
+        .cat-source-line { flex: 1; height: 1px; background: #e5e7eb; }
+        .cat-source-sum {
+            font-size: 11px;
+            font-weight: 900;
+            color: #7367f0;
+            background: #ede9fe;
+            padding: 2px 8px;
+            border-radius: 20px;
+        }
+        .cat-drill-item {
+            background: white;
+            border-radius: 13px;
+            padding: 11px 13px;
+            margin-bottom: 6px;
+            display: flex;
+            align-items: center;
+            gap: 11px;
+            box-shadow: 0 1px 5px rgba(0,0,0,0.05);
+        }
+        .cat-drill-item-price { font-size: 14px; font-weight: 900; color: #7367f0; flex-shrink: 0; }
     </style>
 
     <script>
@@ -4020,5 +4158,30 @@ ${error.message}
         window.addEventListener('scroll', function(e){ e.stopImmediatePropagation(); }, true);
     });
     </script>
+
+  <!-- ══ Category Drill-down Overlay ══ -->
+  <div id="catDrillOverlay">
+    <div class="cat-drill-header" id="catDrillHeader">
+      <button class="cat-drill-back" onclick="closeCatDrill()">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round"><path d="M19 12H5M12 5l7 7-7 7"/></svg>
+        חזרה לכל הקטגוריות
+      </button>
+      <div class="cat-drill-hero">
+        <div class="cat-drill-hero-icon" id="catDrillIcon"></div>
+        <div>
+          <div style="font-size:21px;font-weight:900;" id="catDrillName"></div>
+          <div style="font-size:13px;opacity:0.8;margin-top:2px;" id="catDrillTotal"></div>
+        </div>
+      </div>
+    </div>
+    <div class="cat-drill-stats-row">
+      <div class="cat-drill-stat"><div class="cat-drill-stat-val" id="cds-lists">0</div><div class="cat-drill-stat-label">רשימות</div></div>
+      <div class="cat-drill-stat"><div class="cat-drill-stat-val" id="cds-items">0</div><div class="cat-drill-stat-label">פריטים</div></div>
+      <div class="cat-drill-stat"><div class="cat-drill-stat-val" id="cds-pct">0%</div><div class="cat-drill-stat-label">מסך הכל</div></div>
+      <div class="cat-drill-stat"><div class="cat-drill-stat-val" id="cds-avg">₪0</div><div class="cat-drill-stat-label">ממוצע</div></div>
+    </div>
+    <div style="padding:0 12px 24px;" id="catDrillBody"></div>
+  </div>
+
 </body>
 </html>
