@@ -4987,6 +4987,9 @@ function setupFirestoreListener(user) {
                 db = mergedDb;
                 localStorage.setItem('BUDGET_FINAL_V28', JSON.stringify(db));
                 render();
+                // סנכרן _activePage עם activePage האמיתי לאחר טעינת הענן
+                // כדי שלחיצת טאב תעבוד נכון בלחיצה הראשונה
+                if (typeof updateExpandedTabs === 'function') updateExpandedTabs(activePage);
                 showNotification('☁️ סונכרן מהענן!', 'success');
             }
         } else {
