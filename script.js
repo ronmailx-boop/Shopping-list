@@ -4984,16 +4984,15 @@ function setupFirestoreListener(user) {
                     mergedDb.currentId = 'L1';
                 }
 
+                // שמור את activePage הנוכחי (נטען נכון מ-localStorage) — אל תדרוס מהענן
+                const _currentPage = activePage;
                 db = mergedDb;
-                // עדכן activePage הגלובלי מהנתונים הממוזגים — זה מה שנשמר ב-lastActivePage
-                // אבל תמיד בדוק שהוא חוקי
-                const _savedPage = db.lastActivePage;
-                if (_savedPage === 'summary' || _savedPage === 'lists') {
-                    activePage = _savedPage;
-                }
+                // החזר activePage — הענן עשוי להכיל ערך מושהה מסשן קודם
+                db.lastActivePage = _currentPage;
+                activePage = _currentPage;
                 localStorage.setItem('BUDGET_FINAL_V28', JSON.stringify(db));
                 render();
-                // סנכרן _activePage עם activePage האמיתי לאחר טעינת הענן
+                // סנכרן _activePage של הטאבים עם activePage האמיתי
                 if (typeof updateExpandedTabs === 'function') updateExpandedTabs(activePage);
                 showNotification('☁️ סונכרן מהענן!', 'success');
             }
