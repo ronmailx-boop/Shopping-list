@@ -320,6 +320,110 @@ const CATEGORY_KEYWORDS = {
         'vată', 'bețișoare', 'tampoane', 'absorbante', 'șervețele umede', 'scutece',
         'huggies', 'pampers', 'cremă de mâini', 'cremă de față', 'mască', 'măști',
         'machiaj', 'ruj', 'rimel', 'cosmetice', 'îngrijire piele'
+    ],
+    // ════ קטגוריות פיננסיות ════
+    'מנויים': [
+        'google', 'youtube', 'netflix', 'spotify', 'apple tv', 'icloud', 'amazon prime',
+        'disney', 'hbo', 'paramount', 'microsoft', 'office 365', 'xbox', 'playstation',
+        'dropbox', 'zoom', 'adobe', 'canva', 'wix', 'hot tv', 'מנוי', 'מנויים', 'subscription'
+    ],
+    'תקשורת': [
+        'hot mobile', 'partner', 'פרטנר', 'cellcom', 'סלקום', 'bezeq', 'בזק',
+        'סאני', 'golan', 'גולן', 'אינטרנט', 'סלולרי', 'סלולרית', 'תקשורת סלולרית',
+        'xfone', 'talkman', 'hot communication', 'internet', 'broadband'
+    ],
+    'ביטוח': [
+        'הפניקס', 'מגדל', 'כלל ביטוח', 'מנורה', 'הראל', 'ציון', 'איילון',
+        'הכשרה', 'ביטוח', 'insurance', 'פוליסה', 'פרמיה', 'פנסיה', 'קרן פנסיה', 'גמל'
+    ],
+    'ביטוח רכב': [
+        'ביטוח רכב', 'רכב חובה', 'חובה רכב', 'הפניקס רכב', 'מגדל רכב',
+        'כסף ישיר', 'direct insurance', 'ביטוח מקיף'
+    ],
+    'בריאות': [
+        'מכבי', 'כללית', 'מאוחדת', 'לאומית בריאות', 'שב"ן', 'קופת חולים',
+        'רופא', 'doctor', 'clinic', 'קליניקה', 'בית חולים', 'hospital',
+        'תרופה', 'תרופות', 'pharmacy', 'בית מרקחת', 'סופרפארם', 'super-pharm',
+        'newpharm', 'good pharm', 'קרן מכבי', 'דנטל', 'dental', 'אופטיקה',
+        'health', 'medical', 'רפואי', 'חיסון', 'מעבדה', 'lab'
+    ],
+    'רכב': [
+        'פנגו', 'pango', 'חניון', 'חניה', 'parking', 'דלק', 'fuel', 'petrol',
+        'paz', 'פז', 'sonol', 'סונול', 'ten', 'טן', 'yellow',
+        'משרד התחבורה', 'רישיון', 'רישיונות', 'טסט', 'מוסך', 'garage',
+        'מכון רישוי', 'נתיבי ישראל', 'נתיבי איילון', 'כביש אגרה',
+        'שטיפת רכב', 'car wash', 'חלפים', 'spare parts', 'צמיג', 'tires', 'תחבורה'
+    ],
+    'דיור': [
+        'שכר דירה', 'שכ"ד', 'ועד בית', 'ועד', 'ארנונה', 'municipality',
+        'חשמל', 'electricity', 'גז', 'gas', 'משכנתא', 'mortgage',
+        'שיפוץ', 'renovation', 'קבלן', 'ריהוט', 'furniture', 'ikea', 'איקאה',
+        'homecenter', 'home center', 'ace hardware', 'water authority'
+    ],
+    'הלוואות': [
+        'הלוואה', 'loan', 'משכנתא', 'mortgage', 'החזר הלוואה', 'תשלום הלוואה',
+        'ריבית', 'interest', 'installment', 'קרן וריבית', 'אשראי הלוואה'
+    ],
+    'עמלות בנק': [
+        'דמי כרטיס', 'דמי חבר', 'עמלה', 'עמלות', 'fee', 'commission',
+        'כספומט', 'atm', 'יתרת עסקאות', 'דמי ניהול', 'service charge',
+        'bank charge', 'bank fee'
+    ],
+    'שירותים מקצועיים': [
+        'רואה חשבון', 'accountant', 'עורך דין', 'lawyer', 'attorney', 'נוטריון',
+        'notary', 'יועץ', 'consultant', 'ייעוץ', 'שמאי', 'appraiser',
+        'מתווך', 'broker', 'סוכן', 'agent'
+    ],
+    'מזון וסופרמרקט': [
+        'carrefour', 'קרפור', 'שופרסל', 'shufersal', 'רמי לוי', 'rami levy',
+        'מגה', 'mega', 'יוחננוף', 'yochananof', 'ויקטורי', 'victory',
+        'זול ובגדול', 'חצי חינם', 'כל בו', 'supermarket', 'סופרמרקט',
+        'מינימרקט', 'קצביה', 'מאפייה', 'שוק העיר', 'שוק הכרמל',
+        'אלוניאל', 'grocery', 'tiv taam', 'טיב טעם'
+    ],
+    'קניות כלליות': [
+        'כל בו חצי חינם', 'department store', 'mall', 'קניון',
+        'ebay', 'aliexpress', 'zara', 'זארה', 'h&m', 'castro', 'קסטרו',
+        'renuar', 'רנואר', 'golf', 'גולף', 'terminal x', 'adidas', 'nike',
+        'new balance', 'puma', 'reebok', 'hamashbir', 'המשביר', 'ksp',
+        'office depot', 'online shopping', 'shop online'
+    ],
+    'ביגוד ואופנה': [
+        'תכשיטים', 'תכשיט', 'jewelry', 'jewellery', 'טבעת', 'ring',
+        'שרשרת', 'necklace', 'עגיל', 'earring', 'שעון', 'watch',
+        'תיק', 'bag', 'נעליים', 'shoes', 'בגדים', 'clothes', 'clothing',
+        'חולצה', 'shirt', 'מכנסיים', 'pants', 'שמלה', 'dress',
+        'מעיל', 'coat', 'jacket', 'ג'קט', 'סריג', 'sweater',
+        'דביר', 'michael kors', 'louis vuitton', 'gucci', 'fashion'
+    ],
+    'אלקטרוניקה': [
+        'samsung', 'סמסונג', 'apple store', 'lg', 'sony', 'סוני', 'lenovo',
+        'dell', 'hp', 'asus', 'acer', 'מחשב', 'computer', 'laptop',
+        'טאבלט', 'tablet', 'אוזניות', 'headphones', 'earphones',
+        'רמקול', 'speaker', 'מסך', 'monitor', 'מקלדת', 'keyboard',
+        'מדפסת', 'printer', 'istore', 'idigital', 'bug computers',
+        'ivory', 'ksp electronics', 'electronics store'
+    ],
+    'חינוך': [
+        'שכר לימוד', 'tuition', 'בית ספר', 'school', 'גן ילדים', 'kindergarten',
+        'אוניברסיטה', 'university', 'college', 'קורס', 'course',
+        'מורה', 'teacher', 'מדריך', 'instructor', 'הדרכה', 'training',
+        'ספרי לימוד', 'textbook', 'ציוד לימוד', 'school supplies',
+        'סטודנט', 'student', 'לימוד', 'education'
+    ],
+    'בידור ופנאי': [
+        'קולנוע', 'cinema', 'movie', 'theater', 'תיאטרון', 'הצגה', 'show',
+        'concert', 'קונצרט', 'פסטיבל', 'festival', 'מוזיאון', 'museum',
+        'גן חיות', 'zoo', 'ספורט', 'sport', 'gym', 'כושר', 'fitness',
+        'בריכה', 'pool', 'bowling', 'escape room', 'לייזר', 'laser',
+        'כרטיס', 'ticket', 'event', 'אירוע', 'בידור'
+    ],
+    'מסעדות ואוכל בחוץ': [
+        'מסעדה', 'restaurant', 'cafe', 'בית קפה', 'coffee shop',
+        'pizza hut', 'dominos', 'mcdonalds', 'burger king', 'kfc', 'subway',
+        'שווארמה', 'פלאפל', 'falafel', 'sushi', 'סושי', 'wolt', 'ten bis',
+        'tenbis', 'mishloha', 'meshloha', 'משלוח', 'delivery', 'takeaway',
+        'bar', 'פאב', 'pub', 'גלידריה', 'ice cream parlor', 'hummus bar'
     ]
 };
 
@@ -3233,25 +3337,34 @@ function renderPopularItems() {
 // ══════════════════════════════════════════════════════════
 
 const CAT_ANALYSIS_CFG = {
-    'פירות וירקות': { bg:'#dcfce7', hex:'#22c55e', icon:'🥦' },
-    'בשר ודגים':    { bg:'#fce7f3', hex:'#ec4899', icon:'🥩' },
-    'חלב וביצים':   { bg:'#fef9c3', hex:'#eab308', icon:'🥛' },
-    'לחם ומאפים':   { bg:'#ffedd5', hex:'#f97316', icon:'🍞' },
-    'שימורים':      { bg:'#e0f2fe', hex:'#0ea5e9', icon:'🥫' },
-    'חטיפים':       { bg:'#fef3c7', hex:'#f59e0b', icon:'🍿' },
-    'משקאות':       { bg:'#ede9fe', hex:'#8b5cf6', icon:'🧃' },
-    'ניקיון':       { bg:'#dbeafe', hex:'#3b82f6', icon:'🧹' },
-    'היגיינה':      { bg:'#fce7f3', hex:'#db2777', icon:'🧴' },
-    'רכב':          { bg:'#fef3c7', hex:'#d97706', icon:'🚗' },
-    'מנויים':       { bg:'#ede9fe', hex:'#7c3aed', icon:'📱' },
-    'מזון':         { bg:'#dcfce7', hex:'#16a34a', icon:'🛒' },
-    'חשבונות':      { bg:'#dbeafe', hex:'#1d4ed8', icon:'💡' },
-    'פנאי':         { bg:'#ffedd5', hex:'#ea580c', icon:'🎬' },
-    'בריאות':       { bg:'#f0fdf4', hex:'#15803d', icon:'💊' },
-    'ביגוד':        { bg:'#fdf4ff', hex:'#a855f7', icon:'👕' },
-    'אלקטרוניקה':   { bg:'#f0f9ff', hex:'#0284c7', icon:'💻' },
-    'כללי':         { bg:'#f3f4f6', hex:'#6b7280', icon:'📦' },
-    'אחר':          { bg:'#f3f4f6', hex:'#9ca3af', icon:'📦' },
+    'פירות וירקות':       { bg:'#dcfce7', hex:'#22c55e', icon:'🥦' },
+    'בשר ודגים':          { bg:'#fce7f3', hex:'#ec4899', icon:'🥩' },
+    'חלב וביצים':         { bg:'#fef9c3', hex:'#eab308', icon:'🥛' },
+    'לחם ומאפים':         { bg:'#ffedd5', hex:'#f97316', icon:'🍞' },
+    'שימורים':            { bg:'#e0f2fe', hex:'#0ea5e9', icon:'🥫' },
+    'חטיפים':             { bg:'#fef3c7', hex:'#f59e0b', icon:'🍿' },
+    'משקאות':             { bg:'#ede9fe', hex:'#8b5cf6', icon:'🧃' },
+    'ניקיון':             { bg:'#dbeafe', hex:'#3b82f6', icon:'🧹' },
+    'היגיינה':            { bg:'#fce7f3', hex:'#db2777', icon:'🧴' },
+    'מנויים':             { bg:'#ede9fe', hex:'#7c3aed', icon:'📱' },
+    'תקשורת':             { bg:'#e0f2fe', hex:'#0284c7', icon:'📡' },
+    'ביטוח':              { bg:'#fee2e2', hex:'#dc2626', icon:'🛡️' },
+    'ביטוח רכב':          { bg:'#fee2e2', hex:'#b91c1c', icon:'🚘' },
+    'בריאות':             { bg:'#dcfce7', hex:'#059669', icon:'💊' },
+    'רכב':                { bg:'#fef3c7', hex:'#d97706', icon:'🚗' },
+    'דיור':               { bg:'#e0f2fe', hex:'#0891b2', icon:'🏠' },
+    'הלוואות':            { bg:'#faf5ff', hex:'#9333ea', icon:'💳' },
+    'עמלות בנק':          { bg:'#f3f4f6', hex:'#6b7280', icon:'🏦' },
+    'שירותים מקצועיים':   { bg:'#dbeafe', hex:'#1d4ed8', icon:'💼' },
+    'מזון וסופרמרקט':     { bg:'#dcfce7', hex:'#16a34a', icon:'🛒' },
+    'קניות כלליות':       { bg:'#fdf4ff', hex:'#c026d3', icon:'🛍️' },
+    'ביגוד ואופנה':       { bg:'#fdf4ff', hex:'#db2777', icon:'👕' },
+    'אלקטרוניקה':         { bg:'#f0f9ff', hex:'#2563eb', icon:'💻' },
+    'חינוך':              { bg:'#faf5ff', hex:'#7c3aed', icon:'📚' },
+    'בידור ופנאי':        { bg:'#ffedd5', hex:'#ea580c', icon:'🎬' },
+    'מסעדות ואוכל בחוץ':  { bg:'#fef9c3', hex:'#d97706', icon:'🍽️' },
+    'כללי':               { bg:'#f3f4f6', hex:'#6b7280', icon:'📦' },
+    'אחר':                { bg:'#f3f4f6', hex:'#9ca3af', icon:'📦' },
 };
 
 function getCatCfg(cat) {
@@ -10917,6 +11030,85 @@ function closeCompactActions() {
 
 function toggleCompactActions() { handleCompactPlus(); }
 function _resetCompactPlusIcon() {}
+
+
+// ══════════════════════════════════════════════════════════
+// סיווג מחדש — Recategorize
+// ══════════════════════════════════════════════════════════
+
+function _recategorizeItems(items, onlyOther) {
+    let changed = 0;
+    items.forEach(item => {
+        if (onlyOther && item.category && item.category !== 'אחר') return;
+        const detected = detectCategory(item.name);
+        if (detected !== item.category) {
+            item.category = detected;
+            changed++;
+        }
+    });
+    return changed;
+}
+
+function recategorizeCurrentList() {
+    const list = db.lists[db.currentId];
+    if (!list) return;
+
+    const hasNonOther = list.items.some(i => i.category && i.category !== 'אחר');
+
+    let onlyOther = false;
+    if (hasNonOther) {
+        const choice = confirm(
+            'איזה פריטים לסווג מחדש?
+
+' +
+            '• לחץ OK — רק פריטים עם קטגוריה "אחר"
+' +
+            '• לחץ ביטול — כל הפריטים (מחליף גם קטגוריות קיימות)'
+        );
+        onlyOther = choice; // OK = true = only "אחר"
+    }
+
+    const changed = _recategorizeItems(list.items, onlyOther);
+    save();
+    if (changed > 0) {
+        showNotification(`✅ ${changed} פריטים סווגו מחדש`);
+    } else {
+        showNotification('לא נמצאו פריטים לסיווג מחדש', 'info');
+    }
+}
+
+function recategorizeAllLists() {
+    const choice = confirm(
+        'סיווג מחדש לכל הרשימות:
+
+' +
+        '• לחץ OK — רק פריטים עם קטגוריה "אחר"
+' +
+        '• לחץ ביטול — כל הפריטים (מחליף גם קטגוריות קיימות)'
+    );
+    // cancel = false means user clicked cancel = recategorize ALL
+    // ok = true = only "אחר"
+    const onlyOther = choice;
+
+    let totalChanged = 0;
+    let listsChanged = 0;
+
+    Object.values(db.lists).forEach(list => {
+        if (!list.items) return;
+        const changed = _recategorizeItems(list.items, onlyOther);
+        if (changed > 0) {
+            totalChanged += changed;
+            listsChanged++;
+        }
+    });
+
+    save();
+    if (totalChanged > 0) {
+        showNotification(`✅ ${totalChanged} פריטים ב-${listsChanged} רשימות סווגו מחדש`);
+    } else {
+        showNotification('לא נמצאו פריטים לסיווג מחדש', 'info');
+    }
+}
 
 // ── Legacy startBankSync stub ──
 async function startBankSync() { startBankFetch(); }

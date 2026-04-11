@@ -2581,6 +2581,10 @@ ${error.message}
                 <span style="font-size:15px;line-height:1;">✨</span>
                 <span id="wizardPanelText">מדריך</span>
             </div>
+            <div class="list-action-pill" onclick="closeListActionsPanel(); recategorizeCurrentList()">
+                <span style="font-size:15px;line-height:1;">🏷️</span>
+                סווג מחדש
+            </div>
         </div>
         <div style="display:flex;gap:8px;padding:0 12px 14px;">
             <button onclick="closeListActionsPanel(); showPage('stats')"
@@ -3540,6 +3544,11 @@ ${error.message}
                 </div>
                 <div style="font-size:10px;color:#9ca3af;margin-top:4px;">נשמר על המכשיר שלך בלבד — לא עולה לענן</div>
             </div>
+            <button onclick="recategorizeAllLists(); closeModal('settingsModal')"
+                class="w-full py-4 rounded-xl font-bold mb-3"
+                style="background:#f0fdf4;color:#15803d;">
+                🏷️ סווג מחדש את כל הרשימות
+            </button>
             <button onclick="closeModal('settingsModal')" class="mt-4 text-gray-400 block w-full">סגור</button>
         </div>
     </div>
