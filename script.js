@@ -121,7 +121,7 @@ const CATEGORY_KEYWORDS = {
     'בשר ודגים': [
         // עברית
         'בשר', 'עוף', 'תרנגולת', 'הודו', 'נקניק', 'נקניקיות', 'קבב', 'המבורגר', 'שניצל',
-        'סטייק', 'אנטריקוט', 'צלי', 'כבד', 'לב', 'קורנדביף', 'סלמי', 'נתחי', 'כנפיים',
+        'סטייק', 'אנטריקוט', 'צלי', 'כבד', 'קורנדביף', 'סלמי', 'נתחי', 'כנפיים', 'לב עוף', 'לב בקר',
         'דג', 'דגים', 'סלמון', 'טונה', 'בקלה', 'אמנון', 'דניס', 'לוקוס', 'מושט', 'בורי',
         'שרימפס', 'קלמרי', 'פירות ים', 'סרדינים', 'מקרל',
         // English
@@ -157,7 +157,7 @@ const CATEGORY_KEYWORDS = {
         'чеддер', 'швейцарский', 'гауда', 'бри', 'сливочный сыр', 'пудинг', 'белок', 'десерт',
         'мороженое', 'молочные продукты', 'молочное',
         // Română
-        'lapte', 'brânză', 'brânză de vaci', 'iaurt', 'smântână', 'unt', 'ouă', 'ou',
+        'lapte', 'brânză', 'brânză de vaci', 'iaurt', 'smântână', 'unt', 'ouă',
         'brânză albă', 'telemea', 'brânză bulgărească', 'brânză galbenă', 'mozzarella', 'parmezan',
         'cheddar', 'gouda', 'brie', 'brânză cremă', 'budincă', 'proteină', 'desert',
         'înghețată', 'lactate', 'produse lactate'
@@ -242,7 +242,7 @@ const CATEGORY_KEYWORDS = {
     ],
     'משקאות': [
         // עברית
-        'מים', 'מי', 'מינרלים', 'נביעות', 'עדן', 'נווה', 'קולה', 'פפסי', 'ספרייט', 'פאנטה',
+        'מים', 'מינרלים', 'נביעות', 'עדן', 'נווה', 'קולה', 'פפסי', 'ספרייט', 'פאנטה',
         'שוופס', 'סודה', 'משקה', 'משקאות', 'מיץ', 'מיצים', 'תפוזים', 'פריגת', 'פרימור',
         'בירה', 'יין', 'וודקה', 'ויסקי', 'אלכוהול', 'קפה', 'נס', 'נסקפה', 'תה', 'תיונים',
         'ויסוצקי', 'חליבה', 'שוקו', 'חלב שוקולד', 'אייס קפה', 'אנרגיה', 'רד בול', 'XL',
@@ -328,7 +328,7 @@ const CATEGORY_KEYWORDS = {
         'dropbox', 'zoom', 'adobe', 'canva', 'wix', 'hot tv', 'מנוי', 'מנויים', 'subscription'
     ],
     'תקשורת': [
-        'hot mobile', 'partner', 'פרטנר', 'cellcom', 'סלקום', 'bezeq', 'בזק',
+        'hot mobile', 'hot', 'partner', 'פרטנר', 'cellcom', 'סלקום', 'bezeq', 'בזק',
         'סאני', 'golan', 'גולן', 'אינטרנט', 'סלולרי', 'סלולרית', 'תקשורת סלולרית',
         'xfone', 'talkman', 'hot communication', 'internet', 'broadband'
     ],
@@ -432,17 +432,44 @@ function detectCategory(productName) {
     if (!productName) return 'אחר';
 
     const nameLower = productName.toLowerCase().trim();
+    // רווח סביב השם — מאפשר word-boundary matching למניעת false matches
+    const nameSpaced = ' ' + nameLower + ' ';
 
-    // Check each category's keywords
-    for (const [category, keywords] of Object.entries(CATEGORY_KEYWORDS)) {
+    // helper: checks both exact substring and spaced version
+    function matchesKeyword(name, spaced, kw) {
+        const k = kw.toLowerCase();
+        return name.includes(k) || spaced.includes(' ' + k + ' ');
+    }
+
+    // קטגוריות פיננסיות — נבדקות ראשונות למניעת false matches
+    const FINANCIAL_CATS = [
+        'מנויים', 'תקשורת', 'ביטוח רכב', 'ביטוח', 'בריאות', 'רכב',
+        'דיור', 'הלוואות', 'עמלות בנק', 'שירותים מקצועיים',
+        'מזון וסופרמרקט', 'קניות כלליות', 'ביגוד ואופנה',
+        'אלקטרוניקה', 'חינוך', 'בידור ופנאי', 'מסעדות ואוכל בחוץ'
+    ];
+
+    // בדוק פיננסיים ראשונים
+    for (const cat of FINANCIAL_CATS) {
+        const keywords = CATEGORY_KEYWORDS[cat];
+        if (!keywords) continue;
         for (const keyword of keywords) {
-            if (nameLower.includes(keyword.toLowerCase())) {
+            if (matchesKeyword(nameLower, nameSpaced, keyword)) {
+                return cat;
+            }
+        }
+    }
+
+    // אחר כך בדוק מוצרי מכולת
+    for (const [category, keywords] of Object.entries(CATEGORY_KEYWORDS)) {
+        if (FINANCIAL_CATS.includes(category)) continue; // כבר נבדק
+        for (const keyword of keywords) {
+            if (matchesKeyword(nameLower, nameSpaced, keyword)) {
                 return category;
             }
         }
     }
 
-    // ברירת מחדל - החזר "אחר" אם לא נמצאה התאמה
     return 'אחר';
 }
 
