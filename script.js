@@ -891,6 +891,10 @@ function toggleCategorySorting() {
         db.lists[db.currentId].items = sortItemsByStatusAndCategory(db.lists[db.currentId].items);
     }
 
+    // מיון קטגוריות תמיד נפתח ב-compact mode
+    compactMode = true;
+    listsCompactMode = true;
+
     save(); // save כולל render()
     showNotification(categorySortEnabled ? '✅ מיון לפי קטגוריות מופעל' : '✅ מיון ידני מופעל'); render();
 }
