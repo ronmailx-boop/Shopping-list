@@ -11123,6 +11123,102 @@ function recategorizeAllLists() {
     }
 }
 
+
+// ══════════════════════════════════════════════════════════
+// Android Back Button — History API
+// ══════════════════════════════════════════════════════════
+
+(function initBackButton() {
+    // מצב "בסיס" — תמיד summary (הרשימות שלי)
+    // כל ניווט קדימה דוחף state להיסטוריה
+    // back button מושך state ומנווט חזרה
+
+    function _pushNav(type, data) {
+        window.history.pushState({ _vplus: true, type, data }, '');
+    }
+
+    // hook: showPage — כל מעבר עמוד דוחף state
+    const _origShowPage = window.showPage;
+    window.showPage = function(p) {
+        if (typeof _origShowPage === 'function') _origShowPage(p);
+        if (p !== 'summary') {
+            _pushNav('page', p);
+        }
+    };
+
+    // hook: openModal — כל פתיחת modal דוחפת state
+    const _origOpenModal = window.openModal;
+    window.openModal = function(id) {
+        if (typeof _origOpenModal === 'function') _origOpenModal(id);
+        _pushNav('modal', id);
+    };
+
+    // hook: openCatDrill
+    const _origOpenCatDrill = window.openCatDrill;
+    if (typeof _origOpenCatDrill === 'function') {
+        window.openCatDrill = function(...args) {
+            _origOpenCatDrill(...args);
+            _pushNav('catdrill', null);
+        };
+    }
+
+    // הגדר state ראשוני
+    window.history.replaceState({ _vplus: true, type: 'base', data: null }, '');
+
+    // טפל ב-popstate (לחיצת Back)
+    window.addEventListener('popstate', function(e) {
+        const state = e.state;
+        if (!state || !state._vplus) return;
+
+        // 1. סגור catDrill אם פתוח
+        const catDrill = document.getElementById('catDrillOverlay');
+        if (catDrill && catDrill.classList.contains('open')) {
+            catDrill.classList.remove('open');
+            // דחוף בחזרה state כי popstate כבר הוציא אחד
+            return;
+        }
+
+        // 2. סגור modal פתוח
+        const activeModals = document.querySelectorAll('.modal-overlay.active');
+        if (activeModals.length > 0) {
+            const lastModal = activeModals[activeModals.length - 1];
+            if (lastModal) lastModal.classList.remove('active');
+            return;
+        }
+
+        // 3. נווט לפי type
+        if (state.type === 'base') {
+            // כבר בבסיס — אם לא בsummary, עבור לsummary
+            if (window.activePage !== 'summary') {
+                if (typeof tapTab === 'function') tapTab('summary');
+                else if (typeof showPage === 'function') {
+                    window.activePage = 'summary';
+                    if (typeof render === 'function') render();
+                }
+            }
+            // דחוף מחדש base state כדי שלחיצת Back הבאה תעשה את אותו הדבר
+            window.history.pushState({ _vplus: true, type: 'base', data: null }, '');
+            return;
+        }
+
+        if (state.type === 'page') {
+            const prev = state.data;
+            // חזור לsummary אם הדף הקודם הוא summary, אחרת summary
+            if (typeof tapTab === 'function') tapTab('summary');
+            else {
+                window.activePage = 'summary';
+                if (typeof render === 'function') render();
+            }
+            return;
+        }
+
+        if (state.type === 'modal') {
+            // הmodal כבר נסגר למעלה, כאן אין מה לעשות
+            return;
+        }
+    });
+})();
+
 // ── Legacy startBankSync stub ──
 async function startBankSync() { startBankFetch(); }
 
