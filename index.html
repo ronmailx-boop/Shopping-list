@@ -388,6 +388,32 @@
             color: #9ca3af;
             white-space: nowrap;
             flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        .context-new-list-btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 22px;
+            height: 22px;
+            border-radius: 50%;
+            background: #22c55e;
+            color: white;
+            font-size: 1.1rem;
+            font-weight: 900;
+            border: none;
+            cursor: pointer;
+            flex-shrink: 0;
+            box-shadow: 0 2px 6px rgba(34,197,94,0.35);
+            transition: transform 0.12s, background 0.15s;
+            line-height: 1;
+            padding: 0;
+        }
+        .context-new-list-btn:active {
+            transform: scale(0.88);
+            background: #16a34a;
         }
         .context-list-btn {
             flex: 1;
@@ -3113,7 +3139,10 @@ ${error.message}
 
             <!-- Context bar: which list -->
             <div class="context-bar" id="contextBar">
-                <span class="context-bar-label">➕ מתווסף אל:</span>
+                <span class="context-bar-label">
+                    <button class="context-new-list-btn" onclick="event.stopPropagation(); openNewListFromInputForm();" title="צור רשימה חדשה">+</button>
+                    מתווסף אל:
+                </span>
                 <button class="context-list-btn" id="contextListBtn" onclick="event.stopPropagation(); toggleListDropdown()">
                     <span class="context-list-name" id="contextListName">...</span>
                     <span class="context-list-arrow">▾</span>
@@ -3274,7 +3303,7 @@ ${error.message}
                 <button class="bg-indigo-600 text-white flex-1 py-4 rounded-xl font-bold shadow-md"
                     onclick="event.stopPropagation(); saveNewList();">צור</button>
                 <button class="bg-gray-100 flex-1 py-4 rounded-xl font-bold"
-                    onclick="event.stopPropagation(); closeModal('newListModal');">ביטול</button>
+                    onclick="event.stopPropagation(); if(_openInputFormAfterNewList){_openInputFormAfterNewList=false;closeModal('newListModal');openModal('inputForm');}else{closeModal('newListModal');}">ביטול</button>
             </div>
         </div>
     </div>

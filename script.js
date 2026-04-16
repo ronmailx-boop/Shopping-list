@@ -30,6 +30,9 @@ let undoCheckTimeout = null;
 let pendingImportText = null;
 let detectedListType = null;
 
+// Flag: open inputForm after creating a new list (when triggered from add-product modal)
+let _openInputFormAfterNewList = false;
+
 // ========== Global Variables for List Delete Mode ==========
 let listDeleteMode = false;
 let listDeleteSelected = new Set();
@@ -4136,6 +4139,24 @@ function createListFromDropdown() {
     showNotification('✅ רשימה "' + name + '" נוצרה!');
 }
 
+// Opens newListModal from within the add-product modal (inputForm).
+// After list creation, inputForm re-opens with the new list pre-selected.
+function openNewListFromInputForm() {
+    _openInputFormAfterNewList = true;
+    closeModal('inputForm');
+    // Clear previous values in the new-list form
+    const nameInp = document.getElementById('newListNameInput');
+    const urlInp  = document.getElementById('newListUrlInput');
+    const budInp  = document.getElementById('newListBudget');
+    const tmplChk = document.getElementById('newListTemplate');
+    if (nameInp) nameInp.value = '';
+    if (urlInp)  urlInp.value  = '';
+    if (budInp)  budInp.value  = '';
+    if (tmplChk) tmplChk.checked = false;
+    openModal('newListModal');
+    setTimeout(() => { if (nameInp) nameInp.focus(); }, 150);
+}
+
 // ===== QUICK ADD: CONTINUOUS MODE =====
 function toggleContinuousMode() {
     const toggle = document.getElementById('continuousToggle');
@@ -4347,6 +4368,21 @@ function saveNewList() {
         if (!db.listsOrder) db.listsOrder = Object.keys(db.lists).filter(lid => lid !== id);
         if (!db.listsOrder.includes(id)) db.listsOrder.push(id);
         db.currentId = id;
+
+        // If triggered from the add-product modal: reopen it with the new list selected
+        if (_openInputFormAfterNewList) {
+            _openInputFormAfterNewList = false;
+            closeModal('newListModal');
+            save();
+            _targetListId = id;
+            openModal('inputForm');
+            setTimeout(() => {
+                updateContextBarDisplay();
+            }, 50);
+            showNotification(t ? '⭐ תבנית נוצרה!' : '✅ רשימה נוצרה!');
+            return;
+        }
+
         activePage = 'lists';
         closeModal('newListModal');
         save();
