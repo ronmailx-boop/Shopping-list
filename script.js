@@ -4016,8 +4016,7 @@ async function shareNative(type) {
         title = `Vplus - ${list.name}`;
         text = `🛒 *${list.name}:*\n\n`;
         list.items.forEach((i, idx) => {
-            const catEmoji = i.category ? i.category.split(' ')[0] : '';
-            text += `${idx + 1}. ${i.checked ? '✅' : '⬜'} *${i.name}* ${catEmoji} (x${i.qty}) - ₪${(i.price * i.qty).toFixed(2)}\n`;
+            text += `${idx + 1}. ${i.checked ? '✅' : '⬜'} *${i.name}* (x${i.qty}) - ₪${(i.price * i.qty).toFixed(2)}\n`;
         });
         text += `\n💰 *סה"כ: ₪${document.getElementById('displayTotal').innerText}*`;
     } else {
