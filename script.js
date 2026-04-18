@@ -10364,40 +10364,62 @@ function setFinStage(step, icon, title, sub, pct) {
     }
 }
 
-// ── Debug log panel ──
-function showDebugLog(logs) { /* no-op */ }
-function dbgLog(msg, color) {
-    const panel = document.getElementById('finDebugLog');
-    if (!panel) return;
-    const now = new Date();
-    const ts = now.getHours().toString().padStart(2,'0') + ':' +
-               now.getMinutes().toString().padStart(2,'0') + ':' +
-               now.getSeconds().toString().padStart(2,'0');
-    // בחר צבע לפי תוכן ההודעה
-    let c = '#a3e635'; // ירוק בהיר — ברירת מחדל
-    if (color) c = color;
-    else if (/error|שגיא|❌|💥|נכשל/i.test(msg)) c = '#f87171';       // אדום
-    else if (/success|✅|הושלם|הצליח/i.test(msg))  c = '#4ade80';       // ירוק
-    else if (/⚠️|warning/i.test(msg))              c = '#fbbf24';       // צהוב
-    else if (/⏳|ממתין|מחכה/i.test(msg))           c = '#60a5fa';       // כחול
-    const row = document.createElement('div');
-    row.style.cssText = `color:${c};white-space:pre-wrap;word-break:break-all;`;
-    row.textContent = `[${ts}] ${msg}`;
-    panel.appendChild(row);
-    panel.scrollTop = panel.scrollHeight;
+// ── Financial Debug Log ──
+var _finLogCount = 0;
+
+function clearFinLog() {
+    _finLogCount = 0;
+    const body = document.getElementById('finDebugLogBody');
+    const cnt  = document.getElementById('finDebugLogCount');
+    if (body) body.innerHTML = '';
+    if (cnt)  cnt.textContent = '';
 }
+
+function finLog(msg, type, icon) {
+    type = type || 'info';
+    icon = icon || '•';
+    _finLogCount++;
+    const body = document.getElementById('finDebugLogBody');
+    const cnt  = document.getElementById('finDebugLogCount');
+    if (!body) { console.log('[FinLog]', icon, msg); return; }
+
+    const colors = { success:'#4ade80', error:'#f87171', warning:'#fbbf24', info:'#94a3b8' };
+    const color  = colors[type] || colors.info;
+
+    const now  = new Date();
+    const time = now.toLocaleTimeString('he-IL', { hour:'2-digit', minute:'2-digit', second:'2-digit' });
+
+    const row  = document.createElement('div');
+    row.style.cssText = 'display:flex;align-items:flex-start;gap:5px;padding:1px 0;border-bottom:1px solid rgba(255,255,255,0.04);';
+    row.innerHTML =
+        '<span style="color:#334155;font-size:9px;flex-shrink:0;padding-top:1px;">' + time + '</span>' +
+        '<span style="flex-shrink:0;">' + icon + '</span>' +
+        '<span style="color:' + color + ';word-break:break-word;">' + msg + '</span>';
+
+    body.appendChild(row);
+    if (cnt) cnt.textContent = '#' + _finLogCount;
+
+    // גלגל לתחתית
+    const logWrap = body.parentElement;
+    if (logWrap) logWrap.scrollTop = logWrap.scrollHeight;
+
+    // גם לקונסול
+    console.log('[FinLog][' + type + ']', icon, msg);
+}
+
+function showDebugLog(logs) { /* legacy no-op */ }
+function dbgLog(msg, color) { finLog(msg, 'info', '•'); }
 
 // ── Shared fetch helper ──
 async function runFinancialFetch({ companyId, credentials, modalId, nameLabel }) {
-    const log = (msg, type='info', icon='•') => {
-        console.log(`[BankSync][${type}] ${icon} ${msg}`);
-        dbgLog(`${icon} ${msg}`);
+    const log = (msg, type, icon) => {
+        type = type || 'info';
+        icon = icon || '•';
+        finLog(msg, type, icon);
     };
 
     closeModal(modalId);
-    // נקה לוג קודם
-    const logPanel = document.getElementById('finDebugLog');
-    if (logPanel) logPanel.innerHTML = '';
+    clearFinLog();
     showFinProgress();
 
     try {
@@ -10476,8 +10498,8 @@ async function runFinancialFetch({ companyId, credentials, modalId, nameLabel })
                 log(`סטטוס: ${data.status}`, 'info', '📊');
 
                 if (data.status === 'running') {
-                    log('GitHub Actions פועל — מתחבר לבנק...', 'info', '🔐');
                     setFinStage(2, '🔐', 'מתחבר לבנק...', 'GitHub Actions פועל', '55%');
+                    log('GitHub Actions פועל — מתחבר לבנק', 'info', '🔐');
                 }
 
                 if (data.status === 'done') {
@@ -10521,12 +10543,14 @@ async function runFinancialFetch({ companyId, credentials, modalId, nameLabel })
 
         // ── הצג סיום ─────────────────────────────────────────────
         setFinStage(3, '⚙️', 'מעבד נתונים...', 'עוד רגע...', '85%');
+        log('מעבד עסקאות...', 'info', '⚙️');
         await new Promise(r => setTimeout(r, 800));
 
         document.getElementById('finProgressBar').style.width = '100%';
         document.getElementById('finProgressIcon').textContent = '✅';
         document.getElementById('finProgressTitle').textContent = 'הושלם בהצלחה!';
         document.getElementById('finProgressSub').textContent = `יובאו ${transactions.length} עסקאות`;
+        log(`הושלם! יובאו ${transactions.length} חשבונות בהצלחה`, 'success', '🎉');
         for (let i = 1; i <= 3; i++) {
             document.getElementById('finDot' + i).textContent = '✓';
             document.getElementById('finDot' + i).style.background = '#7367f0';
@@ -11044,38 +11068,26 @@ function toggleCompactMode() {
 }
 
 function handleCompactPlus() {
-    const page = (typeof activePage !== 'undefined') ? activePage : 'lists';
-    if (page === 'summary') {
-        // רשימות שלי — רשימה חדשה
-        if (typeof wizardMode !== 'undefined' && wizardMode) {
-            wiz('newList', 'before', () => openModal('newListModal'));
-        } else {
-            openModal('newListModal');
-        }
-    } else {
-        // רשימה שלי — פתח actions
-        compactActionsOpen = true;
-        const actionsRow = document.getElementById('compactActionsRow');
-        const tabsRow    = document.getElementById('tabsRowWrap');
-        const plusWrap   = document.getElementById('compactPlusWrap');
-        const bar        = document.getElementById('smartBottomBar');
-        if (tabsRow)    tabsRow.style.display    = 'none';
-        if (actionsRow) actionsRow.style.display = 'flex';
-        if (plusWrap)   plusWrap.style.display   = 'none';
-        if (bar)        bar.style.overflow       = 'visible';
-    }
+    // פתח את שורת כפתורי הוספת המוצר
+    compactActionsOpen = true;
+    const actionsRow = document.getElementById('compactActionsRow');
+    const tabsRow    = document.getElementById('tabsRowWrap');
+    const bar        = document.getElementById('smartBottomBar');
+    if (tabsRow)    tabsRow.style.display    = 'none';
+    if (actionsRow) actionsRow.style.display = 'flex';
+    if (bar)        bar.style.overflow       = 'visible';
 }
 
 function closeCompactActions() {
     compactActionsOpen = false;
-    const actionsRow = document.getElementById('compactActionsRow');
-    const tabsRow    = document.getElementById('tabsRowWrap');
-    const plusWrap   = document.getElementById('compactPlusWrap');
-    const bar        = document.getElementById('smartBottomBar');
+    const actionsRow  = document.getElementById('compactActionsRow');
+    const tabsRow     = document.getElementById('tabsRowWrap');
+    const bar         = document.getElementById('smartBottomBar');
     if (actionsRow) actionsRow.style.display = 'none';
     if (tabsRow)    tabsRow.style.display    = 'block';
-    if (plusWrap)   plusWrap.style.display   = 'block';
     if (bar)        bar.style.overflow       = 'hidden';
+    // עדכן את כפתורי ה+ לפי הטאב הנוכחי
+    if (typeof updateSvgTabs === 'function') updateSvgTabs(typeof activePage !== 'undefined' ? activePage : 'lists');
 }
 
 function toggleCompactActions() { handleCompactPlus(); }
