@@ -4035,17 +4035,6 @@ ${error.message}
                 <div id="finDot3" style="width:28px;height:28px;border-radius:50%;background:#f3f4f6;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:12px;">3</div>עיבוד
             </div>
         </div>
-
-        <!-- ══ Debug Log Panel ══ -->
-        <div id="finDebugLog" style="margin-top:16px;background:#0f172a;border-radius:14px;padding:10px 12px;max-height:140px;overflow-y:auto;text-align:right;font-family:'Courier New',monospace;font-size:10.5px;line-height:1.75;">
-            <div style="color:#334155;font-size:10px;font-weight:700;margin-bottom:5px;letter-spacing:0.05em;display:flex;align-items:center;justify-content:space-between;">
-                <span style="color:#475569;">📋 לוג חיבור</span>
-                <span id="finDebugLogCount" style="color:#334155;font-size:9px;"></span>
-            </div>
-            <div id="finDebugLogBody">
-                <div style="color:#334155;font-size:10px;">ממתין להתחלה...</div>
-            </div>
-        </div>
     </div>
   </div>
 
@@ -4095,6 +4084,13 @@ ${error.message}
             var st = (new Error()).stack.split('\n').slice(1,4).join(' ← ').replace(/https?:\/\/[^/]+/g,'').substring(0,120);
             dbgLog('👆 tapTab("' + page + '") | ' + st, '#ffaa00');
         }
+
+        // אם במצב העברת מוצר — ביטול אוטומטי ביציאה מה-summary
+        if (typeof _moveMode !== 'undefined' && _moveMode && page !== 'summary') {
+            if (typeof cancelMoveItem === 'function') cancelMoveItem();
+            return; // cancelMoveItem כבר מנווט חזרה
+        }
+
         var actions = document.getElementById('barActionsRow');
         var stats   = document.getElementById('barStatsRow');
         if (_activePage === page) {
@@ -4190,6 +4186,31 @@ ${error.message}
         window.addEventListener('scroll', function(e){ e.stopImmediatePropagation(); }, true);
     });
     </script>
+
+  <!-- ══ Item Context Menu (long press) ══ -->
+  <div id="itemContextMenu" style="display:none;position:fixed;inset:0;z-index:8800;background:rgba(0,0,0,0.45);backdrop-filter:blur(4px);" onclick="closeItemContextMenu()">
+    <div id="itemContextSheet" onclick="event.stopPropagation()"
+        style="position:absolute;bottom:0;left:0;right:0;background:white;border-radius:28px 28px 0 0;padding:20px 20px 36px;box-shadow:0 -8px 40px rgba(0,0,0,0.18);transform:translateY(100%);transition:transform 0.3s cubic-bezier(0.4,0,0.2,1);">
+      <div style="width:36px;height:4px;background:#e5e7eb;border-radius:99px;margin:0 auto 16px;"></div>
+      <div id="itemContextName" style="font-size:15px;font-weight:900;color:#1e1b4b;margin-bottom:16px;text-align:right;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;"></div>
+      <button onclick="startMoveItem()"
+          style="width:100%;display:flex;align-items:center;gap:12px;padding:14px 18px;border-radius:16px;border:none;background:linear-gradient(135deg,#f5f3ff,#ede9fe);cursor:pointer;font-size:15px;font-weight:800;color:#5b21b6;text-align:right;font-family:inherit;">
+        <span style="font-size:20px;">📤</span>
+        <span>העברה לרשימה אחרת</span>
+      </button>
+      <button onclick="closeItemContextMenu()"
+          style="width:100%;margin-top:10px;padding:12px;border-radius:14px;border:none;background:#f3f4f6;color:#6b7280;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;">
+        ✕ סגור
+      </button>
+    </div>
+  </div>
+
+  <!-- ══ Move Mode Banner (shown on summary page) ══ -->
+  <div id="moveBanner" style="display:none;position:fixed;top:0;left:0;right:0;z-index:8700;background:linear-gradient(135deg,#5b21b6,#7c3aed);color:white;padding:14px 16px 12px;text-align:center;box-shadow:0 4px 20px rgba(91,33,182,0.4);">
+    <div style="font-size:13px;font-weight:700;opacity:0.85;margin-bottom:2px;">📤 מצב העברה — בחר רשימה יעד</div>
+    <div id="moveBannerItemName" style="font-size:15px;font-weight:900;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;max-width:280px;margin:0 auto 8px;"></div>
+    <button onclick="cancelMoveItem()" style="background:rgba(255,255,255,0.2);border:1.5px solid rgba(255,255,255,0.4);color:white;padding:5px 18px;border-radius:99px;font-size:12px;font-weight:800;cursor:pointer;font-family:inherit;">✕ ביטול</button>
+  </div>
 
   <!-- ══ Category Drill-down Overlay ══ -->
   <div id="catDrillOverlay">

@@ -2778,6 +2778,9 @@ function render() {
             // אם במצב עריכת סדר מוצרים — חבר drag listeners
             if (itemEditMode) setupItemDrag();
 
+            // long press להעברת מוצר
+            setupItemLongPress(container);
+
             // Add scroll listener to remove highlight
             if (highlightedItemIndex !== null) {
                 const removeHighlight = () => {
@@ -2873,15 +2876,25 @@ function render() {
                         div.style.opacity = '0.6';
                         div.style.outline = '2.5px solid #ef4444';
                     }
+                    // הדגשה במצב העברה — כל הרשימות (חוץ מהמקור) זוהרות
+                    if (_moveMode && id !== _moveSourceListId) {
+                        div.style.outline = '2.5px solid rgba(255,255,255,0.6)';
+                        div.style.boxShadow = '0 0 0 3px rgba(255,255,255,0.25)';
+                        div.style.cursor = 'pointer';
+                    } else if (_moveMode && id === _moveSourceListId) {
+                        div.style.opacity = '0.45';
+                        div.style.cursor = 'not-allowed';
+                    }
                     div.setAttribute('data-drag', listEditMode ? 'true' : 'false');
                     div.innerHTML = `
                         ${listEditMode ? `<div class="list-drag-handle" data-drag="true" style="display:flex;align-items:center;justify-content:center;width:24px;height:24px;flex-shrink:0;cursor:grab;color:rgba(255,255,255,0.7);touch-action:none;"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" style="pointer-events:none"><rect x="2" y="3" width="12" height="2" rx="1" fill="currentColor"/><rect x="2" y="7" width="12" height="2" rx="1" fill="currentColor"/><rect x="2" y="11" width="12" height="2" rx="1" fill="currentColor"/></svg></div>` : ''}
                         ${listDeleteMode
                             ? `<div class="crow-cb ${isDelSelected ? 'checked' : ''}" onclick="event.stopPropagation();listDeleteToggle('${id}')"></div>`
-                            : `<div class="crow-cb ${isSel ? 'checked' : ''}" onclick="event.stopPropagation();toggleSum('${id}')"></div>`
+                            : _moveMode ? '' : `<div class="crow-cb ${isSel ? 'checked' : ''}" onclick="event.stopPropagation();toggleSum('${id}')"></div>`
                         }
-                        <span class="crow-name" onclick="${listDeleteMode ? `listDeleteToggle('${id}')` : `selectListAndImport('${id}'); showPage('lists')`}"
-                            style="${isDelSelected ? 'text-decoration:line-through;opacity:0.7;' : ''}">${l.name}</span>
+                        ${_moveMode ? `<span style="font-size:18px;flex-shrink:0;">${id === _moveSourceListId ? '📍' : '📂'}</span>` : ''}
+                        <span class="crow-name" onclick="listTileClick('${id}')"
+                            style="${isDelSelected ? 'text-decoration:line-through;opacity:0.7;' : ''}${_moveMode && id !== _moveSourceListId ? 'font-weight:900;' : ''}">${l.name}</span>
                         <span class="crow-amount">₪${lT.toFixed(2)}</span>
                     `;
                 }
@@ -8298,6 +8311,207 @@ function selectListAndImport(listId) {
     }
 }
 
+// ══════════════════════════════════════════════
+// ── מצב העברת מוצר לרשימה אחרת ──
+// ══════════════════════════════════════════════
+
+var _moveMode         = false;
+var _moveSourceListId = null;
+var _moveItemIdx      = null;
+var _moveItemName     = '';
+
+// פתיחת תפריט ה-context לאחר long press
+function openItemContextMenu(idx) {
+    var list = db.lists[db.currentId];
+    if (!list || list.items[idx] === undefined) return;
+    _moveItemIdx  = idx;
+    _moveItemName = list.items[idx].name || 'פריט';
+
+    var menu   = document.getElementById('itemContextMenu');
+    var sheet  = document.getElementById('itemContextSheet');
+    var nameEl = document.getElementById('itemContextName');
+    if (!menu || !sheet) return;
+
+    if (nameEl) nameEl.textContent = _moveItemName;
+    menu.style.display = 'block';
+    requestAnimationFrame(function() {
+        requestAnimationFrame(function() {
+            sheet.style.transform = 'translateY(0)';
+        });
+    });
+}
+
+function closeItemContextMenu() {
+    var menu  = document.getElementById('itemContextMenu');
+    var sheet = document.getElementById('itemContextSheet');
+    if (!sheet) return;
+    sheet.style.transform = 'translateY(100%)';
+    setTimeout(function() { if (menu) menu.style.display = 'none'; }, 300);
+}
+
+// לחיצה על "העברה" בתוך התפריט
+function startMoveItem() {
+    if (_moveItemIdx === null) return;
+    _moveMode         = true;
+    _moveSourceListId = db.currentId;
+
+    closeItemContextMenu();
+
+    // עבור לעמוד "הרשימות שלי"
+    activePage = 'summary';
+    window.activePage = 'summary';
+    if (typeof showPage === 'function') showPage('summary');
+    if (typeof updateSvgTabs === 'function') updateSvgTabs('summary');
+    if (typeof render === 'function') render();
+
+    // הצג באנר
+    var banner = document.getElementById('moveBanner');
+    var bannerName = document.getElementById('moveBannerItemName');
+    if (banner) banner.style.display = 'block';
+    if (bannerName) bannerName.textContent = '"' + _moveItemName + '"';
+
+    // דחיפת תוכן למטה בגלל הבאנר
+    var pageSummary = document.getElementById('pageSummary');
+    if (pageSummary) pageSummary.style.paddingTop = '100px';
+}
+
+// ביטול מצב העברה
+function cancelMoveItem() {
+    _moveMode         = false;
+    _moveSourceListId = null;
+    _moveItemIdx      = null;
+    _moveItemName     = '';
+
+    var banner = document.getElementById('moveBanner');
+    if (banner) banner.style.display = 'none';
+
+    var pageSummary = document.getElementById('pageSummary');
+    if (pageSummary) pageSummary.style.paddingTop = '';
+
+    // חזרה לרשימה המקורית
+    activePage = 'lists';
+    window.activePage = 'lists';
+    if (typeof showPage === 'function') showPage('lists');
+    if (typeof updateSvgTabs === 'function') updateSvgTabs('lists');
+    if (typeof render === 'function') render();
+}
+
+// ביצוע ההעברה לרשימה שנבחרה
+function moveItemToList(targetListId) {
+    if (!_moveMode || _moveSourceListId === null || _moveItemIdx === null) return;
+    if (targetListId === _moveSourceListId) {
+        showNotification('⚠️ המוצר כבר נמצא ברשימה זו', 'warning');
+        cancelMoveItem();
+        return;
+    }
+
+    var srcList  = db.lists[_moveSourceListId];
+    var destList = db.lists[targetListId];
+    if (!srcList || !destList) { cancelMoveItem(); return; }
+
+    // הוצא את המוצר מהמקור
+    var item = srcList.items[_moveItemIdx];
+    if (!item) { cancelMoveItem(); return; }
+    var itemCopy = JSON.parse(JSON.stringify(item)); // deep copy
+    srcList.items.splice(_moveItemIdx, 1);
+
+    // הוסף לרשימת היעד
+    destList.items.push(itemCopy);
+
+    var itemName  = _moveItemName;
+    var destName  = destList.name;
+
+    save();
+
+    // נקה מצב
+    var savedSourceId = _moveSourceListId;
+    _moveMode         = false;
+    _moveSourceListId = null;
+    _moveItemIdx      = null;
+    _moveItemName     = '';
+
+    var banner = document.getElementById('moveBanner');
+    if (banner) banner.style.display = 'none';
+    var pageSummary = document.getElementById('pageSummary');
+    if (pageSummary) pageSummary.style.paddingTop = '';
+
+    // חזרה לרשימה המקורית
+    db.currentId = savedSourceId;
+    activePage   = 'lists';
+    window.activePage = 'lists';
+    if (typeof showPage === 'function') showPage('lists');
+    if (typeof updateSvgTabs === 'function') updateSvgTabs('lists');
+    if (typeof render === 'function') render();
+
+    // הצג טוסט הצלחה
+    showNotification('✅ "' + itemName + '" הועבר ל"' + destName + '"', 'success');
+}
+
+// כפתור כרטיסיית רשימה — מטפל גם במצב העברה
+function listTileClick(id) {
+    if (_moveMode) {
+        moveItemToList(id);
+        return;
+    }
+    if (listDeleteMode) {
+        listDeleteToggle(id);
+        return;
+    }
+    selectListAndImport(id);
+    showPage('lists');
+}
+
+// ── הוספת long press לכרטיס מוצר ──
+function setupItemLongPress(container) {
+    if (!container) return;
+    var pressTimer = null;
+    var startX = 0, startY = 0;
+    var moved = false;
+
+    container.addEventListener('touchstart', function(e) {
+        var card = e.target.closest('.item-card');
+        if (!card) return;
+        // אל תפעיל אם במצב מחיקה/עריכה
+        if (compactDeleteMode || itemEditMode) return;
+
+        var idx = parseInt(card.dataset.idx, 10);
+        if (isNaN(idx)) return;
+
+        moved = false;
+        startX = e.touches[0].clientX;
+        startY = e.touches[0].clientY;
+
+        pressTimer = setTimeout(function() {
+            if (!moved) {
+                // ויברציה קצרה אם נתמך
+                if (navigator.vibrate) navigator.vibrate(40);
+                openItemContextMenu(idx);
+            }
+        }, 500);
+    }, { passive: true });
+
+    container.addEventListener('touchmove', function(e) {
+        if (!pressTimer) return;
+        var dx = Math.abs(e.touches[0].clientX - startX);
+        var dy = Math.abs(e.touches[0].clientY - startY);
+        if (dx > 8 || dy > 8) {
+            moved = true;
+            clearTimeout(pressTimer);
+            pressTimer = null;
+        }
+    }, { passive: true });
+
+    container.addEventListener('touchend', function() {
+        clearTimeout(pressTimer);
+        pressTimer = null;
+    }, { passive: true });
+
+    container.addEventListener('touchcancel', function() {
+        clearTimeout(pressTimer);
+        pressTimer = null;
+    }, { passive: true });
+}
+
 function clearChecked() {
     if (confirm('למחוק את כל הפריטים המסומנים?')) {
         db.lists[db.currentId].items = db.lists[db.currentId].items.filter(item => !item.checked);
@@ -10364,62 +10578,17 @@ function setFinStage(step, icon, title, sub, pct) {
     }
 }
 
-// ── Financial Debug Log ──
-var _finLogCount = 0;
-
-function clearFinLog() {
-    _finLogCount = 0;
-    const body = document.getElementById('finDebugLogBody');
-    const cnt  = document.getElementById('finDebugLogCount');
-    if (body) body.innerHTML = '';
-    if (cnt)  cnt.textContent = '';
-}
-
-function finLog(msg, type, icon) {
-    type = type || 'info';
-    icon = icon || '•';
-    _finLogCount++;
-    const body = document.getElementById('finDebugLogBody');
-    const cnt  = document.getElementById('finDebugLogCount');
-    if (!body) { console.log('[FinLog]', icon, msg); return; }
-
-    const colors = { success:'#4ade80', error:'#f87171', warning:'#fbbf24', info:'#94a3b8' };
-    const color  = colors[type] || colors.info;
-
-    const now  = new Date();
-    const time = now.toLocaleTimeString('he-IL', { hour:'2-digit', minute:'2-digit', second:'2-digit' });
-
-    const row  = document.createElement('div');
-    row.style.cssText = 'display:flex;align-items:flex-start;gap:5px;padding:1px 0;border-bottom:1px solid rgba(255,255,255,0.04);';
-    row.innerHTML =
-        '<span style="color:#334155;font-size:9px;flex-shrink:0;padding-top:1px;">' + time + '</span>' +
-        '<span style="flex-shrink:0;">' + icon + '</span>' +
-        '<span style="color:' + color + ';word-break:break-word;">' + msg + '</span>';
-
-    body.appendChild(row);
-    if (cnt) cnt.textContent = '#' + _finLogCount;
-
-    // גלגל לתחתית
-    const logWrap = body.parentElement;
-    if (logWrap) logWrap.scrollTop = logWrap.scrollHeight;
-
-    // גם לקונסול
-    console.log('[FinLog][' + type + ']', icon, msg);
-}
-
-function showDebugLog(logs) { /* legacy no-op */ }
-function dbgLog(msg, color) { finLog(msg, 'info', '•'); }
+// ── [Debug panel removed] ──
+function showDebugLog(logs) { /* no-op */ }
+function dbgLog(msg, color) { /* no-op */ }
 
 // ── Shared fetch helper ──
 async function runFinancialFetch({ companyId, credentials, modalId, nameLabel }) {
-    const log = (msg, type, icon) => {
-        type = type || 'info';
-        icon = icon || '•';
-        finLog(msg, type, icon);
+    const log = (msg, type='info', icon='•') => {
+        console.log(`[BankSync][${type}] ${icon} ${msg}`);
     };
 
     closeModal(modalId);
-    clearFinLog();
     showFinProgress();
 
     try {
@@ -10499,7 +10668,6 @@ async function runFinancialFetch({ companyId, credentials, modalId, nameLabel })
 
                 if (data.status === 'running') {
                     setFinStage(2, '🔐', 'מתחבר לבנק...', 'GitHub Actions פועל', '55%');
-                    log('GitHub Actions פועל — מתחבר לבנק', 'info', '🔐');
                 }
 
                 if (data.status === 'done') {
@@ -10543,14 +10711,12 @@ async function runFinancialFetch({ companyId, credentials, modalId, nameLabel })
 
         // ── הצג סיום ─────────────────────────────────────────────
         setFinStage(3, '⚙️', 'מעבד נתונים...', 'עוד רגע...', '85%');
-        log('מעבד עסקאות...', 'info', '⚙️');
         await new Promise(r => setTimeout(r, 800));
 
         document.getElementById('finProgressBar').style.width = '100%';
         document.getElementById('finProgressIcon').textContent = '✅';
         document.getElementById('finProgressTitle').textContent = 'הושלם בהצלחה!';
         document.getElementById('finProgressSub').textContent = `יובאו ${transactions.length} עסקאות`;
-        log(`הושלם! יובאו ${transactions.length} חשבונות בהצלחה`, 'success', '🎉');
         for (let i = 1; i <= 3; i++) {
             document.getElementById('finDot' + i).textContent = '✓';
             document.getElementById('finDot' + i).style.background = '#7367f0';
