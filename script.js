@@ -10364,17 +10364,40 @@ function setFinStage(step, icon, title, sub, pct) {
     }
 }
 
-// ── [Debug panel removed] ──
+// ── Debug log panel ──
 function showDebugLog(logs) { /* no-op */ }
-function dbgLog(msg, color) { /* no-op */ }
+function dbgLog(msg, color) {
+    const panel = document.getElementById('finDebugLog');
+    if (!panel) return;
+    const now = new Date();
+    const ts = now.getHours().toString().padStart(2,'0') + ':' +
+               now.getMinutes().toString().padStart(2,'0') + ':' +
+               now.getSeconds().toString().padStart(2,'0');
+    // בחר צבע לפי תוכן ההודעה
+    let c = '#a3e635'; // ירוק בהיר — ברירת מחדל
+    if (color) c = color;
+    else if (/error|שגיא|❌|💥|נכשל/i.test(msg)) c = '#f87171';       // אדום
+    else if (/success|✅|הושלם|הצליח/i.test(msg))  c = '#4ade80';       // ירוק
+    else if (/⚠️|warning/i.test(msg))              c = '#fbbf24';       // צהוב
+    else if (/⏳|ממתין|מחכה/i.test(msg))           c = '#60a5fa';       // כחול
+    const row = document.createElement('div');
+    row.style.cssText = `color:${c};white-space:pre-wrap;word-break:break-all;`;
+    row.textContent = `[${ts}] ${msg}`;
+    panel.appendChild(row);
+    panel.scrollTop = panel.scrollHeight;
+}
 
 // ── Shared fetch helper ──
 async function runFinancialFetch({ companyId, credentials, modalId, nameLabel }) {
     const log = (msg, type='info', icon='•') => {
         console.log(`[BankSync][${type}] ${icon} ${msg}`);
+        dbgLog(`${icon} ${msg}`);
     };
 
     closeModal(modalId);
+    // נקה לוג קודם
+    const logPanel = document.getElementById('finDebugLog');
+    if (logPanel) logPanel.innerHTML = '';
     showFinProgress();
 
     try {
@@ -10453,6 +10476,7 @@ async function runFinancialFetch({ companyId, credentials, modalId, nameLabel })
                 log(`סטטוס: ${data.status}`, 'info', '📊');
 
                 if (data.status === 'running') {
+                    log('GitHub Actions פועל — מתחבר לבנק...', 'info', '🔐');
                     setFinStage(2, '🔐', 'מתחבר לבנק...', 'GitHub Actions פועל', '55%');
                 }
 
@@ -11020,26 +11044,38 @@ function toggleCompactMode() {
 }
 
 function handleCompactPlus() {
-    // פתח את שורת כפתורי הוספת המוצר
-    compactActionsOpen = true;
-    const actionsRow = document.getElementById('compactActionsRow');
-    const tabsRow    = document.getElementById('tabsRowWrap');
-    const bar        = document.getElementById('smartBottomBar');
-    if (tabsRow)    tabsRow.style.display    = 'none';
-    if (actionsRow) actionsRow.style.display = 'flex';
-    if (bar)        bar.style.overflow       = 'visible';
+    const page = (typeof activePage !== 'undefined') ? activePage : 'lists';
+    if (page === 'summary') {
+        // רשימות שלי — רשימה חדשה
+        if (typeof wizardMode !== 'undefined' && wizardMode) {
+            wiz('newList', 'before', () => openModal('newListModal'));
+        } else {
+            openModal('newListModal');
+        }
+    } else {
+        // רשימה שלי — פתח actions
+        compactActionsOpen = true;
+        const actionsRow = document.getElementById('compactActionsRow');
+        const tabsRow    = document.getElementById('tabsRowWrap');
+        const plusWrap   = document.getElementById('compactPlusWrap');
+        const bar        = document.getElementById('smartBottomBar');
+        if (tabsRow)    tabsRow.style.display    = 'none';
+        if (actionsRow) actionsRow.style.display = 'flex';
+        if (plusWrap)   plusWrap.style.display   = 'none';
+        if (bar)        bar.style.overflow       = 'visible';
+    }
 }
 
 function closeCompactActions() {
     compactActionsOpen = false;
-    const actionsRow  = document.getElementById('compactActionsRow');
-    const tabsRow     = document.getElementById('tabsRowWrap');
-    const bar         = document.getElementById('smartBottomBar');
+    const actionsRow = document.getElementById('compactActionsRow');
+    const tabsRow    = document.getElementById('tabsRowWrap');
+    const plusWrap   = document.getElementById('compactPlusWrap');
+    const bar        = document.getElementById('smartBottomBar');
     if (actionsRow) actionsRow.style.display = 'none';
     if (tabsRow)    tabsRow.style.display    = 'block';
+    if (plusWrap)   plusWrap.style.display   = 'block';
     if (bar)        bar.style.overflow       = 'hidden';
-    // עדכן את כפתורי ה+ לפי הטאב הנוכחי
-    if (typeof updateSvgTabs === 'function') updateSvgTabs(typeof activePage !== 'undefined' ? activePage : 'lists');
 }
 
 function toggleCompactActions() { handleCompactPlus(); }
