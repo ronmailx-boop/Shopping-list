@@ -11020,41 +11020,26 @@ function toggleCompactMode() {
 }
 
 function handleCompactPlus() {
-    const page = (typeof activePage !== 'undefined') ? activePage : 'lists';
-    if (page === 'summary') {
-        // רשימות שלי — רשימה חדשה
-        if (typeof wizardMode !== 'undefined' && wizardMode) {
-            wiz('newList', 'before', () => openModal('newListModal'));
-        } else {
-            openModal('newListModal');
-        }
-    } else {
-        // רשימה שלי — פתח actions
-        compactActionsOpen = true;
-        const actionsRow = document.getElementById('compactActionsRow');
-        const tabsRow    = document.getElementById('tabsRowWrap');
-        const plusWrap   = document.getElementById('compactPlusWrap');
-        const bar        = document.getElementById('smartBottomBar');
-        if (tabsRow)    tabsRow.style.display    = 'none';
-        if (actionsRow) actionsRow.style.display = 'flex';
-        if (plusWrap)   plusWrap.style.display   = 'none';
-        if (bar)        bar.style.overflow       = 'visible';
-    }
+    // פתח את שורת כפתורי הוספת המוצר
+    compactActionsOpen = true;
+    const actionsRow = document.getElementById('compactActionsRow');
+    const tabsRow    = document.getElementById('tabsRowWrap');
+    const bar        = document.getElementById('smartBottomBar');
+    if (tabsRow)    tabsRow.style.display    = 'none';
+    if (actionsRow) actionsRow.style.display = 'flex';
+    if (bar)        bar.style.overflow       = 'visible';
 }
 
 function closeCompactActions() {
     compactActionsOpen = false;
-    const actionsRow    = document.getElementById('compactActionsRow');
-    const tabsRow       = document.getElementById('tabsRowWrap');
-    const plusLists     = document.getElementById('compactPlusWrap');
-    const plusSummary   = document.getElementById('summaryPlusWrap');
-    const bar           = document.getElementById('smartBottomBar');
-    const page          = (typeof activePage !== 'undefined') ? activePage : 'lists';
-    if (actionsRow)   actionsRow.style.display   = 'none';
-    if (tabsRow)      tabsRow.style.display      = 'block';
-    if (plusLists)    plusLists.style.display    = (page === 'lists')   ? 'flex' : 'none';
-    if (plusSummary)  plusSummary.style.display  = (page === 'summary') ? 'flex' : 'none';
-    if (bar)          bar.style.overflow         = 'hidden';
+    const actionsRow  = document.getElementById('compactActionsRow');
+    const tabsRow     = document.getElementById('tabsRowWrap');
+    const bar         = document.getElementById('smartBottomBar');
+    if (actionsRow) actionsRow.style.display = 'none';
+    if (tabsRow)    tabsRow.style.display    = 'block';
+    if (bar)        bar.style.overflow       = 'hidden';
+    // עדכן את כפתורי ה+ לפי הטאב הנוכחי
+    if (typeof updateSvgTabs === 'function') updateSvgTabs(typeof activePage !== 'undefined' ? activePage : 'lists');
 }
 
 function toggleCompactActions() { handleCompactPlus(); }
