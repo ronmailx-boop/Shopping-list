@@ -2775,7 +2775,18 @@ ${error.message}
                 <button id="compactPlusBtn" onclick="event.stopPropagation(); handleCompactPlus();"
                     style="width:26px;height:26px;border-radius:50%;background:#22c55e;border:2px solid rgba(255,255,255,0.5);display:flex;align-items:center;justify-content:center;box-shadow:0 2px 8px rgba(34,197,94,0.6);cursor:pointer;transition:transform 0.15s;"
                     ontouchstart="event.stopPropagation();this.style.transform='scale(0.85)'" ontouchend="event.stopPropagation();this.style.transform='scale(1)'">
-                    <svg id="compactPlusIcon" width="13" height="13" fill="none" stroke="white" viewBox="0 0 24 24">
+                    <svg width="13" height="13" fill="none" stroke="white" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M12 5v14M5 12h14"/>
+                    </svg>
+                </button>
+            </div>
+
+            <!-- כפתור + מוטבע בטאב הרשימות שלי — מוצג רק כשהטאב פעיל -->
+            <div id="summaryPlusWrap" style="display:none;position:absolute;top:50%;right:4%;transform:translateY(-50%);z-index:50;align-items:center;justify-content:center;">
+                <button onclick="event.stopPropagation(); wizardMode ? wiz('newList','before',()=>openModal('newListModal')) : openModal('newListModal');"
+                    style="width:26px;height:26px;border-radius:50%;background:#22c55e;border:2px solid rgba(255,255,255,0.5);display:flex;align-items:center;justify-content:center;box-shadow:0 2px 8px rgba(34,197,94,0.6);cursor:pointer;transition:transform 0.15s;"
+                    ontouchstart="event.stopPropagation();this.style.transform='scale(0.85)'" ontouchend="event.stopPropagation();this.style.transform='scale(1)'">
+                    <svg width="13" height="13" fill="none" stroke="white" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M12 5v14M5 12h14"/>
                     </svg>
                 </button>
@@ -2785,7 +2796,7 @@ ${error.message}
                  viewBox="0 0 400 52" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
                 <path id="svgShapeRight" d="M 200,0 L 400,0 L 400,52 L 212,52 Q 200,52 200,40 Z" fill="white" opacity="0"/>
                 <path id="svgShapeLeft"  d="M 0,0 L 200,0 L 200,40 Q 200,52 188,52 L 0,52 Z"    fill="white" opacity="1"/>
-                <text id="svgTextRight" x="300" y="32" text-anchor="middle" font-family="system-ui,sans-serif" font-size="15" font-weight="800" fill="rgba(255,255,255,0.65)">הרשימות שלי</text>
+                <text id="svgTextRight" x="285" y="32" text-anchor="middle" font-family="system-ui,sans-serif" font-size="15" font-weight="800" fill="rgba(255,255,255,0.65)">הרשימות שלי</text>
                 <text id="svgTextLeft"  x="115" y="32" text-anchor="middle" font-family="system-ui,sans-serif" font-size="15" font-weight="900" fill="#7367f0">הרשימה שלי</text>
             </svg>
         </div>
@@ -4050,23 +4061,27 @@ ${error.message}
         var sL = document.getElementById('svgShapeLeft');
         var tR = document.getElementById('svgTextRight');
         var tL = document.getElementById('svgTextLeft');
-        var plusWrap = document.getElementById('compactPlusWrap');
+        var plusLists   = document.getElementById('compactPlusWrap');  // הרשימה שלי
+        var plusSummary = document.getElementById('summaryPlusWrap');  // הרשימות שלי
         if (!sR) return;
         if (page === 'lists') {
             sL.setAttribute('opacity','1'); sR.setAttribute('opacity','0');
             tL.setAttribute('fill','#7367f0'); tL.setAttribute('font-weight','900');
             tR.setAttribute('fill','rgba(255,255,255,0.65)'); tR.setAttribute('font-weight','800');
-            if (plusWrap) plusWrap.style.display = 'flex';
+            if (plusLists)   plusLists.style.display   = 'flex';
+            if (plusSummary) plusSummary.style.display = 'none';
         } else if (page === 'summary') {
             sR.setAttribute('opacity','1'); sL.setAttribute('opacity','0');
             tR.setAttribute('fill','#7367f0'); tR.setAttribute('font-weight','900');
             tL.setAttribute('fill','rgba(255,255,255,0.65)'); tL.setAttribute('font-weight','800');
-            if (plusWrap) plusWrap.style.display = 'none';
+            if (plusLists)   plusLists.style.display   = 'none';
+            if (plusSummary) plusSummary.style.display = 'flex';
         } else {
             sR.setAttribute('opacity','0'); sL.setAttribute('opacity','0');
             tR.setAttribute('fill','rgba(255,255,255,0.65)');
             tL.setAttribute('fill','rgba(255,255,255,0.65)');
-            if (plusWrap) plusWrap.style.display = 'none';
+            if (plusLists)   plusLists.style.display   = 'none';
+            if (plusSummary) plusSummary.style.display = 'none';
         }
     }
 

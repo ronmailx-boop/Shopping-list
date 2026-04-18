@@ -11044,15 +11044,17 @@ function handleCompactPlus() {
 
 function closeCompactActions() {
     compactActionsOpen = false;
-    const actionsRow = document.getElementById('compactActionsRow');
-    const tabsRow    = document.getElementById('tabsRowWrap');
-    const plusWrap   = document.getElementById('compactPlusWrap');
-    const bar        = document.getElementById('smartBottomBar');
-    if (actionsRow) actionsRow.style.display = 'none';
-    if (tabsRow)    tabsRow.style.display    = 'block';
-    // הצג את כפתור ה+ רק כשהטאב הפעיל הוא הרשימה שלי
-    if (plusWrap)   plusWrap.style.display   = (typeof activePage !== 'undefined' && activePage === 'lists') ? 'flex' : 'none';
-    if (bar)        bar.style.overflow       = 'hidden';
+    const actionsRow    = document.getElementById('compactActionsRow');
+    const tabsRow       = document.getElementById('tabsRowWrap');
+    const plusLists     = document.getElementById('compactPlusWrap');
+    const plusSummary   = document.getElementById('summaryPlusWrap');
+    const bar           = document.getElementById('smartBottomBar');
+    const page          = (typeof activePage !== 'undefined') ? activePage : 'lists';
+    if (actionsRow)   actionsRow.style.display   = 'none';
+    if (tabsRow)      tabsRow.style.display      = 'block';
+    if (plusLists)    plusLists.style.display    = (page === 'lists')   ? 'flex' : 'none';
+    if (plusSummary)  plusSummary.style.display  = (page === 'summary') ? 'flex' : 'none';
+    if (bar)          bar.style.overflow         = 'hidden';
 }
 
 function toggleCompactActions() { handleCompactPlus(); }
