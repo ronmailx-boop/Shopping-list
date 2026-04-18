@@ -388,32 +388,6 @@
             color: #9ca3af;
             white-space: nowrap;
             flex-shrink: 0;
-            display: flex;
-            align-items: center;
-            gap: 5px;
-        }
-        .context-new-list-btn {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            width: 22px;
-            height: 22px;
-            border-radius: 50%;
-            background: #22c55e;
-            color: white;
-            font-size: 1.1rem;
-            font-weight: 900;
-            border: none;
-            cursor: pointer;
-            flex-shrink: 0;
-            box-shadow: 0 2px 6px rgba(34,197,94,0.35);
-            transition: transform 0.12s, background 0.15s;
-            line-height: 1;
-            padding: 0;
-        }
-        .context-new-list-btn:active {
-            transform: scale(0.88);
-            background: #16a34a;
         }
         .context-list-btn {
             flex: 1;
@@ -2796,12 +2770,12 @@ ${error.message}
             <div id="tabLists"   onclick="tapTab('summary')" style="position:absolute;top:0;right:0;width:50%;bottom:0;z-index:10;cursor:pointer;"></div>
             <div id="tabSummary" onclick="tapTab('lists')"   style="position:absolute;top:0;left:0;width:50%;bottom:0;z-index:10;cursor:pointer;"></div>
 
-            <!-- כפתור + קטן במרכז הטאבים -->
-            <div id="compactPlusWrap" style="display:block;position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);z-index:50;">
-                <button id="compactPlusBtn" onclick="handleCompactPlus()"
-                    style="width:32px;height:32px;border-radius:50%;background:#22c55e;border:2px solid rgba(255,255,255,0.5);display:flex;align-items:center;justify-content:center;box-shadow:0 3px 10px rgba(34,197,94,0.6);cursor:pointer;transition:transform 0.2s;"
-                    ontouchstart="this.style.transform='scale(0.88)'" ontouchend="this.style.transform='scale(1)'">
-                    <svg id="compactPlusIcon" width="16" height="16" fill="none" stroke="white" viewBox="0 0 24 24">
+            <!-- כפתור + מוטבע בטאב הרשימה שלי — מוצג רק כשהטאב פעיל -->
+            <div id="compactPlusWrap" style="display:flex;position:absolute;top:50%;left:4%;transform:translateY(-50%);z-index:50;align-items:center;justify-content:center;">
+                <button id="compactPlusBtn" onclick="event.stopPropagation(); handleCompactPlus();"
+                    style="width:26px;height:26px;border-radius:50%;background:#22c55e;border:2px solid rgba(255,255,255,0.5);display:flex;align-items:center;justify-content:center;box-shadow:0 2px 8px rgba(34,197,94,0.6);cursor:pointer;transition:transform 0.15s;"
+                    ontouchstart="event.stopPropagation();this.style.transform='scale(0.85)'" ontouchend="event.stopPropagation();this.style.transform='scale(1)'">
+                    <svg id="compactPlusIcon" width="13" height="13" fill="none" stroke="white" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M12 5v14M5 12h14"/>
                     </svg>
                 </button>
@@ -2812,7 +2786,7 @@ ${error.message}
                 <path id="svgShapeRight" d="M 200,0 L 400,0 L 400,52 L 212,52 Q 200,52 200,40 Z" fill="white" opacity="0"/>
                 <path id="svgShapeLeft"  d="M 0,0 L 200,0 L 200,40 Q 200,52 188,52 L 0,52 Z"    fill="white" opacity="1"/>
                 <text id="svgTextRight" x="300" y="32" text-anchor="middle" font-family="system-ui,sans-serif" font-size="15" font-weight="800" fill="rgba(255,255,255,0.65)">הרשימות שלי</text>
-                <text id="svgTextLeft"  x="100" y="32" text-anchor="middle" font-family="system-ui,sans-serif" font-size="15" font-weight="900" fill="#7367f0">הרשימה שלי</text>
+                <text id="svgTextLeft"  x="115" y="32" text-anchor="middle" font-family="system-ui,sans-serif" font-size="15" font-weight="900" fill="#7367f0">הרשימה שלי</text>
             </svg>
         </div>
 
@@ -3139,10 +3113,7 @@ ${error.message}
 
             <!-- Context bar: which list -->
             <div class="context-bar" id="contextBar">
-                <span class="context-bar-label">
-                    <button class="context-new-list-btn" onclick="event.stopPropagation(); openNewListFromInputForm();" title="צור רשימה חדשה">+</button>
-                    מתווסף אל:
-                </span>
+                <span class="context-bar-label">➕ מתווסף אל:</span>
                 <button class="context-list-btn" id="contextListBtn" onclick="event.stopPropagation(); toggleListDropdown()">
                     <span class="context-list-name" id="contextListName">...</span>
                     <span class="context-list-arrow">▾</span>
@@ -3303,7 +3274,7 @@ ${error.message}
                 <button class="bg-indigo-600 text-white flex-1 py-4 rounded-xl font-bold shadow-md"
                     onclick="event.stopPropagation(); saveNewList();">צור</button>
                 <button class="bg-gray-100 flex-1 py-4 rounded-xl font-bold"
-                    onclick="event.stopPropagation(); if(_openInputFormAfterNewList){_openInputFormAfterNewList=false;closeModal('newListModal');openModal('inputForm');}else{closeModal('newListModal');}">ביטול</button>
+                    onclick="event.stopPropagation(); closeModal('newListModal');">ביטול</button>
             </div>
         </div>
     </div>
@@ -4079,19 +4050,23 @@ ${error.message}
         var sL = document.getElementById('svgShapeLeft');
         var tR = document.getElementById('svgTextRight');
         var tL = document.getElementById('svgTextLeft');
+        var plusWrap = document.getElementById('compactPlusWrap');
         if (!sR) return;
         if (page === 'lists') {
             sL.setAttribute('opacity','1'); sR.setAttribute('opacity','0');
             tL.setAttribute('fill','#7367f0'); tL.setAttribute('font-weight','900');
             tR.setAttribute('fill','rgba(255,255,255,0.65)'); tR.setAttribute('font-weight','800');
+            if (plusWrap) plusWrap.style.display = 'flex';
         } else if (page === 'summary') {
             sR.setAttribute('opacity','1'); sL.setAttribute('opacity','0');
             tR.setAttribute('fill','#7367f0'); tR.setAttribute('font-weight','900');
             tL.setAttribute('fill','rgba(255,255,255,0.65)'); tL.setAttribute('font-weight','800');
+            if (plusWrap) plusWrap.style.display = 'none';
         } else {
             sR.setAttribute('opacity','0'); sL.setAttribute('opacity','0');
             tR.setAttribute('fill','rgba(255,255,255,0.65)');
             tL.setAttribute('fill','rgba(255,255,255,0.65)');
+            if (plusWrap) plusWrap.style.display = 'none';
         }
     }
 

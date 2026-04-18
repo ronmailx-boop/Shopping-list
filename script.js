@@ -9822,11 +9822,20 @@ function toggleWizardMode() {
 // קונטקסטואלי: הרשימות שלי → רשימה חדשה | הרשימה שלי → הוסף מוצר
 function handlePlusBtn(e) {
     if (e) e.stopPropagation();
-    // בשני הטאבים — הוספת מוצר תמיד
-    if (wizardMode) {
-        wiz('plusBtn', 'before', () => openModal('inputForm'));
+    if (activePage === 'summary') {
+        // טאב הרשימות שלי — יצירת רשימה חדשה
+        if (wizardMode) {
+            wiz('newList', 'before', () => openModal('newListModal'));
+        } else {
+            openModal('newListModal');
+        }
     } else {
-        openModal('inputForm');
+        // טאב הרשימה שלי — הוספת מוצר
+        if (wizardMode) {
+            wiz('plusBtn', 'before', () => openModal('inputForm'));
+        } else {
+            openModal('inputForm');
+        }
     }
 }
 
@@ -11011,16 +11020,26 @@ function toggleCompactMode() {
 }
 
 function handleCompactPlus() {
-    // בשני הטאבים — פתח תמיד את מערכת כפתורי הוספת המוצר
-    compactActionsOpen = true;
-    const actionsRow = document.getElementById('compactActionsRow');
-    const tabsRow    = document.getElementById('tabsRowWrap');
-    const plusWrap   = document.getElementById('compactPlusWrap');
-    const bar        = document.getElementById('smartBottomBar');
-    if (tabsRow)    tabsRow.style.display    = 'none';
-    if (actionsRow) actionsRow.style.display = 'flex';
-    if (plusWrap)   plusWrap.style.display   = 'none';
-    if (bar)        bar.style.overflow       = 'visible';
+    const page = (typeof activePage !== 'undefined') ? activePage : 'lists';
+    if (page === 'summary') {
+        // רשימות שלי — רשימה חדשה
+        if (typeof wizardMode !== 'undefined' && wizardMode) {
+            wiz('newList', 'before', () => openModal('newListModal'));
+        } else {
+            openModal('newListModal');
+        }
+    } else {
+        // רשימה שלי — פתח actions
+        compactActionsOpen = true;
+        const actionsRow = document.getElementById('compactActionsRow');
+        const tabsRow    = document.getElementById('tabsRowWrap');
+        const plusWrap   = document.getElementById('compactPlusWrap');
+        const bar        = document.getElementById('smartBottomBar');
+        if (tabsRow)    tabsRow.style.display    = 'none';
+        if (actionsRow) actionsRow.style.display = 'flex';
+        if (plusWrap)   plusWrap.style.display   = 'none';
+        if (bar)        bar.style.overflow       = 'visible';
+    }
 }
 
 function closeCompactActions() {
@@ -11031,7 +11050,8 @@ function closeCompactActions() {
     const bar        = document.getElementById('smartBottomBar');
     if (actionsRow) actionsRow.style.display = 'none';
     if (tabsRow)    tabsRow.style.display    = 'block';
-    if (plusWrap)   plusWrap.style.display   = 'block';
+    // הצג את כפתור ה+ רק כשהטאב הפעיל הוא הרשימה שלי
+    if (plusWrap)   plusWrap.style.display   = (typeof activePage !== 'undefined' && activePage === 'lists') ? 'flex' : 'none';
     if (bar)        bar.style.overflow       = 'hidden';
 }
 
