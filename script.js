@@ -3019,8 +3019,6 @@ function renderStats() {
     document.getElementById('monthlyProgress').style.width = `${monthlyProgress}%`;
 
     renderMonthlyChart();
-    renderCategoryDoughnutChart();
-    renderPopularItems();
     renderCategoryAnalysis();
 }
 
