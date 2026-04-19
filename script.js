@@ -10752,29 +10752,25 @@ async function runFinancialFetch({ companyId, credentials, modalId, nameLabel })
                 return { key, label, startYear, startMonth };
             }
 
+            // מחזור החיוב הנוכחי בלבד
+            const currentCycle = getBillingCycle(new Date());
+
             let totalImported = 0;
             transactions.forEach(acc => {
                 if (!acc.txns || acc.txns.length === 0) return;
                 const cardSuffix = acc.accountNumber ? ` ${acc.accountNumber}` : '';
-                // קבץ לפי מחזור חיוב
-                const byCycle = {};
-                acc.txns.forEach(t => {
-                    const cycle = getBillingCycle(new Date(t.date));
-                    if (!byCycle[cycle.key]) byCycle[cycle.key] = { ...cycle, txns: [] };
-                    byCycle[cycle.key].txns.push(t);
-                });
-                // מיון ממחזור חדש לישן
-                Object.values(byCycle)
-                    .sort((a, b) => b.startYear !== a.startYear
-                        ? b.startYear - a.startYear
-                        : b.startMonth - a.startMonth)
-                    .forEach(({ label, txns }) => {
-                        const listName = `${nameLabel}${cardSuffix} - ${label}`;
-                        // תנועה חדשה ביותר ראשונה
-                        txns.sort((a, b) => new Date(b.date) - new Date(a.date));
-                        importFinancialTransactions(txns, listName);
-                        totalImported += txns.length;
-                    });
+
+                // סנן רק עסקאות שנופלות במחזור הנוכחי
+                const cycleItems = acc.txns.filter(t =>
+                    getBillingCycle(new Date(t.date)).key === currentCycle.key
+                );
+                if (cycleItems.length === 0) return;
+
+                // תנועה חדשה ביותר ראשונה
+                cycleItems.sort((a, b) => new Date(b.date) - new Date(a.date));
+                const listName = `${nameLabel}${cardSuffix} - ${currentCycle.label}`;
+                importFinancialTransactions(cycleItems, listName);
+                totalImported += cycleItems.length;
             });
             if (totalImported === 0) showNotification('ℹ️ לא נמצאו עסקאות', 'warning');
         } else {
