@@ -3019,6 +3019,8 @@ function renderStats() {
     document.getElementById('monthlyProgress').style.width = `${monthlyProgress}%`;
 
     renderMonthlyChart();
+    renderCategoryDoughnutChart();
+    renderPopularItems();
     renderCategoryAnalysis();
 }
 
@@ -4713,15 +4715,55 @@ function openEditCategoryModal(idx) {
         categoryOptionsContainer.appendChild(button);
     }
 
-    // Add custom categories if they exist
-    if (db.customCategories && db.customCategories.length > 0) {
-        // Add separator
+    // Build set of already-shown categories
+    const shownCats = new Set(Object.keys(CATEGORIES));
+
+    // --- Extra categories: all CATEGORY_KEYWORDS keys not in CATEGORIES ---
+    const extraCats = Object.keys(CATEGORY_KEYWORDS).filter(c => !shownCats.has(c));
+
+    // --- Orphan categories: actually used in items but not shown anywhere ---
+    const orphanCats = new Set();
+    Object.values(db.lists).forEach(list => {
+        (list.items || []).forEach(i => {
+            if (i.category && !shownCats.has(i.category) && !extraCats.includes(i.category)) {
+                orphanCats.add(i.category);
+            }
+        });
+    });
+
+    if (extraCats.length > 0 || orphanCats.size > 0) {
+        const sep2 = document.createElement('div');
+        sep2.className = 'text-sm font-bold text-gray-500 mt-3 mb-2';
+        sep2.textContent = '🗂️ קטגוריות נוספות';
+        categoryOptionsContainer.appendChild(sep2);
+
+        [...extraCats, ...orphanCats].forEach(categoryName => {
+            const cfgColor = (CAT_ANALYSIS_CFG[categoryName] || {}).hex;
+            const color = cfgColor || CATEGORIES[categoryName] || '#7c3aed';
+            const isSelected = item.category === categoryName;
+
+            const button = document.createElement('button');
+            button.className = `w-full py-3 px-4 rounded-xl font-bold mb-2 transition-all ${isSelected ? 'ring-4 ring-offset-2' : 'hover:scale-105'}`;
+            button.style.backgroundColor = color + '20';
+            button.style.color = color;
+            button.style.border = `2px solid ${color}`;
+            button.textContent = isSelected ? `✓ ${categoryName}` : categoryName;
+            button.onclick = () => selectCategory(categoryName);
+            categoryOptionsContainer.appendChild(button);
+
+            shownCats.add(categoryName);
+        });
+    }
+
+    // Add custom categories if they exist (only those not already shown)
+    const customNotShown = (db.customCategories || []).filter(c => !shownCats.has(c));
+    if (customNotShown.length > 0) {
         const separator = document.createElement('div');
         separator.className = 'text-sm font-bold text-gray-500 mt-3 mb-2';
         separator.textContent = '✨ קטגוריות מותאמות אישית';
         categoryOptionsContainer.appendChild(separator);
 
-        db.customCategories.forEach(categoryName => {
+        customNotShown.forEach(categoryName => {
             const color = CATEGORIES[categoryName] || '#6b7280';
             const isSelected = item.category === categoryName;
 
