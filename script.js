@@ -4715,55 +4715,15 @@ function openEditCategoryModal(idx) {
         categoryOptionsContainer.appendChild(button);
     }
 
-    // Build set of already-shown categories
-    const shownCats = new Set(Object.keys(CATEGORIES));
-
-    // --- Extra categories: all CATEGORY_KEYWORDS keys not in CATEGORIES ---
-    const extraCats = Object.keys(CATEGORY_KEYWORDS).filter(c => !shownCats.has(c));
-
-    // --- Orphan categories: actually used in items but not shown anywhere ---
-    const orphanCats = new Set();
-    Object.values(db.lists).forEach(list => {
-        (list.items || []).forEach(i => {
-            if (i.category && !shownCats.has(i.category) && !extraCats.includes(i.category)) {
-                orphanCats.add(i.category);
-            }
-        });
-    });
-
-    if (extraCats.length > 0 || orphanCats.size > 0) {
-        const sep2 = document.createElement('div');
-        sep2.className = 'text-sm font-bold text-gray-500 mt-3 mb-2';
-        sep2.textContent = '🗂️ קטגוריות נוספות';
-        categoryOptionsContainer.appendChild(sep2);
-
-        [...extraCats, ...orphanCats].forEach(categoryName => {
-            const cfgColor = (CAT_ANALYSIS_CFG[categoryName] || {}).hex;
-            const color = cfgColor || CATEGORIES[categoryName] || '#7c3aed';
-            const isSelected = item.category === categoryName;
-
-            const button = document.createElement('button');
-            button.className = `w-full py-3 px-4 rounded-xl font-bold mb-2 transition-all ${isSelected ? 'ring-4 ring-offset-2' : 'hover:scale-105'}`;
-            button.style.backgroundColor = color + '20';
-            button.style.color = color;
-            button.style.border = `2px solid ${color}`;
-            button.textContent = isSelected ? `✓ ${categoryName}` : categoryName;
-            button.onclick = () => selectCategory(categoryName);
-            categoryOptionsContainer.appendChild(button);
-
-            shownCats.add(categoryName);
-        });
-    }
-
-    // Add custom categories if they exist (only those not already shown)
-    const customNotShown = (db.customCategories || []).filter(c => !shownCats.has(c));
-    if (customNotShown.length > 0) {
+    // Add custom categories if they exist
+    if (db.customCategories && db.customCategories.length > 0) {
+        // Add separator
         const separator = document.createElement('div');
         separator.className = 'text-sm font-bold text-gray-500 mt-3 mb-2';
         separator.textContent = '✨ קטגוריות מותאמות אישית';
         categoryOptionsContainer.appendChild(separator);
 
-        customNotShown.forEach(categoryName => {
+        db.customCategories.forEach(categoryName => {
             const color = CATEGORIES[categoryName] || '#6b7280';
             const isSelected = item.category === categoryName;
 
@@ -10766,27 +10726,51 @@ async function runFinancialFetch({ companyId, credentials, modalId, nameLabel })
         hideFinProgress();
 
         if (transactions.length > 0) {
-            // כל account+חודש מקבל רשימה נפרדת
-            const MONTHS_HE = ['ינואר','פברואר','מרץ','אפריל','מאי','יוני','יולי','אוגוסט','ספטמבר','אוקטובר','נובמבר','דצמבר'];
+            // קיבוץ לפי מחזור חיוב: 10 לחודש עד 9 לחודש הבא
+            // עסקה בתאריך d שייכת למחזור שמתחיל ב-10 של:
+            //   — אותו חודש  (אם יום >= 10)
+            //   — החודש הקודם (אם יום < 10)
+            function getBillingCycle(d) {
+                const day = d.getDate();
+                let startYear = d.getFullYear();
+                let startMonth = d.getMonth(); // 0-based
+                if (day < 10) {
+                    // שייך למחזור שהתחיל בחודש הקודם
+                    if (startMonth === 0) { startMonth = 11; startYear--; }
+                    else startMonth--;
+                }
+                // סוף המחזור = 9 לחודש שאחרי תחילתו
+                let endMonth = startMonth + 1;
+                let endYear = startYear;
+                if (endMonth > 11) { endMonth = 0; endYear++; }
+
+                const fmt = (y, m, day) =>
+                    `${day}.${m + 1}.${String(y).slice(2)}`;
+
+                const key   = `${startYear}-${String(startMonth + 1).padStart(2,'0')}`;
+                const label = `${fmt(startYear, startMonth, 10)} - ${fmt(endYear, endMonth, 9)}`;
+                return { key, label, startYear, startMonth };
+            }
+
             let totalImported = 0;
             transactions.forEach(acc => {
                 if (!acc.txns || acc.txns.length === 0) return;
                 const cardSuffix = acc.accountNumber ? ` ${acc.accountNumber}` : '';
-                // קבץ לפי חודש
-                const byMonth = {};
+                // קבץ לפי מחזור חיוב
+                const byCycle = {};
                 acc.txns.forEach(t => {
-                    const d = new Date(t.date);
-                    const key = `${d.getFullYear()}-${d.getMonth()}`;
-                    if (!byMonth[key]) byMonth[key] = { year: d.getFullYear(), month: d.getMonth(), txns: [] };
-                    byMonth[key].txns.push(t);
+                    const cycle = getBillingCycle(new Date(t.date));
+                    if (!byCycle[cycle.key]) byCycle[cycle.key] = { ...cycle, txns: [] };
+                    byCycle[cycle.key].txns.push(t);
                 });
-                // מיון מחודש חדש לישן
-                Object.values(byMonth)
-                    .sort((a, b) => b.year !== a.year ? b.year - a.year : b.month - a.month)
-                    .forEach(({ year, month, txns }) => {
-                        const monthLabel = `${MONTHS_HE[month]} ${year}`;
-                        const listName = `${nameLabel}${cardSuffix} - ${monthLabel}`;
-                        // מיין עסקאות מחדש לישן
+                // מיון ממחזור חדש לישן
+                Object.values(byCycle)
+                    .sort((a, b) => b.startYear !== a.startYear
+                        ? b.startYear - a.startYear
+                        : b.startMonth - a.startMonth)
+                    .forEach(({ label, txns }) => {
+                        const listName = `${nameLabel}${cardSuffix} - ${label}`;
+                        // תנועה חדשה ביותר ראשונה
                         txns.sort((a, b) => new Date(b.date) - new Date(a.date));
                         importFinancialTransactions(txns, listName);
                         totalImported += txns.length;
