@@ -4016,14 +4016,14 @@ ${error.message}
 
   <!-- ===== FINANCIAL PROGRESS OVERLAY ===== -->
   <div id="finProgressOverlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:9999;align-items:center;justify-content:center;backdrop-filter:blur(10px);">
-    <div style="background:white;border-radius:28px;padding:32px 28px;width:88%;max-width:360px;text-align:center;">
-        <div id="finProgressIcon" style="font-size:3rem;margin-bottom:12px;">🔐</div>
+    <div style="background:white;border-radius:28px;padding:28px 24px 20px;width:92%;max-width:380px;text-align:center;direction:rtl;">
+        <div id="finProgressIcon" style="font-size:3rem;margin-bottom:10px;">🔐</div>
         <div id="finProgressTitle" style="font-size:1.1rem;font-weight:900;color:#1e1b4b;margin-bottom:4px;">מתחבר...</div>
-        <div id="finProgressSub" style="font-size:13px;color:#6b7280;margin-bottom:20px;">אנא המתן</div>
-        <div style="background:#f3f4f6;border-radius:99px;height:8px;overflow:hidden;margin-bottom:20px;">
+        <div id="finProgressSub" style="font-size:13px;color:#6b7280;margin-bottom:16px;">אנא המתן</div>
+        <div style="background:#f3f4f6;border-radius:99px;height:8px;overflow:hidden;margin-bottom:16px;">
             <div id="finProgressBar" style="height:100%;border-radius:99px;background:linear-gradient(90deg,#7367f0,#0ea5e9);width:0%;transition:width 0.5s ease;"></div>
         </div>
-        <div style="display:flex;justify-content:center;gap:16px;">
+        <div style="display:flex;justify-content:center;gap:16px;margin-bottom:16px;">
             <div id="finStage1" style="display:flex;flex-direction:column;align-items:center;gap:4px;font-size:11px;color:#9ca3af;">
                 <div id="finDot1" style="width:28px;height:28px;border-radius:50%;background:#f3f4f6;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:12px;">1</div>חיבור
             </div>
@@ -4032,6 +4032,18 @@ ${error.message}
             </div>
             <div id="finStage3" style="display:flex;flex-direction:column;align-items:center;gap:4px;font-size:11px;color:#9ca3af;">
                 <div id="finDot3" style="width:28px;height:28px;border-radius:50%;background:#f3f4f6;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:12px;">3</div>עיבוד
+            </div>
+        </div>
+        <!-- Debug Log Panel -->
+        <div style="border-top:1px solid #e5e7eb;padding-top:12px;text-align:right;">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+                <button onclick="document.getElementById('finDebugLog').innerHTML='';window._finDebugLines=[];"
+                    style="font-size:10px;color:#9ca3af;background:#f3f4f6;border:none;cursor:pointer;padding:2px 8px;border-radius:6px;">נקה</button>
+                <span style="font-size:10px;font-weight:700;color:#9ca3af;">🪲 Debug Log</span>
+            </div>
+            <div id="finDebugLog"
+                style="background:#0f172a;border-radius:12px;padding:10px;height:130px;overflow-y:auto;font-family:'Courier New',monospace;font-size:10.5px;line-height:1.6;text-align:right;direction:rtl;">
+                <span style="color:#475569;">ממתין להתחלה...</span>
             </div>
         </div>
     </div>

@@ -10630,8 +10630,26 @@ function dbgLog(msg, color) { /* no-op */ }
 
 // ── Shared fetch helper ──
 async function runFinancialFetch({ companyId, credentials, modalId, nameLabel }) {
-    const log = (msg, type='info', icon='•') => {
+    // איפוס לוג
+    window._finDebugLines = [];
+    const debugEl = document.getElementById('finDebugLog');
+    if (debugEl) debugEl.innerHTML = '';
+
+    const log = (msg, type = 'info', icon = '•') => {
         console.log(`[BankSync][${type}] ${icon} ${msg}`);
+        const el = document.getElementById('finDebugLog');
+        if (!el) return;
+        const colors = { info: '#94a3b8', success: '#4ade80', error: '#f87171', warn: '#fbbf24' };
+        const color = colors[type] || '#94a3b8';
+        const time = new Date().toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+        const line = document.createElement('div');
+        line.style.cssText = `color:${color};margin-bottom:2px;word-break:break-all;`;
+        line.textContent = `${icon} [${time}] ${msg}`;
+        // הסר placeholder אם קיים
+        if (el.querySelector('span')) el.innerHTML = '';
+        el.appendChild(line);
+        // גלול למטה אוטומטית
+        el.scrollTop = el.scrollHeight;
     };
 
     closeModal(modalId);
@@ -10639,12 +10657,13 @@ async function runFinancialFetch({ companyId, credentials, modalId, nameLabel })
 
     try {
         const user = window.firebaseAuth?.currentUser;
-        log(`חברה: ${companyId}`, 'info', '🏦');
-        log(`currentUser: ${user ? user.email : 'null'}`, user ? 'success' : 'error', user ? '👤' : '❌');
+        log(`חברה נבחרה: ${companyId}`, 'info', '🏦');
+        log(`משתמש מחובר: ${user ? user.email : 'לא מחובר'}`, user ? 'success' : 'error', user ? '👤' : '❌');
         if (!user) { hideFinProgress(); showNotification('❌ יש להתחבר לחשבון תחילה', 'error'); return; }
 
         const userId = user.uid;
         const jobId  = 'job_' + Date.now();
+        log(`Job ID: ${jobId}`, 'info', '🆔');
 
         setFinStage(1, '🔐', 'שולח לסנכרון...', 'מפעיל GitHub Actions', '15%');
 
@@ -10653,11 +10672,12 @@ async function runFinancialFetch({ companyId, credentials, modalId, nameLabel })
         const REPO         = 'ronmailx-boop/Shopping-list';
 
         if (!GITHUB_TOKEN) {
-            log('⚠️ חסר GITHUB_PAT — עיין בהגדרות', 'error', '❌');
+            log('חסר GITHUB_PAT — עיין בהגדרות', 'error', '❌');
             hideFinProgress();
             showNotification('❌ חסר GitHub Token — הגדר GITHUB_PAT', 'error');
             return;
         }
+        log('GitHub Token נמצא ✓', 'success', '🔑');
 
         const payload = {
             event_type: 'bank-sync',
@@ -10673,7 +10693,7 @@ async function runFinancialFetch({ companyId, credentials, modalId, nameLabel })
             }
         };
 
-        log('שולח ל-GitHub Actions...', 'info', '🚀');
+        log('שולח בקשה ל-GitHub Actions...', 'info', '🚀');
         const ghRes = await fetch(`https://api.github.com/repos/${REPO}/dispatches`, {
             method: 'POST',
             headers: {
@@ -10692,7 +10712,8 @@ async function runFinancialFetch({ companyId, credentials, modalId, nameLabel })
             return;
         }
 
-        log('GitHub Actions הופעל ✅', 'success', '🚀');
+        log(`GitHub Actions הופעל בהצלחה (${ghRes.status})`, 'success', '🚀');
+        log('ממתין לתוצאות מ-Firestore...', 'info', '⏳');
         setFinStage(2, '⏳', 'ממתין לתוצאות...', 'זה לוקח עד 3 דקות', '40%');
 
         // ── המתן לתוצאות ב-Firestore ─────────────────────────────
@@ -10708,11 +10729,15 @@ async function runFinancialFetch({ companyId, credentials, modalId, nameLabel })
             }, TIMEOUT);
 
             const unsubscribe = onSnapshot(jobRef, (snap) => {
-                if (!snap.exists()) return;
+                if (!snap.exists()) {
+                    log('ממתין לנתוני Job...', 'info', '🔄');
+                    return;
+                }
                 const data = snap.data();
-                log(`סטטוס: ${data.status}`, 'info', '📊');
+                log(`סטטוס Job: ${data.status}`, 'info', '📊');
 
                 if (data.status === 'running') {
+                    log('GitHub Actions רץ — מתחבר לבנק/כרטיס...', 'info', '🔐');
                     setFinStage(2, '🔐', 'מתחבר לבנק...', 'GitHub Actions פועל', '55%');
                 }
 
@@ -10721,7 +10746,6 @@ async function runFinancialFetch({ companyId, credentials, modalId, nameLabel })
                         settled = true;
                         clearTimeout(timer);
                         unsubscribe();
-                        // כל account → אובייקט נפרד עם מספר כרטיס + עסקאות ממוינות
                         const accounts = (data.accounts || []).map(acc => {
                             const txns = (acc.txns || [])
                                 .map(t => ({
@@ -10731,13 +10755,11 @@ async function runFinancialFetch({ companyId, credentials, modalId, nameLabel })
                                     date:   t.date || '',
                                 }))
                                 .sort((a, b) => new Date(b.date) - new Date(a.date));
-                            return {
-                                accountNumber: acc.accountNumber || '',
-                                txns,
-                            };
+                            return { accountNumber: acc.accountNumber || '', txns };
                         });
                         const totalTxns = accounts.reduce((s, a) => s + a.txns.length, 0);
-                        log(`התקבלו ${totalTxns} עסקאות ב-${accounts.length} כרטיסים ✅`, 'success', '✅');
+                        log(`התקבלו ${accounts.length} כרטיסים/חשבונות`, 'success', '💳');
+                        log(`סה"כ עסקאות: ${totalTxns}`, 'success', '✅');
                         resolve(accounts);
                     }
                 }
@@ -10747,6 +10769,7 @@ async function runFinancialFetch({ companyId, credentials, modalId, nameLabel })
                         settled = true;
                         clearTimeout(timer);
                         unsubscribe();
+                        log(`שגיאה מהשרת: ${data.errorMessage || data.errorType || 'לא ידוע'}`, 'error', '❌');
                         reject(new Error(data.errorMessage || data.errorType || 'שגיאה'));
                     }
                 }
@@ -10757,6 +10780,7 @@ async function runFinancialFetch({ companyId, credentials, modalId, nameLabel })
 
         // ── הצג סיום ─────────────────────────────────────────────
         setFinStage(3, '⚙️', 'מעבד נתונים...', 'עוד רגע...', '85%');
+        log('מעבד עסקאות לפי מחזור חיוב...', 'info', '⚙️');
         await new Promise(r => setTimeout(r, 800));
 
         document.getElementById('finProgressBar').style.width = '100%';
@@ -10772,33 +10796,55 @@ async function runFinancialFetch({ companyId, credentials, modalId, nameLabel })
         hideFinProgress();
 
         if (transactions.length > 0) {
-            // כל account+חודש מקבל רשימה נפרדת
-            const MONTHS_HE = ['ינואר','פברואר','מרץ','אפריל','מאי','יוני','יולי','אוגוסט','ספטמבר','אוקטובר','נובמבר','דצמבר'];
+            // מחזור חיוב: 10 לחודש עד 9 לחודש הבא
+            function getBillingCycle(d) {
+                const day = d.getDate();
+                let startYear = d.getFullYear();
+                let startMonth = d.getMonth();
+                if (day < 10) {
+                    if (startMonth === 0) { startMonth = 11; startYear--; }
+                    else startMonth--;
+                }
+                let endMonth = startMonth + 1;
+                let endYear = startYear;
+                if (endMonth > 11) { endMonth = 0; endYear++; }
+                const fmt = (y, m, dy) => `${dy}.${m + 1}.${String(y).slice(2)}`;
+                const key   = `${startYear}-${String(startMonth + 1).padStart(2,'0')}`;
+                const label = `${fmt(startYear, startMonth, 10)} - ${fmt(endYear, endMonth, 9)}`;
+                return { key, label, startYear, startMonth };
+            }
+
+            // מחזור החיוב הנוכחי בלבד
+            const currentCycle = getBillingCycle(new Date());
+            log(`מחזור חיוב נוכחי: ${currentCycle.label}`, 'info', '📅');
+
             let totalImported = 0;
             transactions.forEach(acc => {
                 if (!acc.txns || acc.txns.length === 0) return;
                 const cardSuffix = acc.accountNumber ? ` ${acc.accountNumber}` : '';
-                // קבץ לפי חודש
-                const byMonth = {};
-                acc.txns.forEach(t => {
-                    const d = new Date(t.date);
-                    const key = `${d.getFullYear()}-${d.getMonth()}`;
-                    if (!byMonth[key]) byMonth[key] = { year: d.getFullYear(), month: d.getMonth(), txns: [] };
-                    byMonth[key].txns.push(t);
-                });
-                // מיון מחודש חדש לישן
-                Object.values(byMonth)
-                    .sort((a, b) => b.year !== a.year ? b.year - a.year : b.month - a.month)
-                    .forEach(({ year, month, txns }) => {
-                        const monthLabel = `${MONTHS_HE[month]} ${year}`;
-                        const listName = `${nameLabel}${cardSuffix} - ${monthLabel}`;
-                        // מיין עסקאות מחדש לישן
-                        txns.sort((a, b) => new Date(b.date) - new Date(a.date));
-                        importFinancialTransactions(txns, listName);
-                        totalImported += txns.length;
-                    });
+                log(`כרטיס/חשבון: ${acc.accountNumber || 'ראשי'} — ${acc.txns.length} עסקאות סה"כ`, 'info', '💳');
+
+                const cycleItems = acc.txns.filter(t =>
+                    getBillingCycle(new Date(t.date)).key === currentCycle.key
+                );
+                if (cycleItems.length === 0) {
+                    log(`אין עסקאות במחזור הנוכחי עבור ${acc.accountNumber || 'ראשי'}`, 'warn', '⚠️');
+                    return;
+                }
+                log(`${cycleItems.length} עסקאות במחזור הנוכחי`, 'success', '✅');
+
+                cycleItems.sort((a, b) => new Date(b.date) - new Date(a.date));
+                const listName = `${nameLabel}${cardSuffix} - ${currentCycle.label}`;
+                log(`שומר לרשימה: "${listName}"`, 'info', '💾');
+                importFinancialTransactions(cycleItems, listName);
+                totalImported += cycleItems.length;
             });
-            if (totalImported === 0) showNotification('ℹ️ לא נמצאו עסקאות', 'warning');
+            if (totalImported === 0) {
+                log('לא נמצאו עסקאות במחזור הנוכחי', 'warn', '⚠️');
+                showNotification('ℹ️ לא נמצאו עסקאות', 'warning');
+            } else {
+                log(`סה"כ יובאו/סונכרנו: ${totalImported} עסקאות`, 'success', '🎉');
+            }
         } else {
             showNotification('ℹ️ לא נמצאו עסקאות', 'warning');
         }
@@ -10845,11 +10891,9 @@ async function startBankFetch() {
     });
 }
 
-// ── Import transactions to list ──
-function importFinancialTransactions(transactions, nameLabel) {
-    const today = new Date().toLocaleDateString('he-IL');
-    const newId = 'L' + Date.now();
-    const items = transactions.map(t => ({
+// ── Import / Sync transactions to list ──
+function importFinancialTransactions(transactions, listName) {
+    const makeItem = (t) => ({
         name: t.name || t.description || 'עסקה',
         price: parseFloat(t.amount || t.price || 0),
         qty: 1, checked: false, isPaid: true,
@@ -10858,12 +10902,41 @@ function importFinancialTransactions(transactions, nameLabel) {
         dueDate: '', paymentUrl: '',
         lastUpdated: Date.now(),
         cloudId: 'item_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9)
-    }));
-    db.lists[newId] = { name: nameLabel + ' - ' + today, url: '', budget: 0, isTemplate: false, items };
-    db.currentId = newId;
-    activePage = 'lists';
-    save();
-    showNotification('✅ יובאו ' + items.length + ' רשומות מ' + nameLabel + '!');
+    });
+
+    const fingerprint = (name, price, note) =>
+        `${(name||'').trim()}|${parseFloat(price||0).toFixed(2)}|${(note||'').trim()}`;
+
+    const existingEntry = Object.entries(db.lists)
+        .find(([, list]) => list.name === listName);
+
+    if (existingEntry) {
+        const [existingId, existingList] = existingEntry;
+        const existing = new Set(
+            existingList.items.map(i => fingerprint(i.name, i.price, i.note))
+        );
+        const newItems = transactions
+            .map(makeItem)
+            .filter(i => !existing.has(fingerprint(i.name, i.price, i.note)));
+
+        if (newItems.length === 0) {
+            showNotification('✅ הרשימה כבר מעודכנת — אין עסקאות חדשות', 'info');
+        } else {
+            existingList.items.unshift(...newItems);
+            showNotification(`✅ סונכרנו ${newItems.length} עסקאות חדשות ל"${listName}"`);
+        }
+        db.currentId = existingId;
+        activePage = 'lists';
+        save();
+    } else {
+        const newId = 'L' + Date.now();
+        const items = transactions.map(makeItem);
+        db.lists[newId] = { name: listName, url: '', budget: 0, isTemplate: false, items };
+        db.currentId = newId;
+        activePage = 'lists';
+        save();
+        showNotification('✅ יובאו ' + items.length + ' רשומות — "' + listName + '"');
+    }
 }
 
 // ── Dynamic padding for list name bar ──
