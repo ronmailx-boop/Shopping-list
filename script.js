@@ -3425,12 +3425,12 @@ function renderCategoryAnalysis() {
 
     Object.entries(db.lists).forEach(([listId, list]) => {
         if (list.isTemplate) return;
-        (list.items || []).forEach(item => {
+        (list.items || []).forEach((item, itemIdx) => {
             const cat = item.category || 'כללי';
             const price = (item.price || 0) * (item.qty || 1);
             if (!catMap[cat]) catMap[cat] = { sum: 0, items: [] };
             catMap[cat].sum   += price;
-            catMap[cat].items.push({ ...item, _listId: listId, _listName: list.name });
+            catMap[cat].items.push({ ...item, _listId: listId, _listName: list.name, _itemIdx: itemIdx });
             grandTotal += price;
             itemCount++;
         });
@@ -3539,11 +3539,14 @@ function openCatDrill(cat, data, cfg, pct, grand) {
                     const sub = (it.price||0) * (it.qty||1);
                     const div = document.createElement('div');
                     div.className = 'cat-drill-item';
+                    const itemIdx = it._itemIdx;
+                    const itemListId = it._listId;
                     div.innerHTML = `
                         <input type="checkbox" ${it.checked?'checked':''} style="width:20px;height:20px;accent-color:#7367f0;flex-shrink:0;" onclick="event.stopPropagation()">
                         <span style="flex:1;font-size:14px;font-weight:700;${it.checked?'text-decoration:line-through;opacity:0.45;':''}">${it.name}</span>
                         ${it.qty > 1 ? `<span style="font-size:11px;color:#9ca3af;flex-shrink:0;">×${it.qty}</span>` : ''}
                         <span class="cat-drill-item-price">₪${sub.toFixed(2)}</span>
+                        <button onclick="event.stopPropagation();navigateToItemFromCatDrill('${itemListId}',${itemIdx})" title="עבור למוצר" style="flex-shrink:0;margin-right:4px;background:rgba(115,103,240,0.12);border:none;border-radius:8px;padding:4px 7px;cursor:pointer;font-size:13px;color:#7367f0;line-height:1;">✏️</button>
                     `;
                     body.appendChild(div);
                 });
@@ -3556,6 +3559,20 @@ function openCatDrill(cat, data, cfg, pct, grand) {
 function closeCatDrill() {
     const overlay = document.getElementById('catDrillOverlay');
     if (overlay) overlay.classList.remove('open');
+}
+
+function navigateToItemFromCatDrill(listId, itemIdx) {
+    // סגור את ה-overlay של הקטגוריה
+    closeCatDrill();
+    // נווט לרשימה הנכונה
+    db.currentId = listId;
+    summaryCompactMode = compactMode;
+    compactMode = listsCompactMode;
+    tapTab('lists');
+    // פתח את חלון עריכת הפריט אחרי שה-render הסתיים
+    setTimeout(() => {
+        openEditItemNameModal(itemIdx);
+    }, 200);
 }
 
 function renderHistory() {
