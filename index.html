@@ -2763,16 +2763,6 @@ ${error.message}
             <div id="tabLists"   onclick="tapTab('summary')" style="position:absolute;top:0;right:0;width:50%;bottom:0;z-index:10;cursor:pointer;"></div>
             <div id="tabSummary" onclick="tapTab('lists')"   style="position:absolute;top:0;left:0;width:50%;bottom:0;z-index:10;cursor:pointer;"></div>
 
-            <!-- כפתור + מוטבע בטאב הרשימות שלי — מוצג רק כשהטאב פעיל -->
-            <div id="summaryPlusWrap" style="display:none;position:absolute;top:50%;right:4%;transform:translateY(-50%);z-index:50;align-items:center;justify-content:center;">
-                <button onclick="event.stopPropagation(); wizardMode ? wiz('newList','before',()=>openModal('newListModal')) : openModal('newListModal');"
-                    style="width:26px;height:26px;border-radius:50%;background:#22c55e;border:2px solid rgba(255,255,255,0.5);display:flex;align-items:center;justify-content:center;box-shadow:0 2px 8px rgba(34,197,94,0.6);cursor:pointer;transition:transform 0.15s;"
-                    ontouchstart="event.stopPropagation();this.style.transform='scale(0.85)'" ontouchend="event.stopPropagation();this.style.transform='scale(1)'">
-                    <svg width="13" height="13" fill="none" stroke="white" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M12 5v14M5 12h14"/>
-                    </svg>
-                </button>
-            </div>
 
             <svg style="position:absolute;top:0;left:0;width:100%;height:100%;z-index:5;pointer-events:none;"
                  viewBox="0 0 400 52" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
