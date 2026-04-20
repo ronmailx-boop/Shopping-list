@@ -2534,9 +2534,16 @@ ${error.message}
         <div style="display:flex;align-items:center;gap:10px;flex-shrink:0;">
             <div class="lnb-count" id="itemCountDisplay">0 פריטים</div>
             <!-- כפתור חיפוש -->
-
             <div id="searchIconBtn" onclick="event.stopPropagation();toggleListSearch();" style="width:32px;height:32px;border-radius:50%;background:rgba(255,255,255,0.2);border:1.5px solid rgba(255,255,255,0.3);display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all 0.2s;flex-shrink:0;">
                 <svg width="16" height="16" fill="none" stroke="white" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.35-4.35"/></svg>
+            </div>
+            <!-- כפתור + רשימה חדשה — מוצג רק בדף הרשימות שלי -->
+            <div id="summaryNewListBtn" onclick="event.stopPropagation(); wizardMode ? wiz('newList','before',()=>openModal('newListModal')) : openModal('newListModal');"
+                 style="display:none;width:32px;height:32px;border-radius:50%;background:rgba(255,255,255,0.2);border:1.5px solid rgba(255,255,255,0.3);align-items:center;justify-content:center;cursor:pointer;transition:all 0.2s;flex-shrink:0;"
+                 ontouchstart="this.style.transform='scale(0.88)'" ontouchend="this.style.transform='scale(1)'">
+                <svg width="16" height="16" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
+                    <path d="M12 5v14M5 12h14"/>
+                </svg>
             </div>
             <div class="lnb-arrow" id="lnbArrow"
                  onclick="event.stopPropagation(); toggleListActionsPanel();">▼</div>
@@ -2718,7 +2725,18 @@ ${error.message}
                 <canvas id="monthlyChart" height="200"></canvas>
             </div>
 
+            <div class="stat-card">
+                <h3 class="text-xl font-bold mb-4" id="categoryExpensesTitle">💰 הוצאות לפי קטגוריה</h3>
+                <div style="max-width: 350px; margin: 0 auto;">
+                    <canvas id="categoryDoughnutChart" height="250"></canvas>
+                </div>
+                <div id="categoryBreakdown" class="mt-4"></div>
+            </div>
 
+            <div class="stat-card">
+                <h3 class="text-xl font-bold mb-4" id="popularItemsTitle">🏆 מוצרים פופולריים</h3>
+                <div id="popularItems"></div>
+            </div>
 
             <div class="stat-card">
                 <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
@@ -2759,16 +2777,8 @@ ${error.message}
             <div id="tabLists"   onclick="tapTab('summary')" style="position:absolute;top:0;right:0;width:50%;bottom:0;z-index:10;cursor:pointer;"></div>
             <div id="tabSummary" onclick="tapTab('lists')"   style="position:absolute;top:0;left:0;width:50%;bottom:0;z-index:10;cursor:pointer;"></div>
 
-            <!-- כפתור + מוטבע בטאב הרשימות שלי — מוצג רק כשהטאב פעיל -->
-            <div id="summaryPlusWrap" style="display:none;position:absolute;top:50%;right:4%;transform:translateY(-50%);z-index:50;align-items:center;justify-content:center;">
-                <button onclick="event.stopPropagation(); wizardMode ? wiz('newList','before',()=>openModal('newListModal')) : openModal('newListModal');"
-                    style="width:26px;height:26px;border-radius:50%;background:#22c55e;border:2px solid rgba(255,255,255,0.5);display:flex;align-items:center;justify-content:center;box-shadow:0 2px 8px rgba(34,197,94,0.6);cursor:pointer;transition:transform 0.15s;"
-                    ontouchstart="event.stopPropagation();this.style.transform='scale(0.85)'" ontouchend="event.stopPropagation();this.style.transform='scale(1)'">
-                    <svg width="13" height="13" fill="none" stroke="white" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M12 5v14M5 12h14"/>
-                    </svg>
-                </button>
-            </div>
+            <!-- כפתור + הועבר לבר הכותרת (summaryNewListBtn) -->
+            <div id="summaryPlusWrap" style="display:none;"></div>
 
             <svg style="position:absolute;top:0;left:0;width:100%;height:100%;z-index:5;pointer-events:none;"
                  viewBox="0 0 400 52" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
