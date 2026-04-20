@@ -2538,6 +2538,10 @@ ${error.message}
             <div id="searchIconBtn" onclick="event.stopPropagation();toggleListSearch();" style="width:32px;height:32px;border-radius:50%;background:rgba(255,255,255,0.2);border:1.5px solid rgba(255,255,255,0.3);display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all 0.2s;flex-shrink:0;">
                 <svg width="16" height="16" fill="none" stroke="white" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.35-4.35"/></svg>
             </div>
+            <!-- כפתור + ליצירת רשימה חדשה -->
+            <div id="lnbNewListBtn" onclick="event.stopPropagation(); wizardMode ? wiz('newList','before',function(){openModal('newListModal');}) : openModal('newListModal');" style="width:32px;height:32px;border-radius:50%;background:rgba(255,255,255,0.2);border:1.5px solid rgba(255,255,255,0.3);display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all 0.2s;flex-shrink:0;">
+                <svg width="16" height="16" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
+            </div>
             <div class="lnb-arrow" id="lnbArrow"
                  onclick="event.stopPropagation(); toggleListActionsPanel();">▼</div>
         </div>
