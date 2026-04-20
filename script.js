@@ -4721,55 +4721,15 @@ function openEditCategoryModal(idx) {
         categoryOptionsContainer.appendChild(button);
     }
 
-    // Build set of already-shown categories
-    const shownCats = new Set(Object.keys(CATEGORIES));
-
-    // --- Extra categories: all CATEGORY_KEYWORDS keys not in CATEGORIES ---
-    const extraCats = Object.keys(CATEGORY_KEYWORDS).filter(c => !shownCats.has(c));
-
-    // --- Orphan categories: actually used in items but not shown anywhere ---
-    const orphanCats = new Set();
-    Object.values(db.lists).forEach(list => {
-        (list.items || []).forEach(i => {
-            if (i.category && !shownCats.has(i.category) && !extraCats.includes(i.category)) {
-                orphanCats.add(i.category);
-            }
-        });
-    });
-
-    if (extraCats.length > 0 || orphanCats.size > 0) {
-        const sep2 = document.createElement('div');
-        sep2.className = 'text-sm font-bold text-gray-500 mt-3 mb-2';
-        sep2.textContent = '🗂️ קטגוריות נוספות';
-        categoryOptionsContainer.appendChild(sep2);
-
-        [...extraCats, ...orphanCats].forEach(categoryName => {
-            const cfgColor = (CAT_ANALYSIS_CFG[categoryName] || {}).hex;
-            const color = cfgColor || CATEGORIES[categoryName] || '#7c3aed';
-            const isSelected = item.category === categoryName;
-
-            const button = document.createElement('button');
-            button.className = `w-full py-3 px-4 rounded-xl font-bold mb-2 transition-all ${isSelected ? 'ring-4 ring-offset-2' : 'hover:scale-105'}`;
-            button.style.backgroundColor = color + '20';
-            button.style.color = color;
-            button.style.border = `2px solid ${color}`;
-            button.textContent = isSelected ? `✓ ${categoryName}` : categoryName;
-            button.onclick = () => selectCategory(categoryName);
-            categoryOptionsContainer.appendChild(button);
-
-            shownCats.add(categoryName);
-        });
-    }
-
-    // Add custom categories if they exist (only those not already shown)
-    const customNotShown = (db.customCategories || []).filter(c => !shownCats.has(c));
-    if (customNotShown.length > 0) {
+    // Add custom categories if they exist
+    if (db.customCategories && db.customCategories.length > 0) {
+        // Add separator
         const separator = document.createElement('div');
         separator.className = 'text-sm font-bold text-gray-500 mt-3 mb-2';
         separator.textContent = '✨ קטגוריות מותאמות אישית';
         categoryOptionsContainer.appendChild(separator);
 
-        customNotShown.forEach(categoryName => {
+        db.customCategories.forEach(categoryName => {
             const color = CATEGORIES[categoryName] || '#6b7280';
             const isSelected = item.category === categoryName;
 
@@ -10630,26 +10590,8 @@ function dbgLog(msg, color) { /* no-op */ }
 
 // ── Shared fetch helper ──
 async function runFinancialFetch({ companyId, credentials, modalId, nameLabel }) {
-    // איפוס לוג
-    window._finDebugLines = [];
-    const debugEl = document.getElementById('finDebugLog');
-    if (debugEl) debugEl.innerHTML = '';
-
-    const log = (msg, type = 'info', icon = '•') => {
+    const log = (msg, type='info', icon='•') => {
         console.log(`[BankSync][${type}] ${icon} ${msg}`);
-        const el = document.getElementById('finDebugLog');
-        if (!el) return;
-        const colors = { info: '#94a3b8', success: '#4ade80', error: '#f87171', warn: '#fbbf24' };
-        const color = colors[type] || '#94a3b8';
-        const time = new Date().toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-        const line = document.createElement('div');
-        line.style.cssText = `color:${color};margin-bottom:2px;word-break:break-all;`;
-        line.textContent = `${icon} [${time}] ${msg}`;
-        // הסר placeholder אם קיים
-        if (el.querySelector('span')) el.innerHTML = '';
-        el.appendChild(line);
-        // גלול למטה אוטומטית
-        el.scrollTop = el.scrollHeight;
     };
 
     closeModal(modalId);
@@ -10657,13 +10599,12 @@ async function runFinancialFetch({ companyId, credentials, modalId, nameLabel })
 
     try {
         const user = window.firebaseAuth?.currentUser;
-        log(`חברה נבחרה: ${companyId}`, 'info', '🏦');
-        log(`משתמש מחובר: ${user ? user.email : 'לא מחובר'}`, user ? 'success' : 'error', user ? '👤' : '❌');
+        log(`חברה: ${companyId}`, 'info', '🏦');
+        log(`currentUser: ${user ? user.email : 'null'}`, user ? 'success' : 'error', user ? '👤' : '❌');
         if (!user) { hideFinProgress(); showNotification('❌ יש להתחבר לחשבון תחילה', 'error'); return; }
 
         const userId = user.uid;
         const jobId  = 'job_' + Date.now();
-        log(`Job ID: ${jobId}`, 'info', '🆔');
 
         setFinStage(1, '🔐', 'שולח לסנכרון...', 'מפעיל GitHub Actions', '15%');
 
@@ -10672,12 +10613,11 @@ async function runFinancialFetch({ companyId, credentials, modalId, nameLabel })
         const REPO         = 'ronmailx-boop/Shopping-list';
 
         if (!GITHUB_TOKEN) {
-            log('חסר GITHUB_PAT — עיין בהגדרות', 'error', '❌');
+            log('⚠️ חסר GITHUB_PAT — עיין בהגדרות', 'error', '❌');
             hideFinProgress();
             showNotification('❌ חסר GitHub Token — הגדר GITHUB_PAT', 'error');
             return;
         }
-        log('GitHub Token נמצא ✓', 'success', '🔑');
 
         const payload = {
             event_type: 'bank-sync',
@@ -10693,7 +10633,7 @@ async function runFinancialFetch({ companyId, credentials, modalId, nameLabel })
             }
         };
 
-        log('שולח בקשה ל-GitHub Actions...', 'info', '🚀');
+        log('שולח ל-GitHub Actions...', 'info', '🚀');
         const ghRes = await fetch(`https://api.github.com/repos/${REPO}/dispatches`, {
             method: 'POST',
             headers: {
@@ -10712,8 +10652,7 @@ async function runFinancialFetch({ companyId, credentials, modalId, nameLabel })
             return;
         }
 
-        log(`GitHub Actions הופעל בהצלחה (${ghRes.status})`, 'success', '🚀');
-        log('ממתין לתוצאות מ-Firestore...', 'info', '⏳');
+        log('GitHub Actions הופעל ✅', 'success', '🚀');
         setFinStage(2, '⏳', 'ממתין לתוצאות...', 'זה לוקח עד 3 דקות', '40%');
 
         // ── המתן לתוצאות ב-Firestore ─────────────────────────────
@@ -10729,15 +10668,11 @@ async function runFinancialFetch({ companyId, credentials, modalId, nameLabel })
             }, TIMEOUT);
 
             const unsubscribe = onSnapshot(jobRef, (snap) => {
-                if (!snap.exists()) {
-                    log('ממתין לנתוני Job...', 'info', '🔄');
-                    return;
-                }
+                if (!snap.exists()) return;
                 const data = snap.data();
-                log(`סטטוס Job: ${data.status}`, 'info', '📊');
+                log(`סטטוס: ${data.status}`, 'info', '📊');
 
                 if (data.status === 'running') {
-                    log('GitHub Actions רץ — מתחבר לבנק/כרטיס...', 'info', '🔐');
                     setFinStage(2, '🔐', 'מתחבר לבנק...', 'GitHub Actions פועל', '55%');
                 }
 
@@ -10746,6 +10681,7 @@ async function runFinancialFetch({ companyId, credentials, modalId, nameLabel })
                         settled = true;
                         clearTimeout(timer);
                         unsubscribe();
+                        // כל account → אובייקט נפרד עם מספר כרטיס + עסקאות ממוינות
                         const accounts = (data.accounts || []).map(acc => {
                             const txns = (acc.txns || [])
                                 .map(t => ({
@@ -10755,11 +10691,13 @@ async function runFinancialFetch({ companyId, credentials, modalId, nameLabel })
                                     date:   t.date || '',
                                 }))
                                 .sort((a, b) => new Date(b.date) - new Date(a.date));
-                            return { accountNumber: acc.accountNumber || '', txns };
+                            return {
+                                accountNumber: acc.accountNumber || '',
+                                txns,
+                            };
                         });
                         const totalTxns = accounts.reduce((s, a) => s + a.txns.length, 0);
-                        log(`התקבלו ${accounts.length} כרטיסים/חשבונות`, 'success', '💳');
-                        log(`סה"כ עסקאות: ${totalTxns}`, 'success', '✅');
+                        log(`התקבלו ${totalTxns} עסקאות ב-${accounts.length} כרטיסים ✅`, 'success', '✅');
                         resolve(accounts);
                     }
                 }
@@ -10769,7 +10707,6 @@ async function runFinancialFetch({ companyId, credentials, modalId, nameLabel })
                         settled = true;
                         clearTimeout(timer);
                         unsubscribe();
-                        log(`שגיאה מהשרת: ${data.errorMessage || data.errorType || 'לא ידוע'}`, 'error', '❌');
                         reject(new Error(data.errorMessage || data.errorType || 'שגיאה'));
                     }
                 }
@@ -10780,7 +10717,6 @@ async function runFinancialFetch({ companyId, credentials, modalId, nameLabel })
 
         // ── הצג סיום ─────────────────────────────────────────────
         setFinStage(3, '⚙️', 'מעבד נתונים...', 'עוד רגע...', '85%');
-        log('מעבד עסקאות לפי מחזור חיוב...', 'info', '⚙️');
         await new Promise(r => setTimeout(r, 800));
 
         document.getElementById('finProgressBar').style.width = '100%';
@@ -10796,55 +10732,33 @@ async function runFinancialFetch({ companyId, credentials, modalId, nameLabel })
         hideFinProgress();
 
         if (transactions.length > 0) {
-            // מחזור חיוב: 10 לחודש עד 9 לחודש הבא
-            function getBillingCycle(d) {
-                const day = d.getDate();
-                let startYear = d.getFullYear();
-                let startMonth = d.getMonth();
-                if (day < 10) {
-                    if (startMonth === 0) { startMonth = 11; startYear--; }
-                    else startMonth--;
-                }
-                let endMonth = startMonth + 1;
-                let endYear = startYear;
-                if (endMonth > 11) { endMonth = 0; endYear++; }
-                const fmt = (y, m, dy) => `${dy}.${m + 1}.${String(y).slice(2)}`;
-                const key   = `${startYear}-${String(startMonth + 1).padStart(2,'0')}`;
-                const label = `${fmt(startYear, startMonth, 10)} - ${fmt(endYear, endMonth, 9)}`;
-                return { key, label, startYear, startMonth };
-            }
-
-            // מחזור החיוב הנוכחי בלבד
-            const currentCycle = getBillingCycle(new Date());
-            log(`מחזור חיוב נוכחי: ${currentCycle.label}`, 'info', '📅');
-
+            // כל account+חודש מקבל רשימה נפרדת
+            const MONTHS_HE = ['ינואר','פברואר','מרץ','אפריל','מאי','יוני','יולי','אוגוסט','ספטמבר','אוקטובר','נובמבר','דצמבר'];
             let totalImported = 0;
             transactions.forEach(acc => {
                 if (!acc.txns || acc.txns.length === 0) return;
                 const cardSuffix = acc.accountNumber ? ` ${acc.accountNumber}` : '';
-                log(`כרטיס/חשבון: ${acc.accountNumber || 'ראשי'} — ${acc.txns.length} עסקאות סה"כ`, 'info', '💳');
-
-                const cycleItems = acc.txns.filter(t =>
-                    getBillingCycle(new Date(t.date)).key === currentCycle.key
-                );
-                if (cycleItems.length === 0) {
-                    log(`אין עסקאות במחזור הנוכחי עבור ${acc.accountNumber || 'ראשי'}`, 'warn', '⚠️');
-                    return;
-                }
-                log(`${cycleItems.length} עסקאות במחזור הנוכחי`, 'success', '✅');
-
-                cycleItems.sort((a, b) => new Date(b.date) - new Date(a.date));
-                const listName = `${nameLabel}${cardSuffix} - ${currentCycle.label}`;
-                log(`שומר לרשימה: "${listName}"`, 'info', '💾');
-                importFinancialTransactions(cycleItems, listName);
-                totalImported += cycleItems.length;
+                // קבץ לפי חודש
+                const byMonth = {};
+                acc.txns.forEach(t => {
+                    const d = new Date(t.date);
+                    const key = `${d.getFullYear()}-${d.getMonth()}`;
+                    if (!byMonth[key]) byMonth[key] = { year: d.getFullYear(), month: d.getMonth(), txns: [] };
+                    byMonth[key].txns.push(t);
+                });
+                // מיון מחודש חדש לישן
+                Object.values(byMonth)
+                    .sort((a, b) => b.year !== a.year ? b.year - a.year : b.month - a.month)
+                    .forEach(({ year, month, txns }) => {
+                        const monthLabel = `${MONTHS_HE[month]} ${year}`;
+                        const listName = `${nameLabel}${cardSuffix} - ${monthLabel}`;
+                        // מיין עסקאות מחדש לישן
+                        txns.sort((a, b) => new Date(b.date) - new Date(a.date));
+                        importFinancialTransactions(txns, listName);
+                        totalImported += txns.length;
+                    });
             });
-            if (totalImported === 0) {
-                log('לא נמצאו עסקאות במחזור הנוכחי', 'warn', '⚠️');
-                showNotification('ℹ️ לא נמצאו עסקאות', 'warning');
-            } else {
-                log(`סה"כ יובאו/סונכרנו: ${totalImported} עסקאות`, 'success', '🎉');
-            }
+            if (totalImported === 0) showNotification('ℹ️ לא נמצאו עסקאות', 'warning');
         } else {
             showNotification('ℹ️ לא נמצאו עסקאות', 'warning');
         }
@@ -10891,9 +10805,11 @@ async function startBankFetch() {
     });
 }
 
-// ── Import / Sync transactions to list ──
-function importFinancialTransactions(transactions, listName) {
-    const makeItem = (t) => ({
+// ── Import transactions to list ──
+function importFinancialTransactions(transactions, nameLabel) {
+    const today = new Date().toLocaleDateString('he-IL');
+    const newId = 'L' + Date.now();
+    const items = transactions.map(t => ({
         name: t.name || t.description || 'עסקה',
         price: parseFloat(t.amount || t.price || 0),
         qty: 1, checked: false, isPaid: true,
@@ -10902,41 +10818,12 @@ function importFinancialTransactions(transactions, listName) {
         dueDate: '', paymentUrl: '',
         lastUpdated: Date.now(),
         cloudId: 'item_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9)
-    });
-
-    const fingerprint = (name, price, note) =>
-        `${(name||'').trim()}|${parseFloat(price||0).toFixed(2)}|${(note||'').trim()}`;
-
-    const existingEntry = Object.entries(db.lists)
-        .find(([, list]) => list.name === listName);
-
-    if (existingEntry) {
-        const [existingId, existingList] = existingEntry;
-        const existing = new Set(
-            existingList.items.map(i => fingerprint(i.name, i.price, i.note))
-        );
-        const newItems = transactions
-            .map(makeItem)
-            .filter(i => !existing.has(fingerprint(i.name, i.price, i.note)));
-
-        if (newItems.length === 0) {
-            showNotification('✅ הרשימה כבר מעודכנת — אין עסקאות חדשות', 'info');
-        } else {
-            existingList.items.unshift(...newItems);
-            showNotification(`✅ סונכרנו ${newItems.length} עסקאות חדשות ל"${listName}"`);
-        }
-        db.currentId = existingId;
-        activePage = 'lists';
-        save();
-    } else {
-        const newId = 'L' + Date.now();
-        const items = transactions.map(makeItem);
-        db.lists[newId] = { name: listName, url: '', budget: 0, isTemplate: false, items };
-        db.currentId = newId;
-        activePage = 'lists';
-        save();
-        showNotification('✅ יובאו ' + items.length + ' רשומות — "' + listName + '"');
-    }
+    }));
+    db.lists[newId] = { name: nameLabel + ' - ' + today, url: '', budget: 0, isTemplate: false, items };
+    db.currentId = newId;
+    activePage = 'lists';
+    save();
+    showNotification('✅ יובאו ' + items.length + ' רשומות מ' + nameLabel + '!');
 }
 
 // ── Dynamic padding for list name bar ──
