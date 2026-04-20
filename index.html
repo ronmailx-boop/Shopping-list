@@ -2534,16 +2534,9 @@ ${error.message}
         <div style="display:flex;align-items:center;gap:10px;flex-shrink:0;">
             <div class="lnb-count" id="itemCountDisplay">0 פריטים</div>
             <!-- כפתור חיפוש -->
+
             <div id="searchIconBtn" onclick="event.stopPropagation();toggleListSearch();" style="width:32px;height:32px;border-radius:50%;background:rgba(255,255,255,0.2);border:1.5px solid rgba(255,255,255,0.3);display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all 0.2s;flex-shrink:0;">
                 <svg width="16" height="16" fill="none" stroke="white" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.35-4.35"/></svg>
-            </div>
-            <!-- כפתור + רשימה חדשה — מוצג רק בדף הרשימות שלי -->
-            <div id="summaryNewListBtn" onclick="event.stopPropagation(); wizardMode ? wiz('newList','before',()=>openModal('newListModal')) : openModal('newListModal');"
-                 style="display:none;width:32px;height:32px;border-radius:50%;background:rgba(255,255,255,0.2);border:1.5px solid rgba(255,255,255,0.3);align-items:center;justify-content:center;cursor:pointer;transition:all 0.2s;flex-shrink:0;"
-                 ontouchstart="this.style.transform='scale(0.88)'" ontouchend="this.style.transform='scale(1)'">
-                <svg width="16" height="16" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
-                    <path d="M12 5v14M5 12h14"/>
-                </svg>
             </div>
             <div class="lnb-arrow" id="lnbArrow"
                  onclick="event.stopPropagation(); toggleListActionsPanel();">▼</div>
@@ -2725,18 +2718,7 @@ ${error.message}
                 <canvas id="monthlyChart" height="200"></canvas>
             </div>
 
-            <div class="stat-card">
-                <h3 class="text-xl font-bold mb-4" id="categoryExpensesTitle">💰 הוצאות לפי קטגוריה</h3>
-                <div style="max-width: 350px; margin: 0 auto;">
-                    <canvas id="categoryDoughnutChart" height="250"></canvas>
-                </div>
-                <div id="categoryBreakdown" class="mt-4"></div>
-            </div>
 
-            <div class="stat-card">
-                <h3 class="text-xl font-bold mb-4" id="popularItemsTitle">🏆 מוצרים פופולריים</h3>
-                <div id="popularItems"></div>
-            </div>
 
             <div class="stat-card">
                 <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
@@ -2777,8 +2759,16 @@ ${error.message}
             <div id="tabLists"   onclick="tapTab('summary')" style="position:absolute;top:0;right:0;width:50%;bottom:0;z-index:10;cursor:pointer;"></div>
             <div id="tabSummary" onclick="tapTab('lists')"   style="position:absolute;top:0;left:0;width:50%;bottom:0;z-index:10;cursor:pointer;"></div>
 
-            <!-- כפתור + הועבר לבר הכותרת (summaryNewListBtn) -->
-            <div id="summaryPlusWrap" style="display:none;"></div>
+            <!-- כפתור + מוטבע בטאב הרשימות שלי — מוצג רק כשהטאב פעיל -->
+            <div id="summaryPlusWrap" style="display:none;position:absolute;top:50%;right:4%;transform:translateY(-50%);z-index:50;align-items:center;justify-content:center;">
+                <button onclick="event.stopPropagation(); wizardMode ? wiz('newList','before',()=>openModal('newListModal')) : openModal('newListModal');"
+                    style="width:26px;height:26px;border-radius:50%;background:#22c55e;border:2px solid rgba(255,255,255,0.5);display:flex;align-items:center;justify-content:center;box-shadow:0 2px 8px rgba(34,197,94,0.6);cursor:pointer;transition:transform 0.15s;"
+                    ontouchstart="event.stopPropagation();this.style.transform='scale(0.85)'" ontouchend="event.stopPropagation();this.style.transform='scale(1)'">
+                    <svg width="13" height="13" fill="none" stroke="white" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M12 5v14M5 12h14"/>
+                    </svg>
+                </button>
+            </div>
 
             <svg style="position:absolute;top:0;left:0;width:100%;height:100%;z-index:5;pointer-events:none;"
                  viewBox="0 0 400 52" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
@@ -4016,14 +4006,14 @@ ${error.message}
 
   <!-- ===== FINANCIAL PROGRESS OVERLAY ===== -->
   <div id="finProgressOverlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:9999;align-items:center;justify-content:center;backdrop-filter:blur(10px);">
-    <div style="background:white;border-radius:28px;padding:28px 24px 20px;width:92%;max-width:380px;text-align:center;direction:rtl;">
-        <div id="finProgressIcon" style="font-size:3rem;margin-bottom:10px;">🔐</div>
+    <div style="background:white;border-radius:28px;padding:32px 28px;width:88%;max-width:360px;text-align:center;">
+        <div id="finProgressIcon" style="font-size:3rem;margin-bottom:12px;">🔐</div>
         <div id="finProgressTitle" style="font-size:1.1rem;font-weight:900;color:#1e1b4b;margin-bottom:4px;">מתחבר...</div>
-        <div id="finProgressSub" style="font-size:13px;color:#6b7280;margin-bottom:16px;">אנא המתן</div>
-        <div style="background:#f3f4f6;border-radius:99px;height:8px;overflow:hidden;margin-bottom:16px;">
+        <div id="finProgressSub" style="font-size:13px;color:#6b7280;margin-bottom:20px;">אנא המתן</div>
+        <div style="background:#f3f4f6;border-radius:99px;height:8px;overflow:hidden;margin-bottom:20px;">
             <div id="finProgressBar" style="height:100%;border-radius:99px;background:linear-gradient(90deg,#7367f0,#0ea5e9);width:0%;transition:width 0.5s ease;"></div>
         </div>
-        <div style="display:flex;justify-content:center;gap:16px;margin-bottom:16px;">
+        <div style="display:flex;justify-content:center;gap:16px;">
             <div id="finStage1" style="display:flex;flex-direction:column;align-items:center;gap:4px;font-size:11px;color:#9ca3af;">
                 <div id="finDot1" style="width:28px;height:28px;border-radius:50%;background:#f3f4f6;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:12px;">1</div>חיבור
             </div>
@@ -4032,18 +4022,6 @@ ${error.message}
             </div>
             <div id="finStage3" style="display:flex;flex-direction:column;align-items:center;gap:4px;font-size:11px;color:#9ca3af;">
                 <div id="finDot3" style="width:28px;height:28px;border-radius:50%;background:#f3f4f6;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:12px;">3</div>עיבוד
-            </div>
-        </div>
-        <!-- Debug Log Panel -->
-        <div style="border-top:1px solid #e5e7eb;padding-top:12px;text-align:right;">
-            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
-                <button onclick="document.getElementById('finDebugLog').innerHTML='';window._finDebugLines=[];"
-                    style="font-size:10px;color:#9ca3af;background:#f3f4f6;border:none;cursor:pointer;padding:2px 8px;border-radius:6px;">נקה</button>
-                <span style="font-size:10px;font-weight:700;color:#9ca3af;">🪲 Debug Log</span>
-            </div>
-            <div id="finDebugLog"
-                style="background:#0f172a;border-radius:12px;padding:10px;height:130px;overflow-y:auto;font-family:'Courier New',monospace;font-size:10.5px;line-height:1.6;text-align:right;direction:rtl;">
-                <span style="color:#475569;">ממתין להתחלה...</span>
             </div>
         </div>
     </div>
