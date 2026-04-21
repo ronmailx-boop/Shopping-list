@@ -2212,12 +2212,22 @@ function searchInSummary() {
     }
 }
 
+// Helper: format dueDate as DD.M.YY (e.g. 20.4.26)
+function formatDueDateCompact(dateStr) {
+    if (!dateStr) return '';
+    const d = new Date(dateStr);
+    const day = d.getDate();
+    const month = d.getMonth() + 1;
+    const year = String(d.getFullYear()).slice(-2);
+    return `${day}.${month}.${year}`;
+}
+
 // Helper function to generate dueDate and notes HTML
 function generateItemMetadataHTML(item, idx) {
     let html = '';
     
-    // Build dueDate display — only when a reminder is set
-    if (item.dueDate && (item.reminderValue || (item.nextAlertTime && item.nextAlertTime > Date.now()))) {
+    // Build dueDate display — always when dueDate exists
+    if (item.dueDate) {
         const today = new Date();
         today.setHours(0, 0, 0, 0);
         const dueDate = new Date(item.dueDate);
@@ -2226,26 +2236,27 @@ function generateItemMetadataHTML(item, idx) {
         const diffTime = dueDate - today;
         const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
         
-        let dateClass = 'item-duedate-display';
-        let dateText = new Date(item.dueDate).toLocaleDateString('he-IL');
+        const formattedDate = formatDueDateCompact(item.dueDate);
+        let dateText = formattedDate;
         
         // Add time if exists
         if (item.dueTime) {
             dateText += ` ⏰ ${item.dueTime}`;
         }
         
+        let extraStyle = '';
+        let extraSuffix = '';
         if (diffDays < 0 && !item.checked && !item.isPaid) {
-            dateClass += ' overdue';
-            dateText += ' (עבר!)';
+            extraStyle = 'color:#ef4444;';
+            extraSuffix = ' (עבר!)';
         } else if (diffDays >= 0 && diffDays <= 3 && !item.checked && !item.isPaid) {
-            dateClass += ' soon';
+            extraStyle = 'color:#f59e0b;';
         }
         
-        // Add edit button for reminder
+        // Add reminder info if exists
         let reminderInfo = '';
         const now = Date.now();
         if (item.nextAlertTime && item.nextAlertTime > now) {
-            // יש snooze פעיל — הצג את זמן ה-snooze
             const snoozeDate = new Date(item.nextAlertTime);
             const sh = snoozeDate.getHours().toString().padStart(2, '0');
             const sm = snoozeDate.getMinutes().toString().padStart(2, '0');
@@ -2270,8 +2281,8 @@ function generateItemMetadataHTML(item, idx) {
             reminderInfo = ` 🔔 התראה בעוד ${formatReminderText(item.reminderValue, item.reminderUnit)} ב-${rh}:${rm}`;
         }
         
-        html += `<div style="display: flex; align-items: center; gap: 8px;">
-            <div class="${dateClass}">📅 ${dateText}${reminderInfo}</div>
+        html += `<div style="display:flex;align-items:center;gap:6px;margin-top:3px;">
+            <span style="font-size:13px;font-weight:700;${extraStyle || 'color:#7367f0;'}">📅 לתשלום: ${dateText}${extraSuffix}${reminderInfo}</span>
         </div>`;
     }
     
@@ -2507,16 +2518,32 @@ function render() {
                                     </div>
                                 `;
                             } else {
+                                const _cs_hasDueDate = !!item.dueDate;
                                 div.style.padding = '10px 14px';
-                                div.style.height = '68px';
                                 div.style.boxSizing = 'border-box';
+                                if (_cs_hasDueDate) { div.style.height = 'auto'; div.style.minHeight = '68px'; }
+                                else { div.style.height = '68px'; }
+                                let _cs_dateHTML = '';
+                                if (_cs_hasDueDate) {
+                                    const _fd = formatDueDateCompact(item.dueDate);
+                                    const _today = new Date(); _today.setHours(0,0,0,0);
+                                    const _dd = new Date(item.dueDate); _dd.setHours(0,0,0,0);
+                                    const _diff = Math.ceil((_dd - _today) / 86400000);
+                                    let _dc = '#7367f0', _ds = '';
+                                    if (_diff < 0 && !item.checked && !item.isPaid) { _dc = '#ef4444'; _ds = ' (עבר!)'; }
+                                    else if (_diff >= 0 && _diff <= 3 && !item.checked && !item.isPaid) { _dc = '#f59e0b'; }
+                                    _cs_dateHTML = `<div style="font-size:12px;font-weight:700;color:${_dc};margin-top:2px;line-height:1.2;">📅 לתשלום: ${_fd}${_ds}</div>`;
+                                }
                                 div.innerHTML = `
-                                    <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;height:100%;">
-                                        <div style="display:flex;align-items:center;gap:6px;flex:1;min-width:0;height:100%;">
+                                    <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;${_cs_hasDueDate ? 'min-height:48px;' : 'height:100%;'}">
+                                        <div style="display:flex;align-items:center;gap:6px;flex:1;min-width:0;${_cs_hasDueDate ? '' : 'height:100%;'}">
                                             <input type="checkbox" ${item.checked ? 'checked' : ''} onchange="toggleItem(${idx})" class="w-7 h-7 accent-indigo-600" style="flex-shrink:0;" onclick="event.stopPropagation()">
-                                            <span class="font-bold ${item.checked ? 'line-through text-gray-300' : ''}" style="font-size:15px;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;line-height:1.35;cursor:pointer;word-break:break-word;">
-                                                <span class="item-number">${itemNumber}.</span> ${item.name}
-                                            </span>
+                                            <div style="flex:1;min-width:0;">
+                                                <span class="font-bold ${item.checked ? 'line-through text-gray-300' : ''}" style="font-size:15px;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;line-height:1.35;cursor:pointer;word-break:break-word;">
+                                                    <span class="item-number">${itemNumber}.</span> ${item.name}
+                                                </span>
+                                                ${_cs_dateHTML}
+                                            </div>
                                         </div>
                                         ${item.isGeneralNote ? '' : `<span class="font-black text-indigo-600" style="font-size:15px;flex-shrink:0;">₪${sub.toFixed(2)}</span>`}
                                     </div>
@@ -2605,16 +2632,26 @@ function render() {
                                         </div>
                                     `;
                                 } else {
+                                    const _csc_hasDueDate = !!item.dueDate;
                                     div.style.padding = '10px 14px';
-                                    div.style.height = '68px';
                                     div.style.boxSizing = 'border-box';
+                                    if (_csc_hasDueDate) { div.style.height = 'auto'; div.style.minHeight = '68px'; }
+                                    else { div.style.height = '68px'; }
+                                    let _csc_dateHTML = '';
+                                    if (_csc_hasDueDate) {
+                                        const _fd = formatDueDateCompact(item.dueDate);
+                                        _csc_dateHTML = `<div style="font-size:12px;font-weight:700;color:#aaa;margin-top:2px;line-height:1.2;">📅 לתשלום: ${_fd}</div>`;
+                                    }
                                     div.innerHTML = `
-                                        <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;height:100%;">
-                                            <div style="display:flex;align-items:center;gap:6px;flex:1;min-width:0;height:100%;">
+                                        <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;${_csc_hasDueDate ? 'min-height:48px;' : 'height:100%;'}">
+                                            <div style="display:flex;align-items:center;gap:6px;flex:1;min-width:0;${_csc_hasDueDate ? '' : 'height:100%;'}">
                                                 <input type="checkbox" ${item.checked ? 'checked' : ''} onchange="toggleItem(${idx})" class="w-7 h-7 accent-indigo-600" style="flex-shrink:0;" onclick="event.stopPropagation()">
-                                                <span class="font-bold line-through text-gray-300" style="font-size:15px;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;line-height:1.35;cursor:pointer;word-break:break-word;">
-                                                    <span class="item-number">${itemNumber}.</span> ${item.name}
-                                                </span>
+                                                <div style="flex:1;min-width:0;">
+                                                    <span class="font-bold line-through text-gray-300" style="font-size:15px;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;line-height:1.35;cursor:pointer;word-break:break-word;">
+                                                        <span class="item-number">${itemNumber}.</span> ${item.name}
+                                                    </span>
+                                                    ${_csc_dateHTML}
+                                                </div>
                                             </div>
                                             ${item.isGeneralNote ? '' : `<span class="font-black text-indigo-600" style="font-size:15px;flex-shrink:0;opacity:0.5;">₪${sub.toFixed(2)}</span>`}
                                         </div>
@@ -2702,17 +2739,36 @@ function render() {
                         } else {
                             // Compact view רגיל / מצב מחיקה
                             const isDelSelected = compactDeleteMode && compactDeleteSelected.has(idx);
+                            const _hasDueDate = !!item.dueDate;
                             div.style.padding = '10px 14px';
-                            div.style.height = '68px';
                             div.style.boxSizing = 'border-box';
+                            if (_hasDueDate) {
+                                div.style.height = 'auto';
+                                div.style.minHeight = '68px';
+                            } else {
+                                div.style.height = '68px';
+                            }
                             if (isDelSelected) {
                                 div.style.background = 'rgba(239,68,68,0.06)';
                                 div.style.border = '1.5px solid rgba(239,68,68,0.4)';
                                 div.style.borderRadius = '25px';
                             }
+                            // Build compact date subline
+                            let _compactDateHTML = '';
+                            if (_hasDueDate) {
+                                const _fd = formatDueDateCompact(item.dueDate);
+                                const _today = new Date(); _today.setHours(0,0,0,0);
+                                const _dd = new Date(item.dueDate); _dd.setHours(0,0,0,0);
+                                const _diff = Math.ceil((_dd - _today) / 86400000);
+                                let _dateColor = '#7367f0';
+                                let _dateSuffix = '';
+                                if (_diff < 0 && !item.checked && !item.isPaid) { _dateColor = '#ef4444'; _dateSuffix = ' (עבר!)'; }
+                                else if (_diff >= 0 && _diff <= 3 && !item.checked && !item.isPaid) { _dateColor = '#f59e0b'; }
+                                _compactDateHTML = `<div style="font-size:12px;font-weight:700;color:${_dateColor};margin-top:2px;line-height:1.2;">📅 לתשלום: ${_fd}${_dateSuffix}</div>`;
+                            }
                             div.innerHTML = `
-                                <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;height:100%;">
-                                    <div style="display:flex;align-items:center;gap:6px;flex:1;min-width:0;height:100%;">
+                                <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;${_hasDueDate ? 'min-height:48px;' : 'height:100%;'}">
+                                    <div style="display:flex;align-items:${_hasDueDate ? 'center' : 'center'};gap:6px;flex:1;min-width:0;${_hasDueDate ? '' : 'height:100%;'}">
                                         ${compactDeleteMode ? `
                                         <div onclick="compactDeleteToggle(${idx})" style="width:24px;height:24px;border-radius:7px;border:2px solid ${isDelSelected ? '#ef4444' : '#ddd'};background:${isDelSelected ? '#ef4444' : 'white'};display:flex;align-items:center;justify-content:center;flex-shrink:0;cursor:pointer;transition:all 0.15s;">
                                             ${isDelSelected ? '<svg width="13" height="13" viewBox="0 0 13 13" fill="none"><path d="M2 6.5L5.5 10L11 3" stroke="white" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>' : ''}
@@ -2721,9 +2777,12 @@ function render() {
                                         <div class="item-drag-handle" data-drag="true" style="display:${itemEditMode ? 'flex' : 'none'};align-items:center;justify-content:center;width:26px;height:26px;flex-shrink:0;cursor:grab;color:#a89fff;touch-action:none;"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" style="pointer-events:none"><rect x="2" y="3" width="12" height="2" rx="1" fill="currentColor"/><rect x="2" y="7" width="12" height="2" rx="1" fill="currentColor"/><rect x="2" y="11" width="12" height="2" rx="1" fill="currentColor"/></svg></div>
                                         <input type="checkbox" ${item.checked ? 'checked' : ''} onchange="toggleItem(${idx})" class="w-7 h-7 accent-indigo-600" style="flex-shrink:0;" onclick="event.stopPropagation()">
                                         `}
-                                        <span class="font-bold ${item.checked && !compactDeleteMode ? 'line-through text-gray-300' : ''}" style="font-size:15px;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;line-height:1.35;cursor:pointer;word-break:break-word;">
-                                            <span class="item-number">${idx + 1}.</span> ${item.name}
-                                        </span>
+                                        <div style="flex:1;min-width:0;">
+                                            <span class="font-bold ${item.checked && !compactDeleteMode ? 'line-through text-gray-300' : ''}" style="font-size:15px;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;line-height:1.35;cursor:pointer;word-break:break-word;">
+                                                <span class="item-number">${idx + 1}.</span> ${item.name}
+                                            </span>
+                                            ${_compactDateHTML}
+                                        </div>
                                     </div>
                                     ${item.isGeneralNote ? '' : `<span class="font-black text-indigo-600" style="font-size:15px;flex-shrink:0;">₪${sub.toFixed(2)}</span>`}
                                 </div>
