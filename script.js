@@ -4626,6 +4626,8 @@ function openEditItemNameModal(idx) {
     document.getElementById('editItemPaymentUrl').value = item.paymentUrl || '';
     document.getElementById('editItemNotes').value = item.note || '';
     document.getElementById('editItemCategory').value = item.category || '';
+    const catLabel = document.getElementById('editItemCategoryLabel');
+    if (catLabel) catLabel.textContent = item.category || 'בחר קטגוריה (אופציונלי)';
     document.getElementById('editItemReminderValue').value = item.reminderValue || '';
     document.getElementById('editItemReminderUnit').value = item.reminderUnit || 'minutes';
 
@@ -4830,6 +4832,10 @@ if (!db.listsOrder) db.listsOrder = Object.keys(db.lists);
         showNotification('✓ הקטגוריה עודכנה');
     }
     closeModal('editCategoryModal');
+    const hiddenCat = document.getElementById('editItemCategory');
+    if (hiddenCat) hiddenCat.value = categoryName;
+    const catLabel = document.getElementById('editItemCategoryLabel');
+    if (catLabel) catLabel.textContent = categoryName;
 }
 
 function saveCustomCategory() {
