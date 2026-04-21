@@ -3189,19 +3189,13 @@ ${error.message}
                 <input type="time" id="itemDueTime" class="modal-input">
                 <input type="url" id="itemPaymentUrl" placeholder="🔗 קישור לתשלום (אופציונלי)" class="modal-input">
                 <input type="text" id="itemNotes" placeholder="📝 הערות (אופציונלי)" class="modal-input">
-                <select id="itemCategory" class="modal-input">
-                    <option value="">בחר קטגוריה (אופציונלי)</option>
-                    <option value="פירות וירקות">🥬 פירות וירקות</option>
-                    <option value="בשר ודגים">🥩 בשר ודגים</option>
-                    <option value="חלב וביצים">🥛 חלב וביצים</option>
-                    <option value="לחם ומאפים">🍞 לחם ומאפים</option>
-                    <option value="שימורים">🥫 שימורים</option>
-                    <option value="חטיפים">🍪 חטיפים</option>
-                    <option value="משקאות">🥤 משקאות</option>
-                    <option value="ניקיון">🧹 ניקיון</option>
-                    <option value="היגיינה">🧴 היגיינה</option>
-                    <option value="אחר">📦 אחר</option>
-                </select>
+                <input type="hidden" id="itemCategory">
+                <button type="button" id="itemCategoryBtn" class="modal-input"
+                    onclick="openAddItemCategoryModal()"
+                    style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;background:#f8f7ff;border:2px solid #e0dcff;color:#5b4fcf;font-weight:700;width:100%;text-align:right;">
+                    <span>▾</span>
+                    <span id="itemCategoryLabel">בחר קטגוריה (אופציונלי)</span>
+                </button>
                 <div style="margin-bottom: 8px;">
                     <label class="text-sm font-bold text-gray-600 block text-center mb-1">🔔 צור התראה לפני</label>
                     <div class="flex gap-2">

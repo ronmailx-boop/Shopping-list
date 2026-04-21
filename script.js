@@ -1814,6 +1814,8 @@ function openModal(id) {
         document.getElementById('itemPrice').value = '';
         document.getElementById('itemQty').value = '1';
         document.getElementById('itemCategory').value = '';
+        const _lbl = document.getElementById('itemCategoryLabel');
+        if (_lbl) _lbl.textContent = 'בחר קטגוריה (אופציונלי)';
 
         // Init context bar (which list to add to)
         initContextBar();
@@ -4283,6 +4285,8 @@ if (!db.listsOrder) db.listsOrder = Object.keys(db.lists);
         if (document.getElementById('itemPrice')) document.getElementById('itemPrice').value = '';
         if (document.getElementById('itemQty')) document.getElementById('itemQty').value = '1';
         if (document.getElementById('itemCategory')) document.getElementById('itemCategory').value = '';
+        const _lbl2 = document.getElementById('itemCategoryLabel');
+        if (_lbl2) _lbl2.textContent = 'בחר קטגוריה (אופציונלי)';
         if (document.getElementById('itemDueDate')) document.getElementById('itemDueDate').value = '';
         if (document.getElementById('itemDueTime')) document.getElementById('itemDueTime').value = '';
         if (document.getElementById('itemPaymentUrl')) document.getElementById('itemPaymentUrl').value = '';
@@ -4714,6 +4718,77 @@ function saveItemName() {
     closeModal('editItemNameModal');
 }
 
+function openAddItemCategoryModal() {
+    currentEditIdx = null; // מצב הוספה — לא עריכה
+    window._addItemCategoryMode = true;
+    const currentCat = document.getElementById('itemCategory') ? document.getElementById('itemCategory').value : '';
+
+    const categoryOptionsContainer = document.getElementById('categoryOptions');
+    categoryOptionsContainer.innerHTML = '';
+
+    for (const categoryName in CATEGORIES) {
+        const color = CATEGORIES[categoryName];
+        const isSelected = currentCat === categoryName;
+        const button = document.createElement('button');
+        button.className = `w-full py-3 px-4 rounded-xl font-bold mb-2 transition-all ${isSelected ? 'ring-4 ring-offset-2' : 'hover:scale-105'}`;
+        button.style.backgroundColor = color + '20';
+        button.style.color = color;
+        button.style.border = `2px solid ${color}`;
+        button.textContent = isSelected ? `✓ ${categoryName}` : categoryName;
+        button.onclick = () => selectCategory(categoryName);
+        categoryOptionsContainer.appendChild(button);
+    }
+
+    const shownCats = new Set(Object.keys(CATEGORIES));
+    const extraCats = Object.keys(CATEGORY_KEYWORDS || {}).filter(c => !shownCats.has(c));
+    const orphanCats = new Set();
+    Object.values(db.lists).forEach(list => {
+        (list.items || []).forEach(i => {
+            if (i.category && !shownCats.has(i.category) && !extraCats.includes(i.category)) orphanCats.add(i.category);
+        });
+    });
+    if (extraCats.length > 0 || orphanCats.size > 0) {
+        const sep = document.createElement('div');
+        sep.className = 'text-sm font-bold text-gray-500 mt-3 mb-2';
+        sep.textContent = '🗂️ קטגוריות נוספות';
+        categoryOptionsContainer.appendChild(sep);
+        [...extraCats, ...orphanCats].forEach(categoryName => {
+            const color = ((CAT_ANALYSIS_CFG || {})[categoryName] || {}).hex || '#7c3aed';
+            const isSelected = currentCat === categoryName;
+            const button = document.createElement('button');
+            button.className = `w-full py-3 px-4 rounded-xl font-bold mb-2 transition-all ${isSelected ? 'ring-4 ring-offset-2' : 'hover:scale-105'}`;
+            button.style.backgroundColor = color + '20';
+            button.style.color = color;
+            button.style.border = `2px solid ${color}`;
+            button.textContent = isSelected ? `✓ ${categoryName}` : categoryName;
+            button.onclick = () => selectCategory(categoryName);
+            categoryOptionsContainer.appendChild(button);
+            shownCats.add(categoryName);
+        });
+    }
+    const customNotShown = (db.customCategories || []).filter(c => !shownCats.has(c));
+    if (customNotShown.length > 0) {
+        const sep2 = document.createElement('div');
+        sep2.className = 'text-sm font-bold text-gray-500 mt-3 mb-2';
+        sep2.textContent = '✨ קטגוריות מותאמות אישית';
+        categoryOptionsContainer.appendChild(sep2);
+        customNotShown.forEach(categoryName => {
+            const color = CATEGORIES[categoryName] || '#6b7280';
+            const isSelected = currentCat === categoryName;
+            const button = document.createElement('button');
+            button.className = `w-full py-3 px-4 rounded-xl font-bold mb-2 transition-all ${isSelected ? 'ring-4 ring-offset-2' : 'hover:scale-105'}`;
+            button.style.backgroundColor = color + '20';
+            button.style.color = color;
+            button.style.border = `2px solid ${color}`;
+            button.textContent = isSelected ? `✓ ${categoryName}` : categoryName;
+            button.onclick = () => selectCategory(categoryName);
+            categoryOptionsContainer.appendChild(button);
+        });
+    }
+    document.getElementById('customCategoryInput').value = '';
+    openModal('editCategoryModal');
+}
+
 function openEditCategoryModal(idx) {
     currentEditIdx = idx;
     const item = db.lists[db.currentId].items[idx];
@@ -4818,16 +4893,23 @@ function openEditCategoryModal(idx) {
 }
 
 function selectCategory(categoryName) {
+    if (window._addItemCategoryMode) {
+        // מצב הוספת מוצר — רק מסנכרן לשדה הנסתר
+        window._addItemCategoryMode = false;
+        closeModal('editCategoryModal');
+        const hiddenCat = document.getElementById('itemCategory');
+        if (hiddenCat) hiddenCat.value = categoryName;
+        const lbl = document.getElementById('itemCategoryLabel');
+        if (lbl) lbl.textContent = categoryName;
+        return;
+    }
     if (currentEditIdx !== null) {
         const item = db.lists[db.currentId].items[currentEditIdx];
         item.category = categoryName;
-        
-        // Update category memory for this product
         if (!db.categoryMemory) db.categoryMemory = {};
 // סדר רשימות מפורש — מונע שינוי סדר בטעינה מ-Firebase
 if (!db.listsOrder) db.listsOrder = Object.keys(db.lists);
         db.categoryMemory[item.name.toLowerCase().trim()] = categoryName;
-        
         save();
         showNotification('✓ הקטגוריה עודכנה');
     }
