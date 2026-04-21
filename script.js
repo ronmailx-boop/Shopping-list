@@ -4894,11 +4894,10 @@ function openEditCategoryModal(idx) {
 
 function selectCategory(categoryName) {
     if (window._addItemCategoryMode) {
-        // מצב הוספת מוצר — רק מסנכרן לשדה הנסתר
         window._addItemCategoryMode = false;
         closeModal('editCategoryModal');
-        const hiddenCat = document.getElementById('itemCategory');
-        if (hiddenCat) hiddenCat.value = categoryName;
+        const sel = document.getElementById('itemCategory');
+        if (sel) sel.value = categoryName;
         const lbl = document.getElementById('itemCategoryLabel');
         if (lbl) lbl.textContent = categoryName;
         return;
@@ -4914,8 +4913,8 @@ if (!db.listsOrder) db.listsOrder = Object.keys(db.lists);
         showNotification('✓ הקטגוריה עודכנה');
     }
     closeModal('editCategoryModal');
-    const hiddenCat = document.getElementById('editItemCategory');
-    if (hiddenCat) hiddenCat.value = categoryName;
+    const editSel = document.getElementById('editItemCategory');
+    if (editSel) editSel.value = categoryName;
     const catLabel = document.getElementById('editItemCategoryLabel');
     if (catLabel) catLabel.textContent = categoryName;
 }
