@@ -990,6 +990,40 @@
             height: 68px;
             box-sizing: border-box;
         }
+        #summaryContainer.compact-lists .summary-compact-row.has-fixed-charge {
+            height: auto;
+            flex-wrap: wrap;
+            padding-bottom: 0;
+        }
+        #summaryContainer.compact-lists .summary-compact-row.has-fixed-charge .crow-main-row {
+            display: flex; align-items: center; gap: 10px;
+            width: 100%; min-height: 48px; padding-bottom: 8px;
+        }
+        .fixed-strip {
+            width: 100%; display: flex; gap: 8px;
+            border-top: 1px solid rgba(0,0,0,0.07);
+            padding: 8px 0 10px;
+        }
+        .fs-pill {
+            flex: 1; padding: 7px 10px; border-radius: 10px; text-align: center;
+        }
+        .fs-pill.this-month {
+            background: rgba(115,103,240,0.1);
+            border: 1.5px solid rgba(115,103,240,0.25);
+        }
+        .fs-pill.deferred {
+            background: rgba(245,158,11,0.08);
+            border: 1.5px solid rgba(245,158,11,0.3);
+        }
+        .fs-label { font-size: 10px; font-weight: 700; color: rgba(115,103,240,0.7); margin-bottom: 2px; }
+        .fs-pill.deferred .fs-label { color: rgba(180,120,0,0.8); }
+        .fs-amount { font-size: 14px; font-weight: 900; color: #7367f0; }
+        .fs-pill.deferred .fs-amount { color: #d97706; }
+        .list-settings-btn {
+            background: rgba(115,103,240,0.15); border: none;
+            border-radius: 8px; padding: 4px 7px; font-size: 13px;
+            cursor: pointer; flex-shrink: 0; color: #7367f0; line-height: 1;
+        }
         #summaryContainer.compact-lists .summary-compact-row:active { transform: scale(0.98); }
         #summaryContainer.compact-lists .summary-compact-row .crow-name {
             flex: 1; font-size: 14px; font-weight: 800; color: #7367f0;
@@ -3363,13 +3397,19 @@ ${error.message}
                 <input type="time" id="editItemDueTime" class="modal-input">
                 <input type="url" id="editItemPaymentUrl" placeholder="🔗 קישור לתשלום (אופציונלי)" class="modal-input">
                 <input type="text" id="editItemNotes" placeholder="📝 הערות (אופציונלי)" class="modal-input">
-                <input type="hidden" id="editItemCategory">
-                <button type="button" id="editItemCategoryBtn" class="modal-input"
-                    onclick="openEditCategoryModal(currentEditIdx)"
-                    style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;background:#f8f7ff;border:2px solid #e0dcff;color:#5b4fcf;font-weight:700;width:100%;text-align:right;">
-                    <span>▾</span>
-                    <span id="editItemCategoryLabel">בחר קטגוריה (אופציונלי)</span>
-                </button>
+                <select id="editItemCategory" class="modal-input">
+                    <option value="">בחר קטגוריה (אופציונלי)</option>
+                    <option value="פירות וירקות">🥬 פירות וירקות</option>
+                    <option value="בשר ודגים">🥩 בשר ודגים</option>
+                    <option value="חלב וביצים">🥛 חלב וביצים</option>
+                    <option value="לחם ומאפים">🍞 לחם ומאפים</option>
+                    <option value="שימורים">🥫 שימורים</option>
+                    <option value="חטיפים">🍪 חטיפים</option>
+                    <option value="משקאות">🥤 משקאות</option>
+                    <option value="ניקיון">🧹 ניקיון</option>
+                    <option value="היגיינה">🧴 היגיינה</option>
+                    <option value="אחר">📦 אחר</option>
+                </select>
                 <div style="margin-bottom: 8px;">
                     <label class="text-sm font-bold text-gray-600 block text-center mb-1">🔔 צור התראה לפני</label>
                     <div class="flex gap-2">
@@ -4213,5 +4253,41 @@ ${error.message}
     <div style="padding:0 12px 24px;" id="catDrillBody"></div>
   </div>
 
+<!-- ══ מודל הגדרות רשימה (חיוב קבוע) ══ -->
+<div id="listSettingsModal" style="
+    position:fixed;inset:0;background:rgba(0,0,0,0.45);
+    display:flex;align-items:flex-end;justify-content:center;
+    z-index:9999;opacity:0;pointer-events:none;transition:opacity 0.25s;
+" onclick="if(event.target===this)closeListSettingsModal()">
+    <div style="
+        background:white;border-radius:24px 24px 0 0;
+        padding:20px 20px 36px;width:100%;max-width:480px;
+        transform:translateY(40px);transition:transform 0.3s;
+    " id="listSettingsSheet">
+        <div style="width:40px;height:4px;background:#e0dcff;border-radius:4px;margin:0 auto 18px;"></div>
+        <div style="font-size:17px;font-weight:900;color:#3d3480;margin-bottom:16px;text-align:center;" id="listSettingsTitle">⚙️ הגדרות רשימה</div>
+
+        <div style="margin-bottom:14px;">
+            <div style="font-size:12px;font-weight:700;color:#9e98d4;margin-bottom:6px;">💳 חיוב קבוע חודשי (₪)</div>
+            <input id="listFixedChargeInput" type="number" inputmode="decimal" min="0" placeholder="0 = ללא חיוב קבוע"
+                style="width:100%;padding:12px 14px;border-radius:12px;border:2px solid #e8e3ff;
+                font-size:16px;font-weight:700;color:#3d3480;outline:none;font-family:inherit;
+                background:#faf9ff;box-sizing:border-box;">
+        </div>
+
+        <div style="background:#f0eeff;border-radius:12px;padding:12px 14px;font-size:12px;color:#6b5fcf;line-height:1.6;margin-bottom:16px;">
+            <strong>איך זה עובד?</strong><br>
+            הסכום שתזין יוצג כ"חיוב קבוע החודש" על כרטיס הרשימה.<br>
+            יתרת הסכום תוצג כ"נדחה לחודש הבא".<br>
+            הזן 0 או השאר ריק כדי לבטל את החיוב הקבוע.
+        </div>
+
+        <button onclick="saveListFixedCharge()"
+            style="width:100%;padding:14px;border-radius:14px;
+            background:linear-gradient(135deg,#7367f0,#9e95f5);
+            color:white;font-size:16px;font-weight:800;border:none;
+            cursor:pointer;font-family:inherit;">✓ שמור</button>
+    </div>
+</div>
 </body>
 </html>
