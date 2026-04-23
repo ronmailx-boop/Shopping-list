@@ -11157,13 +11157,13 @@ function openItemSortSheet() {
     backdrop.onclick = () => overlay.remove();
 
     const sheet = document.createElement('div');
-    sheet.style.cssText = 'position:relative;background:#2a2a2a;border-radius:24px 24px 0 0;z-index:1;padding:0 0 40px;animation:sortSlideUp 0.25s ease-out;direction:rtl;';
+    sheet.style.cssText = 'position:relative;background:#fff;border-radius:24px 24px 0 0;z-index:1;padding:0 0 40px;animation:sortSlideUp 0.25s ease-out;direction:rtl;box-shadow:0 -4px 30px rgba(115,103,240,0.15);';
 
     const handle = document.createElement('div');
-    handle.style.cssText = 'width:40px;height:4px;background:#555;border-radius:2px;margin:16px auto 4px;';
+    handle.style.cssText = 'width:40px;height:4px;background:rgba(115,103,240,0.3);border-radius:2px;margin:16px auto 4px;';
 
     const title = document.createElement('div');
-    title.style.cssText = 'font-size:14px;color:#999;font-weight:700;padding:12px 24px 8px;text-align:right;letter-spacing:0.5px;border-bottom:1px solid #333;margin-bottom:4px;';
+    title.style.cssText = 'font-size:13px;color:#7367f0;font-weight:800;padding:12px 24px 8px;text-align:right;letter-spacing:0.5px;border-bottom:1px solid rgba(115,103,240,0.12);margin-bottom:4px;';
     title.textContent = 'מיון לפי';
 
     sheet.appendChild(handle);
@@ -11172,13 +11172,13 @@ function openItemSortSheet() {
     SORT_OPTIONS.forEach(opt => {
         const isActive = itemSortMode === opt.id;
         const btn = document.createElement('button');
-        btn.style.cssText = `display:flex;width:100%;align-items:center;justify-content:space-between;padding:16px 28px;background:none;border:none;border-bottom:1px solid #333;cursor:pointer;transition:background 0.15s;`;
+        btn.style.cssText = `display:flex;width:100%;align-items:center;justify-content:space-between;padding:16px 28px;background:${isActive ? 'rgba(115,103,240,0.07)' : 'none'};border:none;border-bottom:1px solid rgba(115,103,240,0.08);cursor:pointer;transition:background 0.15s;`;
         btn.innerHTML = `
-            <span style="color:${isActive ? '#7c9ff5' : '#777'};font-size:13px;min-width:16px;">${isActive ? '✓' : ''}</span>
-            <span style="color:${isActive ? '#7c9ff5' : '#fff'};font-size:17px;font-weight:${isActive ? '700' : '400'};font-family:inherit;">${opt.label}</span>
+            <span style="color:#7367f0;font-size:14px;min-width:16px;font-weight:700;">${isActive ? '✓' : ''}</span>
+            <span style="color:${isActive ? '#7367f0' : '#1a1a2e'};font-size:17px;font-weight:${isActive ? '700' : '400'};font-family:inherit;">${opt.label}</span>
         `;
-        btn.onmouseenter = () => btn.style.background = '#333';
-        btn.onmouseleave = () => btn.style.background = 'none';
+        btn.onmouseenter = () => btn.style.background = 'rgba(115,103,240,0.1)';
+        btn.onmouseleave = () => btn.style.background = isActive ? 'rgba(115,103,240,0.07)' : 'none';
         btn.onclick = () => { overlay.remove(); applyItemSort(opt.id); };
         sheet.appendChild(btn);
     });
@@ -11223,9 +11223,17 @@ function applyItemSort(mode) {
     if (mode === 'name_asc') {
         list.items.sort((a, b) => (a.name || '').localeCompare(b.name || '', 'he'));
     } else if (mode === 'date_new') {
-        list.items.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+        list.items.sort((a, b) => {
+            const aTs = a.dueDate ? new Date(a.dueDate).getTime() : (a.createdAt || 0);
+            const bTs = b.dueDate ? new Date(b.dueDate).getTime() : (b.createdAt || 0);
+            return bTs - aTs;
+        });
     } else if (mode === 'date_old') {
-        list.items.sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0));
+        list.items.sort((a, b) => {
+            const aTs = a.dueDate ? new Date(a.dueDate).getTime() : (a.createdAt || 0);
+            const bTs = b.dueDate ? new Date(b.dueDate).getTime() : (b.createdAt || 0);
+            return aTs - bTs;
+        });
     }
 
     save();
