@@ -2307,6 +2307,7 @@ let compactActionsOpen = false;
 let expandedItemIdx = -1; // מוצר מורחב ב-compact mode
 let listEditMode = false;  // מצב עריכת סדר רשימות
 let itemEditMode = false;  // מצב עריכת סדר מוצרים
+let itemSortMode = 'manual'; // מצב מיון נוכחי: 'manual' | 'name_asc' | 'date_new' | 'date_old'
 let compactStatsOpen = false; // הצגת סכום בבר compact
 let compactDeleteMode = false;   // מצב מחיקה מרובה ב-compact
 let compactDeleteSelected = new Set(); // אינדקסים שנבחרו למחיקה
@@ -11116,19 +11117,119 @@ function setupListDrag() {
 }
 
 // ════════════════════════════════════════════════
-// ✏️ סדר מוצרים — Item Edit Mode
+// ✏️ סדר מוצרים — Item Edit Mode + Sort Sheet
 // ════════════════════════════════════════════════
 function toggleItemEditMode() {
-    itemEditMode = !itemEditMode;
-    const btn = document.getElementById('itemEditModeBtn');
-    if (btn) {
-        btn.textContent = itemEditMode ? '✅ סיום' : '✏️ סדר מוצרים';
-        btn.style.background = itemEditMode ? '#7367f0' : 'rgba(115,103,240,0.08)';
-        btn.style.color = itemEditMode ? '#fff' : '#7367f0';
-        btn.style.borderColor = itemEditMode ? '#7367f0' : 'rgba(115,103,240,0.25)';
+    if (itemEditMode) {
+        // יציאה ממצב גרירה ידנית
+        itemEditMode = false;
+        const btn = document.getElementById('itemEditModeBtn');
+        if (btn) {
+            btn.textContent = '✏️ סדר מוצרים';
+            btn.style.background = 'rgba(115,103,240,0.08)';
+            btn.style.color = '#7367f0';
+            btn.style.borderColor = 'rgba(115,103,240,0.25)';
+        }
+        render();
+    } else {
+        openItemSortSheet();
     }
+}
+
+function openItemSortSheet() {
+    // הסר גיליון קיים אם פתוח
+    const existing = document.getElementById('itemSortSheet');
+    if (existing) existing.remove();
+
+    const SORT_OPTIONS = [
+        { id: 'manual',   label: 'סידור ידני (גרירה)',    icon: '✋' },
+        { id: 'name_asc', label: 'שם המוצר (א\' עד ת\')', icon: '🔤' },
+        { id: 'date_new', label: 'תאריך (מהחדש לישן)',    icon: '📅' },
+        { id: 'date_old', label: 'תאריך (מהישן לחדש)',    icon: '📅' },
+    ];
+
+    const overlay = document.createElement('div');
+    overlay.id = 'itemSortSheet';
+    overlay.style.cssText = 'position:fixed;inset:0;z-index:9000;display:flex;flex-direction:column;justify-content:flex-end;';
+
+    const backdrop = document.createElement('div');
+    backdrop.style.cssText = 'position:absolute;inset:0;background:rgba(0,0,0,0.45);animation:sortFadeIn 0.2s ease;';
+    backdrop.onclick = () => overlay.remove();
+
+    const sheet = document.createElement('div');
+    sheet.style.cssText = 'position:relative;background:#2a2a2a;border-radius:24px 24px 0 0;z-index:1;padding:0 0 40px;animation:sortSlideUp 0.25s ease-out;direction:rtl;';
+
+    const handle = document.createElement('div');
+    handle.style.cssText = 'width:40px;height:4px;background:#555;border-radius:2px;margin:16px auto 4px;';
+
+    const title = document.createElement('div');
+    title.style.cssText = 'font-size:14px;color:#999;font-weight:700;padding:12px 24px 8px;text-align:right;letter-spacing:0.5px;border-bottom:1px solid #333;margin-bottom:4px;';
+    title.textContent = 'מיון לפי';
+
+    sheet.appendChild(handle);
+    sheet.appendChild(title);
+
+    SORT_OPTIONS.forEach(opt => {
+        const isActive = itemSortMode === opt.id;
+        const btn = document.createElement('button');
+        btn.style.cssText = `display:flex;width:100%;align-items:center;justify-content:space-between;padding:16px 28px;background:none;border:none;border-bottom:1px solid #333;cursor:pointer;transition:background 0.15s;`;
+        btn.innerHTML = `
+            <span style="color:${isActive ? '#7c9ff5' : '#777'};font-size:13px;min-width:16px;">${isActive ? '✓' : ''}</span>
+            <span style="color:${isActive ? '#7c9ff5' : '#fff'};font-size:17px;font-weight:${isActive ? '700' : '400'};font-family:inherit;">${opt.label}</span>
+        `;
+        btn.onmouseenter = () => btn.style.background = '#333';
+        btn.onmouseleave = () => btn.style.background = 'none';
+        btn.onclick = () => { overlay.remove(); applyItemSort(opt.id); };
+        sheet.appendChild(btn);
+    });
+
+    overlay.appendChild(backdrop);
+    overlay.appendChild(sheet);
+    document.body.appendChild(overlay);
+
+    // הוסף keyframes אם עדיין לא קיימים
+    if (!document.getElementById('sortSheetStyles')) {
+        const style = document.createElement('style');
+        style.id = 'sortSheetStyles';
+        style.textContent = `
+            @keyframes sortFadeIn  { from { opacity:0 } to { opacity:1 } }
+            @keyframes sortSlideUp { from { transform:translateY(100%) } to { transform:translateY(0) } }
+        `;
+        document.head.appendChild(style);
+    }
+}
+
+function applyItemSort(mode) {
+    itemSortMode = mode;
+    const list = db.lists[db.currentId];
+    if (!list) return;
+
+    if (mode === 'manual') {
+        // הפעל מצב גרירה ידנית
+        itemEditMode = true;
+        const btn = document.getElementById('itemEditModeBtn');
+        if (btn) {
+            btn.textContent = '✅ סיום';
+            btn.style.background = '#7367f0';
+            btn.style.color = '#fff';
+            btn.style.borderColor = '#7367f0';
+        }
+        render();
+        setupItemDrag();
+        return;
+    }
+
+    // מיין את המוצרים לפי המצב שנבחר
+    if (mode === 'name_asc') {
+        list.items.sort((a, b) => (a.name || '').localeCompare(b.name || '', 'he'));
+    } else if (mode === 'date_new') {
+        list.items.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+    } else if (mode === 'date_old') {
+        list.items.sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0));
+    }
+
+    save();
     render();
-    if (itemEditMode) setupItemDrag();
 }
 
 let _itemDragAbort = null;
