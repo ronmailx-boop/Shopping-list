@@ -3535,19 +3535,38 @@ function renderCategoryAnalysis() {
     const itemsEl = document.getElementById('catTotalItems');
     if (!listEl) return;
 
-    // צבור כל הפריטים מכל הרשימות
+    // צבור פריטים שנקנו: מסומנים מרשימות פעילות + כל פריטי ההיסטוריה
     const catMap = {};
     let grandTotal = 0;
     let itemCount  = 0;
 
+    // רשימות פעילות — רק פריטים מסומנים (נקנו)
     Object.entries(db.lists).forEach(([listId, list]) => {
         if (list.isTemplate) return;
         (list.items || []).forEach((item, itemIdx) => {
-            const cat = item.category || 'כללי';
+            if (!item.checked) return; // דלג על פריטים שלא נקנו
+            let cat = item.category || detectCategory(item.name) || 'אחר';
+            if (!cat || !CATEGORIES[cat]) cat = 'אחר';
             const price = (item.price || 0) * (item.qty || 1);
             if (!catMap[cat]) catMap[cat] = { sum: 0, items: [] };
             catMap[cat].sum   += price;
             catMap[cat].items.push({ ...item, _listId: listId, _listName: list.name, _itemIdx: itemIdx });
+            grandTotal += price;
+            itemCount++;
+        });
+    });
+
+    // רשימות שהושלמו (היסטוריה) — כל הפריטים נחשבים כנקנו
+    (db.history || []).forEach((entry, entryIdx) => {
+        const listId  = `history_${entryIdx}`;
+        const listName = entry.name || 'רשימה שהושלמה';
+        (entry.items || []).forEach((item, itemIdx) => {
+            let cat = item.category || detectCategory(item.name) || 'אחר';
+            if (!cat || !CATEGORIES[cat]) cat = 'אחר';
+            const price = (item.price || 0) * (item.qty || 1);
+            if (!catMap[cat]) catMap[cat] = { sum: 0, items: [] };
+            catMap[cat].sum   += price;
+            catMap[cat].items.push({ ...item, _listId: listId, _listName: listName, _itemIdx: itemIdx });
             grandTotal += price;
             itemCount++;
         });
