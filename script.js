@@ -900,6 +900,7 @@ let categorySortEnabled = localStorage.getItem('categorySortEnabled') === 'true'
 // Backwards compatibility: Initialize new properties if they don't exist
 if (!db.customCategories) db.customCategories = [];
 if (!db.categoryMemory) db.categoryMemory = {};
+if (!db.pricebook) db.pricebook = {};
 // סדר רשימות מפורש — מונע שינוי סדר בטעינה מ-Firebase
 if (!db.listsOrder) db.listsOrder = Object.keys(db.lists);
 
@@ -2064,6 +2065,17 @@ function getProductHistory() {
         });
     }
 
+    // Pricebook overrides history prices
+    if (db.pricebook) {
+        Object.entries(db.pricebook).forEach(([name, data]) => {
+            if (productMap[name]) {
+                productMap[name].price = data.price;
+            } else {
+                productMap[name] = { price: data.price, category: data.category || '', lastUsed: 0 };
+            }
+        });
+    }
+
     return productMap;
 }
 
@@ -2135,6 +2147,93 @@ function hideAutocompleteSuggestions() {
             container.innerHTML = '';
         }, 200);
     }
+}
+
+// ========== Macheron (Price Book) ==========
+function openMacheron() {
+    openModal('macheronModal');
+    const searchEl = document.getElementById('macheronSearch');
+    if (searchEl) searchEl.value = '';
+    renderMacheron();
+}
+
+function renderMacheron() {
+    const container = document.getElementById('macheronContent');
+    if (!container) return;
+
+    const search = (document.getElementById('macheronSearch')?.value || '').trim();
+    const productHistory = getProductHistory();
+
+    let products = Object.entries(productHistory);
+    if (search.length >= 1) {
+        products = products.filter(([name]) => name.includes(search));
+    }
+    products.sort((a, b) => b[1].lastUsed - a[1].lastUsed);
+
+    if (products.length === 0) {
+        container.innerHTML = '<div style="text-align:center;color:#9ca3af;padding:32px 0;">אין מוצרים בהיסטוריה</div>';
+        return;
+    }
+
+    container.innerHTML = products.map(([name, data], idx) => {
+        const hasPrice = data.price > 0;
+        const escapedName = name.replace(/'/g, "\\'");
+        return `
+        <div style="border-bottom:1px solid #f3f4f6;padding:10px 2px;">
+            <div style="display:flex;align-items:center;gap:10px;">
+                <div style="width:8px;height:8px;border-radius:50%;background:#7367f0;flex-shrink:0;"></div>
+                <div style="flex:1;min-width:0;">
+                    <div style="font-size:14px;font-weight:600;color:#1e1b4b;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${name}</div>
+                    ${data.category ? `<div style="font-size:11px;color:#9ca3af;">${data.category}</div>` : ''}
+                </div>
+                <button onclick="toggleMacheronEdit(${idx})"
+                    style="background:${hasPrice ? '#f5f3ff' : '#f3f4f6'};color:${hasPrice ? '#7367f0' : '#9ca3af'};
+                           border:none;border-radius:20px;padding:5px 12px;font-size:13px;font-weight:700;
+                           cursor:pointer;font-family:inherit;white-space:nowrap;">
+                    ${hasPrice ? '&#8362;' + data.price.toFixed(2) : '+ הוסף מחיר'}
+                </button>
+            </div>
+            <div id="medit-${idx}" style="display:none;margin-top:8px;">
+                <div style="display:flex;gap:8px;align-items:center;">
+                    <span style="font-size:13px;color:#6b7280;">&#8362;</span>
+                    <input type="number" inputmode="decimal" id="minput-${idx}"
+                           value="${hasPrice ? data.price : ''}" placeholder="0.00"
+                           style="flex:1;border:1.5px solid #7367f0;border-radius:10px;padding:7px 10px;
+                                  font-size:14px;font-family:inherit;outline:none;"
+                           onkeydown="if(event.key==='Enter') saveMacheronPrice('${escapedName}',${idx})">
+                    <button onclick="toggleMacheronEdit(${idx})"
+                        style="background:#f3f4f6;border:none;border-radius:8px;padding:7px 12px;
+                               font-size:12px;cursor:pointer;color:#6b7280;">ביטול</button>
+                    <button onclick="saveMacheronPrice('${escapedName}',${idx})"
+                        style="background:linear-gradient(135deg,#7367f0,#9055ff);border:none;border-radius:8px;
+                               padding:7px 14px;font-size:12px;font-weight:700;color:#fff;cursor:pointer;">שמור</button>
+                </div>
+            </div>
+        </div>`;
+    }).join('');
+}
+
+function toggleMacheronEdit(idx) {
+    const editDiv = document.getElementById('medit-' + idx);
+    if (!editDiv) return;
+    const isOpen = editDiv.style.display !== 'none';
+    editDiv.style.display = isOpen ? 'none' : 'block';
+    if (!isOpen) {
+        setTimeout(() => {
+            const input = document.getElementById('minput-' + idx);
+            if (input) input.focus();
+        }, 50);
+    }
+}
+
+function saveMacheronPrice(name, idx) {
+    const input = document.getElementById('minput-' + idx);
+    if (!input) return;
+    const price = parseFloat(input.value) || 0;
+    if (!db.pricebook) db.pricebook = {};
+    db.pricebook[name] = { price };
+    save();
+    renderMacheron();
 }
 
 // ========== Search Functions ==========
@@ -2307,6 +2406,7 @@ let compactActionsOpen = false;
 let expandedItemIdx = -1; // מוצר מורחב ב-compact mode
 let listEditMode = false;  // מצב עריכת סדר רשימות
 let itemEditMode = false;  // מצב עריכת סדר מוצרים
+let itemSortMode = 'manual'; // מצב מיון נוכחי: 'manual' | 'name_asc' | 'date_new' | 'date_old'
 let compactStatsOpen = false; // הצגת סכום בבר compact
 let compactDeleteMode = false;   // מצב מחיקה מרובה ב-compact
 let compactDeleteSelected = new Set(); // אינדקסים שנבחרו למחיקה
@@ -11116,19 +11216,127 @@ function setupListDrag() {
 }
 
 // ════════════════════════════════════════════════
-// ✏️ סדר מוצרים — Item Edit Mode
+// ✏️ סדר מוצרים — Item Edit Mode + Sort Sheet
 // ════════════════════════════════════════════════
 function toggleItemEditMode() {
-    itemEditMode = !itemEditMode;
-    const btn = document.getElementById('itemEditModeBtn');
-    if (btn) {
-        btn.textContent = itemEditMode ? '✅ סיום' : '✏️ סדר מוצרים';
-        btn.style.background = itemEditMode ? '#7367f0' : 'rgba(115,103,240,0.08)';
-        btn.style.color = itemEditMode ? '#fff' : '#7367f0';
-        btn.style.borderColor = itemEditMode ? '#7367f0' : 'rgba(115,103,240,0.25)';
+    if (itemEditMode) {
+        // יציאה ממצב גרירה ידנית
+        itemEditMode = false;
+        const btn = document.getElementById('itemEditModeBtn');
+        if (btn) {
+            btn.textContent = '✏️ סדר מוצרים';
+            btn.style.background = 'rgba(115,103,240,0.08)';
+            btn.style.color = '#7367f0';
+            btn.style.borderColor = 'rgba(115,103,240,0.25)';
+        }
+        render();
+    } else {
+        openItemSortSheet();
     }
+}
+
+function openItemSortSheet() {
+    // הסר גיליון קיים אם פתוח
+    const existing = document.getElementById('itemSortSheet');
+    if (existing) existing.remove();
+
+    const SORT_OPTIONS = [
+        { id: 'manual',   label: 'סידור ידני (גרירה)',    icon: '✋' },
+        { id: 'name_asc', label: 'שם המוצר (א\' עד ת\')', icon: '🔤' },
+        { id: 'date_new', label: 'תאריך (מהחדש לישן)',    icon: '📅' },
+        { id: 'date_old', label: 'תאריך (מהישן לחדש)',    icon: '📅' },
+    ];
+
+    const overlay = document.createElement('div');
+    overlay.id = 'itemSortSheet';
+    overlay.style.cssText = 'position:fixed;inset:0;z-index:9000;display:flex;flex-direction:column;justify-content:flex-end;';
+
+    const backdrop = document.createElement('div');
+    backdrop.style.cssText = 'position:absolute;inset:0;background:rgba(0,0,0,0.45);animation:sortFadeIn 0.2s ease;';
+    backdrop.onclick = () => overlay.remove();
+
+    const sheet = document.createElement('div');
+    sheet.style.cssText = 'position:relative;background:#fff;border-radius:24px 24px 0 0;z-index:1;padding:0 0 40px;animation:sortSlideUp 0.25s ease-out;direction:rtl;box-shadow:0 -4px 30px rgba(115,103,240,0.15);';
+
+    const handle = document.createElement('div');
+    handle.style.cssText = 'width:40px;height:4px;background:rgba(115,103,240,0.3);border-radius:2px;margin:16px auto 4px;';
+
+    const title = document.createElement('div');
+    title.style.cssText = 'font-size:13px;color:#7367f0;font-weight:800;padding:12px 24px 8px;text-align:right;letter-spacing:0.5px;border-bottom:1px solid rgba(115,103,240,0.12);margin-bottom:4px;';
+    title.textContent = 'מיון לפי';
+
+    sheet.appendChild(handle);
+    sheet.appendChild(title);
+
+    SORT_OPTIONS.forEach(opt => {
+        const isActive = itemSortMode === opt.id;
+        const btn = document.createElement('button');
+        btn.style.cssText = `display:flex;width:100%;align-items:center;justify-content:space-between;padding:16px 28px;background:${isActive ? 'rgba(115,103,240,0.07)' : 'none'};border:none;border-bottom:1px solid rgba(115,103,240,0.08);cursor:pointer;transition:background 0.15s;`;
+        btn.innerHTML = `
+            <span style="color:#7367f0;font-size:14px;min-width:16px;font-weight:700;">${isActive ? '✓' : ''}</span>
+            <span style="color:${isActive ? '#7367f0' : '#1a1a2e'};font-size:17px;font-weight:${isActive ? '700' : '400'};font-family:inherit;">${opt.label}</span>
+        `;
+        btn.onmouseenter = () => btn.style.background = 'rgba(115,103,240,0.1)';
+        btn.onmouseleave = () => btn.style.background = isActive ? 'rgba(115,103,240,0.07)' : 'none';
+        btn.onclick = () => { overlay.remove(); applyItemSort(opt.id); };
+        sheet.appendChild(btn);
+    });
+
+    overlay.appendChild(backdrop);
+    overlay.appendChild(sheet);
+    document.body.appendChild(overlay);
+
+    // הוסף keyframes אם עדיין לא קיימים
+    if (!document.getElementById('sortSheetStyles')) {
+        const style = document.createElement('style');
+        style.id = 'sortSheetStyles';
+        style.textContent = `
+            @keyframes sortFadeIn  { from { opacity:0 } to { opacity:1 } }
+            @keyframes sortSlideUp { from { transform:translateY(100%) } to { transform:translateY(0) } }
+        `;
+        document.head.appendChild(style);
+    }
+}
+
+function applyItemSort(mode) {
+    itemSortMode = mode;
+    const list = db.lists[db.currentId];
+    if (!list) return;
+
+    if (mode === 'manual') {
+        // הפעל מצב גרירה ידנית
+        itemEditMode = true;
+        const btn = document.getElementById('itemEditModeBtn');
+        if (btn) {
+            btn.textContent = '✅ סיום';
+            btn.style.background = '#7367f0';
+            btn.style.color = '#fff';
+            btn.style.borderColor = '#7367f0';
+        }
+        render();
+        setupItemDrag();
+        return;
+    }
+
+    // מיין את המוצרים לפי המצב שנבחר
+    if (mode === 'name_asc') {
+        list.items.sort((a, b) => (a.name || '').localeCompare(b.name || '', 'he'));
+    } else if (mode === 'date_new') {
+        list.items.sort((a, b) => {
+            const aTs = a.dueDate ? new Date(a.dueDate).getTime() : (a.createdAt || 0);
+            const bTs = b.dueDate ? new Date(b.dueDate).getTime() : (b.createdAt || 0);
+            return bTs - aTs;
+        });
+    } else if (mode === 'date_old') {
+        list.items.sort((a, b) => {
+            const aTs = a.dueDate ? new Date(a.dueDate).getTime() : (a.createdAt || 0);
+            const bTs = b.dueDate ? new Date(b.dueDate).getTime() : (b.createdAt || 0);
+            return aTs - bTs;
+        });
+    }
+
+    save();
     render();
-    if (itemEditMode) setupItemDrag();
 }
 
 let _itemDragAbort = null;

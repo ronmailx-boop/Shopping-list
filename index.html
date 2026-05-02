@@ -2786,6 +2786,10 @@ ${error.message}
                     class="w-full bg-indigo-600 text-white py-3 rounded-xl font-bold">
                     <span id="viewCompletedListsBtn">צפה ברשימות שהושלמו</span>
                 </button>
+                <button onclick="openMacheron()"
+                    class="w-full bg-indigo-50 text-indigo-600 py-3 rounded-xl font-bold mt-3">
+                    💰 מחירון
+                </button>
             </div>
         </div>
     </div>
@@ -3503,6 +3507,16 @@ ${error.message}
             <h2>✅ רשימות שהושלמו</h2>
             <div id="completedListsContent" style="max-height: 400px; overflow-y: auto;"></div>
             <button onclick="closeModal('completedListsModal')" class="mt-4 text-gray-400 block w-full">סגור</button>
+        </div>
+    </div>
+
+    <div id="macheronModal" class="modal-overlay no-print">
+        <div class="edit-modal" style="display:flex;flex-direction:column;max-height:88vh;">
+            <h2>💰 מחירון</h2>
+            <input type="text" id="macheronSearch" placeholder="🔍 חיפוש מוצר..." class="modal-input"
+                   oninput="renderMacheron()" style="margin-bottom:10px;flex-shrink:0;">
+            <div id="macheronContent" style="flex:1;overflow-y:auto;"></div>
+            <button onclick="closeModal('macheronModal')" class="mt-4 text-gray-400 block w-full" style="flex-shrink:0;">סגור</button>
         </div>
     </div>
 
