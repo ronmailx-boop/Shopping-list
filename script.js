@@ -900,7 +900,6 @@ let categorySortEnabled = localStorage.getItem('categorySortEnabled') === 'true'
 // Backwards compatibility: Initialize new properties if they don't exist
 if (!db.customCategories) db.customCategories = [];
 if (!db.categoryMemory) db.categoryMemory = {};
-if (!db.pricebook) db.pricebook = {};
 // סדר רשימות מפורש — מונע שינוי סדר בטעינה מ-Firebase
 if (!db.listsOrder) db.listsOrder = Object.keys(db.lists);
 
@@ -1815,8 +1814,6 @@ function openModal(id) {
         document.getElementById('itemPrice').value = '';
         document.getElementById('itemQty').value = '1';
         document.getElementById('itemCategory').value = '';
-        const _lbl = document.getElementById('itemCategoryLabel');
-        if (_lbl) _lbl.textContent = 'בחר קטגוריה (אופציונלי)';
 
         // Init context bar (which list to add to)
         initContextBar();
@@ -2065,17 +2062,6 @@ function getProductHistory() {
         });
     }
 
-    // Pricebook overrides history prices
-    if (db.pricebook) {
-        Object.entries(db.pricebook).forEach(([name, data]) => {
-            if (productMap[name]) {
-                productMap[name].price = data.price;
-            } else {
-                productMap[name] = { price: data.price, category: data.category || '', lastUsed: 0 };
-            }
-        });
-    }
-
     return productMap;
 }
 
@@ -2147,93 +2133,6 @@ function hideAutocompleteSuggestions() {
             container.innerHTML = '';
         }, 200);
     }
-}
-
-// ========== Macheron (Price Book) ==========
-function openMacheron() {
-    openModal('macheronModal');
-    const searchEl = document.getElementById('macheronSearch');
-    if (searchEl) searchEl.value = '';
-    renderMacheron();
-}
-
-function renderMacheron() {
-    const container = document.getElementById('macheronContent');
-    if (!container) return;
-
-    const search = (document.getElementById('macheronSearch')?.value || '').trim();
-    const productHistory = getProductHistory();
-
-    let products = Object.entries(productHistory);
-    if (search.length >= 1) {
-        products = products.filter(([name]) => name.includes(search));
-    }
-    products.sort((a, b) => b[1].lastUsed - a[1].lastUsed);
-
-    if (products.length === 0) {
-        container.innerHTML = '<div style="text-align:center;color:#9ca3af;padding:32px 0;">אין מוצרים בהיסטוריה</div>';
-        return;
-    }
-
-    container.innerHTML = products.map(([name, data], idx) => {
-        const hasPrice = data.price > 0;
-        const escapedName = name.replace(/'/g, "\\'");
-        return `
-        <div style="border-bottom:1px solid #f3f4f6;padding:10px 2px;">
-            <div style="display:flex;align-items:center;gap:10px;">
-                <div style="width:8px;height:8px;border-radius:50%;background:#7367f0;flex-shrink:0;"></div>
-                <div style="flex:1;min-width:0;">
-                    <div style="font-size:14px;font-weight:600;color:#1e1b4b;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${name}</div>
-                    ${data.category ? `<div style="font-size:11px;color:#9ca3af;">${data.category}</div>` : ''}
-                </div>
-                <button onclick="toggleMacheronEdit(${idx})"
-                    style="background:${hasPrice ? '#f5f3ff' : '#f3f4f6'};color:${hasPrice ? '#7367f0' : '#9ca3af'};
-                           border:none;border-radius:20px;padding:5px 12px;font-size:13px;font-weight:700;
-                           cursor:pointer;font-family:inherit;white-space:nowrap;">
-                    ${hasPrice ? '&#8362;' + data.price.toFixed(2) : '+ הוסף מחיר'}
-                </button>
-            </div>
-            <div id="medit-${idx}" style="display:none;margin-top:8px;">
-                <div style="display:flex;gap:8px;align-items:center;">
-                    <span style="font-size:13px;color:#6b7280;">&#8362;</span>
-                    <input type="number" inputmode="decimal" id="minput-${idx}"
-                           value="${hasPrice ? data.price : ''}" placeholder="0.00"
-                           style="flex:1;border:1.5px solid #7367f0;border-radius:10px;padding:7px 10px;
-                                  font-size:14px;font-family:inherit;outline:none;"
-                           onkeydown="if(event.key==='Enter') saveMacheronPrice('${escapedName}',${idx})">
-                    <button onclick="toggleMacheronEdit(${idx})"
-                        style="background:#f3f4f6;border:none;border-radius:8px;padding:7px 12px;
-                               font-size:12px;cursor:pointer;color:#6b7280;">ביטול</button>
-                    <button onclick="saveMacheronPrice('${escapedName}',${idx})"
-                        style="background:linear-gradient(135deg,#7367f0,#9055ff);border:none;border-radius:8px;
-                               padding:7px 14px;font-size:12px;font-weight:700;color:#fff;cursor:pointer;">שמור</button>
-                </div>
-            </div>
-        </div>`;
-    }).join('');
-}
-
-function toggleMacheronEdit(idx) {
-    const editDiv = document.getElementById('medit-' + idx);
-    if (!editDiv) return;
-    const isOpen = editDiv.style.display !== 'none';
-    editDiv.style.display = isOpen ? 'none' : 'block';
-    if (!isOpen) {
-        setTimeout(() => {
-            const input = document.getElementById('minput-' + idx);
-            if (input) input.focus();
-        }, 50);
-    }
-}
-
-function saveMacheronPrice(name, idx) {
-    const input = document.getElementById('minput-' + idx);
-    if (!input) return;
-    const price = parseFloat(input.value) || 0;
-    if (!db.pricebook) db.pricebook = {};
-    db.pricebook[name] = { price };
-    save();
-    renderMacheron();
 }
 
 // ========== Search Functions ==========
@@ -2406,7 +2305,6 @@ let compactActionsOpen = false;
 let expandedItemIdx = -1; // מוצר מורחב ב-compact mode
 let listEditMode = false;  // מצב עריכת סדר רשימות
 let itemEditMode = false;  // מצב עריכת סדר מוצרים
-let itemSortMode = 'manual'; // מצב מיון נוכחי: 'manual' | 'name_asc' | 'date_new' | 'date_old'
 let compactStatsOpen = false; // הצגת סכום בבר compact
 let compactDeleteMode = false;   // מצב מחיקה מרובה ב-compact
 let compactDeleteSelected = new Set(); // אינדקסים שנבחרו למחיקה
@@ -2821,7 +2719,9 @@ function render() {
                                         <div class="item-drag-handle" data-drag="true" style="display:${itemEditMode ? 'flex' : 'none'};align-items:center;justify-content:center;width:26px;height:26px;flex-shrink:0;cursor:grab;color:#a89fff;touch-action:none;"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" style="pointer-events:none"><rect x="2" y="3" width="12" height="2" rx="1" fill="currentColor"/><rect x="2" y="7" width="12" height="2" rx="1" fill="currentColor"/><rect x="2" y="11" width="12" height="2" rx="1" fill="currentColor"/></svg></div>
                                         <input type="checkbox" ${item.checked ? 'checked' : ''} onchange="toggleItem(${idx})" class="w-7 h-7 accent-indigo-600" style="flex-shrink:0;" onclick="event.stopPropagation()">
                                         `}
-                                        ${(() => { const _cDate = item.dueDate ? new Date(item.dueDate).toLocaleDateString('he-IL') : (item.note && item.note.trimStart().startsWith('📅') ? item.note.replace(/^📅\s*/, '').split('\n')[0].trim() : ''); return `<div style="flex:1;min-width:0;overflow:hidden;display:flex;flex-direction:column;justify-content:center;cursor:pointer;"><span class="font-bold ${item.checked && !compactDeleteMode ? 'line-through text-gray-300' : ''}" style="font-size:15px;overflow:hidden;display:-webkit-box;-webkit-line-clamp:${_cDate ? 1 : 2};-webkit-box-orient:vertical;line-height:1.35;word-break:break-word;"><span class="item-number">${idx + 1}.</span> ${item.name}</span>${_cDate ? `<span style="font-size:11px;color:#9ca3af;line-height:1.3;margin-top:2px;">${_cDate}</span>` : ''}</div>`; })()}
+                                        <span class="font-bold ${item.checked && !compactDeleteMode ? 'line-through text-gray-300' : ''}" style="font-size:15px;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;line-height:1.35;cursor:pointer;word-break:break-word;">
+                                            <span class="item-number">${idx + 1}.</span> ${item.name}
+                                        </span>
                                     </div>
                                     ${item.isGeneralNote ? '' : `<span class="font-black text-indigo-600" style="font-size:15px;flex-shrink:0;">₪${sub.toFixed(2)}</span>`}
                                 </div>
@@ -2956,7 +2856,7 @@ function render() {
                 });
                 const isSel = db.selectedInSummary.includes(id);
                 if (isSel) {
-                    total += (l.fixedCharge > 0) ? l.fixedCharge : lT;
+                    total += lT;
                     paid += lP;
                 }
 
@@ -2986,11 +2886,7 @@ function render() {
                         div.style.cursor = 'not-allowed';
                     }
                     div.setAttribute('data-drag', listEditMode ? 'true' : 'false');
-                    const fixedCharge = l.fixedCharge || 0;
-                    const deferred = fixedCharge > 0 ? Math.max(0, lT - fixedCharge) : 0;
-                    if (fixedCharge > 0) div.classList.add('has-fixed-charge');
                     div.innerHTML = `
-                        <div class="crow-main-row" style="display:flex;align-items:center;gap:10px;width:100%;min-height:48px;padding-bottom:${fixedCharge>0?'8px':'0'};">
                         ${listEditMode ? `<div class="list-drag-handle" data-drag="true" style="display:flex;align-items:center;justify-content:center;width:24px;height:24px;flex-shrink:0;cursor:grab;color:rgba(255,255,255,0.7);touch-action:none;"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" style="pointer-events:none"><rect x="2" y="3" width="12" height="2" rx="1" fill="currentColor"/><rect x="2" y="7" width="12" height="2" rx="1" fill="currentColor"/><rect x="2" y="11" width="12" height="2" rx="1" fill="currentColor"/></svg></div>` : ''}
                         ${listDeleteMode
                             ? `<div class="crow-cb ${isDelSelected ? 'checked' : ''}" onclick="event.stopPropagation();listDeleteToggle('${id}')"></div>`
@@ -3000,19 +2896,6 @@ function render() {
                         <span class="crow-name" onclick="listTileClick('${id}')"
                             style="${isDelSelected ? 'text-decoration:line-through;opacity:0.7;' : ''}${_moveMode && id !== _moveSourceListId ? 'font-weight:900;' : ''}">${l.name}</span>
                         <span class="crow-amount">₪${lT.toFixed(2)}</span>
-                        ${!listDeleteMode && !listEditMode && !_moveMode ? `<button class="list-settings-btn" onclick="event.stopPropagation();openListSettingsModal('${id}')">⚙️</button>` : ''}
-                        </div>
-                        ${fixedCharge > 0 ? `
-                        <div class="fixed-strip">
-                            <div class="fs-pill this-month">
-                                <div class="fs-label">חיוב קבוע החודש</div>
-                                <div class="fs-amount">₪${fixedCharge.toFixed(0)}</div>
-                            </div>
-                            <div class="fs-pill deferred">
-                                <div class="fs-label">נדחה לחודש הבא</div>
-                                <div class="fs-amount">₪${deferred.toFixed(0)}</div>
-                            </div>
-                        </div>` : ''}
                     `;
                 }
                 container.appendChild(div);
@@ -3656,12 +3539,14 @@ function openCatDrill(cat, data, cfg, pct, grand) {
                     const sub = (it.price||0) * (it.qty||1);
                     const div = document.createElement('div');
                     div.className = 'cat-drill-item';
+                    const itemIdx = it._itemIdx;
+                    const itemListId = it._listId;
                     div.innerHTML = `
                         <input type="checkbox" ${it.checked?'checked':''} style="width:20px;height:20px;accent-color:#7367f0;flex-shrink:0;" onclick="event.stopPropagation()">
                         <span style="flex:1;font-size:14px;font-weight:700;${it.checked?'text-decoration:line-through;opacity:0.45;':''}">${it.name}</span>
                         ${it.qty > 1 ? `<span style="font-size:11px;color:#9ca3af;flex-shrink:0;">×${it.qty}</span>` : ''}
                         <span class="cat-drill-item-price">₪${sub.toFixed(2)}</span>
-                        <button onclick="event.stopPropagation();navigateToItemFromCatDrill('${it._listId}',${it._itemIdx})" title="עבור למוצר" style="flex-shrink:0;margin-right:4px;background:rgba(115,103,240,0.12);border:none;border-radius:8px;padding:4px 7px;cursor:pointer;font-size:13px;color:#7367f0;line-height:1;">✏️</button>
+                        <button onclick="event.stopPropagation();navigateToItemFromCatDrill('${itemListId}',${itemIdx})" title="עבור למוצר" style="flex-shrink:0;margin-right:4px;background:rgba(115,103,240,0.12);border:none;border-radius:8px;padding:4px 7px;cursor:pointer;font-size:13px;color:#7367f0;line-height:1;">✏️</button>
                     `;
                     body.appendChild(div);
                 });
@@ -3677,12 +3562,17 @@ function closeCatDrill() {
 }
 
 function navigateToItemFromCatDrill(listId, itemIdx) {
+    // סגור את ה-overlay של הקטגוריה
     closeCatDrill();
+    // נווט לרשימה הנכונה
     db.currentId = listId;
     summaryCompactMode = compactMode;
     compactMode = listsCompactMode;
     tapTab('lists');
-    setTimeout(() => { openEditItemNameModal(itemIdx); }, 200);
+    // פתח את חלון עריכת הפריט אחרי שה-render הסתיים
+    setTimeout(() => {
+        openEditItemNameModal(itemIdx);
+    }, 200);
 }
 
 function renderHistory() {
@@ -4383,8 +4273,6 @@ if (!db.listsOrder) db.listsOrder = Object.keys(db.lists);
         if (document.getElementById('itemPrice')) document.getElementById('itemPrice').value = '';
         if (document.getElementById('itemQty')) document.getElementById('itemQty').value = '1';
         if (document.getElementById('itemCategory')) document.getElementById('itemCategory').value = '';
-        const _lbl2 = document.getElementById('itemCategoryLabel');
-        if (_lbl2) _lbl2.textContent = 'בחר קטגוריה (אופציונלי)';
         if (document.getElementById('itemDueDate')) document.getElementById('itemDueDate').value = '';
         if (document.getElementById('itemDueTime')) document.getElementById('itemDueTime').value = '';
         if (document.getElementById('itemPaymentUrl')) document.getElementById('itemPaymentUrl').value = '';
@@ -4728,6 +4616,7 @@ function openEditItemNameModal(idx) {
     document.getElementById('editItemPaymentUrl').value = item.paymentUrl || '';
     document.getElementById('editItemNotes').value = item.note || '';
     document.getElementById('editItemCategory').value = item.category || '';
+    // עדכן תצוגת כפתור הקטגוריה
     const catLabel = document.getElementById('editItemCategoryLabel');
     if (catLabel) catLabel.textContent = item.category || 'בחר קטגוריה (אופציונלי)';
     document.getElementById('editItemReminderValue').value = item.reminderValue || '';
@@ -4814,77 +4703,6 @@ function saveItemName() {
         showNotification('✓ השם עודכן בהצלחה');
     }
     closeModal('editItemNameModal');
-}
-
-function openAddItemCategoryModal() {
-    currentEditIdx = null; // מצב הוספה — לא עריכה
-    window._addItemCategoryMode = true;
-    const currentCat = document.getElementById('itemCategory') ? document.getElementById('itemCategory').value : '';
-
-    const categoryOptionsContainer = document.getElementById('categoryOptions');
-    categoryOptionsContainer.innerHTML = '';
-
-    for (const categoryName in CATEGORIES) {
-        const color = CATEGORIES[categoryName];
-        const isSelected = currentCat === categoryName;
-        const button = document.createElement('button');
-        button.className = `w-full py-3 px-4 rounded-xl font-bold mb-2 transition-all ${isSelected ? 'ring-4 ring-offset-2' : 'hover:scale-105'}`;
-        button.style.backgroundColor = color + '20';
-        button.style.color = color;
-        button.style.border = `2px solid ${color}`;
-        button.textContent = isSelected ? `✓ ${categoryName}` : categoryName;
-        button.onclick = () => selectCategory(categoryName);
-        categoryOptionsContainer.appendChild(button);
-    }
-
-    const shownCats = new Set(Object.keys(CATEGORIES));
-    const extraCats = Object.keys(CATEGORY_KEYWORDS || {}).filter(c => !shownCats.has(c));
-    const orphanCats = new Set();
-    Object.values(db.lists).forEach(list => {
-        (list.items || []).forEach(i => {
-            if (i.category && !shownCats.has(i.category) && !extraCats.includes(i.category)) orphanCats.add(i.category);
-        });
-    });
-    if (extraCats.length > 0 || orphanCats.size > 0) {
-        const sep = document.createElement('div');
-        sep.className = 'text-sm font-bold text-gray-500 mt-3 mb-2';
-        sep.textContent = '🗂️ קטגוריות נוספות';
-        categoryOptionsContainer.appendChild(sep);
-        [...extraCats, ...orphanCats].forEach(categoryName => {
-            const color = ((CAT_ANALYSIS_CFG || {})[categoryName] || {}).hex || '#7c3aed';
-            const isSelected = currentCat === categoryName;
-            const button = document.createElement('button');
-            button.className = `w-full py-3 px-4 rounded-xl font-bold mb-2 transition-all ${isSelected ? 'ring-4 ring-offset-2' : 'hover:scale-105'}`;
-            button.style.backgroundColor = color + '20';
-            button.style.color = color;
-            button.style.border = `2px solid ${color}`;
-            button.textContent = isSelected ? `✓ ${categoryName}` : categoryName;
-            button.onclick = () => selectCategory(categoryName);
-            categoryOptionsContainer.appendChild(button);
-            shownCats.add(categoryName);
-        });
-    }
-    const customNotShown = (db.customCategories || []).filter(c => !shownCats.has(c));
-    if (customNotShown.length > 0) {
-        const sep2 = document.createElement('div');
-        sep2.className = 'text-sm font-bold text-gray-500 mt-3 mb-2';
-        sep2.textContent = '✨ קטגוריות מותאמות אישית';
-        categoryOptionsContainer.appendChild(sep2);
-        customNotShown.forEach(categoryName => {
-            const color = CATEGORIES[categoryName] || '#6b7280';
-            const isSelected = currentCat === categoryName;
-            const button = document.createElement('button');
-            button.className = `w-full py-3 px-4 rounded-xl font-bold mb-2 transition-all ${isSelected ? 'ring-4 ring-offset-2' : 'hover:scale-105'}`;
-            button.style.backgroundColor = color + '20';
-            button.style.color = color;
-            button.style.border = `2px solid ${color}`;
-            button.textContent = isSelected ? `✓ ${categoryName}` : categoryName;
-            button.onclick = () => selectCategory(categoryName);
-            categoryOptionsContainer.appendChild(button);
-        });
-    }
-    document.getElementById('customCategoryInput').value = '';
-    openModal('editCategoryModal');
 }
 
 function openEditCategoryModal(idx) {
@@ -4991,28 +4809,23 @@ function openEditCategoryModal(idx) {
 }
 
 function selectCategory(categoryName) {
-    if (window._addItemCategoryMode) {
-        window._addItemCategoryMode = false;
-        closeModal('editCategoryModal');
-        const sel = document.getElementById('itemCategory');
-        if (sel) sel.value = categoryName;
-        const lbl = document.getElementById('itemCategoryLabel');
-        if (lbl) lbl.textContent = categoryName;
-        return;
-    }
     if (currentEditIdx !== null) {
         const item = db.lists[db.currentId].items[currentEditIdx];
         item.category = categoryName;
+        
+        // Update category memory for this product
         if (!db.categoryMemory) db.categoryMemory = {};
 // סדר רשימות מפורש — מונע שינוי סדר בטעינה מ-Firebase
 if (!db.listsOrder) db.listsOrder = Object.keys(db.lists);
         db.categoryMemory[item.name.toLowerCase().trim()] = categoryName;
+        
         save();
         showNotification('✓ הקטגוריה עודכנה');
     }
     closeModal('editCategoryModal');
-    const editSel = document.getElementById('editItemCategory');
-    if (editSel) editSel.value = categoryName;
+    // סנכרן חזרה ל-hidden input ולכפתור של מודל עריכת הפריט
+    const hiddenCat = document.getElementById('editItemCategory');
+    if (hiddenCat) hiddenCat.value = categoryName;
     const catLabel = document.getElementById('editItemCategoryLabel');
     if (catLabel) catLabel.textContent = categoryName;
 }
@@ -11216,127 +11029,19 @@ function setupListDrag() {
 }
 
 // ════════════════════════════════════════════════
-// ✏️ סדר מוצרים — Item Edit Mode + Sort Sheet
+// ✏️ סדר מוצרים — Item Edit Mode
 // ════════════════════════════════════════════════
 function toggleItemEditMode() {
-    if (itemEditMode) {
-        // יציאה ממצב גרירה ידנית
-        itemEditMode = false;
-        const btn = document.getElementById('itemEditModeBtn');
-        if (btn) {
-            btn.textContent = '✏️ סדר מוצרים';
-            btn.style.background = 'rgba(115,103,240,0.08)';
-            btn.style.color = '#7367f0';
-            btn.style.borderColor = 'rgba(115,103,240,0.25)';
-        }
-        render();
-    } else {
-        openItemSortSheet();
+    itemEditMode = !itemEditMode;
+    const btn = document.getElementById('itemEditModeBtn');
+    if (btn) {
+        btn.textContent = itemEditMode ? '✅ סיום' : '✏️ סדר מוצרים';
+        btn.style.background = itemEditMode ? '#7367f0' : 'rgba(115,103,240,0.08)';
+        btn.style.color = itemEditMode ? '#fff' : '#7367f0';
+        btn.style.borderColor = itemEditMode ? '#7367f0' : 'rgba(115,103,240,0.25)';
     }
-}
-
-function openItemSortSheet() {
-    // הסר גיליון קיים אם פתוח
-    const existing = document.getElementById('itemSortSheet');
-    if (existing) existing.remove();
-
-    const SORT_OPTIONS = [
-        { id: 'manual',   label: 'סידור ידני (גרירה)',    icon: '✋' },
-        { id: 'name_asc', label: 'שם המוצר (א\' עד ת\')', icon: '🔤' },
-        { id: 'date_new', label: 'תאריך (מהחדש לישן)',    icon: '📅' },
-        { id: 'date_old', label: 'תאריך (מהישן לחדש)',    icon: '📅' },
-    ];
-
-    const overlay = document.createElement('div');
-    overlay.id = 'itemSortSheet';
-    overlay.style.cssText = 'position:fixed;inset:0;z-index:9000;display:flex;flex-direction:column;justify-content:flex-end;';
-
-    const backdrop = document.createElement('div');
-    backdrop.style.cssText = 'position:absolute;inset:0;background:rgba(0,0,0,0.45);animation:sortFadeIn 0.2s ease;';
-    backdrop.onclick = () => overlay.remove();
-
-    const sheet = document.createElement('div');
-    sheet.style.cssText = 'position:relative;background:#fff;border-radius:24px 24px 0 0;z-index:1;padding:0 0 40px;animation:sortSlideUp 0.25s ease-out;direction:rtl;box-shadow:0 -4px 30px rgba(115,103,240,0.15);';
-
-    const handle = document.createElement('div');
-    handle.style.cssText = 'width:40px;height:4px;background:rgba(115,103,240,0.3);border-radius:2px;margin:16px auto 4px;';
-
-    const title = document.createElement('div');
-    title.style.cssText = 'font-size:13px;color:#7367f0;font-weight:800;padding:12px 24px 8px;text-align:right;letter-spacing:0.5px;border-bottom:1px solid rgba(115,103,240,0.12);margin-bottom:4px;';
-    title.textContent = 'מיון לפי';
-
-    sheet.appendChild(handle);
-    sheet.appendChild(title);
-
-    SORT_OPTIONS.forEach(opt => {
-        const isActive = itemSortMode === opt.id;
-        const btn = document.createElement('button');
-        btn.style.cssText = `display:flex;width:100%;align-items:center;justify-content:space-between;padding:16px 28px;background:${isActive ? 'rgba(115,103,240,0.07)' : 'none'};border:none;border-bottom:1px solid rgba(115,103,240,0.08);cursor:pointer;transition:background 0.15s;`;
-        btn.innerHTML = `
-            <span style="color:#7367f0;font-size:14px;min-width:16px;font-weight:700;">${isActive ? '✓' : ''}</span>
-            <span style="color:${isActive ? '#7367f0' : '#1a1a2e'};font-size:17px;font-weight:${isActive ? '700' : '400'};font-family:inherit;">${opt.label}</span>
-        `;
-        btn.onmouseenter = () => btn.style.background = 'rgba(115,103,240,0.1)';
-        btn.onmouseleave = () => btn.style.background = isActive ? 'rgba(115,103,240,0.07)' : 'none';
-        btn.onclick = () => { overlay.remove(); applyItemSort(opt.id); };
-        sheet.appendChild(btn);
-    });
-
-    overlay.appendChild(backdrop);
-    overlay.appendChild(sheet);
-    document.body.appendChild(overlay);
-
-    // הוסף keyframes אם עדיין לא קיימים
-    if (!document.getElementById('sortSheetStyles')) {
-        const style = document.createElement('style');
-        style.id = 'sortSheetStyles';
-        style.textContent = `
-            @keyframes sortFadeIn  { from { opacity:0 } to { opacity:1 } }
-            @keyframes sortSlideUp { from { transform:translateY(100%) } to { transform:translateY(0) } }
-        `;
-        document.head.appendChild(style);
-    }
-}
-
-function applyItemSort(mode) {
-    itemSortMode = mode;
-    const list = db.lists[db.currentId];
-    if (!list) return;
-
-    if (mode === 'manual') {
-        // הפעל מצב גרירה ידנית
-        itemEditMode = true;
-        const btn = document.getElementById('itemEditModeBtn');
-        if (btn) {
-            btn.textContent = '✅ סיום';
-            btn.style.background = '#7367f0';
-            btn.style.color = '#fff';
-            btn.style.borderColor = '#7367f0';
-        }
-        render();
-        setupItemDrag();
-        return;
-    }
-
-    // מיין את המוצרים לפי המצב שנבחר
-    if (mode === 'name_asc') {
-        list.items.sort((a, b) => (a.name || '').localeCompare(b.name || '', 'he'));
-    } else if (mode === 'date_new') {
-        list.items.sort((a, b) => {
-            const aTs = a.dueDate ? new Date(a.dueDate).getTime() : (a.createdAt || 0);
-            const bTs = b.dueDate ? new Date(b.dueDate).getTime() : (b.createdAt || 0);
-            return bTs - aTs;
-        });
-    } else if (mode === 'date_old') {
-        list.items.sort((a, b) => {
-            const aTs = a.dueDate ? new Date(a.dueDate).getTime() : (a.createdAt || 0);
-            const bTs = b.dueDate ? new Date(b.dueDate).getTime() : (b.createdAt || 0);
-            return aTs - bTs;
-        });
-    }
-
-    save();
     render();
+    if (itemEditMode) setupItemDrag();
 }
 
 let _itemDragAbort = null;
@@ -11885,49 +11590,3 @@ if (typeof showPage === 'function') {
 // Init on load
 document.addEventListener('DOMContentLoaded', _updatePlusBtnLabel);
 setTimeout(_updatePlusBtnLabel, 500);
-
-// ══════════════════════════════════════════════
-// ── הגדרות רשימה — חיוב קבוע חודשי ──
-// ══════════════════════════════════════════════
-
-var _listSettingsId = null;
-
-function openListSettingsModal(id) {
-    _listSettingsId = id;
-    const l = db.lists[id];
-    if (!l) return;
-    const titleEl = document.getElementById('listSettingsTitle');
-    if (titleEl) titleEl.textContent = '⚙️ ' + l.name;
-    const inp = document.getElementById('listFixedChargeInput');
-    if (inp) inp.value = l.fixedCharge || '';
-    const overlay = document.getElementById('listSettingsModal');
-    const sheet = document.getElementById('listSettingsSheet');
-    if (overlay && sheet) {
-        overlay.style.opacity = '1';
-        overlay.style.pointerEvents = 'all';
-        sheet.style.transform = 'translateY(0)';
-        setTimeout(() => { if (inp) inp.focus(); }, 300);
-    }
-}
-
-function closeListSettingsModal() {
-    const overlay = document.getElementById('listSettingsModal');
-    const sheet = document.getElementById('listSettingsSheet');
-    if (overlay && sheet) {
-        overlay.style.opacity = '0';
-        overlay.style.pointerEvents = 'none';
-        sheet.style.transform = 'translateY(40px)';
-    }
-    _listSettingsId = null;
-}
-
-function saveListFixedCharge() {
-    if (!_listSettingsId || !db.lists[_listSettingsId]) return;
-    const inp = document.getElementById('listFixedChargeInput');
-    const val = parseFloat(inp ? inp.value : 0) || 0;
-    db.lists[_listSettingsId].fixedCharge = val > 0 ? val : 0;
-    save();
-    render();
-    closeListSettingsModal();
-    showNotification(val > 0 ? `✓ חיוב קבוע הוגדר: ₪${val.toFixed(0)}` : '✓ חיוב קבוע בוטל');
-}
