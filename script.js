@@ -900,7 +900,6 @@ let categorySortEnabled = localStorage.getItem('categorySortEnabled') === 'true'
 // Backwards compatibility: Initialize new properties if they don't exist
 if (!db.customCategories) db.customCategories = [];
 if (!db.categoryMemory) db.categoryMemory = {};
-if (!db.pricebook) db.pricebook = {};
 // סדר רשימות מפורש — מונע שינוי סדר בטעינה מ-Firebase
 if (!db.listsOrder) db.listsOrder = Object.keys(db.lists);
 
@@ -939,7 +938,6 @@ function toggleItem(idx) {
     db.lists[db.currentId].items = sortItemsByStatusAndCategory(db.lists[db.currentId].items);
 
     save();
-    refreshCategoryStats(); // סימון/ביטול משפיע על הגרף הדוט בסטטיסטיקות
 
     // הצגת הודעת undo לסימון וי
     showUndoCheckNotification(item.name, item.checked);
@@ -2066,17 +2064,6 @@ function getProductHistory() {
         });
     }
 
-    // Pricebook overrides history prices
-    if (db.pricebook) {
-        Object.entries(db.pricebook).forEach(([name, data]) => {
-            if (productMap[name]) {
-                productMap[name].price = data.price;
-            } else {
-                productMap[name] = { price: data.price, category: data.category || '', lastUsed: 0 };
-            }
-        });
-    }
-
     return productMap;
 }
 
@@ -2148,93 +2135,6 @@ function hideAutocompleteSuggestions() {
             container.innerHTML = '';
         }, 200);
     }
-}
-
-// ========== Macheron (Price Book) ==========
-function openMacheron() {
-    openModal('macheronModal');
-    const searchEl = document.getElementById('macheronSearch');
-    if (searchEl) searchEl.value = '';
-    renderMacheron();
-}
-
-function renderMacheron() {
-    const container = document.getElementById('macheronContent');
-    if (!container) return;
-
-    const search = (document.getElementById('macheronSearch')?.value || '').trim();
-    const productHistory = getProductHistory();
-
-    let products = Object.entries(productHistory);
-    if (search.length >= 1) {
-        products = products.filter(([name]) => name.includes(search));
-    }
-    products.sort((a, b) => b[1].lastUsed - a[1].lastUsed);
-
-    if (products.length === 0) {
-        container.innerHTML = '<div style="text-align:center;color:#9ca3af;padding:32px 0;">אין מוצרים בהיסטוריה</div>';
-        return;
-    }
-
-    container.innerHTML = products.map(([name, data], idx) => {
-        const hasPrice = data.price > 0;
-        const escapedName = name.replace(/'/g, "\\'");
-        return `
-        <div style="border-bottom:1px solid #f3f4f6;padding:10px 2px;">
-            <div style="display:flex;align-items:center;gap:10px;">
-                <div style="width:8px;height:8px;border-radius:50%;background:#7367f0;flex-shrink:0;"></div>
-                <div style="flex:1;min-width:0;">
-                    <div style="font-size:14px;font-weight:600;color:#1e1b4b;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${name}</div>
-                    ${data.category ? `<div style="font-size:11px;color:#9ca3af;">${data.category}</div>` : ''}
-                </div>
-                <button onclick="toggleMacheronEdit(${idx})"
-                    style="background:${hasPrice ? '#f5f3ff' : '#f3f4f6'};color:${hasPrice ? '#7367f0' : '#9ca3af'};
-                           border:none;border-radius:20px;padding:5px 12px;font-size:13px;font-weight:700;
-                           cursor:pointer;font-family:inherit;white-space:nowrap;">
-                    ${hasPrice ? '&#8362;' + data.price.toFixed(2) : '+ הוסף מחיר'}
-                </button>
-            </div>
-            <div id="medit-${idx}" style="display:none;margin-top:8px;">
-                <div style="display:flex;gap:8px;align-items:center;">
-                    <span style="font-size:13px;color:#6b7280;">&#8362;</span>
-                    <input type="number" inputmode="decimal" id="minput-${idx}"
-                           value="${hasPrice ? data.price : ''}" placeholder="0.00"
-                           style="flex:1;border:1.5px solid #7367f0;border-radius:10px;padding:7px 10px;
-                                  font-size:14px;font-family:inherit;outline:none;"
-                           onkeydown="if(event.key==='Enter') saveMacheronPrice('${escapedName}',${idx})">
-                    <button onclick="toggleMacheronEdit(${idx})"
-                        style="background:#f3f4f6;border:none;border-radius:8px;padding:7px 12px;
-                               font-size:12px;cursor:pointer;color:#6b7280;">ביטול</button>
-                    <button onclick="saveMacheronPrice('${escapedName}',${idx})"
-                        style="background:linear-gradient(135deg,#7367f0,#9055ff);border:none;border-radius:8px;
-                               padding:7px 14px;font-size:12px;font-weight:700;color:#fff;cursor:pointer;">שמור</button>
-                </div>
-            </div>
-        </div>`;
-    }).join('');
-}
-
-function toggleMacheronEdit(idx) {
-    const editDiv = document.getElementById('medit-' + idx);
-    if (!editDiv) return;
-    const isOpen = editDiv.style.display !== 'none';
-    editDiv.style.display = isOpen ? 'none' : 'block';
-    if (!isOpen) {
-        setTimeout(() => {
-            const input = document.getElementById('minput-' + idx);
-            if (input) input.focus();
-        }, 50);
-    }
-}
-
-function saveMacheronPrice(name, idx) {
-    const input = document.getElementById('minput-' + idx);
-    if (!input) return;
-    const price = parseFloat(input.value) || 0;
-    if (!db.pricebook) db.pricebook = {};
-    db.pricebook[name] = { price };
-    save();
-    renderMacheron();
 }
 
 // ========== Search Functions ==========
@@ -3595,14 +3495,6 @@ function renderCategoryAnalysis() {
     });
 }
 
-// ── עדכון מיידי של "הוצאות לפי קטגוריה" בדף סטטיסטיקות ──
-// נקרא מכל מקום שמשנה קטגוריה במוצר (יצירה / שינוי / מחיקה)
-function refreshCategoryStats() {
-    // מעדכן תמיד — גם כשהדף מוסתר — כך שהסטטיסטיקה תהיה עדכנית ברגע שעוברים אליה
-    renderCategoryDoughnutChart();
-    renderCategoryAnalysis();
-}
-
 function openCatDrill(cat, data, cfg, pct, grand) {
     const overlay = document.getElementById('catDrillOverlay');
     if (!overlay) return;
@@ -4408,7 +4300,6 @@ if (!db.listsOrder) db.listsOrder = Object.keys(db.lists);
             closeModal('inputForm');
         }
         save();
-        refreshCategoryStats(); // עדכון מיידי של "הוצאות לפי קטגוריה"
         showNotification('✅ מוצר נוסף!');
         if (typeof checkUrgentPayments === 'function') {
             checkUrgentPayments();
@@ -4792,7 +4683,6 @@ function saveItemEdit() {
         
         // רינדור מיידי
         render();
-        refreshCategoryStats(); // עדכון מיידי של "הוצאות לפי קטגוריה"
         
         // עדכון תגי התראה
         if (typeof updateNotificationBadge === 'function') {
@@ -5019,7 +4909,6 @@ function selectCategory(categoryName) {
 if (!db.listsOrder) db.listsOrder = Object.keys(db.lists);
         db.categoryMemory[item.name.toLowerCase().trim()] = categoryName;
         save();
-        refreshCategoryStats(); // עדכון מיידי של "הוצאות לפי קטגוריה"
         showNotification('✓ הקטגוריה עודכנה');
     }
     closeModal('editCategoryModal');
@@ -5057,7 +4946,6 @@ if (!db.listsOrder) db.listsOrder = Object.keys(db.lists);
         }
         
         save();
-        refreshCategoryStats(); // עדכון מיידי של "הוצאות לפי קטגוריה"
         showNotification('✓ קטגוריה מותאמת נשמרה');
     }
     closeModal('editCategoryModal');
@@ -5169,7 +5057,6 @@ function deleteCustomCategory(categoryName, categoryIndex) {
 
     // Save and update UI
     save();
-    refreshCategoryStats(); // עדכון מיידי של "הוצאות לפי קטגוריה"
     renderCustomCategoriesList();
     updateCategoryDropdown();
     showNotification(`✅ הקטגוריה '${categoryName}' נמחקה`);
