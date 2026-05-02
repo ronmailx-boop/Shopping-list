@@ -5660,8 +5660,20 @@ function mergeCloudWithLocal(cloudData, localData) {
                 merged.lists[listId].items.push(normalizeItem(localItem));
                 console.log('➕ מוסיף פריט חדש מאופליין:', localItem.name);
             } else {
-                // פריט קיים גם בענן - עדכן אותו מהענן (הענן מנצח)
-                console.log('✓ פריט קיים בשניהם, משתמש בנתוני ענן:', localItem.name);
+                // פריט קיים גם בענן וגם מקומית — השתמש בגרסה החדשה יותר לפי lastUpdated
+                const cloudItem = cloudItemsMap[localItem.cloudId];
+                const cloudUpdated = cloudItem.lastUpdated || 0;
+                const localUpdated = localItem.lastUpdated || 0;
+                if (localUpdated > cloudUpdated) {
+                    // המקומי חדש יותר (למשל: שינוי קטגוריה/שם לפני שסונכרן לענן)
+                    const idx = merged.lists[listId].items.findIndex(i => i.cloudId === localItem.cloudId);
+                    if (idx !== -1) {
+                        merged.lists[listId].items[idx] = normalizeItem(localItem);
+                    }
+                    console.log('✓ פריט קיים בשניהם, משתמש בנתונים מקומיים (חדשים יותר):', localItem.name);
+                } else {
+                    console.log('✓ פריט קיים בשניהם, משתמש בנתוני ענן (חדשים יותר):', localItem.name);
+                }
             }
         });
     });
