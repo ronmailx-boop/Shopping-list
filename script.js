@@ -939,6 +939,7 @@ function toggleItem(idx) {
     db.lists[db.currentId].items = sortItemsByStatusAndCategory(db.lists[db.currentId].items);
 
     save();
+    refreshCategoryStats(); // סימון/ביטול משפיע על הגרף הדוט בסטטיסטיקות
 
     // הצגת הודעת undo לסימון וי
     showUndoCheckNotification(item.name, item.checked);
@@ -3594,6 +3595,14 @@ function renderCategoryAnalysis() {
     });
 }
 
+// ── עדכון מיידי של "הוצאות לפי קטגוריה" בדף סטטיסטיקות ──
+// נקרא מכל מקום שמשנה קטגוריה במוצר (יצירה / שינוי / מחיקה)
+function refreshCategoryStats() {
+    // מעדכן תמיד — גם כשהדף מוסתר — כך שהסטטיסטיקה תהיה עדכנית ברגע שעוברים אליה
+    renderCategoryDoughnutChart();
+    renderCategoryAnalysis();
+}
+
 function openCatDrill(cat, data, cfg, pct, grand) {
     const overlay = document.getElementById('catDrillOverlay');
     if (!overlay) return;
@@ -4399,6 +4408,7 @@ if (!db.listsOrder) db.listsOrder = Object.keys(db.lists);
             closeModal('inputForm');
         }
         save();
+        refreshCategoryStats(); // עדכון מיידי של "הוצאות לפי קטגוריה"
         showNotification('✅ מוצר נוסף!');
         if (typeof checkUrgentPayments === 'function') {
             checkUrgentPayments();
@@ -4782,6 +4792,7 @@ function saveItemEdit() {
         
         // רינדור מיידי
         render();
+        refreshCategoryStats(); // עדכון מיידי של "הוצאות לפי קטגוריה"
         
         // עדכון תגי התראה
         if (typeof updateNotificationBadge === 'function') {
@@ -5008,6 +5019,7 @@ function selectCategory(categoryName) {
 if (!db.listsOrder) db.listsOrder = Object.keys(db.lists);
         db.categoryMemory[item.name.toLowerCase().trim()] = categoryName;
         save();
+        refreshCategoryStats(); // עדכון מיידי של "הוצאות לפי קטגוריה"
         showNotification('✓ הקטגוריה עודכנה');
     }
     closeModal('editCategoryModal');
@@ -5045,6 +5057,7 @@ if (!db.listsOrder) db.listsOrder = Object.keys(db.lists);
         }
         
         save();
+        refreshCategoryStats(); // עדכון מיידי של "הוצאות לפי קטגוריה"
         showNotification('✓ קטגוריה מותאמת נשמרה');
     }
     closeModal('editCategoryModal');
@@ -5156,6 +5169,7 @@ function deleteCustomCategory(categoryName, categoryIndex) {
 
     // Save and update UI
     save();
+    refreshCategoryStats(); // עדכון מיידי של "הוצאות לפי קטגוריה"
     renderCustomCategoriesList();
     updateCategoryDropdown();
     showNotification(`✅ הקטגוריה '${categoryName}' נמחקה`);
@@ -5660,20 +5674,8 @@ function mergeCloudWithLocal(cloudData, localData) {
                 merged.lists[listId].items.push(normalizeItem(localItem));
                 console.log('➕ מוסיף פריט חדש מאופליין:', localItem.name);
             } else {
-                // פריט קיים גם בענן וגם מקומית — השתמש בגרסה החדשה יותר לפי lastUpdated
-                const cloudItem = cloudItemsMap[localItem.cloudId];
-                const cloudUpdated = cloudItem.lastUpdated || 0;
-                const localUpdated = localItem.lastUpdated || 0;
-                if (localUpdated > cloudUpdated) {
-                    // המקומי חדש יותר (למשל: שינוי קטגוריה/שם לפני שסונכרן לענן)
-                    const idx = merged.lists[listId].items.findIndex(i => i.cloudId === localItem.cloudId);
-                    if (idx !== -1) {
-                        merged.lists[listId].items[idx] = normalizeItem(localItem);
-                    }
-                    console.log('✓ פריט קיים בשניהם, משתמש בנתונים מקומיים (חדשים יותר):', localItem.name);
-                } else {
-                    console.log('✓ פריט קיים בשניהם, משתמש בנתוני ענן (חדשים יותר):', localItem.name);
-                }
+                // פריט קיים גם בענן - עדכן אותו מהענן (הענן מנצח)
+                console.log('✓ פריט קיים בשניהם, משתמש בנתוני ענן:', localItem.name);
             }
         });
     });
