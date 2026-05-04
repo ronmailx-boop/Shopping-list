@@ -3713,16 +3713,18 @@ function renderHistory() {
         entry.items.forEach((item, i) => {
             const itemTotal = (item.price * item.qty).toFixed(2);
             productsList += `
-                <div class="flex justify-between items-center text-sm py-1 border-b border-gray-200">
-                    <div class="flex items-center gap-2 flex-1 min-w-0">
-                        <span class="text-gray-700 truncate">${i + 1}. ${item.name} ${item.category ? '(' + item.category + ')' : ''}</span>
-                        <span class="text-gray-500 flex-shrink-0">x${item.qty}</span>
-                        <span class="text-indigo-600 font-bold flex-shrink-0">₪${itemTotal}</span>
+                <div class="py-1.5 border-b border-gray-200">
+                    <div class="flex items-center gap-1.5 mb-1">
+                        <span class="text-gray-700 text-sm flex-1 min-w-0 truncate">${i + 1}. ${item.name} ${item.category ? '(' + item.category + ')' : ''}</span>
+                        <span class="text-gray-500 text-xs flex-shrink-0">x${item.qty}</span>
                     </div>
-                    <button onclick="openRestoreItemPicker(${realIdx}, ${i}, 'history')"
-                        class="flex-shrink-0 mr-1 text-[10px] font-bold bg-white border border-indigo-300 text-indigo-600 rounded-lg px-2 py-1 whitespace-nowrap">
-                        + הוסף לרשימה
-                    </button>
+                    <div class="flex justify-between items-center">
+                        <span class="text-indigo-600 font-bold text-sm">₪${itemTotal}</span>
+                        <button onclick="openRestoreItemPicker(${realIdx}, ${i}, 'history')"
+                            class="text-[10px] font-bold bg-white border border-indigo-300 text-indigo-600 rounded-lg px-2.5 py-1 whitespace-nowrap">
+                            + הוסף לרשימה
+                        </button>
+                    </div>
                 </div>`;
         });
         productsList += '</div>';
