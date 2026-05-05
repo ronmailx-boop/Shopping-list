@@ -3195,17 +3195,17 @@ function renderCompletedLists() {
             const itemTotal = (item.price * item.qty).toFixed(2);
             productsList += `
                 <div class="py-1.5 border-b border-green-200">
-                    <div class="flex items-center gap-1.5 mb-1">
-                        <span class="text-gray-700 text-sm flex-1 min-w-0 truncate">${i + 1}. ${item.name}</span>
-                        <span class="text-gray-400 text-xs flex-shrink-0">x${item.qty}</span>
+                    <div class="flex items-start gap-2 mb-1.5">
+                        <span class="text-gray-700 text-sm flex-1 min-w-0" style="word-break:break-word;line-height:1.4">${i + 1}. ${item.name}</span>
+                        <div class="flex flex-col items-end flex-shrink-0">
+                            <span class="text-indigo-600 font-bold text-sm">₪${itemTotal}</span>
+                            <span class="text-gray-400 text-xs">x${item.qty}</span>
+                        </div>
                     </div>
-                    <div class="flex justify-between items-center">
-                        <span class="text-indigo-600 font-bold text-sm">₪${itemTotal}</span>
-                        <button onclick="openRestoreItemPicker(${realIdx}, ${i}, 'completed')"
-                            class="text-[10px] font-bold bg-white border border-indigo-300 text-indigo-600 rounded-lg px-2.5 py-1 whitespace-nowrap">
-                            + הוסף לרשימה
-                        </button>
-                    </div>
+                    <button onclick="openRestoreItemPicker(${realIdx}, ${i}, 'completed')"
+                        class="w-full text-[11px] font-bold bg-indigo-50 border border-indigo-300 text-indigo-600 rounded-lg py-1 text-center">
+                        + הוסף לרשימה
+                    </button>
                 </div>`;
         });
         productsList += '</div>';
@@ -3714,17 +3714,17 @@ function renderHistory() {
             const itemTotal = (item.price * item.qty).toFixed(2);
             productsList += `
                 <div class="py-1.5 border-b border-gray-200">
-                    <div class="flex items-center gap-1.5 mb-1">
-                        <span class="text-gray-700 text-sm flex-1 min-w-0 truncate">${i + 1}. ${item.name} ${item.category ? '(' + item.category + ')' : ''}</span>
-                        <span class="text-gray-500 text-xs flex-shrink-0">x${item.qty}</span>
+                    <div class="flex items-start gap-2 mb-1.5">
+                        <span class="text-gray-700 text-sm flex-1 min-w-0" style="word-break:break-word;line-height:1.4">${i + 1}. ${item.name} ${item.category ? '(' + item.category + ')' : ''}</span>
+                        <div class="flex flex-col items-end flex-shrink-0">
+                            <span class="text-indigo-600 font-bold text-sm">₪${itemTotal}</span>
+                            <span class="text-gray-400 text-xs">x${item.qty}</span>
+                        </div>
                     </div>
-                    <div class="flex justify-between items-center">
-                        <span class="text-indigo-600 font-bold text-sm">₪${itemTotal}</span>
-                        <button onclick="openRestoreItemPicker(${realIdx}, ${i}, 'history')"
-                            class="text-[10px] font-bold bg-white border border-indigo-300 text-indigo-600 rounded-lg px-2.5 py-1 whitespace-nowrap">
-                            + הוסף לרשימה
-                        </button>
-                    </div>
+                    <button onclick="openRestoreItemPicker(${realIdx}, ${i}, 'history')"
+                        class="w-full text-[11px] font-bold bg-indigo-50 border border-indigo-300 text-indigo-600 rounded-lg py-1 text-center">
+                        + הוסף לרשימה
+                    </button>
                 </div>`;
         });
         productsList += '</div>';
