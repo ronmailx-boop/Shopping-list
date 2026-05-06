@@ -4764,7 +4764,13 @@ function saveItemEdit() {
     const newDueTime = document.getElementById('editItemDueTime').value;
     const newPaymentUrl = document.getElementById('editItemPaymentUrl').value.trim();
     const newNotes = document.getElementById('editItemNotes').value.trim();
-    const newCategory = document.getElementById('editItemCategory').value;
+    // קטגוריה: ה-select מוסתר מכיל רק קטגוריות בסיס — קטגוריות מורחבות (דיור, רכב וכו')
+    // נשמרות רק ב-Label. לכן: אם ה-select ריק, קרא מה-Label.
+    const _catSelVal = document.getElementById('editItemCategory').value;
+    const _catLblEl  = document.getElementById('editItemCategoryLabel');
+    const _catLblTxt = _catLblEl ? _catLblEl.textContent.trim() : '';
+    const _PLACEHOLDER = 'בחר קטגוריה (אופציונלי)';
+    const newCategory = _catSelVal || (_catLblTxt && _catLblTxt !== _PLACEHOLDER ? _catLblTxt : '');
     const newReminderValue = document.getElementById('editItemReminderValue').value;
     const newReminderUnit = document.getElementById('editItemReminderUnit').value;
     
