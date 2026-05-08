@@ -901,6 +901,7 @@ let categorySortEnabled = localStorage.getItem('categorySortEnabled') === 'true'
 if (!db.customCategories) db.customCategories = [];
 if (!db.categoryMemory) db.categoryMemory = {};
 if (!db.pricebook) db.pricebook = {};
+if (!db.hiddenFromAutocomplete) db.hiddenFromAutocomplete = [];
 // סדר רשימות מפורש — מונע שינוי סדר בטעינה מ-Firebase
 if (!db.listsOrder) db.listsOrder = Object.keys(db.lists);
 
@@ -2047,6 +2048,7 @@ function scrollToCheckedItems() {
 // ========== Autocomplete Functions ==========
 function getProductHistory() {
     const productMap = {};
+    const hiddenSet = new Set(db.hiddenFromAutocomplete || []);
 
     // Extract products from history
     if (db.history && db.history.length > 0) {
@@ -2076,6 +2078,9 @@ function getProductHistory() {
         });
     }
 
+    // Filter out items the user chose to hide from autocomplete
+    hiddenSet.forEach(name => delete productMap[name]);
+
     return productMap;
 }
 
@@ -2104,14 +2109,15 @@ function showAutocompleteSuggestions(searchTerm) {
         return;
     }
 
-    // Build HTML for suggestions
+    // Build HTML for suggestions — Chip + Undo (Variant 6)
     container.innerHTML = matches.map(([name, data]) => `
-        <div class="autocomplete-item" onclick="selectAutocompleteSuggestion('${name.replace(/'/g, "\\'")}', ${data.price}, '${data.category.replace(/'/g, "\\'")}')">
-            <div>
+        <div class="autocomplete-item" id="ac-item-${CSS.escape(name)}" style="display:flex;align-items:center;gap:8px;">
+            <div style="flex:1;min-width:0;" onclick="selectAutocompleteSuggestion('${name.replace(/'/g, "\\'")}', ${data.price}, '${data.category.replace(/'/g, "\\'")}')">
                 <div class="autocomplete-item-name">${name}</div>
                 ${data.category ? `<div class="autocomplete-item-category">${data.category}</div>` : ''}
+                <div class="autocomplete-item-price">₪${data.price.toFixed(2)}</div>
             </div>
-            <div class="autocomplete-item-price">₪${data.price.toFixed(2)}</div>
+            <button class="ac-remove-chip" onclick="event.stopPropagation();startRemoveFromAutocomplete('${name.replace(/'/g, "\\'")}')">× הסר</button>
         </div>
     `).join('');
 
@@ -2147,6 +2153,80 @@ function hideAutocompleteSuggestions() {
             container.innerHTML = '';
         }, 200);
     }
+}
+
+// ========== Autocomplete Remove from History (Chip + Undo) ==========
+const _acRemovePending = {}; // name → { timerId, rafId, startTime }
+
+function startRemoveFromAutocomplete(name) {
+    const escapedId = CSS.escape(name);
+    const itemEl = document.getElementById('ac-item-' + escapedId);
+    if (!itemEl) return;
+
+    // Clear any already-pending remove for this name
+    if (_acRemovePending[name]) {
+        clearTimeout(_acRemovePending[name].timerId);
+        cancelAnimationFrame(_acRemovePending[name].rafId);
+    }
+
+    const DURATION = 3000;
+    const startTime = Date.now();
+
+    // Replace the row with an undo row
+    itemEl.innerHTML = `
+        <div style="flex:1;text-align:right;font-size:13px;color:#888;">"${name}" הוסר</div>
+        <div style="display:flex;align-items:center;gap:8px;">
+            <div class="ac-undo-bar-wrap"><div class="ac-undo-bar" id="ac-bar-${escapedId}"></div></div>
+            <button class="ac-undo-btn" onclick="event.stopPropagation();undoRemoveFromAutocomplete('${name.replace(/'/g, "\\'")}')">↩ בטל</button>
+        </div>
+    `;
+    itemEl.style.background = '#fff8f8';
+    itemEl.onclick = null;
+
+    // Animate the progress bar
+    function animateBar() {
+        const barEl = document.getElementById('ac-bar-' + escapedId);
+        if (!barEl) return;
+        const elapsed = Date.now() - startTime;
+        const pct = Math.max(0, 100 - (elapsed / DURATION) * 100);
+        barEl.style.width = pct + '%';
+        if (pct > 0) {
+            _acRemovePending[name].rafId = requestAnimationFrame(animateBar);
+        }
+    }
+    const rafId = requestAnimationFrame(animateBar);
+
+    const timerId = setTimeout(() => {
+        confirmRemoveFromAutocomplete(name);
+    }, DURATION);
+
+    _acRemovePending[name] = { timerId, rafId, startTime };
+}
+
+function undoRemoveFromAutocomplete(name) {
+    if (_acRemovePending[name]) {
+        clearTimeout(_acRemovePending[name].timerId);
+        cancelAnimationFrame(_acRemovePending[name].rafId);
+        delete _acRemovePending[name];
+    }
+    // Re-render the full suggestions list
+    const inputEl = document.getElementById('itemName');
+    if (inputEl) showAutocompleteSuggestions(inputEl.value);
+}
+
+function confirmRemoveFromAutocomplete(name) {
+    if (_acRemovePending[name]) {
+        cancelAnimationFrame(_acRemovePending[name].rafId);
+        delete _acRemovePending[name];
+    }
+    if (!db.hiddenFromAutocomplete) db.hiddenFromAutocomplete = [];
+    if (!db.hiddenFromAutocomplete.includes(name)) {
+        db.hiddenFromAutocomplete.push(name);
+        save();
+    }
+    // Re-render — item is now gone from results
+    const inputEl = document.getElementById('itemName');
+    if (inputEl) showAutocompleteSuggestions(inputEl.value);
 }
 
 // ========== Macheron (Price Book) ==========
