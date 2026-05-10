@@ -926,112 +926,6 @@ function save() {
     }
 }
 
-// ══ הוצאות קבועות ══════════════════════════════════════════════════
-function toggleRecurring(idx) {
-    if (!db.currentId || !db.lists[db.currentId]) return;
-    const item = db.lists[db.currentId].items[idx];
-    if (!item) return;
-    item.recurring = !item.recurring;
-    save();
-    render();
-}
-
-function getRecurringForecastItems() {
-    if (!db.currentId || !db.lists || !db.lists[db.currentId]) return [];
-    const current = db.lists[db.currentId];
-    const currentNames = new Set((current.items || []).map(i => (i.name || '').trim().toLowerCase()));
-    const seen = new Set();
-    const result = [];
-    try {
-        Object.entries(db.lists).forEach(([lid, list]) => {
-            if (lid === db.currentId || !list || !list.items) return;
-            list.items.forEach(item => {
-                if (!item.recurring) return;
-                const key = (item.name || '').trim().toLowerCase();
-                if (!key || currentNames.has(key) || seen.has(key)) return;
-                seen.add(key);
-                result.push({ ...item, _sourceListId: lid, _sourceListName: list.name || lid });
-            });
-        });
-    } catch(e) { console.warn('getRecurringForecastItems error:', e); }
-    return result;
-}
-
-function showRecurringBanner() {
-    try {
-        const banner = document.getElementById('recurringBanner');
-        if (!banner) return;
-        const items = getRecurringForecastItems();
-        if (items.length > 0) {
-            banner.style.display = 'flex';
-            const countEl = document.getElementById('recurringBannerCount');
-            if (countEl) countEl.textContent = items.length;
-        } else {
-            banner.style.display = 'none';
-        }
-    } catch(e) { console.warn('showRecurringBanner error:', e); }
-}
-
-function openRecurringImportModal() {
-    const items = getRecurringForecastItems();
-    if (items.length === 0) return;
-    const modal = document.getElementById('recurringImportModal');
-    const listEl = document.getElementById('recurringImportList');
-    if (!modal || !listEl) return;
-    listEl.innerHTML = items.map((item, i) => `
-        <label style="display:flex;align-items:center;gap:10px;background:#ede9f8;border-radius:12px;padding:10px 12px;margin-bottom:7px;cursor:pointer;direction:rtl;">
-            <input type="checkbox" checked data-ri="${i}" style="width:18px;height:18px;accent-color:#5b3fa6;flex-shrink:0;">
-            <div style="flex:1;">
-                <div style="font-size:13px;font-weight:700;color:#2d1b69;">${item.name}</div>
-                <div style="font-size:11px;color:#7b6ba8;margin-top:2px;">₪${(+item.price || 0).toFixed(2)} · מ: ${item._sourceListName}</div>
-            </div>
-        </label>`).join('');
-    modal.dataset.items = JSON.stringify(items);
-    modal.style.display = 'flex';
-}
-
-function closeRecurringImportModal() {
-    const modal = document.getElementById('recurringImportModal');
-    if (modal) modal.style.display = 'none';
-}
-
-function importSelectedRecurring() {
-    try {
-        const modal = document.getElementById('recurringImportModal');
-        if (!modal || !db.currentId || !db.lists[db.currentId]) return;
-        const items = JSON.parse(modal.dataset.items || '[]');
-        const checks = modal.querySelectorAll('input[type=checkbox]');
-        const list = db.lists[db.currentId];
-        let count = 0;
-        checks.forEach((cb, i) => {
-            if (!cb.checked || !items[i]) return;
-            const src = items[i];
-            list.items.push({
-                name: src.name || '',
-                price: src.price || 0,
-                qty: src.qty || 1,
-                checked: false,
-                category: src.category || 'אחר',
-                note: src.note || '',
-                dueDate: src.dueDate || '',
-                dueTime: src.dueTime || '',
-                paymentUrl: src.paymentUrl || '',
-                isPaid: false,
-                lastUpdated: Date.now(),
-                cloudId: 'item_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9),
-                reminderValue: '', reminderUnit: '', nextAlertTime: null, alertDismissedAt: null,
-                isGeneralNote: false,
-                recurring: true,
-                isForecast: true
-            });
-            count++;
-        });
-        closeRecurringImportModal();
-        if (count > 0) { save(); render(); showNotification('✅ ' + count + ' הוצאות קבועות נוספו כתחזית!'); }
-    } catch(e) { console.error('importSelectedRecurring error:', e); closeRecurringImportModal(); }
-}
-// ════════════════════════════════════════════════════════════════════
-
 function toggleItem(idx) {
     const item = db.lists[db.currentId].items[idx];
     const previousState = item.checked;
@@ -2766,7 +2660,7 @@ function render() {
                                             <input type="checkbox" ${item.checked ? 'checked' : ''} onchange="toggleItem(${idx})" class="w-7 h-7 accent-indigo-600">
                                             <div class="flex-1">
                                                 <div class="text-2xl font-bold ${item.checked ? 'line-through text-gray-300' : ''}" onclick="openEditItemNameModal(${idx})" style="cursor:pointer;">
-                                                    <span class="item-number">${itemNumber}.</span> ${item.name}${item.recurring ? ' <span style="font-size:9px;background:#e8f8ef;color:#1e8449;border:1px solid #a9dfbf;border-radius:8px;padding:1px 5px;font-weight:600;">⭐</span>' : ''}
+                                                    <span class="item-number">${itemNumber}.</span> ${item.name}
                                                 </div>
                                                 ${categoryBadge}
                                                 ${metadataHTML}
@@ -2791,15 +2685,6 @@ function render() {
                                         <span onclick="openEditTotalModal(${idx})" class="text-2xl font-black text-indigo-600" style="cursor:pointer;">₪${sub.toFixed(2)}</span>
                                         `}
                                     </div>
-                                    <div style="margin-top:8px;padding-top:8px;border-top:1px solid #ede9f8;display:flex;align-items:center;justify-content:space-between;direction:rtl;">
-                                        <div>
-                                            <div style="font-size:12px;font-weight:700;color:#3a2470;">⭐ הוצאה קבועה</div>
-                                            <div style="font-size:10px;color:#7b6ba8;margin-top:2px;">תופיע כתחזית ברשימה הבאה</div>
-                                        </div>
-                                        <button onclick="event.stopPropagation();toggleRecurring(${idx})" style="background:${item.recurring ? '#2ecc71' : '#ede9f8'};color:${item.recurring ? '#fff' : '#5b3fa6'};border:none;border-radius:20px;padding:5px 14px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;transition:all 0.2s;">
-                                            ${item.recurring ? '✅ קבוע' : '☆ סמן כקבוע'}
-                                        </button>
-                                    </div>
                                 `;
                             } else {
                                 div.style.padding = '10px 14px';
@@ -2810,7 +2695,7 @@ function render() {
                                         <div style="display:flex;align-items:center;gap:6px;flex:1;min-width:0;height:100%;">
                                             <input type="checkbox" ${item.checked ? 'checked' : ''} onchange="toggleItem(${idx})" class="w-7 h-7 accent-indigo-600" style="flex-shrink:0;" onclick="event.stopPropagation()">
                                             <span class="font-bold ${item.checked ? 'line-through text-gray-300' : ''}" style="font-size:15px;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;line-height:1.35;cursor:pointer;word-break:break-word;">
-                                                <span class="item-number">${itemNumber}.</span> ${item.name}${item.recurring ? ' <span style="font-size:9px;background:#e8f8ef;color:#1e8449;border:1px solid #a9dfbf;border-radius:8px;padding:1px 5px;font-weight:600;">⭐</span>' : ''}
+                                                <span class="item-number">${itemNumber}.</span> ${item.name}
                                             </span>
                                         </div>
                                         ${item.isGeneralNote ? '' : `<span class="font-black text-indigo-600" style="font-size:15px;flex-shrink:0;">₪${sub.toFixed(2)}</span>`}
@@ -2873,7 +2758,7 @@ function render() {
                                                 <input type="checkbox" ${item.checked ? 'checked' : ''} onchange="toggleItem(${idx})" class="w-7 h-7 accent-indigo-600">
                                                 <div class="flex-1">
                                                     <div class="text-2xl font-bold ${item.checked ? 'line-through text-gray-300' : ''}" onclick="openEditItemNameModal(${idx})" style="cursor:pointer;">
-                                                        <span class="item-number">${itemNumber}.</span> ${item.name}${item.recurring ? ' <span style="font-size:9px;background:#e8f8ef;color:#1e8449;border:1px solid #a9dfbf;border-radius:8px;padding:1px 5px;font-weight:600;">⭐</span>' : ''}
+                                                        <span class="item-number">${itemNumber}.</span> ${item.name}
                                                     </div>
                                                     ${categoryBadge}
                                                     ${metadataHTML}
@@ -2898,15 +2783,6 @@ function render() {
                                             <span onclick="openEditTotalModal(${idx})" class="text-2xl font-black text-indigo-600" style="cursor:pointer;">₪${sub.toFixed(2)}</span>
                                             `}
                                         </div>
-                                        <div style="margin-top:8px;padding-top:8px;border-top:1px solid #ede9f8;display:flex;align-items:center;justify-content:space-between;direction:rtl;">
-                                            <div>
-                                                <div style="font-size:12px;font-weight:700;color:#3a2470;">⭐ הוצאה קבועה</div>
-                                                <div style="font-size:10px;color:#7b6ba8;margin-top:2px;">תופיע כתחזית ברשימה הבאה</div>
-                                            </div>
-                                            <button onclick="event.stopPropagation();toggleRecurring(${idx})" style="background:${item.recurring ? '#2ecc71' : '#ede9f8'};color:${item.recurring ? '#fff' : '#5b3fa6'};border:none;border-radius:20px;padding:5px 14px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;transition:all 0.2s;">
-                                                ${item.recurring ? '✅ קבוע' : '☆ סמן כקבוע'}
-                                            </button>
-                                        </div>
                                     `;
                                 } else {
                                     div.style.padding = '10px 14px';
@@ -2917,7 +2793,7 @@ function render() {
                                             <div style="display:flex;align-items:center;gap:6px;flex:1;min-width:0;height:100%;">
                                                 <input type="checkbox" ${item.checked ? 'checked' : ''} onchange="toggleItem(${idx})" class="w-7 h-7 accent-indigo-600" style="flex-shrink:0;" onclick="event.stopPropagation()">
                                                 <span class="font-bold line-through text-gray-300" style="font-size:15px;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;line-height:1.35;cursor:pointer;word-break:break-word;">
-                                                    <span class="item-number">${itemNumber}.</span> ${item.name}${item.recurring ? ' <span style="font-size:9px;background:#e8f8ef;color:#1e8449;border:1px solid #a9dfbf;border-radius:8px;padding:1px 5px;font-weight:600;">⭐</span>' : ''}
+                                                    <span class="item-number">${itemNumber}.</span> ${item.name}
                                                 </span>
                                             </div>
                                             ${item.isGeneralNote ? '' : `<span class="font-black text-indigo-600" style="font-size:15px;flex-shrink:0;opacity:0.5;">₪${sub.toFixed(2)}</span>`}
@@ -3001,15 +2877,6 @@ function render() {
                                     <span onclick="openEditTotalModal(${idx})" class="text-2xl font-black text-indigo-600" style="cursor:pointer;">₪${sub.toFixed(2)}</span>
                                     `}
                                 </div>
-                                <div style="margin-top:8px;padding-top:8px;border-top:1px solid #ede9f8;display:flex;align-items:center;justify-content:space-between;direction:rtl;">
-                                    <div>
-                                        <div style="font-size:12px;font-weight:700;color:#3a2470;">⭐ הוצאה קבועה</div>
-                                        <div style="font-size:10px;color:#7b6ba8;margin-top:2px;">תופיע כתחזית ברשימה הבאה</div>
-                                    </div>
-                                    <button onclick="event.stopPropagation();toggleRecurring(${idx})" style="background:${item.recurring ? '#2ecc71' : '#ede9f8'};color:${item.recurring ? '#fff' : '#5b3fa6'};border:none;border-radius:20px;padding:5px 14px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;transition:all 0.2s;">
-                                        ${item.recurring ? '✅ קבוע' : '☆ סמן כקבוע'}
-                                    </button>
-                                </div>
                             `;
 
                         } else {
@@ -3034,7 +2901,7 @@ function render() {
                                         <div class="item-drag-handle" data-drag="true" style="display:${itemEditMode ? 'flex' : 'none'};align-items:center;justify-content:center;width:26px;height:26px;flex-shrink:0;cursor:grab;color:#a89fff;touch-action:none;"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" style="pointer-events:none"><rect x="2" y="3" width="12" height="2" rx="1" fill="currentColor"/><rect x="2" y="7" width="12" height="2" rx="1" fill="currentColor"/><rect x="2" y="11" width="12" height="2" rx="1" fill="currentColor"/></svg></div>
                                         <input type="checkbox" ${item.checked ? 'checked' : ''} onchange="toggleItem(${idx})" class="w-7 h-7 accent-indigo-600" style="flex-shrink:0;" onclick="event.stopPropagation()">
                                         `}
-                                        ${(() => { const _cDate = item.dueDate ? new Date(item.dueDate).toLocaleDateString('he-IL') : (item.note && item.note.trimStart().startsWith('📅') ? item.note.replace(/^📅\s*/, '').split('\n')[0].trim() : ''); return `<div style="flex:1;min-width:0;overflow:hidden;display:flex;flex-direction:column;justify-content:center;cursor:pointer;"><span class="font-bold ${item.checked && !compactDeleteMode ? 'line-through text-gray-300' : ''}" style="font-size:15px;overflow:hidden;display:-webkit-box;-webkit-line-clamp:${_cDate ? 1 : 2};-webkit-box-orient:vertical;line-height:1.35;word-break:break-word;"><span class="item-number">${idx + 1}.</span> ${item.name}${item.recurring ? ' <span style="font-size:9px;background:#e8f8ef;color:#1e8449;border:1px solid #a9dfbf;border-radius:8px;padding:1px 5px;font-weight:600;">⭐</span>' : ''}</span>${_cDate ? `<span style="font-size:11px;color:#9ca3af;line-height:1.3;margin-top:2px;">${_cDate}</span>` : ''}</div>`; })()}
+                                        ${(() => { const _cDate = item.dueDate ? new Date(item.dueDate).toLocaleDateString('he-IL') : (item.note && item.note.trimStart().startsWith('📅') ? item.note.replace(/^📅\s*/, '').split('\n')[0].trim() : ''); return `<div style="flex:1;min-width:0;overflow:hidden;display:flex;flex-direction:column;justify-content:center;cursor:pointer;"><span class="font-bold ${item.checked && !compactDeleteMode ? 'line-through text-gray-300' : ''}" style="font-size:15px;overflow:hidden;display:-webkit-box;-webkit-line-clamp:${_cDate ? 1 : 2};-webkit-box-orient:vertical;line-height:1.35;word-break:break-word;"><span class="item-number">${idx + 1}.</span> ${item.name}</span>${_cDate ? `<span style="font-size:11px;color:#9ca3af;line-height:1.3;margin-top:2px;">${_cDate}</span>` : ''}</div>`; })()}
                                     </div>
                                     ${item.isGeneralNote ? '' : `<span class="font-black text-indigo-600" style="font-size:15px;flex-shrink:0;">₪${sub.toFixed(2)}</span>`}
                                 </div>
@@ -3115,8 +2982,6 @@ function render() {
         } else if (budgetWarning) {
             budgetWarning.classList.add('hidden');
         }
-
-        showRecurringBanner(); // באנר הוצאות קבועות
 
     } else if (activePage === 'summary') {
         document.getElementById('pageLists').classList.add('hidden');
@@ -5851,10 +5716,7 @@ function normalizeItem(item) {
         reminderUnit: item.reminderUnit || '',
         nextAlertTime: item.nextAlertTime || null,
         alertDismissedAt: item.alertDismissedAt || null,
-        isGeneralNote: item.isGeneralNote || false,
-        // ─ שדות הוצאה קבועה ─
-        recurring: item.recurring || false,
-        isForecast: item.isForecast || false
+        isGeneralNote: item.isGeneralNote || false
     };
 }
 
