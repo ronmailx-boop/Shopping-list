@@ -1480,8 +1480,9 @@
             background: linear-gradient(135deg,rgba(25,20,60,0.9) 0%,rgba(115,103,240,0.88) 60%,rgba(144,85,255,0.9) 100%);
             backdrop-filter: blur(20px);
             opacity: 0; transition: opacity 0.35s ease;
+            pointer-events: none;
         }
-        #wizWelcomeOverlay.wiz-welcome-visible { opacity: 1; }
+        #wizWelcomeOverlay.wiz-welcome-visible { opacity: 1; pointer-events: all; }
 
         .wiz-welcome-card {
             position: relative; background: rgba(255,255,255,0.1);
@@ -2334,7 +2335,7 @@
         console.log('🔵 Starting Firebase initialization...');
         
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import { getAuth, signInWithPopup, GoogleAuthProvider, getRedirectResult, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+        import { getAuth, signInWithPopup, signInWithRedirect, GoogleAuthProvider, getRedirectResult, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
         import { getFirestore, doc, setDoc, onSnapshot, getDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
         import { getFunctions, httpsCallable } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-functions.js";
 
@@ -2368,6 +2369,7 @@
             window.googleProvider = provider;
 
             window.signInWithPopup = signInWithPopup;
+            window.signInWithRedirect = signInWithRedirect;
             window.getRedirectResult = getRedirectResult;
             window.signOut = signOut;
             window.onAuthStateChanged = onAuthStateChanged;
@@ -2723,6 +2725,15 @@ ${error.message}
                     🗑️ מחק <span id="compactDeleteBadge" style="display:none;background:#ef4444;color:white;border-radius:50%;width:18px;height:18px;font-size:10px;font-weight:900;align-items:center;justify-content:center;"></span>
                 </button>
             </div>
+            <!-- באנר הוצאות קבועות -->
+            <div id="recurringBanner" style="display:none;align-items:center;justify-content:space-between;background:linear-gradient(135deg,#2ecc71,#27ae60);color:white;border-radius:14px;padding:9px 14px;margin-bottom:8px;cursor:pointer;box-shadow:0 3px 12px rgba(46,204,113,0.3);direction:rtl;" onclick="openRecurringImportModal()">
+                <div>
+                    <div style="font-size:13px;font-weight:700;">🔄 <span id="recurringBannerCount">0</span> הוצאות קבועות ממתינות לייבוא</div>
+                    <div style="font-size:10px;opacity:0.85;margin-top:2px;">פריטים קבועים מרשימות אחרות שטרם הופיעו כאן — לחץ לייבוא</div>
+                </div>
+                <div style="background:rgba(255,255,255,0.25);border-radius:10px;padding:5px 12px;font-size:12px;font-weight:700;flex-shrink:0;margin-right:10px;">ייבא ←</div>
+            </div>
+
             <div id="itemsContainer"></div>
         </div>
 
@@ -3412,6 +3423,24 @@ ${error.message}
                 <button class="bg-gray-100 flex-1 py-4 rounded-xl font-bold"
                     onclick="event.stopPropagation(); closeModal('editTotalModal');">ביטול</button>
             </div>
+        </div>
+    </div>
+
+    <!-- מודל ייבוא הוצאות קבועות -->
+    <div id="recurringImportModal" style="display:none;position:fixed;inset:0;z-index:9500;background:rgba(30,15,70,0.55);align-items:flex-end;" onclick="if(event.target===this)closeRecurringImportModal()">
+        <div style="background:white;border-radius:24px 24px 0 0;width:100%;padding:20px 16px 30px;max-height:80vh;overflow-y:auto;">
+            <div style="text-align:center;font-size:16px;font-weight:800;color:#3a2470;margin-bottom:6px;direction:rtl;">🔄 ייבוא הוצאות קבועות</div>
+            <div style="text-align:center;font-size:11px;color:#7b6ba8;direction:rtl;margin-bottom:14px;line-height:1.5;">
+                אלה הוצאות שסומנו כקבועות ברשימות אחרות וטרם הופיעו ברשימה זו.<br>
+                בחר אילו לייבא כתחזית לסיום החודש:
+            </div>
+            <div id="recurringImportList"></div>
+            <button onclick="importSelectedRecurring()" style="width:100%;background:linear-gradient(135deg,#5b3fa6,#7c5cc4);color:white;border:none;border-radius:14px;padding:13px;font-size:14px;font-weight:800;font-family:inherit;cursor:pointer;margin-top:8px;">
+                ✅ ייבא פריטים מסומנים
+            </button>
+            <button onclick="closeRecurringImportModal()" style="width:100%;background:#ede9f8;color:#5b3fa6;border:none;border-radius:14px;padding:11px;font-size:13px;font-weight:700;font-family:inherit;cursor:pointer;margin-top:8px;">
+                ביטול
+            </button>
         </div>
     </div>
 
