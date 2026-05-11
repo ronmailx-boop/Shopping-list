@@ -2493,7 +2493,7 @@ let compactDeleteSelected = new Set(); // אינדקסים שנבחרו למחי
 
 function render() {
     const container = document.getElementById(activePage === 'lists' ? 'itemsContainer' : activePage === 'summary' ? 'summaryContainer' : null);
-    let total = 0, paid = 0;
+    let total = 0, paid = 0, totalDeferred = 0;
 
     // tabLists ו-tabSummary הם עכשיו hit-areas שקופות מעל SVG — לא נגע בהם
     const _tabStats = document.getElementById('tabStats');
@@ -3038,6 +3038,7 @@ function render() {
                 if (isSel) {
                     total += (l.fixedCharge > 0) ? l.fixedCharge : lT;
                     paid += lP;
+                    if (l.fixedCharge > 0) totalDeferred += Math.max(0, lT - l.fixedCharge);
                 }
 
                 const colorClass = TILE_COLORS[tileIdx % TILE_COLORS.length];
@@ -3138,6 +3139,16 @@ function render() {
     document.getElementById('displayTotal').innerText = total.toFixed(2);
     document.getElementById('displayPaid').innerText = paid.toFixed(2);
     document.getElementById('displayLeft').innerText = (total - paid).toFixed(2);
+    const _deferredRow = document.getElementById('deferredRow');
+    const _displayDeferred = document.getElementById('displayDeferred');
+    if (_deferredRow && _displayDeferred) {
+        if (totalDeferred > 0) {
+            _displayDeferred.innerText = totalDeferred.toFixed(0);
+            _deferredRow.style.display = 'flex';
+        } else {
+            _deferredRow.style.display = 'none';
+        }
+    }
     initSortable();
 
     // סנכרון מיידי של "הוצאות לפי קטגוריה" — מכל הרשימות, בלי קשר לדף הנוכחי
