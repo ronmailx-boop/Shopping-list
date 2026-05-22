@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>מדיניות פרטיות – Vplus Pro</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'Segoe UI', Arial, sans-serif;
+    background: #f5f4ff;
+    color: #2d2d2d;
+    line-height: 1.8;
+  }
+  header {
+    background: linear-gradient(135deg, #3b1fa8, #7367f0);
+    color: white;
+    padding: 40px 24px 32px;
+    text-align: center;
+  }
+  header h1 { font-size: 28px; font-weight: 800; margin-bottom: 6px; }
+  header p  { font-size: 14px; opacity: 0.8; }
+  .container { max-width: 760px; margin: 0 auto; padding: 32px 20px 60px; }
+  .card {
+    background: white;
+    border-radius: 16px;
+    padding: 28px 24px;
+    margin-bottom: 20px;
+    box-shadow: 0 2px 12px rgba(115,103,240,0.08);
+  }
+  h2 {
+    font-size: 18px;
+    color: #7367f0;
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  h2 .icon { font-size: 22px; }
+  p, li { font-size: 15px; color: #444; margin-bottom: 8px; }
+  ul { padding-right: 20px; }
+  li { list-style: disc; }
+  .updated {
+    text-align: center;
+    font-size: 13px;
+    color: #999;
+    margin-top: 32px;
+  }
+  footer {
+    background: #3b1fa8;
+    color: rgba(255,255,255,0.7);
+    text-align: center;
+    padding: 20px;
+    font-size: 13px;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>🔒 מדיניות פרטיות</h1>
+  <p>Vplus Pro – ניהול רשימות וכספים</p>
+</header>
+
+<div class="container">
+
+  <div class="card">
+    <h2><span class="icon">📋</span> כללי</h2>
+    <p>אפליקציית <strong>Vplus Pro</strong> ("האפליקציה") מכבדת את פרטיות המשתמשים שלה. מסמך זה מסביר אילו מידע נאסף, כיצד הוא משמש ואיך הוא מוגן.</p>
+    <p>השימוש באפליקציה מהווה הסכמה למדיניות פרטיות זו.</p>
+  </div>
+
+  <div class="card">
+    <h2><span class="icon">👤</span> מידע שנאסף</h2>
+    <p>האפליקציה אוספת את הסוגים הבאים של מידע:</p>
+    <ul>
+      <li><strong>פרטי חשבון Google</strong> — שם, כתובת אימייל ותמונת פרופיל, לצורך זיהוי והתחברות בלבד.</li>
+      <li><strong>תוכן שהמשתמש יוצר</strong> — רשימות קנייה, מוצרים, מחירים ונתונים פיננסיים שהמשתמש מזין בעצמו.</li>
+      <li><strong>נתוני שימוש בסיסיים</strong> — תאריך ושעת פעולות לצורך פונקציונליות בלבד (למשל, תאריך הוספת מוצר).</li>
+    </ul>
+    <p>אין איסוף מידע על מיקום, אנשי קשר, מצלמה או כל מידע אחר מעבר לרשום לעיל.</p>
+  </div>
+
+  <div class="card">
+    <h2><span class="icon">☁️</span> אחסון ועיבוד המידע</h2>
+    <ul>
+      <li>המידע מאוחסן ב־<strong>Google Firebase Firestore</strong> — שירות ענן מאובטח של Google.</li>
+      <li>ההתחברות מתבצעת דרך <strong>Google Sign-In</strong> (Firebase Authentication).</li>
+      <li>האפליקציה משתמשת ב-<strong>localStorage</strong> לשמירה מקומית זמנית במכשיר המשתמש.</li>
+      <li>המידע מוצפן בהעברה ובאחסון בהתאם לתקני Google Cloud.</li>
+    </ul>
+  </div>
+
+  <div class="card">
+    <h2><span class="icon">🔗</span> שיתוף מידע עם צדדים שלישיים</h2>
+    <p>האפליקציה <strong>אינה מוכרת, משתפת או מעבירת</strong> מידע אישי לצדדים שלישיים, למעט:</p>
+    <ul>
+      <li><strong>Google Firebase</strong> — לצורך אחסון וסנכרון הנתונים בלבד.</li>
+      <li><strong>Google Sign-In</strong> — לצורך אימות זהות בלבד.</li>
+    </ul>
+    <p>שירותים אלו כפופים <a href="https://policies.google.com/privacy" target="_blank">למדיניות הפרטיות של Google</a>.</p>
+  </div>
+
+  <div class="card">
+    <h2><span class="icon">🛡️</span> אבטחת המידע</h2>
+    <ul>
+      <li>גישה לנתונים מוגבלת למשתמש הרשום בלבד באמצעות Firebase Security Rules.</li>
+      <li>אין גישה לנתוני משתמשים אחרים.</li>
+      <li>מפתח האפליקציה אינו רואה את תוכן הרשימות של המשתמשים.</li>
+    </ul>
+  </div>
+
+  <div class="card">
+    <h2><span class="icon">✏️</span> זכויות המשתמש</h2>
+    <p>כל משתמש רשאי:</p>
+    <ul>
+      <li>לצפות בכל המידע שנשמר עבורו — ישירות בתוך האפליקציה.</li>
+      <li>למחוק את כל המידע שלו — על ידי מחיקת הרשימות מהאפליקציה.</li>
+      <li>לבקש מחיקה מלאה של החשבון — בפנייה ישירה אלינו.</li>
+    </ul>
+  </div>
+
+  <div class="card">
+    <h2><span class="icon">👶</span> פרטיות ילדים</h2>
+    <p>האפליקציה אינה מיועדת לילדים מתחת לגיל 13 ואינה אוספת ביודעין מידע מילדים.</p>
+  </div>
+
+  <div class="card">
+    <h2><span class="icon">📬</span> יצירת קשר</h2>
+    <p>לכל שאלה בנוגע למדיניות פרטיות זו, ניתן לפנות אלינו:</p>
+    <p>📧 <strong>vplus.app.contact@gmail.com</strong></p>
+  </div>
+
+  <p class="updated">עדכון אחרון: מאי 2026</p>
+</div>
+
+<footer>
+  © 2026 Vplus Pro · כל הזכויות שמורות
+</footer>
+
+</body>
+</html>
