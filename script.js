@@ -4266,19 +4266,23 @@ async function shareNative(type) {
             showNotification('סמן לפחות רשימה אחת לשיתוף');
             return;
         }
-        title = "Vplus - הרשימות שלי";
-        text = `📋 *הרשימות שלי:*\n\n`;
+        title = "Vplus - ריכוז רשימות";
+        text = `📋 *ריכוז רשימות:*\n\n`;
+        let grandTotal = 0;
         selectedIds.forEach(id => {
             const l = db.lists[id];
             if (!l || l.items.length === 0) return;
-            text += `🔹 *${l.name}:*\n`;
+            const listTotal = l.items.reduce((sum, i) => sum + (i.price * i.qty), 0);
+            grandTotal += listTotal;
+            text += `🔹 *${l.name}*\n`;
             l.items.forEach((i, idx) => {
                 const checkMark = i.checked ? '✅' : '⬜';
-                const priceStr = i.price > 0 ? ` - ₪${(i.price * i.qty).toFixed(2)}` : '';
-                text += `  ${idx + 1}. ${checkMark} ${i.name}${i.qty > 1 ? ` x${i.qty}` : ''}${priceStr}\n`;
+                const priceStr = i.price > 0 ? ` — ₪${(i.price * i.qty).toFixed(2)}` : '';
+                text += `  ${idx + 1}. ${checkMark} ${i.name}${i.qty > 1 ? ` ×${i.qty}` : ''}${priceStr}\n`;
             });
-            text += `\n`;
+            text += `  💰 סה"כ: ₪${listTotal.toFixed(2)}\n\n`;
         });
+        text += `━━━━━━━━━━━━━━━\n💳 *סה"כ כולל: ₪${grandTotal.toFixed(2)}*`;
     } else {
         const selectedIds = db.selectedInSummary;
         if (selectedIds.length === 0) {
