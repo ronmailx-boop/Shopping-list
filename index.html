@@ -3232,8 +3232,8 @@ ${error.message}
 
             <!-- Price + Qty side by side -->
             <div class="price-qty-row">
-                <input type="number" id="itemPrice" inputmode="decimal" placeholder="💰 מחיר" class="modal-input">
-                <input type="number" id="itemQty" placeholder="🔢 כמות" class="modal-input" value="1" min="1">
+                <input type="number" id="itemPrice" inputmode="decimal" placeholder="💰 מחיר" class="modal-input" autocomplete="off">
+                <input type="number" id="itemQty" placeholder="🔢 כמות" class="modal-input" value="1" min="1" autocomplete="off">
             </div>
 
             <!-- Advanced drawer toggle button -->
@@ -3245,10 +3245,10 @@ ${error.message}
             <!-- Advanced drawer -->
             <div class="advanced-drawer" id="advancedDrawer">
                 <label class="text-sm font-bold text-gray-600 block text-center mb-1">📅 תאריך ושעת יעד</label>
-                <input type="date" id="itemDueDate" class="modal-input">
-                <input type="time" id="itemDueTime" class="modal-input">
-                <input type="url" id="itemPaymentUrl" placeholder="🔗 קישור לתשלום (אופציונלי)" class="modal-input">
-                <input type="text" id="itemNotes" placeholder="📝 הערות (אופציונלי)" class="modal-input">
+                <input type="date" id="itemDueDate" class="modal-input" autocomplete="off">
+                <input type="time" id="itemDueTime" class="modal-input" autocomplete="off">
+                <input type="url" id="itemPaymentUrl" placeholder="🔗 קישור לתשלום (אופציונלי)" class="modal-input" autocomplete="off">
+                <input type="text" id="itemNotes" placeholder="📝 הערות (אופציונלי)" class="modal-input" autocomplete="off">
                 <select id="itemCategory" class="modal-input" style="display:none;">
                     <option value="">בחר קטגוריה (אופציונלי)</option>
                     <option value="פירות וירקות">🥬 פירות וירקות</option>
@@ -3271,7 +3271,7 @@ ${error.message}
                 <div style="margin-bottom: 8px;">
                     <label class="text-sm font-bold text-gray-600 block text-center mb-1">🔔 צור התראה לפני</label>
                     <div class="flex gap-2">
-                        <input type="number" id="itemReminderValue" placeholder="מספר" class="modal-input" min="0" style="flex: 1;">
+                        <input type="number" id="itemReminderValue" placeholder="מספר" class="modal-input" min="0" style="flex: 1;" autocomplete="off">
                         <select id="itemReminderUnit" class="modal-input" style="flex: 1;">
                             <option value="minutes" selected>דקות</option>
                             <option value="hours">שעות</option>
@@ -3445,8 +3445,8 @@ ${error.message}
 
             <!-- Price + Qty side by side -->
             <div class="price-qty-row">
-                <input type="number" id="editItemPrice" inputmode="decimal" placeholder="💰 מחיר" class="modal-input">
-                <input type="number" id="editItemQty" placeholder="🔢 כמות" class="modal-input" value="1" min="1">
+                <input type="number" id="editItemPrice" inputmode="decimal" placeholder="💰 מחיר" class="modal-input" autocomplete="off">
+                <input type="number" id="editItemQty" placeholder="🔢 כמות" class="modal-input" value="1" min="1" autocomplete="off">
             </div>
 
             <!-- Advanced drawer toggle button -->
@@ -3459,10 +3459,10 @@ ${error.message}
             <!-- Advanced drawer -->
             <div class="advanced-drawer" id="editAdvancedDrawer">
                 <label class="text-sm font-bold text-gray-600 block text-center mb-1">📅 תאריך ושעת יעד</label>
-                <input type="date" id="editItemDueDate" class="modal-input">
-                <input type="time" id="editItemDueTime" class="modal-input">
-                <input type="url" id="editItemPaymentUrl" placeholder="🔗 קישור לתשלום (אופציונלי)" class="modal-input">
-                <input type="text" id="editItemNotes" placeholder="📝 הערות (אופציונלי)" class="modal-input">
+                <input type="date" id="editItemDueDate" class="modal-input" autocomplete="off">
+                <input type="time" id="editItemDueTime" class="modal-input" autocomplete="off">
+                <input type="url" id="editItemPaymentUrl" placeholder="🔗 קישור לתשלום (אופציונלי)" class="modal-input" autocomplete="off">
+                <input type="text" id="editItemNotes" placeholder="📝 הערות (אופציונלי)" class="modal-input" autocomplete="off">
                 <select id="editItemCategory" class="modal-input" style="display:none;">
                     <option value="">בחר קטגוריה (אופציונלי)</option>
                     <option value="פירות וירקות">🥬 פירות וירקות</option>
@@ -3485,7 +3485,7 @@ ${error.message}
                 <div style="margin-bottom: 8px;">
                     <label class="text-sm font-bold text-gray-600 block text-center mb-1">🔔 צור התראה לפני</label>
                     <div class="flex gap-2">
-                        <input type="number" id="editItemReminderValue" placeholder="מספר" class="modal-input" min="0" style="flex: 1;">
+                        <input type="number" id="editItemReminderValue" placeholder="מספר" class="modal-input" min="0" style="flex: 1;" autocomplete="off">
                         <select id="editItemReminderUnit" class="modal-input" style="flex: 1;">
                             <option value="minutes" selected>דקות</option>
                             <option value="hours">שעות</option>
@@ -3632,9 +3632,9 @@ ${error.message}
                     <span id="githubTokenStatus" style="font-size:11px;font-weight:700;"></span>
                 </div>
                 <div style="display:flex;gap:8px;">
-                    <input type="password" id="githubTokenInput"
-                        placeholder="ghp_xxxxxxxxxxxx"
-                        style="flex:1;padding:10px 14px;border-radius:12px;border:2px solid #e0e7ff;font-size:13px;font-family:monospace;outline:none;"
+                    <input type="text" id="githubTokenInput"
+                        placeholder="ghp_xxxxxxxxxxxx" autocomplete="off"
+                        style="flex:1;padding:10px 14px;border-radius:12px;border:2px solid #e0e7ff;font-size:13px;font-family:monospace;outline:none;-webkit-text-security:disc;"
                         oninput="updateGithubTokenStatus()">
                     <button onclick="saveGithubToken()"
                         style="background:#7367f0;color:white;border:none;border-radius:12px;padding:10px 16px;font-size:13px;font-weight:800;cursor:pointer;white-space:nowrap;">
@@ -4037,10 +4037,10 @@ ${error.message}
                 <div style="font-size:22px;">🔴</div>ישראכרט
             </button>
         </div>
-        <input type="text" id="creditUsername" placeholder="שם משתמש / תעודת זהות"
+        <input type="text" id="creditUsername" placeholder="שם משתמש / תעודת זהות" autocomplete="off"
             class="w-full border-2 border-gray-100 rounded-xl p-3 bg-gray-50 outline-none" style="margin-bottom:10px;display:block;">
-        <input type="password" id="creditPassword" placeholder="סיסמה"
-            class="w-full border-2 border-gray-100 rounded-xl p-3 bg-gray-50 outline-none" style="margin-bottom:14px;display:block;">
+        <input type="text" id="creditPassword" placeholder="סיסמה" autocomplete="off"
+            class="w-full border-2 border-gray-100 rounded-xl p-3 bg-gray-50 outline-none" style="margin-bottom:14px;display:block;-webkit-text-security:disc;">
         <div style="background:#fef9c3;border-radius:12px;padding:10px 14px;font-size:12px;color:#92400e;margin-bottom:14px;text-align:right;">
             🔒 הפרטים נשלחים ישירות לחברת האשראי ואינם נשמרים
         </div>
@@ -4090,13 +4090,13 @@ ${error.message}
             </button>
         </div>
         <div id="bankField1Wrap">
-            <input type="text" id="bankField1" placeholder="שם משתמש"
+            <input type="text" id="bankField1" placeholder="שם משתמש" autocomplete="off"
                 class="w-full border-2 border-gray-100 rounded-xl p-3 bg-gray-50 outline-none" style="margin-bottom:10px;display:block;">
         </div>
-        <input type="password" id="bankConnectPassword" placeholder="סיסמה"
-            class="w-full border-2 border-gray-100 rounded-xl p-3 bg-gray-50 outline-none" style="margin-bottom:10px;display:block;">
+        <input type="text" id="bankConnectPassword" placeholder="סיסמה" autocomplete="off"
+            class="w-full border-2 border-gray-100 rounded-xl p-3 bg-gray-50 outline-none" style="margin-bottom:10px;display:block;-webkit-text-security:disc;">
         <div id="bankField2Wrap" style="display:none;">
-            <input type="text" id="bankField2" placeholder=""
+            <input type="text" id="bankField2" placeholder="" autocomplete="off"
                 class="w-full border-2 border-gray-100 rounded-xl p-3 bg-gray-50 outline-none" style="margin-bottom:10px;display:block;">
         </div>
         <div id="bankConnectHint" style="background:#e0f2fe;border-radius:12px;padding:10px 14px;font-size:12px;color:#0369a1;margin-bottom:12px;text-align:right;display:none;"></div>
@@ -4351,7 +4351,7 @@ ${error.message}
 
         <div style="margin-bottom:14px;">
             <div style="font-size:12px;font-weight:700;color:#9e98d4;margin-bottom:6px;">💳 חיוב קבוע חודשי (₪)</div>
-            <input id="listFixedChargeInput" type="number" inputmode="decimal" min="0" placeholder="0 = ללא חיוב קבוע"
+            <input id="listFixedChargeInput" type="number" inputmode="decimal" min="0" placeholder="0 = ללא חיוב קבוע" autocomplete="off"
                 style="width:100%;padding:12px 14px;border-radius:12px;border:2px solid #e8e3ff;
                 font-size:16px;font-weight:700;color:#3d3480;outline:none;font-family:inherit;
                 background:#faf9ff;box-sizing:border-box;">
