@@ -4259,6 +4259,26 @@ async function shareNative(type) {
             text += `${idx + 1}. ${i.checked ? '✅' : '⬜'} *${i.name}* (x${i.qty}) - ₪${(i.price * i.qty).toFixed(2)}\n`;
         });
         text += `\n💰 *סה"כ: ₪${document.getElementById('displayTotal').innerText}*`;
+    } else if (type === 'summary_full') {
+        // שיתוף רשימות מסומנות מעמוד הרשימות שלי - כל הפריטים במלואם
+        const selectedIds = db.selectedInSummary;
+        if (!selectedIds || selectedIds.length === 0) {
+            showNotification('סמן לפחות רשימה אחת לשיתוף');
+            return;
+        }
+        title = "Vplus - הרשימות שלי";
+        text = `📋 *הרשימות שלי:*\n\n`;
+        selectedIds.forEach(id => {
+            const l = db.lists[id];
+            if (!l || l.items.length === 0) return;
+            text += `🔹 *${l.name}:*\n`;
+            l.items.forEach((i, idx) => {
+                const checkMark = i.checked ? '✅' : '⬜';
+                const priceStr = i.price > 0 ? ` - ₪${(i.price * i.qty).toFixed(2)}` : '';
+                text += `  ${idx + 1}. ${checkMark} ${i.name}${i.qty > 1 ? ` x${i.qty}` : ''}${priceStr}\n`;
+            });
+            text += `\n`;
+        });
     } else {
         const selectedIds = db.selectedInSummary;
         if (selectedIds.length === 0) {
