@@ -3998,7 +3998,7 @@ ${error.message}
         <h2 style="text-align:center;font-size:1.25rem;font-weight:900;margin-bottom:6px;color:#1e1b4b;">💰 חיבור פיננסי</h2>
         <p style="text-align:center;color:#6b7280;font-size:13px;margin-bottom:20px;">בחר את סוג החיבור</p>
         <div style="display:flex;gap:12px;margin-bottom:16px;">
-            <button onclick="closeModal('financialChoiceModal');openModal('creditCardModal')"
+            <button onclick="closeModal('financialChoiceModal');openCreditCardModal()"
                 style="flex:1;padding:18px 10px;border-radius:18px;border:2px solid #e5e7eb;background:white;cursor:pointer;font-weight:800;font-size:14px;color:#374151;transition:all 0.2s;"
                 ontouchstart="this.style.background='#f5f3ff';this.style.borderColor='#7367f0'" ontouchend="this.style.background='white'">
                 <div style="font-size:28px;margin-bottom:6px;">💳</div>
@@ -4039,8 +4039,18 @@ ${error.message}
         </div>
         <input type="text" id="creditUsername" placeholder="שם משתמש / תעודת זהות" autocomplete="off"
             class="w-full border-2 border-gray-100 rounded-xl p-3 bg-gray-50 outline-none" style="margin-bottom:10px;display:block;">
-        <input type="text" id="creditPassword" placeholder="סיסמה" autocomplete="off"
-            class="w-full border-2 border-gray-100 rounded-xl p-3 bg-gray-50 outline-none" style="margin-bottom:14px;display:block;-webkit-text-security:disc;">
+        <div style="position:relative;margin-bottom:14px;">
+            <input type="text" id="creditPassword" placeholder="סיסמה" autocomplete="off"
+                class="w-full border-2 border-gray-100 rounded-xl p-3 bg-gray-50 outline-none" style="display:block;-webkit-text-security:disc;padding-left:44px;">
+            <button type="button" onclick="togglePasswordVisibility('creditPassword','creditPasswordEye')"
+                id="creditPasswordEye"
+                style="position:absolute;left:12px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;padding:4px;color:#9ca3af;line-height:0;">
+                <svg id="creditPasswordEyeIcon" xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                    <circle cx="12" cy="12" r="3"></circle>
+                </svg>
+            </button>
+        </div>
         <div style="background:#fef9c3;border-radius:12px;padding:10px 14px;font-size:12px;color:#92400e;margin-bottom:14px;text-align:right;">
             🔒 הפרטים נשלחים ישירות לחברת האשראי ואינם נשמרים
         </div>
@@ -4093,8 +4103,18 @@ ${error.message}
             <input type="text" id="bankField1" placeholder="שם משתמש" autocomplete="off"
                 class="w-full border-2 border-gray-100 rounded-xl p-3 bg-gray-50 outline-none" style="margin-bottom:10px;display:block;">
         </div>
-        <input type="text" id="bankConnectPassword" placeholder="סיסמה" autocomplete="off"
-            class="w-full border-2 border-gray-100 rounded-xl p-3 bg-gray-50 outline-none" style="margin-bottom:10px;display:block;-webkit-text-security:disc;">
+        <div style="position:relative;margin-bottom:10px;">
+            <input type="text" id="bankConnectPassword" placeholder="סיסמה" autocomplete="off"
+                class="w-full border-2 border-gray-100 rounded-xl p-3 bg-gray-50 outline-none" style="display:block;-webkit-text-security:disc;padding-left:44px;">
+            <button type="button" onclick="togglePasswordVisibility('bankConnectPassword','bankPasswordEye')"
+                id="bankPasswordEye"
+                style="position:absolute;left:12px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;padding:4px;color:#9ca3af;line-height:0;">
+                <svg id="bankPasswordEyeIcon" xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                    <circle cx="12" cy="12" r="3"></circle>
+                </svg>
+            </button>
+        </div>
         <div id="bankField2Wrap" style="display:none;">
             <input type="text" id="bankField2" placeholder="" autocomplete="off"
                 class="w-full border-2 border-gray-100 rounded-xl p-3 bg-gray-50 outline-none" style="margin-bottom:10px;display:block;">
