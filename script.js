@@ -2467,7 +2467,7 @@ function generateItemMetadataHTML(item, idx) {
     if (item.paymentUrl && item.paymentUrl.trim()) {
         html += `<div style="display: inline-flex; align-items: center; gap: 6px; margin-top: 4px;">
             <a href="${item.paymentUrl}" target="_blank" onclick="event.stopPropagation();" style="color: #6366f1; text-decoration: none; display: flex; align-items: center;" title="פתח קישור">
-                <svg style="width: 18px; height: 18px;" aria-hidden="true" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg style="width: 18px; height: 18px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"></path>
                 </svg>
             </a>
@@ -2660,15 +2660,15 @@ function render() {
                                 div.innerHTML = `
                                     <div style="display:flex;justify-content:flex-start;margin-bottom:6px;">
                                         <button onclick="expandedItemIdx=-1;render();" style="background:rgba(115,103,240,0.08);border:none;border-radius:99px;padding:3px 12px;font-size:12px;font-weight:800;color:#7367f0;cursor:pointer;display:flex;align-items:center;gap:4px;font-family:inherit;">
-                                            <svg width="12" height="12" aria-hidden="true" viewBox="0 0 12 12" fill="none"><path d="M2 8L6 4L10 8" stroke="#7367f0" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                                            <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2 8L6 4L10 8" stroke="#7367f0" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
                                             כווץ
                                         </button>
                                     </div>
                                     <div class="flex justify-between items-center mb-4">
                                         <div class="flex items-center gap-3 flex-1">
-                                            <input type="checkbox" ${item.checked ? 'checked' : ''} onchange="toggleItem(${idx})" aria-label="${sanitizeHTML(item.name)}" class="w-7 h-7 accent-indigo-600">
+                                            <input type="checkbox" ${item.checked ? 'checked' : ''} onchange="toggleItem(${idx})" class="w-7 h-7 accent-indigo-600">
                                             <div class="flex-1">
-                                                <div class="text-2xl font-bold ${item.checked ? 'line-through text-gray-300' : ''}" onclick="openEditItemNameModal(${idx})" role="button" tabindex="0" aria-label="ערוך ${sanitizeHTML(item.name)}" style="cursor:pointer;">
+                                                <div class="text-2xl font-bold ${item.checked ? 'line-through text-gray-300' : ''}" onclick="openEditItemNameModal(${idx})" style="cursor:pointer;">
                                                     <span class="item-number">${itemNumber}.</span> ${item.name}
                                                 </div>
                                                 ${categoryBadge}
@@ -2676,22 +2676,22 @@ function render() {
                                             </div>
                                         </div>
                                         <div class="flex items-center gap-2">
-                                            <button class="note-icon ${item.note ? 'has-note' : ''}" onclick="openItemNoteModal(${idx})" aria-label="${item.note ? 'יש הערה' : 'הוסף הערה'}" title="${item.note ? 'יש הערה' : 'הוסף הערה'}" style="background:none;border:none;padding:4px;cursor:pointer;">
-                                                <svg class="w-4 h-4 text-gray-600" aria-hidden="true" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
-                                            </button>
-                                            <button onclick="removeItem(${idx})" class="trash-btn" aria-label="מחק פריט">
-                                                <svg class="w-5 h-5" aria-hidden="true" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+                                            <div class="note-icon ${item.note ? 'has-note' : ''}" onclick="openItemNoteModal(${idx})" title="${item.note ? 'יש הערה' : 'הוסף הערה'}">
+                                                <svg class="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
+                                            </div>
+                                            <button onclick="removeItem(${idx})" class="trash-btn">
+                                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg>
                                             </button>
                                         </div>
                                     </div>
                                     <div class="flex justify-between items-center">
                                         ${item.isGeneralNote ? '' : `
                                         <div class="flex items-center gap-3 bg-gray-50 rounded-xl px-2 py-1 border">
-                                            <button onclick="changeQty(${idx}, 1)" aria-label="הוסף כמות" class="text-green-500 text-2xl font-bold" style="min-width:48px;min-height:48px;">+</button>
+                                            <button onclick="changeQty(${idx}, 1)" class="text-green-500 text-2xl font-bold">+</button>
                                             <span class="font-bold w-6 text-center">${item.qty}</span>
-                                            <button onclick="changeQty(${idx}, -1)" aria-label="הפחת כמות" class="text-red-500 text-2xl font-bold" style="min-width:48px;min-height:48px;">-</button>
+                                            <button onclick="changeQty(${idx}, -1)" class="text-red-500 text-2xl font-bold">-</button>
                                         </div>
-                                        <button onclick="openEditTotalModal(${idx})" aria-label="ערוך מחיר" class="text-2xl font-black text-indigo-600" style="cursor:pointer;background:none;border:none;padding:0;font-family:inherit;">₪${sub.toFixed(2)}</button>
+                                        <span onclick="openEditTotalModal(${idx})" class="text-2xl font-black text-indigo-600" style="cursor:pointer;">₪${sub.toFixed(2)}</span>
                                         `}
                                     </div>
                                 `;
@@ -2702,7 +2702,7 @@ function render() {
                                 div.innerHTML = `
                                     <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;height:100%;">
                                         <div style="display:flex;align-items:center;gap:6px;flex:1;min-width:0;height:100%;">
-                                            <input type="checkbox" ${item.checked ? 'checked' : ''} onchange="toggleItem(${idx})" aria-label="${sanitizeHTML(item.name)}" class="w-7 h-7 accent-indigo-600" style="flex-shrink:0;" onclick="event.stopPropagation()">
+                                            <input type="checkbox" ${item.checked ? 'checked' : ''} onchange="toggleItem(${idx})" class="w-7 h-7 accent-indigo-600" style="flex-shrink:0;" onclick="event.stopPropagation()">
                                             <span class="font-bold ${item.checked ? 'line-through text-gray-300' : ''}" style="font-size:15px;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;line-height:1.35;cursor:pointer;word-break:break-word;">
                                                 <span class="item-number">${itemNumber}.</span> ${item.name}
                                             </span>
@@ -2758,15 +2758,15 @@ function render() {
                                     div.innerHTML = `
                                         <div style="display:flex;justify-content:flex-start;margin-bottom:6px;">
                                             <button onclick="expandedItemIdx=-1;render();" style="background:rgba(115,103,240,0.08);border:none;border-radius:99px;padding:3px 12px;font-size:12px;font-weight:800;color:#7367f0;cursor:pointer;display:flex;align-items:center;gap:4px;font-family:inherit;">
-                                                <svg width="12" height="12" aria-hidden="true" viewBox="0 0 12 12" fill="none"><path d="M2 8L6 4L10 8" stroke="#7367f0" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                                                <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2 8L6 4L10 8" stroke="#7367f0" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
                                                 כווץ
                                             </button>
                                         </div>
                                         <div class="flex justify-between items-center mb-4">
                                             <div class="flex items-center gap-3 flex-1">
-                                                <input type="checkbox" ${item.checked ? 'checked' : ''} onchange="toggleItem(${idx})" aria-label="${sanitizeHTML(item.name)}" class="w-7 h-7 accent-indigo-600">
+                                                <input type="checkbox" ${item.checked ? 'checked' : ''} onchange="toggleItem(${idx})" class="w-7 h-7 accent-indigo-600">
                                                 <div class="flex-1">
-                                                    <div class="text-2xl font-bold ${item.checked ? 'line-through text-gray-300' : ''}" onclick="openEditItemNameModal(${idx})" role="button" tabindex="0" aria-label="ערוך ${sanitizeHTML(item.name)}" style="cursor:pointer;">
+                                                    <div class="text-2xl font-bold ${item.checked ? 'line-through text-gray-300' : ''}" onclick="openEditItemNameModal(${idx})" style="cursor:pointer;">
                                                         <span class="item-number">${itemNumber}.</span> ${item.name}
                                                     </div>
                                                     ${categoryBadge}
@@ -2774,22 +2774,22 @@ function render() {
                                                 </div>
                                             </div>
                                             <div class="flex items-center gap-2">
-                                                <button class="note-icon ${item.note ? 'has-note' : ''}" onclick="openItemNoteModal(${idx})" aria-label="${item.note ? 'יש הערה' : 'הוסף הערה'}" title="${item.note ? 'יש הערה' : 'הוסף הערה'}" style="background:none;border:none;padding:4px;cursor:pointer;">
-                                                    <svg class="w-4 h-4 text-gray-600" aria-hidden="true" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
-                                                </button>
-                                                <button onclick="removeItem(${idx})" class="trash-btn" aria-label="מחק פריט">
-                                                    <svg class="w-5 h-5" aria-hidden="true" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+                                                <div class="note-icon ${item.note ? 'has-note' : ''}" onclick="openItemNoteModal(${idx})" title="${item.note ? 'יש הערה' : 'הוסף הערה'}">
+                                                    <svg class="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
+                                                </div>
+                                                <button onclick="removeItem(${idx})" class="trash-btn">
+                                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg>
                                                 </button>
                                             </div>
                                         </div>
                                         <div class="flex justify-between items-center">
                                             ${item.isGeneralNote ? '' : `
                                             <div class="flex items-center gap-3 bg-gray-50 rounded-xl px-2 py-1 border">
-                                                <button onclick="changeQty(${idx}, 1)" aria-label="הוסף כמות" class="text-green-500 text-2xl font-bold" style="min-width:48px;min-height:48px;">+</button>
+                                                <button onclick="changeQty(${idx}, 1)" class="text-green-500 text-2xl font-bold">+</button>
                                                 <span class="font-bold w-6 text-center">${item.qty}</span>
-                                                <button onclick="changeQty(${idx}, -1)" aria-label="הפחת כמות" class="text-red-500 text-2xl font-bold" style="min-width:48px;min-height:48px;">-</button>
+                                                <button onclick="changeQty(${idx}, -1)" class="text-red-500 text-2xl font-bold">-</button>
                                             </div>
-                                            <button onclick="openEditTotalModal(${idx})" aria-label="ערוך מחיר" class="text-2xl font-black text-indigo-600" style="cursor:pointer;background:none;border:none;padding:0;font-family:inherit;">₪${sub.toFixed(2)}</button>
+                                            <span onclick="openEditTotalModal(${idx})" class="text-2xl font-black text-indigo-600" style="cursor:pointer;">₪${sub.toFixed(2)}</span>
                                             `}
                                         </div>
                                     `;
@@ -2800,7 +2800,7 @@ function render() {
                                     div.innerHTML = `
                                         <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;height:100%;">
                                             <div style="display:flex;align-items:center;gap:6px;flex:1;min-width:0;height:100%;">
-                                                <input type="checkbox" ${item.checked ? 'checked' : ''} onchange="toggleItem(${idx})" aria-label="${sanitizeHTML(item.name)}" class="w-7 h-7 accent-indigo-600" style="flex-shrink:0;" onclick="event.stopPropagation()">
+                                                <input type="checkbox" ${item.checked ? 'checked' : ''} onchange="toggleItem(${idx})" class="w-7 h-7 accent-indigo-600" style="flex-shrink:0;" onclick="event.stopPropagation()">
                                                 <span class="font-bold line-through text-gray-300" style="font-size:15px;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;line-height:1.35;cursor:pointer;word-break:break-word;">
                                                     <span class="item-number">${itemNumber}.</span> ${item.name}
                                                 </span>
@@ -2848,15 +2848,15 @@ function render() {
                             div.innerHTML = `
                                 <div style="display:flex;justify-content:flex-start;margin-bottom:6px;">
                                     <button onclick="expandedItemIdx=-1;render();" style="background:rgba(115,103,240,0.08);border:none;border-radius:99px;padding:3px 12px;font-size:12px;font-weight:800;color:#7367f0;cursor:pointer;display:flex;align-items:center;gap:4px;font-family:inherit;">
-                                        <svg width="12" height="12" aria-hidden="true" viewBox="0 0 12 12" fill="none"><path d="M2 8L6 4L10 8" stroke="#7367f0" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                                        <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2 8L6 4L10 8" stroke="#7367f0" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
                                         כווץ
                                     </button>
                                 </div>
                                 <div class="flex justify-between items-center mb-4">
                                     <div class="flex items-center gap-3 flex-1">
-                                        <input type="checkbox" ${item.checked ? 'checked' : ''} onchange="toggleItem(${idx})" aria-label="${sanitizeHTML(item.name)}" class="w-7 h-7 accent-indigo-600">
+                                        <input type="checkbox" ${item.checked ? 'checked' : ''} onchange="toggleItem(${idx})" class="w-7 h-7 accent-indigo-600">
                                         <div class="flex-1">
-                                            <div class="text-2xl font-bold ${item.checked ? 'line-through text-gray-300' : ''}" onclick="openEditItemNameModal(${idx})" role="button" tabindex="0" aria-label="ערוך ${sanitizeHTML(item.name)}" style="cursor:pointer;">
+                                            <div class="text-2xl font-bold ${item.checked ? 'line-through text-gray-300' : ''}" onclick="openEditItemNameModal(${idx})" style="cursor:pointer;">
                                                 <span class="item-number">${idx + 1}.</span> ${item.name}
                                             </div>
                                             ${categoryBadge}
@@ -2864,12 +2864,12 @@ function render() {
                                         </div>
                                     </div>
                                     <div class="flex items-center gap-2">
-                                        <button class="note-icon ${item.note ? 'has-note' : ''}" onclick="openItemNoteModal(${idx})" aria-label="${item.note ? 'יש הערה' : 'הוסף הערה'}" title="${item.note ? 'יש הערה' : 'הוסף הערה'}" style="background:none;border:none;padding:4px;cursor:pointer;">
-                                            <svg class="w-4 h-4 text-gray-600" aria-hidden="true" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <div class="note-icon ${item.note ? 'has-note' : ''}" onclick="openItemNoteModal(${idx})" title="${item.note ? 'יש הערה' : 'הוסף הערה'}">
+                                            <svg class="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
                                             </svg>
-                                        </button>
-                                        <button onclick="removeItem(${idx})" class="trash-btn" aria-label="מחק פריט">
+                                        </div>
+                                        <button onclick="removeItem(${idx})" class="trash-btn">
                                             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                 <path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path>
                                             </svg>
@@ -2879,11 +2879,11 @@ function render() {
                                 <div class="flex justify-between items-center">
                                     ${item.isGeneralNote ? '' : `
                                     <div class="flex items-center gap-3 bg-gray-50 rounded-xl px-2 py-1 border">
-                                        <button onclick="changeQty(${idx}, 1)" aria-label="הוסף כמות" class="text-green-500 text-2xl font-bold" style="min-width:48px;min-height:48px;">+</button>
+                                        <button onclick="changeQty(${idx}, 1)" class="text-green-500 text-2xl font-bold">+</button>
                                         <span class="font-bold w-6 text-center">${item.qty}</span>
-                                        <button onclick="changeQty(${idx}, -1)" aria-label="הפחת כמות" class="text-red-500 text-2xl font-bold" style="min-width:48px;min-height:48px;">-</button>
+                                        <button onclick="changeQty(${idx}, -1)" class="text-red-500 text-2xl font-bold">-</button>
                                     </div>
-                                    <button onclick="openEditTotalModal(${idx})" aria-label="ערוך מחיר" class="text-2xl font-black text-indigo-600" style="cursor:pointer;background:none;border:none;padding:0;font-family:inherit;">₪${sub.toFixed(2)}</button>
+                                    <span onclick="openEditTotalModal(${idx})" class="text-2xl font-black text-indigo-600" style="cursor:pointer;">₪${sub.toFixed(2)}</span>
                                     `}
                                 </div>
                             `;
@@ -2907,8 +2907,8 @@ function render() {
                                             ${isDelSelected ? '<svg width="13" height="13" viewBox="0 0 13 13" fill="none"><path d="M2 6.5L5.5 10L11 3" stroke="white" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>' : ''}
                                         </div>
                                         ` : `
-                                        <div class="item-drag-handle" data-drag="true" style="display:${itemEditMode ? 'flex' : 'none'};align-items:center;justify-content:center;width:26px;height:26px;flex-shrink:0;cursor:grab;color:#a89fff;touch-action:none;"><svg width="14" height="14" aria-hidden="true" viewBox="0 0 16 16" fill="none" style="pointer-events:none"><rect x="2" y="3" width="12" height="2" rx="1" fill="currentColor"/><rect x="2" y="7" width="12" height="2" rx="1" fill="currentColor"/><rect x="2" y="11" width="12" height="2" rx="1" fill="currentColor"/></svg></div>
-                                        <input type="checkbox" ${item.checked ? 'checked' : ''} onchange="toggleItem(${idx})" aria-label="${sanitizeHTML(item.name)}" class="w-7 h-7 accent-indigo-600" style="flex-shrink:0;" onclick="event.stopPropagation()">
+                                        <div class="item-drag-handle" data-drag="true" style="display:${itemEditMode ? 'flex' : 'none'};align-items:center;justify-content:center;width:26px;height:26px;flex-shrink:0;cursor:grab;color:#a89fff;touch-action:none;"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" style="pointer-events:none"><rect x="2" y="3" width="12" height="2" rx="1" fill="currentColor"/><rect x="2" y="7" width="12" height="2" rx="1" fill="currentColor"/><rect x="2" y="11" width="12" height="2" rx="1" fill="currentColor"/></svg></div>
+                                        <input type="checkbox" ${item.checked ? 'checked' : ''} onchange="toggleItem(${idx})" class="w-7 h-7 accent-indigo-600" style="flex-shrink:0;" onclick="event.stopPropagation()">
                                         `}
                                         ${(() => { const _cDate = item.dueDate ? new Date(item.dueDate).toLocaleDateString('he-IL') : (item.note && item.note.trimStart().startsWith('📅') ? item.note.replace(/^📅\s*/, '').split('\n')[0].trim() : ''); return `<div style="flex:1;min-width:0;overflow:hidden;display:flex;flex-direction:column;justify-content:center;cursor:pointer;"><span class="font-bold ${item.checked && !compactDeleteMode ? 'line-through text-gray-300' : ''}" style="font-size:15px;overflow:hidden;display:-webkit-box;-webkit-line-clamp:${_cDate ? 1 : 2};-webkit-box-orient:vertical;line-height:1.35;word-break:break-word;"><span class="item-number">${idx + 1}.</span> ${item.name}</span>${_cDate ? `<span style="font-size:11px;color:#9ca3af;line-height:1.3;margin-top:2px;">${_cDate}</span>` : ''}</div>`; })()}
                                     </div>
@@ -2926,7 +2926,7 @@ function render() {
                     div.innerHTML = `
                         <div class="flex justify-between items-center mb-4">
                             <div class="flex items-center gap-3 flex-1">
-                                <input type="checkbox" ${item.checked ? 'checked' : ''} onchange="toggleItem(${idx})" aria-label="${sanitizeHTML(item.name)}" class="w-7 h-7 accent-indigo-600">
+                                <input type="checkbox" ${item.checked ? 'checked' : ''} onchange="toggleItem(${idx})" class="w-7 h-7 accent-indigo-600">
                                 <div class="flex-1">
                                     <div class="text-2xl font-bold ${item.checked ? 'line-through text-gray-300' : ''}" onclick="openEditItemNameModal(${idx})" style="cursor: pointer;">
                                         <span class="item-number">${idx + 1}.</span> ${item.name}
@@ -2936,12 +2936,12 @@ function render() {
                                 </div>
                             </div>
                             <div class="flex items-center gap-2">
-                                <button class="note-icon ${item.note ? 'has-note' : ''}" onclick="openItemNoteModal(${idx})" aria-label="${item.note ? 'יש הערה' : 'הוסף הערה'}" title="${item.note ? 'יש הערה' : 'הוסף הערה'}" style="background:none;border:none;padding:4px;cursor:pointer;">
-                                    <svg class="w-4 h-4 text-gray-600" aria-hidden="true" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <div class="note-icon ${item.note ? 'has-note' : ''}" onclick="openItemNoteModal(${idx})" title="${item.note ? 'יש הערה' : 'הוסף הערה'}">
+                                    <svg class="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
                                     </svg>
-                                </button>
-                                <button onclick="removeItem(${idx})" class="trash-btn" aria-label="מחק פריט">
+                                </div>
+                                <button onclick="removeItem(${idx})" class="trash-btn">
                                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path>
                                     </svg>
@@ -2951,9 +2951,9 @@ function render() {
                         <div class="flex justify-between items-center">
                             ${item.isGeneralNote ? '' : `
                             <div class="flex items-center gap-3 bg-gray-50 rounded-xl px-2 py-1 border">
-                                <button onclick="changeQty(${idx}, 1)" aria-label="הוסף כמות" class="text-green-500 text-2xl font-bold" style="min-width:48px;min-height:48px;">+</button>
+                                <button onclick="changeQty(${idx}, 1)" class="text-green-500 text-2xl font-bold">+</button>
                                 <span class="font-bold w-6 text-center">${item.qty}</span>
-                                <button onclick="changeQty(${idx}, -1)" aria-label="הפחת כמות" class="text-red-500 text-2xl font-bold" style="min-width:48px;min-height:48px;">-</button>
+                                <button onclick="changeQty(${idx}, -1)" class="text-red-500 text-2xl font-bold">-</button>
                             </div>
                             <span onclick="openEditTotalModal(${idx})" class="text-2xl font-black text-indigo-600" style="cursor: pointer;">₪${sub.toFixed(2)}</span>
                             `}
@@ -3081,7 +3081,7 @@ function render() {
                     if (fixedCharge > 0) div.classList.add('has-fixed-charge');
                     div.innerHTML = `
                         <div class="crow-main-row" style="display:flex;align-items:center;gap:10px;width:100%;min-height:48px;padding-bottom:${fixedCharge>0?'8px':'0'};">
-                        ${listEditMode ? `<div class="list-drag-handle" data-drag="true" style="display:flex;align-items:center;justify-content:center;width:24px;height:24px;flex-shrink:0;cursor:grab;color:rgba(255,255,255,0.7);touch-action:none;"><svg width="14" height="14" aria-hidden="true" viewBox="0 0 16 16" fill="none" style="pointer-events:none"><rect x="2" y="3" width="12" height="2" rx="1" fill="currentColor"/><rect x="2" y="7" width="12" height="2" rx="1" fill="currentColor"/><rect x="2" y="11" width="12" height="2" rx="1" fill="currentColor"/></svg></div>` : ''}
+                        ${listEditMode ? `<div class="list-drag-handle" data-drag="true" style="display:flex;align-items:center;justify-content:center;width:24px;height:24px;flex-shrink:0;cursor:grab;color:rgba(255,255,255,0.7);touch-action:none;"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" style="pointer-events:none"><rect x="2" y="3" width="12" height="2" rx="1" fill="currentColor"/><rect x="2" y="7" width="12" height="2" rx="1" fill="currentColor"/><rect x="2" y="11" width="12" height="2" rx="1" fill="currentColor"/></svg></div>` : ''}
                         ${listDeleteMode
                             ? `<div class="crow-cb ${isDelSelected ? 'checked' : ''}" onclick="event.stopPropagation();listDeleteToggle('${id}')"></div>`
                             : _moveMode ? '' : `<div class="crow-cb ${isSel ? 'checked' : ''}" onclick="event.stopPropagation();toggleSum('${id}')"></div>`
@@ -3764,7 +3764,7 @@ function openCatDrill(cat, data, cfg, pct, grand) {
                     const div = document.createElement('div');
                     div.className = 'cat-drill-item';
                     div.innerHTML = `
-                        <input type="checkbox" ${it.checked?'checked':''} aria-label="${it.name}" style="width:20px;height:20px;accent-color:#7367f0;flex-shrink:0;" onclick="event.stopPropagation()">
+                        <input type="checkbox" ${it.checked?'checked':''} style="width:20px;height:20px;accent-color:#7367f0;flex-shrink:0;" onclick="event.stopPropagation()">
                         <span style="flex:1;font-size:14px;font-weight:700;${it.checked?'text-decoration:line-through;opacity:0.45;':''}">${it.name}</span>
                         ${it.qty > 1 ? `<span style="font-size:11px;color:#9ca3af;flex-shrink:0;">×${it.qty}</span>` : ''}
                         <span class="cat-drill-item-price">₪${sub.toFixed(2)}</span>
