@@ -3,13 +3,25 @@
     "public": ".",
     "ignore": [
       "firebase.json",
-      "**/.*",
       "**/node_modules/**",
       "functions/**",
       "package.json",
       "package-lock.json"
     ],
+    "headers": [
+      {
+        "source": "/.well-known/assetlinks.json",
+        "headers": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Cache-Control", "value": "no-cache" }
+        ]
+      }
+    ],
     "rewrites": [
+      {
+        "source": "/.well-known/assetlinks.json",
+        "destination": "/.well-known/assetlinks.json"
+      },
       {
         "source": "**",
         "destination": "/index.html"
