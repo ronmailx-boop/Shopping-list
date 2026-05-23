@@ -1,14 +1,3 @@
-// ========== Security Utilities ==========
-function sanitizeHTML(str) {
-    if (str === null || str === undefined) return '';
-    return String(str)
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;')
-        .replace(/'/g, '&#x27;');
-}
-
 // ========== Firebase Configuration ==========
 // Firebase methods are attached to window in index.html
 let unsubscribeSnapshot = null;
@@ -1443,6 +1432,7 @@ function stopVoiceInput() {
 }
 
 function parseVoiceInput(text) {
+    console.log('Voice input:', text);
 
     // Common separators in Hebrew
     const separators = [
@@ -1677,6 +1667,7 @@ async function processReceipt() {
         // Extract text from response
         const text = result.responses[0]?.fullTextAnnotation?.text || '';
 
+        console.log('OCR Result:', text);
 
         // Check if any text was detected
         if (!text || text.trim().length === 0) {
@@ -4318,6 +4309,7 @@ async function shareNative(type) {
                 text: text
             });
         } catch (err) {
+            console.log("Sharing failed", err);
         }
     } else {
         navigator.clipboard.writeText(text).then(() => {
@@ -5444,6 +5436,7 @@ function showDetailedError(context, error) {
 const checkFirebase = setInterval(() => {
     if (window.firebaseAuth) {
         clearInterval(checkFirebase);
+        console.log('✅ Firebase זמין, מאתחל...');
         initFirebaseAuth();
 
         // NOTE: redirect result is checked in index.html script
@@ -5466,11 +5459,13 @@ setTimeout(() => {
 }, 10000);
 
 function initFirebaseAuth() {
+    console.log('🔄 מאתחל Firebase Auth...');
 
     window.onAuthStateChanged(window.firebaseAuth, (user) => {
         currentUser = user;
         isConnected = !!user;
 
+        console.log('👤 מצב משתמש:', user ? `מחובר: ${user.email} (UID: ${user.uid})` : 'מנותק');
 
         // Update UI
         updateCloudIndicator(user ? 'connected' : 'disconnected');
@@ -5495,8 +5490,10 @@ function initFirebaseAuth() {
 
         // Setup Firestore listener or cleanup
         if (user) {
+            console.log("✅ משתמש מחובר:", user.email, "UID:", user.uid);
             setupFirestoreListener(user);
         } else {
+            console.log("⚠️ אין משתמש מחובר");
             if (unsubscribeSnapshot) {
                 unsubscribeSnapshot();
                 unsubscribeSnapshot = null;
@@ -5543,10 +5540,14 @@ function loginWithGoogle() {
     // Check if already logged in
     if (window.firebaseAuth.currentUser) {
         showNotification('✅ אתה כבר מחובר', 'success');
+        console.log('ℹ️ משתמש כבר מחובר:', window.firebaseAuth.currentUser.email);
         openModal('settingsModal'); // Show settings instead
         return;
     }
 
+    console.log('🔐 מתחיל תהליך התחברות Google...');
+    console.log('🔐 Auth:', window.firebaseAuth ? 'זמין' : 'לא זמין');
+    console.log('🔐 Provider:', window.googleProvider ? 'זמין' : 'לא זמין');
     updateCloudIndicator('syncing');
 
     // Use signInWithRedirect for GitHub Pages, signInWithPopup for Firebase domains
@@ -5554,6 +5555,7 @@ function loginWithGoogle() {
     
     if (isGitHubPages) {
         // GitHub Pages - use Redirect (Popup is blocked)
+        console.log('🔐 GitHub Pages detected - using Redirect...');
         showNotification('⏳ מעביר לדף ההתחברות של Google...', 'success');
         window.signInWithRedirect(window.firebaseAuth, window.googleProvider)
             .catch((error) => {
@@ -5563,8 +5565,10 @@ function loginWithGoogle() {
             });
     } else {
         // Firebase domains - use Popup (faster UX)
+        console.log('🔐 Firebase domain detected - using Popup...');
         window.signInWithPopup(window.firebaseAuth, window.googleProvider)
             .then((result) => {
+                console.log('✅ התחברות הצליחה!', result.user.email);
                 showNotification('✅ התחברת בהצלחה!', 'success');
                 currentUser = result.user;
                 isConnected = true;
@@ -5577,10 +5581,13 @@ function loginWithGoogle() {
                 console.error("❌ הודעת שגיאה:", error.message);
                 
                 if (error.code === 'auth/popup-closed-by-user') {
+                    console.log('ℹ️ המשתמש סגר את חלון ההתחברות');
                     showNotification('ℹ️ חלון ההתחברות נסגר', 'warning');
                 } else if (error.code === 'auth/cancelled-popup-request') {
+                    console.log('ℹ️ בקשת popup בוטלה');
                     showNotification('ℹ️ ההתחברות בוטלה', 'warning');
                 } else if (error.code === 'auth/popup-blocked') {
+                    console.log('⚠️ הדפדפן חסם את חלון ההתחברות');
                     showNotification('⚠️ הדפדפן חסם את חלון ההתחברות', 'warning');
                 } else {
                     showDetailedError('Login', error);
@@ -5597,11 +5604,13 @@ function logoutFromCloud() {
         return;
     }
 
+    console.log('🚪 מתנתק מהענן...');
     updateCloudIndicator('syncing');
 
     window.signOut(window.firebaseAuth).then(() => {
         currentUser = null;
         isConnected = false;
+        console.log('✅ התנתקות הושלמה');
         showNotification('👋 התנתקת מהענן', 'success');
         updateCloudIndicator('disconnected');
         closeModal('settingsModal');
@@ -5622,6 +5631,7 @@ function updateCloudIndicator(status) {
         return;
     }
 
+    console.log('🔄 מעדכן אינדיקטור ענן:', status, 'משתמש:', currentUser ? currentUser.email : 'אין');
 
     if (status === 'connected') {
         // Green indicator - connected successfully
@@ -5646,11 +5656,13 @@ function updateCloudIndicator(status) {
 }
 
 function setupFirestoreListener(user) {
+    console.log('📡 מגדיר Firestore listener עבור UID:', user.uid);
 
     const userDocRef = window.doc(window.firebaseDb, "shopping_lists", user.uid);
 
     unsubscribeSnapshot = window.onSnapshot(userDocRef, (docSnap) => {
         if (docSnap.exists()) {
+            console.log('☁️ מסמך נמצא בענן');
             const cloudData = docSnap.data();
 
             // בדיקה: אם הענן ריק אבל יש נתונים מקומיים, העלה אותם לענן
@@ -5658,12 +5670,14 @@ function setupFirestoreListener(user) {
             const localHasData = db.lists && Object.keys(db.lists).length > 0;
 
             if (cloudIsEmpty && localHasData) {
+                console.log('☁️ הענן ריק אבל יש נתונים מקומיים - מעלה לענן');
                 syncToCloud();
                 return;
             }
 
             // מיזוג חכם: הענן הוא מקור האמת למחיקות
             if (JSON.stringify(cloudData) !== JSON.stringify(db)) {
+                console.log('🔄 מבצע סנכרון חכם מהענן...');
                 const mergedDb = mergeCloudWithLocal(cloudData, db);
 
                 // הגנה: וודא שקיים אובייקט רשימות
@@ -5693,6 +5707,7 @@ function setupFirestoreListener(user) {
                 showNotification('☁️ סונכרן מהענן!', 'success');
             }
         } else {
+            console.log('📝 מסמך לא קיים בענן, יוצר חדש...');
             syncToCloud();
         }
     }, (error) => {
@@ -5730,6 +5745,7 @@ function normalizeItem(item) {
 }
 
 function mergeCloudWithLocal(cloudData, localData) {
+    console.log('🔄 מבצע מיזוג חכם בין ענן למקומי...');
 
     const merged = JSON.parse(JSON.stringify(cloudData)); // עותק עמוק של נתוני הענן
 
@@ -5768,11 +5784,14 @@ function mergeCloudWithLocal(cloudData, localData) {
                 localItem.cloudId = 'item_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
                 // Normalize local item as well
                 merged.lists[listId].items.push(normalizeItem(localItem));
+                console.log('➕ מוסיף פריט חדש מקומי ללא cloudId:', localItem.name);
             } else if (!cloudItemsMap[localItem.cloudId]) {
                 // פריט עם cloudId שלא קיים בענן - זה פריט חדש שנוסף באופליין
                 merged.lists[listId].items.push(normalizeItem(localItem));
+                console.log('➕ מוסיף פריט חדש מאופליין:', localItem.name);
             } else {
                 // פריט קיים גם בענן - עדכן אותו מהענן (הענן מנצח)
+                console.log('✓ פריט קיים בשניהם, משתמש בנתוני ענן:', localItem.name);
             }
         });
     });
@@ -5780,6 +5799,7 @@ function mergeCloudWithLocal(cloudData, localData) {
     // בדיקת רשימות חדשות שנוספו מקומית
     Object.keys(localData.lists || {}).forEach(listId => {
         if (!merged.lists[listId]) {
+            console.log('📝 מוסיף רשימה חדשה מקומית:', listId);
             merged.lists[listId] = localData.lists[listId];
             // Normalize items in new local list
             if (merged.lists[listId].items) {
@@ -5806,11 +5826,13 @@ async function syncToCloud() {
         return;
     }
 
+    console.log('☁️ מסנכרן לענן... UID:', currentUser.uid);
     updateCloudIndicator('syncing');
 
     try {
         const userDocRef = window.doc(window.firebaseDb, "shopping_lists", currentUser.uid);
         await window.setDoc(userDocRef, db);
+        console.log('✅ סנכרון לענן הושלם בהצלחה');
         // Removed notification - indicator shows sync status
     } catch (error) {
         console.error("❌ שגיאה בכתיבה לענן:", error);
@@ -5911,6 +5933,7 @@ async function handleExcelUpload(event) {
         const data = await file.arrayBuffer();
         const workbook = XLSX.read(data, { type: 'array' });
 
+        console.log('📂 נפתח קובץ עם', workbook.SheetNames.length, 'גליונות:', workbook.SheetNames);
 
         // מבנה נתונים לאיסוף עסקאות לפי כרטיס
         // { '1234': [{name, price}, ...], '5678': [...] }
@@ -5919,11 +5942,13 @@ async function handleExcelUpload(event) {
 
         // ========== שלב 1: מעבר על כל הגליונות ==========
         for (const sheetName of workbook.SheetNames) {
+            console.log(`\n📊 מעבד גיליון: "${sheetName}"`);
 
             const sheet = workbook.Sheets[sheetName];
             const rows = XLSX.utils.sheet_to_json(sheet, { header: 1, raw: false, defval: '' });
 
             if (rows.length === 0) {
+                console.log('⚠️  הגיליון ריק');
                 continue;
             }
 
@@ -5978,11 +6003,16 @@ async function handleExcelUpload(event) {
                     priceColIndex = foundPriceCol;
                     cardColIndex = foundCardCol;
 
+                    console.log(`✅ נמצאה שורת כותרת בשורה ${i}:`);
+                    console.log(`   📝 עמודת שם (${nameColIndex}): "${currentRow[nameColIndex]}"`);
+                    console.log(`   💰 עמודת מחיר (${priceColIndex}): "${currentRow[priceColIndex]}"`);
+                    console.log(`   💳 עמודת כרטיס (${cardColIndex}): "${currentRow[cardColIndex]}"`);
                     break;
                 }
             }
 
             if (headerRowIndex === -1) {
+                console.log('❌ לא נמצאה שורת כותרת מתאימה בגיליון');
                 continue;
             }
 
@@ -5995,11 +6025,13 @@ async function handleExcelUpload(event) {
 
                 if (isDateCell(firstCell)) {
                     dataStartIndex = i;
+                    console.log(`✅ תחילת נתונים בשורה ${i}, תאריך ראשון: "${firstCell}"`);
                     break;
                 }
             }
 
             if (dataStartIndex === -1) {
+                console.log('❌ לא נמצאו שורות נתונים עם תאריך');
                 continue;
             }
 
@@ -6013,6 +6045,7 @@ async function handleExcelUpload(event) {
                 const firstCell = row[0];
                 if (!isDateCell(firstCell)) {
                     // הגענו לסוף הנתונים או שורה לא תקינה
+                    console.log(`⏹️  עצירה בשורה ${i} (לא תאריך)`);
                     break;
                 }
 
@@ -6020,6 +6053,7 @@ async function handleExcelUpload(event) {
                 const businessName = row[nameColIndex];
 
                 if (!businessName || typeof businessName !== 'string' || businessName.trim() === '') {
+                    console.log(`⚠️  שורה ${i}: שם עסק ריק, מדלג`);
                     continue;
                 }
 
@@ -6044,12 +6078,14 @@ async function handleExcelUpload(event) {
 
                 // אם לא מצאנו מספר כרטיס תקין, דלג על השורה
                 if (!cardNumber || cardNumber.length !== 4) {
+                    console.log(`⚠️  שורה ${i}: מספר כרטיס לא תקין (${cardCell}), מדלג`);
                     continue;
                 }
 
                 // אם זה הכרטיס הראשון שנתקלנו בו, צור לו מערך ריק
                 if (!cardTransactions[cardNumber]) {
                     cardTransactions[cardNumber] = [];
+                    console.log(`💳 כרטיס חדש זוהה: ${cardNumber}`);
                 }
 
                 // הוסף את העסקה למערך של הכרטיס הספציפי
@@ -6062,16 +6098,19 @@ async function handleExcelUpload(event) {
                 totalItemCount++;
             }
 
+            console.log(`✅ מגיליון "${sheetName}" יובאו ${sheetItemCount} עסקאות`);
         }
 
         // ========== שלב 5: יצירת רשימות נפרדות לכל כרטיס ==========
         if (totalItemCount === 0) {
+            console.log('❌ לא נמצאו עסקאות לייבוא');
             showNotification('❌ לא נמצאו עסקאות תקינות בקובץ האקסל', 'error');
             event.target.value = '';
             return;
         }
 
         const cardNumbers = Object.keys(cardTransactions);
+        console.log(`\n💳 נמצאו ${cardNumbers.length} כרטיסים שונים:`, cardNumbers);
 
         let firstListId = null;
 
@@ -6108,6 +6147,7 @@ async function handleExcelUpload(event) {
                 });
             }
 
+            console.log(`✅ נוצרה רשימה "${listName}" עם ${transactions.length} עסקאות`);
 
             // שמור את הרשימה הראשונה למעבר אליה
             if (!firstListId) {
@@ -6122,6 +6162,7 @@ async function handleExcelUpload(event) {
 
         save();
 
+        console.log(`\n🎉 סה"כ יובאו ${totalItemCount} עסקאות ל-${cardNumbers.length} רשימות`);
         showNotification(`✅ נוצרו ${cardNumbers.length} רשימות עם סה"כ ${totalItemCount} עסקאות!`);
         event.target.value = '';
 
@@ -6142,6 +6183,7 @@ async function importBankFile(event) {
     const file = event.target.files[0];
     if (!file) return;
 
+    console.log(`📄 ייבוא קובץ בנקאי: ${file.name} (${file.type})`);
     showNotification('⏳ מעבד קובץ בנקאי...');
 
     const fileExtension = file.name.toLowerCase().split('.').pop();
@@ -6172,24 +6214,29 @@ async function importBankXLS(file) {
 
         reader.onload = async function (e) {
             try {
+                console.log('📊 מתחיל עיבוד קובץ XLS בנקאי...');
 
                 // Use readAsBinaryString for Android compatibility
                 const data = e.target.result;
                 const workbook = XLSX.read(data, { type: 'binary' });
 
+                console.log(`📋 נמצאו ${workbook.SheetNames.length} גיליונות:`, workbook.SheetNames);
 
                 const allTransactions = [];
 
                 // Process each sheet in the workbook
                 for (const sheetName of workbook.SheetNames) {
+                    console.log(`\n🔍 מעבד גיליון: "${sheetName}"`);
                     const worksheet = workbook.Sheets[sheetName];
                     const rows = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: '' });
 
+                    console.log(`📝 סה"כ ${rows.length} שורות בגיליון`);
 
                     // Extract transactions from this sheet
                     const sheetTransactions = extractTransactionsFromSheet(rows, sheetName);
                     allTransactions.push(...sheetTransactions);
 
+                    console.log(`✅ חולצו ${sheetTransactions.length} עסקאות מגיליון "${sheetName}"`);
                 }
 
                 if (allTransactions.length === 0) {
@@ -6198,6 +6245,7 @@ async function importBankXLS(file) {
                     return;
                 }
 
+                console.log(`\n💾 סה"כ ${allTransactions.length} עסקאות לשמירה`);
 
                 // Save transactions to Firebase (with duplicate prevention)
                 await saveTransactionsToFirebase(allTransactions);
@@ -6262,11 +6310,13 @@ function extractTransactionsFromSheet(rows, sheetName) {
         // If we found all three columns, this is our header row
         if (dateColIndex !== -1 && descriptionColIndex !== -1 && amountColIndex !== -1) {
             headerRowIndex = i;
+            console.log(`✓ שורת כותרת נמצאה בשורה ${i}: תאריך=${dateColIndex}, תיאור=${descriptionColIndex}, סכום=${amountColIndex}`);
             break;
         }
     }
 
     if (headerRowIndex === -1) {
+        console.log(`⚠️  לא נמצאה שורת כותרת בגיליון "${sheetName}"`);
         return transactions;
     }
 
@@ -6292,18 +6342,21 @@ function extractTransactionsFromSheet(rows, sheetName) {
 
         // Filter out summary/total rows
         if (isTotalRow(description)) {
+            console.log(`⏭️  מדלג על שורת סיכום: "${description}"`);
             continue;
         }
 
         // Parse date
         const date = parseDate(dateCell);
         if (!date) {
+            console.log(`⚠️  שורה ${i}: תאריך לא תקין (${dateCell}), מדלג`);
             continue;
         }
 
         // Parse amount
         const amount = parseAmount(amountCell);
         if (amount === 0) {
+            console.log(`⚠️  שורה ${i}: סכום אפס או לא תקין (${amountCell}), מדלג`);
             continue;
         }
 
@@ -6329,6 +6382,7 @@ async function importBankPDF(file) {
 
         reader.onload = async function (e) {
             try {
+                console.log('📄 מתחיל עיבוד קובץ PDF בנקאי...');
 
                 // Use readAsArrayBuffer for Android compatibility with PDF.js
                 const arrayBuffer = e.target.result;
@@ -6337,6 +6391,7 @@ async function importBankPDF(file) {
                 const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer });
                 const pdf = await loadingTask.promise;
 
+                console.log(`📖 PDF נטען: ${pdf.numPages} עמודים`);
 
                 const allTransactions = [];
 
@@ -6347,13 +6402,16 @@ async function importBankPDF(file) {
 
                     // Extract text from page
                     const pageText = textContent.items.map(item => item.str).join(' ');
+                    console.log(`📄 עמוד ${pageNum}: ${pageText.length} תווים`);
 
                     // DEBUG: הצג את הטקסט שנחלץ
+                    console.log('🔍 טקסט שנחלץ מהעמוד:', pageText.substring(0, 500));
 
                     // Extract transactions from page text
                     const pageTransactions = extractTransactionsFromPDFText(pageText);
                     allTransactions.push(...pageTransactions);
 
+                    console.log(`✅ חולצו ${pageTransactions.length} עסקאות מעמוד ${pageNum}`);
                 }
 
                 if (allTransactions.length === 0) {
@@ -6362,6 +6420,7 @@ async function importBankPDF(file) {
                     return;
                 }
 
+                console.log(`\n💾 סה"כ ${allTransactions.length} עסקאות לשמירה`);
 
                 // Save transactions to Firebase (with duplicate prevention)
                 await saveTransactionsToFirebase(allTransactions);
@@ -6392,6 +6451,7 @@ function extractTransactionsFromPDFText(text) {
     const transactions = [];
     const lines = text.split(/\r?\n/);
 
+    console.log(`🔍 מעבד ${lines.length} שורות מה-PDF`);
 
     // פורמט בנק הפועלים: טבלה עם עמודות
     // תאריך | תאריך ערך | תיאור | אסמכתא | חובה | זכות | יתרה
@@ -6483,6 +6543,7 @@ function extractTransactionsFromPDFText(text) {
             continue;
         }
 
+        console.log(`✅ נמצא: ${dateStr} | ${description} | ${amount}`);
 
         transactions.push({
             date: date,
@@ -6492,6 +6553,7 @@ function extractTransactionsFromPDFText(text) {
         });
     }
 
+    console.log(`📊 סה"כ ${transactions.length} עסקאות חולצו`);
     return transactions;
 }
 
@@ -6591,6 +6653,7 @@ function parseAmount(amountCell) {
  * Creates a new list from bank transactions and switches to it
  */
 async function saveTransactionsToFirebase(transactions) {
+    console.log(`📋 מעבד ${transactions.length} עסקאות...`);
 
     if (transactions.length === 0) {
         showNotification('⚠️ לא נמצאו עסקאות לייבוא');
@@ -6695,6 +6758,7 @@ async function saveTransactionsToFirebase(transactions) {
                 }
             }
 
+            console.log(`✅ Firebase: ${savedCount} נשמרו, ${duplicateCount} כפילויות דולגו`);
         }
     }
 
@@ -6776,6 +6840,7 @@ async function parseBankExcel(file) {
                 let dateCol = -1, descCol = -1, debitCol = -1;
 
                 // Debug: log headers to console
+                console.log('📊 Excel Headers:', headers);
 
                 headers.forEach((header, index) => {
                     const h = String(header).toLowerCase().trim();
@@ -6783,20 +6848,25 @@ async function parseBankExcel(file) {
                     // Date column - more flexible matching
                     if (h.includes('תאריך') || h.includes('date') || h.includes('תאר')) {
                         dateCol = index;
+                        console.log(`✅ Found date column at index ${index}: "${header}"`);
                     }
                     // Description column - more flexible matching
                     if (h.includes('תיאור') || h.includes('description') || h.includes('פירוט') || h.includes('תאור')) {
                         descCol = index;
+                        console.log(`✅ Found description column at index ${index}: "${header}"`);
                     }
                     // Debit column (amount charged) - more flexible matching
                     if (h.includes('בחובה') || h.includes('חובה') || h.includes('debit') || h.includes('חיוב') || h.includes('זכות')) {
                         debitCol = index;
+                        console.log(`✅ Found debit column at index ${index}: "${header}"`);
                     }
                 });
 
+                console.log('🔍 Column indices:', { dateCol, descCol, debitCol });
 
                 // If we didn't find the debit column, try to find any column with numbers
                 if (debitCol === -1 && dateCol !== -1 && descCol !== -1) {
+                    console.log('⚠️ Debit column not found by name, searching for numeric column...');
                     for (let colIndex = 0; colIndex < headers.length; colIndex++) {
                         if (colIndex === dateCol || colIndex === descCol) continue;
                         // Check if this column has numeric values in first few rows
@@ -6810,6 +6880,7 @@ async function parseBankExcel(file) {
                         }
                         if (hasNumbers) {
                             debitCol = colIndex;
+                            console.log(`✅ Found numeric column at index ${colIndex}: "${headers[colIndex]}"`);
                             break;
                         }
                     }
@@ -6817,6 +6888,7 @@ async function parseBankExcel(file) {
 
                 // FALLBACK: If columns not found by name, use LAST 3 columns (Hebrew RTL)
                 if (dateCol === -1 || descCol === -1) {
+                    console.log('⚠️ Using fallback: last 3 columns (RTL) as date, description, amount');
                     if (headers.length >= 3) {
                         // Hebrew files are RTL, so rightmost columns are first
                         const lastCol = headers.length - 1;
@@ -6825,11 +6897,14 @@ async function parseBankExcel(file) {
                         if (debitCol === -1) {
                             debitCol = lastCol - 2;  // Third from right = amount
                         }
+                        console.log('📍 Fallback columns (RTL):', { dateCol, descCol, debitCol });
+                        console.log(`📍 Using: Date="${headers[dateCol]}", Desc="${headers[descCol]}", Amount="${headers[debitCol]}"`);
                     } else if (headers.length >= 2) {
                         // Only 2 columns - use last 2
                         const lastCol = headers.length - 1;
                         dateCol = lastCol;
                         descCol = lastCol - 1;
+                        console.log('📍 Fallback columns (2 cols):', { dateCol, descCol, debitCol });
                     } else {
                         console.error('❌ Not enough columns in file');
                         reject(new Error('הקובץ לא מכיל מספיק עמודות'));
@@ -6837,9 +6912,11 @@ async function parseBankExcel(file) {
                     }
                 }
 
+                console.log('🎯 Final columns:', { dateCol, descCol, debitCol });
 
                 // Parse rows
                 const items = [];
+                console.log(`📋 Processing ${jsonData.length - 1} rows...`);
 
                 for (let i = 1; i < jsonData.length; i++) {
                     const row = jsonData[i];
@@ -6852,6 +6929,7 @@ async function parseBankExcel(file) {
 
                     // Skip if no description AND no date (completely empty row)
                     if (!description && !date) {
+                        console.log(`⏭️ Row ${i}: Skipping empty row`);
                         continue;
                     }
 
@@ -6871,6 +6949,7 @@ async function parseBankExcel(file) {
 
                     // Only include rows with a valid debit amount
                     if (isNaN(amount) || amount === 0) {
+                        console.log(`⏭️ Row ${i}: No valid debit amount (${debit})`);
                         continue;
                     }
 
@@ -6880,6 +6959,7 @@ async function parseBankExcel(file) {
                     // Use description or fallback to "תנועה" if empty
                     const finalDescription = description ? String(description).trim() : 'תנועה';
 
+                    console.log(`✅ Row ${i}: ${finalDescription} - ${formattedDate} - ₪${amount}`);
 
                     items.push({
                         date: formattedDate,
@@ -6888,6 +6968,7 @@ async function parseBankExcel(file) {
                     });
                 }
 
+                console.log(`✅ Total items parsed: ${items.length}`);
                 resolve(items);
 
             } catch (error) {
@@ -6921,6 +7002,7 @@ async function parseBankPDF(file) {
                 let fullText = '';
 
                 // Extract text from all pages
+                console.log(`📄 PDF has ${pdf.numPages} pages`);
                 for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
                     const page = await pdf.getPage(pageNum);
                     const textContent = await page.getTextContent();
@@ -6940,6 +7022,8 @@ async function parseBankPDF(file) {
                     fullText += pageText + '\n';
                 }
 
+                console.log('📝 Extracted text length:', fullText.length);
+                console.log('📝 First 500 chars:', fullText.substring(0, 500));
 
                 // Parse transactions from text
                 const items = parseTransactionsFromText(fullText);
@@ -6968,6 +7052,7 @@ function parseTransactionsFromText(text) {
     const items = [];
     const lines = text.split('\n');
 
+    console.log(`🔍 Parsing ${lines.length} lines from PDF...`);
 
     // Regex patterns for Israeli bank statements
     const datePattern = /(\d{1,2}\/\d{1,2}\/\d{4})/g;
@@ -6979,6 +7064,7 @@ function parseTransactionsFromText(text) {
 
         // Skip balance lines (יתרה בש"ח)
         if (line.includes('יתרה') || line.includes('balance')) {
+            console.log(`⏭️ Skipping balance line: "${line}"`);
             continue;
         }
 
@@ -7003,8 +7089,12 @@ function parseTransactionsFromText(text) {
             }
         }
 
+        console.log(`🔍 Line ${i}: "${line}"`);
+        console.log(`📅 Dates: ${dates.join(', ')}`);
+        console.log(`💰 Decimal numbers found: ${decimalNumbers.map(n => `${n.text}=${n.value}`).join(', ')}`);
 
         if (decimalNumbers.length === 0) {
+            console.log(`⏭️ No decimal numbers, skipping`);
             continue;
         }
 
@@ -7013,12 +7103,14 @@ function parseTransactionsFromText(text) {
         const validAmounts = decimalNumbers.filter(n => n.value >= 10 && n.value < 10000).sort((a, b) => a.value - b.value);
 
         if (validAmounts.length === 0) {
+            console.log(`⏭️ No valid amounts (>= 10), skipping`);
             continue;
         }
 
         const amount = validAmounts[0].value;
         const amountText = validAmounts[0].text;
 
+        console.log(`✅ Using amount: ${amount} from "${amountText}" (smallest >= 10)`);
 
         const date = dates[dates.length - 1];
 
@@ -7046,6 +7138,7 @@ function parseTransactionsFromText(text) {
             description = 'תנועה בנקאית';
         }
 
+        console.log(`✅ Final: "${description}" - ${date} - ₪${amount}`);
 
         items.push({
             date: formatBankDate(date),
@@ -7054,6 +7147,7 @@ function parseTransactionsFromText(text) {
         });
     }
 
+    console.log(`✅ Total PDF transactions: ${items.length}`);
     return items;
 }
 
@@ -7357,20 +7451,29 @@ function handleExcelUpload(event) {
                 defval: ''  // Default value for empty cells
             });
 
+            console.log('🔥 EXCEL IMPORT v2.0 - CODE UPDATED! 🔥');
+            console.log('Expected: Column 1=name, Column 3=PRICE, Column 6=card, Column 7=date');
 
             // Skip header row (index 0) and process data rows
             const products = [];
 
+            console.log('📊 Excel Import Debug - First 3 rows:');
             for (let i = 0; i < Math.min(3, jsonData.length); i++) {
+                console.log(`Row ${i}:`, jsonData[i]);
                 if (i === 0) {
                     // Show header row
+                    console.log('Header row breakdown:');
                     for (let j = 0; j < jsonData[i].length; j++) {
+                        console.log(`  Column ${j}: "${jsonData[i][j]}"`);
                     }
                 }
                 if (i === 1 || i === 2) {
                     // Show first 2 data rows in detail
+                    console.log(`Data row ${i} breakdown:`);
                     for (let j = 0; j < jsonData[i].length; j++) {
+                        console.log(`  Column ${j}: "${jsonData[i][j]}"`);
                     }
+                    console.log(`Data row ${i} FULL JSON:`, JSON.stringify(jsonData[i]));
                 }
             }
 
@@ -7382,13 +7485,17 @@ function handleExcelUpload(event) {
                 (firstDataRow && firstDataRow[0] && String(firstDataRow[0]).includes('\t'));
 
             if (needsSplitting) {
+                console.log('⚠️ Detected single-column format with tabs - will split data by tabs');
             } else {
+                console.log('📊 Using multi-column format');
             }
 
             for (let i = 1; i < jsonData.length; i++) {
                 const row = jsonData[i];
 
                 if (i <= 3) {
+                    console.log(`\n=== Processing row index ${i} ===`);
+                    console.log(`Row ${i} full data:`, JSON.stringify(row));
                 }
 
                 let businessName = '';
@@ -7401,6 +7508,7 @@ function handleExcelUpload(event) {
                     const rowData = String(row[0]);
                     const parts = rowData.split('\t').map(p => p.trim()).filter(p => p);
 
+                    console.log(`Row ${i} split into ${parts.length} parts:`, parts);
 
                     // Based on Excel structure (right to left in Hebrew):
                     // parts[0] = row number
@@ -7446,27 +7554,35 @@ function handleExcelUpload(event) {
 
                         if (header.includes('שם') && header.includes('עסק')) {
                             businessNameCol = j;
+                            console.log(`✓ Found business name column at index ${j}`);
                         } else if (header.includes('סכום') && header.includes('חיוב')) {
                             amountCol = j;
+                            console.log(`✓ Found amount column at index ${j}`);
                         } else if (header.includes('כרטיס')) {
                             cardCol = j;
+                            console.log(`✓ Found card column at index ${j}`);
                         } else if (header.includes('מועד') && header.includes('חיוב')) {
                             dateCol = j;
+                            console.log(`✓ Found date column at index ${j}`);
                         }
                     }
 
                     // Fallback to correct column indices based on actual Excel structure
                     if (businessNameCol === -1) {
                         businessNameCol = 1;
+                        console.log(`⚠️ Business name column not found in headers, using index ${businessNameCol}`);
                     }
                     if (amountCol === -1) {
                         amountCol = 2;  // FIXED: Price is in column C (index 2)
+                        console.log(`⚠️ Amount column not found in headers, using index ${amountCol}`);
                     }
                     if (cardCol === -1) {
                         cardCol = 3;  // FIXED: Card is in column D (index 3) - format: "יתרה 6353"
+                        console.log(`⚠️ Card column not found in headers, using index ${cardCol}`);
                     }
                     if (dateCol === -1) {
                         dateCol = 4;  // FIXED: Billing date is in column E (index 4)
+                        console.log(`⚠️ Date column not found in headers, using index ${dateCol}`);
                     }
 
                     // Use detected column indices
@@ -7514,6 +7630,9 @@ function handleExcelUpload(event) {
 
                     // Debug log for first few rows
                     if (i <= 3) {
+                        console.log(`Row ${i} parsed: business="${businessName}", amount=${amount}, card="${cardNumber}", date="${billingDate}"`);
+                        console.log(`  → Read from columns: businessNameCol=${businessNameCol}, amountCol=${amountCol}, cardCol=${cardCol}, dateCol=${dateCol}`);
+                        console.log(`  → Raw values: row[${businessNameCol}]="${row[businessNameCol]}", row[${amountCol}]="${row[amountCol]}", row[${cardCol}]="${row[cardCol]}", row[${dateCol}]="${row[dateCol]}"`);
                     }
                 }
 
@@ -7521,6 +7640,7 @@ function handleExcelUpload(event) {
 
                 // Skip rows with no business name
                 if (!businessName) {
+                    console.log(`Skipping row ${i}: no business name`);
                     continue;
                 }
 
@@ -7551,6 +7671,7 @@ function handleExcelUpload(event) {
                 };
 
                 products.push(product);
+                console.log(`✅ Created product: ${productName}, price: ${amount}`);
             }
 
             // Check if any products were found
@@ -7560,6 +7681,7 @@ function handleExcelUpload(event) {
                 return;
             }
 
+            console.log(`📦 Total products created: ${products.length}`);
 
             // Create new list name from Excel filename (remove extension)
             const listName = file.name.replace(/\.(xlsx|xls)$/i, '');
@@ -7688,9 +7810,11 @@ function updateAppBadge(count) {
     if ('setAppBadge' in navigator) {
         if (count > 0) {
             navigator.setAppBadge(count).catch(err => {
+                console.log('App badge not supported:', err);
             });
         } else {
             navigator.clearAppBadge().catch(err => {
+                console.log('App badge not supported:', err);
             });
         }
     }
@@ -8846,11 +8970,13 @@ async function checkClipboardOnStartup() {
         // Check if auto-open is disabled by user
         // Auto-open is OFF by default; only open if user explicitly enabled it
         if (localStorage.getItem('clipboardAutoOpen') !== 'true') {
+            console.log('Clipboard auto-open not enabled by user');
             return;
         }
 
         // Check if Clipboard API is available
         if (!navigator.clipboard || !navigator.clipboard.readText) {
+            console.log('Clipboard API not available in this browser');
             return;
         }
 
@@ -8858,9 +8984,11 @@ async function checkClipboardOnStartup() {
         const clipboardText = await navigator.clipboard.readText();
         
         if (!clipboardText || clipboardText.trim() === '') {
+            console.log('Clipboard is empty');
             return;
         }
 
+        console.log('✅ Clipboard text found, length:', clipboardText.length);
 
         // Get clipboard state from localStorage
         const clipboardState = JSON.parse(localStorage.getItem('clipboardState') || '{}');
@@ -8868,16 +8996,20 @@ async function checkClipboardOnStartup() {
         const dismissed = clipboardState.clipboardDismissed || false;
         const imported = clipboardState.clipboardImported || false;
 
+        console.log('Clipboard check - Same text?', clipboardText === lastText, 'Dismissed?', dismissed, 'Imported?', imported);
 
         // Check if this is new text
         if (clipboardText === lastText) {
             // Same text - check if dismissed or imported
             if (dismissed || imported) {
+                console.log('Skipping - already dismissed or imported');
                 return; // Don't show modal
             }
             // Same text but not dismissed/imported - show again
+            console.log('Showing modal for same text (not dismissed/imported)');
         } else {
             // New text - reset state
+            console.log('🆕 New clipboard text detected!');
             clipboardState.lastClipboardText = clipboardText;
             clipboardState.clipboardDismissed = false;
             clipboardState.clipboardImported = false;
@@ -8888,6 +9020,7 @@ async function checkClipboardOnStartup() {
         showClipboardImportModal(clipboardText);
 
     } catch (error) {
+        console.log('❌ Clipboard access error:', error.name, error.message);
         // Silently fail - clipboard access not available or denied
     }
 }
@@ -8962,6 +9095,7 @@ async function _origOpenManualImport() {
             clipboardText = await navigator.clipboard.readText();
         }
     } catch (error) {
+        console.log('Could not read clipboard, user will paste manually');
     }
 
     // Set the text (empty if clipboard read failed)
@@ -9490,6 +9624,7 @@ document.addEventListener('DOMContentLoaded', function() {
 document.addEventListener('visibilitychange', function() {
     if (!document.hidden) {
         // App is visible again
+        console.log('App became visible - checking clipboard');
         setTimeout(() => {
             checkClipboardOnStartup();
         }, 500); // Increased to 500ms for better reliability
@@ -9498,6 +9633,7 @@ document.addEventListener('visibilitychange', function() {
 
 // Also check on window focus (when switching back from another app)
 window.addEventListener('focus', function() {
+    console.log('Window gained focus - checking clipboard');
     setTimeout(() => {
         checkClipboardOnStartup();
     }, 500);
@@ -9694,10 +9830,12 @@ function _scheduleAllReminders() {
             const key = item.cloudId || item.name;
             if (delay > 0) {
                 const timerId = setTimeout(() => {
+                    console.log('[Reminder] fired:', item.name);
                     _firePushNotification(item);
                     checkUrgentPayments();
                 }, Math.min(delay, 2147483647));
                 _reminderTimers.set(key, timerId);
+                console.log(`[Reminder] scheduled "${item.name}" in ${Math.round(delay/1000)}s`);
             } else {
                 // הגיע כבר — הצג
                 checkUrgentPayments();
@@ -10198,7 +10336,7 @@ function _askDemoBeforeWizard() {
 
 // ── GitHub Token Management ──────────────────────────────────────
 function loadGithubToken() {
-    const token = sessionStorage.getItem('vplus_github_pat') || '';
+    const token = localStorage.getItem('vplus_github_pat') || '';
     window.GITHUB_PAT = token;
     const input = document.getElementById('githubTokenInput');
     if (input && token) input.value = token;
@@ -10210,14 +10348,14 @@ function saveGithubToken() {
     if (!input) return;
     const token = input.value.trim();
     if (!token) {
-        sessionStorage.removeItem('vplus_github_pat');
+        localStorage.removeItem('vplus_github_pat');
         window.GITHUB_PAT = '';
         showNotification('🗑️ Token נמחק');
     } else if (!token.startsWith('ghp_') && !token.startsWith('github_pat_')) {
         showNotification('⚠️ Token לא תקין — חייב להתחיל ב-ghp_ או github_pat_', 'warning');
         return;
     } else {
-        sessionStorage.setItem('vplus_github_pat', token);
+        localStorage.setItem('vplus_github_pat', token);
         window.GITHUB_PAT = token;
         showNotification('✅ GitHub Token נשמר!');
     }
@@ -10228,7 +10366,7 @@ function updateGithubTokenStatus() {
     const input  = document.getElementById('githubTokenInput');
     const status = document.getElementById('githubTokenStatus');
     if (!status) return;
-    const val = (input ? input.value : '') || sessionStorage.getItem('vplus_github_pat') || '';
+    const val = (input ? input.value : '') || localStorage.getItem('vplus_github_pat') || '';
     if (val.startsWith('ghp_') || val.startsWith('github_pat_')) {
         status.textContent = '✅ מוגדר';
         status.style.color = '#22c55e';
@@ -10854,6 +10992,7 @@ function dbgLog(msg, color) { /* no-op */ }
 // ── Shared fetch helper ──
 async function runFinancialFetch({ companyId, credentials, modalId, nameLabel }) {
     const log = (msg, type='info', icon='•') => {
+        console.log(`[BankSync][${type}] ${icon} ${msg}`);
     };
 
     closeModal(modalId);
