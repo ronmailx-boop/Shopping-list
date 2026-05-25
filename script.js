@@ -2447,9 +2447,12 @@ function generateItemMetadataHTML(item, idx) {
             const dueDateObj = new Date(item.dueDate + 'T' + timeStr + ':00');
             const reminderMs = getReminderMilliseconds(item.reminderValue, item.reminderUnit);
             const reminderTime = new Date(dueDateObj.getTime() - reminderMs);
-            const rh = reminderTime.getHours().toString().padStart(2, '0');
-            const rm = reminderTime.getMinutes().toString().padStart(2, '0');
-            reminderInfo = ` 🔔 התראה בעוד ${formatReminderText(item.reminderValue, item.reminderUnit)} ב-${rh}:${rm}`;
+            // הצג רק אם ההתראה עדיין בעתיד
+            if (reminderTime.getTime() > now) {
+                const rh = reminderTime.getHours().toString().padStart(2, '0');
+                const rm = reminderTime.getMinutes().toString().padStart(2, '0');
+                reminderInfo = ` 🔔 התראה בעוד ${formatReminderText(item.reminderValue, item.reminderUnit)} ב-${rh}:${rm}`;
+            }
         }
         
         html += `<div style="display: flex; align-items: center; gap: 8px;">
@@ -2673,7 +2676,7 @@ function render() {
                                             <div class="note-icon ${item.note ? 'has-note' : ''}" onclick="openItemNoteModal(${idx})" title="${item.note ? 'יש הערה' : 'הוסף הערה'}">
                                                 <svg class="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
                                             </div>
-                                            <button onclick="event.stopPropagation();openReminderModal(${idx})" class="bell-reminder-btn${item.dueDate ? ' has-reminder' : ''}" title="הוסף תזכורת"><img src="${BELL_ICON_SRC}" class="bell-icon-img" alt="🔔"><span class="bell-dot"></span></button>
+                                            <button onclick="event.stopPropagation();openReminderModal(${idx})" class="bell-reminder-btn${(item.dueDate && ((item.nextAlertTime && item.nextAlertTime > Date.now()) || (item.reminderValue && item.reminderUnit && (() => { const t = item.dueTime||'09:00'; const d = new Date(item.dueDate+'T'+t+':00'); const ms = typeof getReminderMilliseconds==='function'?getReminderMilliseconds(item.reminderValue,item.reminderUnit):0; return (d.getTime()-ms) > Date.now(); })())) ) ? ' has-reminder' : ''}" title="הוסף תזכורת"><img src="${BELL_ICON_SRC}" class="bell-icon-img" alt="🔔"><span class="bell-dot"></span></button>
                                             <button onclick="removeItem(${idx})" class="trash-btn">
                                                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg>
                                             </button>
@@ -2772,7 +2775,7 @@ function render() {
                                                 <div class="note-icon ${item.note ? 'has-note' : ''}" onclick="openItemNoteModal(${idx})" title="${item.note ? 'יש הערה' : 'הוסף הערה'}">
                                                     <svg class="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
                                                 </div>
-                                                <button onclick="event.stopPropagation();openReminderModal(${idx})" class="bell-reminder-btn${item.dueDate ? ' has-reminder' : ''}" title="הוסף תזכורת"><img src="${BELL_ICON_SRC}" class="bell-icon-img" alt="🔔"><span class="bell-dot"></span></button>
+                                                <button onclick="event.stopPropagation();openReminderModal(${idx})" class="bell-reminder-btn${(item.dueDate && ((item.nextAlertTime && item.nextAlertTime > Date.now()) || (item.reminderValue && item.reminderUnit && (() => { const t = item.dueTime||'09:00'; const d = new Date(item.dueDate+'T'+t+':00'); const ms = typeof getReminderMilliseconds==='function'?getReminderMilliseconds(item.reminderValue,item.reminderUnit):0; return (d.getTime()-ms) > Date.now(); })())) ) ? ' has-reminder' : ''}" title="הוסף תזכורת"><img src="${BELL_ICON_SRC}" class="bell-icon-img" alt="🔔"><span class="bell-dot"></span></button>
                                                 <button onclick="removeItem(${idx})" class="trash-btn">
                                                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg>
                                                 </button>
@@ -2865,7 +2868,7 @@ function render() {
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
                                             </svg>
                                         </div>
-                                        <button onclick="event.stopPropagation();openReminderModal(${idx})" class="bell-reminder-btn${item.dueDate ? ' has-reminder' : ''}" title="הוסף תזכורת"><img src="${BELL_ICON_SRC}" class="bell-icon-img" alt="🔔"><span class="bell-dot"></span></button>
+                                        <button onclick="event.stopPropagation();openReminderModal(${idx})" class="bell-reminder-btn${(item.dueDate && ((item.nextAlertTime && item.nextAlertTime > Date.now()) || (item.reminderValue && item.reminderUnit && (() => { const t = item.dueTime||'09:00'; const d = new Date(item.dueDate+'T'+t+':00'); const ms = typeof getReminderMilliseconds==='function'?getReminderMilliseconds(item.reminderValue,item.reminderUnit):0; return (d.getTime()-ms) > Date.now(); })())) ) ? ' has-reminder' : ''}" title="הוסף תזכורת"><img src="${BELL_ICON_SRC}" class="bell-icon-img" alt="🔔"><span class="bell-dot"></span></button>
                                         <button onclick="removeItem(${idx})" class="trash-btn">
                                             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                 <path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path>
@@ -2938,7 +2941,7 @@ function render() {
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
                                     </svg>
                                 </div>
-                                <button onclick="event.stopPropagation();openReminderModal(${idx})" class="bell-reminder-btn${item.dueDate ? ' has-reminder' : ''}" title="הוסף תזכורת"><img src="${BELL_ICON_SRC}" class="bell-icon-img" alt="🔔"><span class="bell-dot"></span></button>
+                                <button onclick="event.stopPropagation();openReminderModal(${idx})" class="bell-reminder-btn${(item.dueDate && ((item.nextAlertTime && item.nextAlertTime > Date.now()) || (item.reminderValue && item.reminderUnit && (() => { const t = item.dueTime||'09:00'; const d = new Date(item.dueDate+'T'+t+':00'); const ms = typeof getReminderMilliseconds==='function'?getReminderMilliseconds(item.reminderValue,item.reminderUnit):0; return (d.getTime()-ms) > Date.now(); })())) ) ? ' has-reminder' : ''}" title="הוסף תזכורת"><img src="${BELL_ICON_SRC}" class="bell-icon-img" alt="🔔"><span class="bell-dot"></span></button>
                                 <button onclick="removeItem(${idx})" class="trash-btn">
                                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path>
