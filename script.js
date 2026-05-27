@@ -2661,16 +2661,16 @@ function render() {
                                             כווץ
                                         </button>
                                     </div>
-                                    <div class="flex justify-between items-center mb-4">
-                                        <div class="flex items-center gap-3 flex-1">
-                                            <input type="checkbox" ${item.checked ? 'checked' : ''} onchange="toggleItem(${idx})" class="w-7 h-7 accent-indigo-600">
-                                            <div class="flex-1">
-                                                <div class="text-2xl font-bold ${item.checked ? 'line-through text-gray-300' : ''}" onclick="openEditItemNameModal(${idx})" style="cursor:pointer;">
+                                    <div class="flex justify-between items-start mb-4">
+                                        <div class="flex-1 min-w-0">
+                                            <div style="display:flex;align-items:flex-start;gap:8px;" onclick="openEditItemNameModal(${idx})">
+                                                <input type="checkbox" ${item.checked ? 'checked' : ''} onchange="toggleItem(${idx})" class="w-7 h-7 accent-indigo-600" style="flex-shrink:0;" onclick="event.stopPropagation()">
+                                                <div class="text-2xl font-bold ${item.checked ? 'line-through text-gray-300' : ''}" style="cursor:pointer;word-break:break-word;">
                                                     <span class="item-number">${itemNumber}.</span> ${item.name}
                                                 </div>
+                                            </div>
                                                 ${categoryBadge}
                                                 ${metadataHTML}
-                                            </div>
                                         </div>
                                         <div class="flex items-center gap-2">
                                             <div class="note-icon ${item.note ? 'has-note' : ''}" onclick="openItemNoteModal(${idx})" title="${item.note ? 'יש הערה' : 'הוסף הערה'}">
@@ -2760,16 +2760,16 @@ function render() {
                                                 כווץ
                                             </button>
                                         </div>
-                                        <div class="flex justify-between items-center mb-4">
-                                            <div class="flex items-center gap-3 flex-1">
-                                                <input type="checkbox" ${item.checked ? 'checked' : ''} onchange="toggleItem(${idx})" class="w-7 h-7 accent-indigo-600">
-                                                <div class="flex-1">
-                                                    <div class="text-2xl font-bold ${item.checked ? 'line-through text-gray-300' : ''}" onclick="openEditItemNameModal(${idx})" style="cursor:pointer;">
+                                        <div class="flex justify-between items-start mb-4">
+                                            <div class="flex-1 min-w-0">
+                                                <div style="display:flex;align-items:flex-start;gap:8px;" onclick="openEditItemNameModal(${idx})">
+                                                    <input type="checkbox" ${item.checked ? 'checked' : ''} onchange="toggleItem(${idx})" class="w-7 h-7 accent-indigo-600" style="flex-shrink:0;" onclick="event.stopPropagation()">
+                                                    <div class="text-2xl font-bold ${item.checked ? 'line-through text-gray-300' : ''}" style="cursor:pointer;word-break:break-word;">
                                                         <span class="item-number">${itemNumber}.</span> ${item.name}
                                                     </div>
+                                                </div>
                                                     ${categoryBadge}
                                                     ${metadataHTML}
-                                                </div>
                                             </div>
                                             <div class="flex items-center gap-2">
                                                 <div class="note-icon ${item.note ? 'has-note' : ''}" onclick="openItemNoteModal(${idx})" title="${item.note ? 'יש הערה' : 'הוסף הערה'}">
@@ -2851,16 +2851,16 @@ function render() {
                                         כווץ
                                     </button>
                                 </div>
-                                <div class="flex justify-between items-center mb-4">
-                                    <div class="flex items-center gap-3 flex-1">
-                                        <input type="checkbox" ${item.checked ? 'checked' : ''} onchange="toggleItem(${idx})" class="w-7 h-7 accent-indigo-600">
-                                        <div class="flex-1">
-                                            <div class="text-2xl font-bold ${item.checked ? 'line-through text-gray-300' : ''}" onclick="openEditItemNameModal(${idx})" style="cursor:pointer;">
+                                <div class="flex justify-between items-start mb-4">
+                                    <div class="flex-1 min-w-0">
+                                        <div style="display:flex;align-items:flex-start;gap:8px;" onclick="openEditItemNameModal(${idx})">
+                                            <input type="checkbox" ${item.checked ? 'checked' : ''} onchange="toggleItem(${idx})" class="w-7 h-7 accent-indigo-600" style="flex-shrink:0;" onclick="event.stopPropagation()">
+                                            <div class="text-2xl font-bold ${item.checked ? 'line-through text-gray-300' : ''}" style="cursor:pointer;word-break:break-word;">
                                                 <span class="item-number">${idx + 1}.</span> ${item.name}
                                             </div>
+                                        </div>
                                             ${categoryBadge}
                                             ${metadataHTML}
-                                        </div>
                                     </div>
                                     <div class="flex items-center gap-2">
                                         <div class="note-icon ${item.note ? 'has-note' : ''}" onclick="openItemNoteModal(${idx})" title="${item.note ? 'יש הערה' : 'הוסף הערה'}">
@@ -2924,16 +2924,16 @@ function render() {
                         }
                     } else {
                     div.innerHTML = `
-                        <div class="flex justify-between items-center mb-4">
-                            <div class="flex items-center gap-3 flex-1">
-                                <input type="checkbox" ${item.checked ? 'checked' : ''} onchange="toggleItem(${idx})" class="w-7 h-7 accent-indigo-600">
-                                <div class="flex-1">
-                                    <div class="text-2xl font-bold ${item.checked ? 'line-through text-gray-300' : ''}" onclick="openEditItemNameModal(${idx})" style="cursor: pointer;">
+                        <div class="flex justify-between items-start mb-4">
+                            <div class="flex-1 min-w-0">
+                                <div style="display:flex;align-items:flex-start;gap:8px;" onclick="openEditItemNameModal(${idx})">
+                                    <input type="checkbox" ${item.checked ? 'checked' : ''} onchange="toggleItem(${idx})" class="w-7 h-7 accent-indigo-600" style="flex-shrink:0;" onclick="event.stopPropagation()">
+                                    <div class="text-2xl font-bold ${item.checked ? 'line-through text-gray-300' : ''}" style="cursor:pointer;word-break:break-word;">
                                         <span class="item-number">${idx + 1}.</span> ${item.name}
                                     </div>
+                                </div>
                                     ${categoryBadge}
                                     ${metadataHTML}
-                                </div>
                             </div>
                             <div class="flex items-center gap-2">
                                 <div class="note-icon ${item.note ? 'has-note' : ''}" onclick="openItemNoteModal(${idx})" title="${item.note ? 'יש הערה' : 'הוסף הערה'}">
