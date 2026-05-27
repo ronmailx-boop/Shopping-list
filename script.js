@@ -2655,43 +2655,43 @@ function render() {
                                 div.style.padding = '15px';
                                 div.style.borderRadius = '20px';
                                 div.innerHTML = `
-                                    <div style="display:flex;justify-content:flex-start;margin-bottom:6px;">
-                                        <button onclick="expandedItemIdx=-1;render();" style="background:rgba(115,103,240,0.08);border:none;border-radius:99px;padding:3px 12px;font-size:12px;font-weight:800;color:#7367f0;cursor:pointer;display:flex;align-items:center;gap:4px;font-family:inherit;">
+                                    <div style="display:flex;justify-content:center;margin-bottom:12px;">
+                                        <button onclick="expandedItemIdx=-1;render();" style="background:rgba(115,103,240,0.08);border:none;border-radius:99px;padding:6px 20px;font-size:13px;font-weight:800;color:#7367f0;cursor:pointer;display:flex;align-items:center;gap:5px;font-family:inherit;">
                                             <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2 8L6 4L10 8" stroke="#7367f0" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
                                             כווץ
                                         </button>
                                     </div>
-                                    <div class="flex justify-between items-start mb-4">
-                                        <div class="flex-1 min-w-0">
-                                            <div style="display:flex;align-items:flex-start;gap:8px;" onclick="openEditItemNameModal(${idx})">
-                                                <input type="checkbox" ${item.checked ? 'checked' : ''} onchange="toggleItem(${idx})" class="w-7 h-7 accent-indigo-600" style="flex-shrink:0;" onclick="event.stopPropagation()">
-                                                <div class="text-2xl font-bold ${item.checked ? 'line-through text-gray-300' : ''}" style="cursor:pointer;word-break:break-word;">
-                                                    <span class="item-number">${itemNumber}.</span> ${item.name}
-                                                </div>
+                                    <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px;">
+                                        <input type="checkbox" ${item.checked ? 'checked' : ''} onchange="toggleItem(${idx})" class="w-7 h-7 accent-indigo-600" style="flex-shrink:0;">
+                                        <div style="flex:1;cursor:pointer;" onclick="openEditItemNameModal(${idx})">
+                                            <div class="text-2xl font-bold ${item.checked ? 'line-through text-gray-300' : ''}" style="line-height:1.3;">
+                                                <span class="item-number">${itemNumber}.</span> ${item.name}
                                             </div>
-                                                ${categoryBadge}
-                                                ${metadataHTML}
                                         </div>
-                                        <div class="flex items-center gap-2">
-                                            <div class="note-icon ${item.note ? 'has-note' : ''}" onclick="openItemNoteModal(${idx})" title="${item.note ? 'יש הערה' : 'הוסף הערה'}">
-                                                <svg class="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
-                                            </div>
-                                            <button onclick="event.stopPropagation();openReminderModal(${idx})" class="bell-reminder-btn${(item.dueDate && ((item.nextAlertTime && item.nextAlertTime > Date.now()) || (item.reminderValue && item.reminderUnit && (() => { const t = item.dueTime||'09:00'; const d = new Date(item.dueDate+'T'+t+':00'); const ms = typeof getReminderMilliseconds==='function'?getReminderMilliseconds(item.reminderValue,item.reminderUnit):0; return (d.getTime()-ms) > Date.now(); })())) ) ? ' has-reminder' : ''}" title="הוסף תזכורת">🔔</button>
-                                            <button onclick="removeItem(${idx})" class="trash-btn">
-                                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+                                    </div>
+                                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+                                        ${categoryBadge || '<span></span>'}
+                                        <div style="display:flex;align-items:center;gap:10px;">
+                                            <button onclick="removeItem(${idx})" style="width:50px;height:50px;background:#fee2e2;border:none;border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;">
+                                                <svg width="22" height="22" fill="none" stroke="#ef4444" viewBox="0 0 24 24"><path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
                                             </button>
+                                            <button onclick="event.stopPropagation();openReminderModal(${idx})" style="width:50px;height:50px;background:#f59e0b;border:none;border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;font-size:24px;line-height:1;">🔔</button>
+                                            <div onclick="openItemNoteModal(${idx})" style="width:50px;height:50px;background:#f3f4f6;border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;">
+                                                <svg width="22" height="22" fill="none" stroke="#6b7280" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+                                            </div>
                                         </div>
                                     </div>
-                                    <div class="flex justify-between items-center">
-                                        ${item.isGeneralNote ? '' : `
-                                        <div class="flex items-center gap-3 bg-gray-50 rounded-xl px-2 py-1 border">
-                                            <button onclick="changeQty(${idx}, 1)" class="text-green-500 text-2xl font-bold">+</button>
-                                            <span class="font-bold w-6 text-center">${item.qty}</span>
-                                            <button onclick="changeQty(${idx}, -1)" class="text-red-500 text-2xl font-bold">-</button>
+                                    ${metadataHTML ? `<div style="background:#fffbeb;border-radius:14px;padding:10px 14px;margin-bottom:14px;text-align:center;">${metadataHTML}</div>` : ''}
+                                    ${item.isGeneralNote ? '' : `
+                                    <div style="display:flex;justify-content:space-between;align-items:center;">
+                                        <div style="display:flex;align-items:center;gap:10px;background:#f9fafb;border-radius:16px;padding:6px 14px;border:1.5px solid #e5e7eb;">
+                                            <button onclick="changeQty(${idx}, 1)" style="color:#22c55e;font-size:22px;font-weight:bold;background:none;border:none;cursor:pointer;line-height:1;padding:0 4px;">+</button>
+                                            <span style="font-weight:bold;font-size:16px;min-width:20px;text-align:center;">${item.qty}</span>
+                                            <button onclick="changeQty(${idx}, -1)" style="color:#ef4444;font-size:22px;font-weight:bold;background:none;border:none;cursor:pointer;line-height:1;padding:0 4px;">-</button>
                                         </div>
-                                        <span onclick="openEditTotalModal(${idx})" class="text-2xl font-black text-indigo-600" style="cursor:pointer;">₪${sub.toFixed(2)}</span>
-                                        `}
+                                        <span onclick="openEditTotalModal(${idx})" style="font-size:22px;font-weight:900;color:#7367f0;cursor:pointer;">₪${sub.toFixed(2)}</span>
                                     </div>
+                                    `}
                                 `;
                             } else {
                                 div.style.padding = '10px 14px';
@@ -2754,43 +2754,43 @@ function render() {
                                     div.style.padding = '15px';
                                     div.style.borderRadius = '20px';
                                     div.innerHTML = `
-                                        <div style="display:flex;justify-content:flex-start;margin-bottom:6px;">
-                                            <button onclick="expandedItemIdx=-1;render();" style="background:rgba(115,103,240,0.08);border:none;border-radius:99px;padding:3px 12px;font-size:12px;font-weight:800;color:#7367f0;cursor:pointer;display:flex;align-items:center;gap:4px;font-family:inherit;">
+                                        <div style="display:flex;justify-content:center;margin-bottom:12px;">
+                                            <button onclick="expandedItemIdx=-1;render();" style="background:rgba(115,103,240,0.08);border:none;border-radius:99px;padding:6px 20px;font-size:13px;font-weight:800;color:#7367f0;cursor:pointer;display:flex;align-items:center;gap:5px;font-family:inherit;">
                                                 <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2 8L6 4L10 8" stroke="#7367f0" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
                                                 כווץ
                                             </button>
                                         </div>
-                                        <div class="flex justify-between items-start mb-4">
-                                            <div class="flex-1 min-w-0">
-                                                <div style="display:flex;align-items:flex-start;gap:8px;" onclick="openEditItemNameModal(${idx})">
-                                                    <input type="checkbox" ${item.checked ? 'checked' : ''} onchange="toggleItem(${idx})" class="w-7 h-7 accent-indigo-600" style="flex-shrink:0;" onclick="event.stopPropagation()">
-                                                    <div class="text-2xl font-bold ${item.checked ? 'line-through text-gray-300' : ''}" style="cursor:pointer;word-break:break-word;">
-                                                        <span class="item-number">${itemNumber}.</span> ${item.name}
-                                                    </div>
+                                        <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px;">
+                                            <input type="checkbox" ${item.checked ? 'checked' : ''} onchange="toggleItem(${idx})" class="w-7 h-7 accent-indigo-600" style="flex-shrink:0;">
+                                            <div style="flex:1;cursor:pointer;" onclick="openEditItemNameModal(${idx})">
+                                                <div class="text-2xl font-bold ${item.checked ? 'line-through text-gray-300' : ''}" style="line-height:1.3;">
+                                                    <span class="item-number">${itemNumber}.</span> ${item.name}
                                                 </div>
-                                                    ${categoryBadge}
-                                                    ${metadataHTML}
                                             </div>
-                                            <div class="flex items-center gap-2">
-                                                <div class="note-icon ${item.note ? 'has-note' : ''}" onclick="openItemNoteModal(${idx})" title="${item.note ? 'יש הערה' : 'הוסף הערה'}">
-                                                    <svg class="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
-                                                </div>
-                                                <button onclick="event.stopPropagation();openReminderModal(${idx})" class="bell-reminder-btn${(item.dueDate && ((item.nextAlertTime && item.nextAlertTime > Date.now()) || (item.reminderValue && item.reminderUnit && (() => { const t = item.dueTime||'09:00'; const d = new Date(item.dueDate+'T'+t+':00'); const ms = typeof getReminderMilliseconds==='function'?getReminderMilliseconds(item.reminderValue,item.reminderUnit):0; return (d.getTime()-ms) > Date.now(); })())) ) ? ' has-reminder' : ''}" title="הוסף תזכורת">🔔</button>
-                                                <button onclick="removeItem(${idx})" class="trash-btn">
-                                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+                                        </div>
+                                        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+                                            ${categoryBadge || '<span></span>'}
+                                            <div style="display:flex;align-items:center;gap:10px;">
+                                                <button onclick="removeItem(${idx})" style="width:50px;height:50px;background:#fee2e2;border:none;border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;">
+                                                    <svg width="22" height="22" fill="none" stroke="#ef4444" viewBox="0 0 24 24"><path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
                                                 </button>
+                                                <button onclick="event.stopPropagation();openReminderModal(${idx})" style="width:50px;height:50px;background:#f59e0b;border:none;border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;font-size:24px;line-height:1;">🔔</button>
+                                                <div onclick="openItemNoteModal(${idx})" style="width:50px;height:50px;background:#f3f4f6;border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;">
+                                                    <svg width="22" height="22" fill="none" stroke="#6b7280" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+                                                </div>
                                             </div>
                                         </div>
-                                        <div class="flex justify-between items-center">
-                                            ${item.isGeneralNote ? '' : `
-                                            <div class="flex items-center gap-3 bg-gray-50 rounded-xl px-2 py-1 border">
-                                                <button onclick="changeQty(${idx}, 1)" class="text-green-500 text-2xl font-bold">+</button>
-                                                <span class="font-bold w-6 text-center">${item.qty}</span>
-                                                <button onclick="changeQty(${idx}, -1)" class="text-red-500 text-2xl font-bold">-</button>
+                                        ${metadataHTML ? `<div style="background:#fffbeb;border-radius:14px;padding:10px 14px;margin-bottom:14px;text-align:center;">${metadataHTML}</div>` : ''}
+                                        ${item.isGeneralNote ? '' : `
+                                        <div style="display:flex;justify-content:space-between;align-items:center;">
+                                            <div style="display:flex;align-items:center;gap:10px;background:#f9fafb;border-radius:16px;padding:6px 14px;border:1.5px solid #e5e7eb;">
+                                                <button onclick="changeQty(${idx}, 1)" style="color:#22c55e;font-size:22px;font-weight:bold;background:none;border:none;cursor:pointer;line-height:1;padding:0 4px;">+</button>
+                                                <span style="font-weight:bold;font-size:16px;min-width:20px;text-align:center;">${item.qty}</span>
+                                                <button onclick="changeQty(${idx}, -1)" style="color:#ef4444;font-size:22px;font-weight:bold;background:none;border:none;cursor:pointer;line-height:1;padding:0 4px;">-</button>
                                             </div>
-                                            <span onclick="openEditTotalModal(${idx})" class="text-2xl font-black text-indigo-600" style="cursor:pointer;">₪${sub.toFixed(2)}</span>
-                                            `}
+                                            <span onclick="openEditTotalModal(${idx})" style="font-size:22px;font-weight:900;color:#7367f0;cursor:pointer;">₪${sub.toFixed(2)}</span>
                                         </div>
+                                        `}
                                     `;
                                 } else {
                                     div.style.padding = '10px 14px';
@@ -2845,47 +2845,43 @@ function render() {
                             div.style.padding = '15px';
                             div.style.borderRadius = '20px';
                             div.innerHTML = `
-                                <div style="display:flex;justify-content:flex-start;margin-bottom:6px;">
-                                    <button onclick="expandedItemIdx=-1;render();" style="background:rgba(115,103,240,0.08);border:none;border-radius:99px;padding:3px 12px;font-size:12px;font-weight:800;color:#7367f0;cursor:pointer;display:flex;align-items:center;gap:4px;font-family:inherit;">
+                                <div style="display:flex;justify-content:center;margin-bottom:12px;">
+                                    <button onclick="expandedItemIdx=-1;render();" style="background:rgba(115,103,240,0.08);border:none;border-radius:99px;padding:6px 20px;font-size:13px;font-weight:800;color:#7367f0;cursor:pointer;display:flex;align-items:center;gap:5px;font-family:inherit;">
                                         <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2 8L6 4L10 8" stroke="#7367f0" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
                                         כווץ
                                     </button>
                                 </div>
-                                <div class="flex justify-between items-start mb-4">
-                                    <div class="flex-1 min-w-0">
-                                        <div style="display:flex;align-items:flex-start;gap:8px;" onclick="openEditItemNameModal(${idx})">
-                                            <input type="checkbox" ${item.checked ? 'checked' : ''} onchange="toggleItem(${idx})" class="w-7 h-7 accent-indigo-600" style="flex-shrink:0;" onclick="event.stopPropagation()">
-                                            <div class="text-2xl font-bold ${item.checked ? 'line-through text-gray-300' : ''}" style="cursor:pointer;word-break:break-word;">
-                                                <span class="item-number">${idx + 1}.</span> ${item.name}
-                                            </div>
+                                <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px;">
+                                    <input type="checkbox" ${item.checked ? 'checked' : ''} onchange="toggleItem(${idx})" class="w-7 h-7 accent-indigo-600" style="flex-shrink:0;">
+                                    <div style="flex:1;cursor:pointer;" onclick="openEditItemNameModal(${idx})">
+                                        <div class="text-2xl font-bold ${item.checked ? 'line-through text-gray-300' : ''}" style="line-height:1.3;">
+                                            <span class="item-number">${idx + 1}.</span> ${item.name}
                                         </div>
-                                            ${categoryBadge}
-                                            ${metadataHTML}
                                     </div>
-                                    <div class="flex items-center gap-2">
-                                        <div class="note-icon ${item.note ? 'has-note' : ''}" onclick="openItemNoteModal(${idx})" title="${item.note ? 'יש הערה' : 'הוסף הערה'}">
-                                            <svg class="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
-                                            </svg>
-                                        </div>
-                                        <button onclick="event.stopPropagation();openReminderModal(${idx})" class="bell-reminder-btn${(item.dueDate && ((item.nextAlertTime && item.nextAlertTime > Date.now()) || (item.reminderValue && item.reminderUnit && (() => { const t = item.dueTime||'09:00'; const d = new Date(item.dueDate+'T'+t+':00'); const ms = typeof getReminderMilliseconds==='function'?getReminderMilliseconds(item.reminderValue,item.reminderUnit):0; return (d.getTime()-ms) > Date.now(); })())) ) ? ' has-reminder' : ''}" title="הוסף תזכורת">🔔</button>
-                                        <button onclick="removeItem(${idx})" class="trash-btn">
-                                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path>
-                                            </svg>
+                                </div>
+                                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+                                    ${categoryBadge || '<span></span>'}
+                                    <div style="display:flex;align-items:center;gap:10px;">
+                                        <button onclick="removeItem(${idx})" style="width:50px;height:50px;background:#fee2e2;border:none;border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;">
+                                            <svg width="22" height="22" fill="none" stroke="#ef4444" viewBox="0 0 24 24"><path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
                                         </button>
+                                        <button onclick="event.stopPropagation();openReminderModal(${idx})" style="width:50px;height:50px;background:#f59e0b;border:none;border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;font-size:24px;line-height:1;">🔔</button>
+                                        <div onclick="openItemNoteModal(${idx})" style="width:50px;height:50px;background:#f3f4f6;border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;">
+                                            <svg width="22" height="22" fill="none" stroke="#6b7280" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+                                        </div>
                                     </div>
                                 </div>
-                                <div class="flex justify-between items-center">
-                                    ${item.isGeneralNote ? '' : `
-                                    <div class="flex items-center gap-3 bg-gray-50 rounded-xl px-2 py-1 border">
-                                        <button onclick="changeQty(${idx}, 1)" class="text-green-500 text-2xl font-bold">+</button>
-                                        <span class="font-bold w-6 text-center">${item.qty}</span>
-                                        <button onclick="changeQty(${idx}, -1)" class="text-red-500 text-2xl font-bold">-</button>
+                                ${metadataHTML ? `<div style="background:#fffbeb;border-radius:14px;padding:10px 14px;margin-bottom:14px;text-align:center;">${metadataHTML}</div>` : ''}
+                                ${item.isGeneralNote ? '' : `
+                                <div style="display:flex;justify-content:space-between;align-items:center;">
+                                    <div style="display:flex;align-items:center;gap:10px;background:#f9fafb;border-radius:16px;padding:6px 14px;border:1.5px solid #e5e7eb;">
+                                        <button onclick="changeQty(${idx}, 1)" style="color:#22c55e;font-size:22px;font-weight:bold;background:none;border:none;cursor:pointer;line-height:1;padding:0 4px;">+</button>
+                                        <span style="font-weight:bold;font-size:16px;min-width:20px;text-align:center;">${item.qty}</span>
+                                        <button onclick="changeQty(${idx}, -1)" style="color:#ef4444;font-size:22px;font-weight:bold;background:none;border:none;cursor:pointer;line-height:1;padding:0 4px;">-</button>
                                     </div>
-                                    <span onclick="openEditTotalModal(${idx})" class="text-2xl font-black text-indigo-600" style="cursor:pointer;">₪${sub.toFixed(2)}</span>
-                                    `}
+                                    <span onclick="openEditTotalModal(${idx})" style="font-size:22px;font-weight:900;color:#7367f0;cursor:pointer;">₪${sub.toFixed(2)}</span>
                                 </div>
+                                `}
                             `;
 
                         } else {
@@ -2924,16 +2920,16 @@ function render() {
                         }
                     } else {
                     div.innerHTML = `
-                        <div class="flex justify-between items-start mb-4">
-                            <div class="flex-1 min-w-0">
-                                <div style="display:flex;align-items:flex-start;gap:8px;" onclick="openEditItemNameModal(${idx})">
-                                    <input type="checkbox" ${item.checked ? 'checked' : ''} onchange="toggleItem(${idx})" class="w-7 h-7 accent-indigo-600" style="flex-shrink:0;" onclick="event.stopPropagation()">
-                                    <div class="text-2xl font-bold ${item.checked ? 'line-through text-gray-300' : ''}" style="cursor:pointer;word-break:break-word;">
+                        <div class="flex justify-between items-center mb-4">
+                            <div class="flex items-center gap-3 flex-1">
+                                <input type="checkbox" ${item.checked ? 'checked' : ''} onchange="toggleItem(${idx})" class="w-7 h-7 accent-indigo-600">
+                                <div class="flex-1">
+                                    <div class="text-2xl font-bold ${item.checked ? 'line-through text-gray-300' : ''}" onclick="openEditItemNameModal(${idx})" style="cursor: pointer;">
                                         <span class="item-number">${idx + 1}.</span> ${item.name}
                                     </div>
-                                </div>
                                     ${categoryBadge}
                                     ${metadataHTML}
+                                </div>
                             </div>
                             <div class="flex items-center gap-2">
                                 <div class="note-icon ${item.note ? 'has-note' : ''}" onclick="openItemNoteModal(${idx})" title="${item.note ? 'יש הערה' : 'הוסף הערה'}">
