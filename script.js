@@ -4943,6 +4943,11 @@ function saveReminderFromModal() {
     initItemAlertTime(item);
     db.lastSync = Date.now();
     localStorage.setItem('BUDGET_FINAL_V28', JSON.stringify(db));
+    // הסר את הפריט הזה מרשימת ה-dismissed כדי שיופיע שוב במרכז ההתראות
+    const prefix = `${db.currentId}__${_reminderIdx}__`;
+    const dismissed = getDismissedNotifications();
+    const filtered = dismissed.filter(k => !k.startsWith(prefix));
+    if (filtered.length !== dismissed.length) saveDismissedNotifications(filtered);
     render();
     if (typeof updateNotificationBadge === 'function') updateNotificationBadge();
     closeReminderModal();
