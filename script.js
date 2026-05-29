@@ -4850,10 +4850,12 @@ function saveTotal() {
 
 // ========== Reminder Quick Modal ==========
 let _reminderIdx = null;
+let _reminderListId = null;
 
 function openReminderModal(idx) {
     _reminderIdx = idx;
-    const item = db.lists[db.currentId].items[idx];
+    _reminderListId = db.currentId;
+    const item = db.lists[_reminderListId].items[idx];
     // Populate fields
     document.getElementById('rsheetItemName').textContent = '📌 ' + item.name;
     document.getElementById('rsheetDate').value = item.dueDate || '';
@@ -4934,7 +4936,7 @@ function saveReminderFromModal() {
             reminderUnit  = selChip.dataset.unit;
         }
     }
-    const item = db.lists[db.currentId].items[_reminderIdx];
+    const item = db.lists[_reminderListId].items[_reminderIdx];
     item.dueDate       = date;
     item.dueTime       = time;
     item.reminderValue = reminderValue;
@@ -4944,7 +4946,7 @@ function saveReminderFromModal() {
     db.lastSync = Date.now();
     localStorage.setItem('BUDGET_FINAL_V28', JSON.stringify(db));
     // הסר את הפריט הזה מרשימת ה-dismissed כדי שיופיע שוב במרכז ההתראות
-    const prefix = `${db.currentId}__${_reminderIdx}__`;
+    const prefix = `${_reminderListId}__${_reminderIdx}__`;
     const dismissed = getDismissedNotifications();
     const filtered = dismissed.filter(k => !k.startsWith(prefix));
     if (filtered.length !== dismissed.length) saveDismissedNotifications(filtered);
@@ -4960,7 +4962,7 @@ window.saveReminderFromModal = saveReminderFromModal;
 
 function clearReminderFromModal() {
     if (_reminderIdx === null) return;
-    const item = db.lists[db.currentId].items[_reminderIdx];
+    const item = db.lists[_reminderListId || db.currentId].items[_reminderIdx];
     item.dueDate = ''; item.dueTime = '';
     item.reminderValue = ''; item.reminderUnit = '';
     item.nextAlertTime = null;
@@ -7904,6 +7906,7 @@ function checkUrgentPayments() {
 
     Object.keys(db.lists).forEach(listId => {
         const list = db.lists[listId];
+        if (!list || !Array.isArray(list.items)) return;
         list.items.forEach((item, idx) => {
             if (item.checked || item.isPaid) return;
             if (!item.dueDate) return;
@@ -8367,7 +8370,12 @@ function getNotificationItems() {
     Object.keys(db.lists).forEach(listId => {
         const list = db.lists[listId];
         list.items.forEach((item, idx) => {
-            if (item.dueDate && !item.checked && !item.isPaid) {
+            if (item.dueDate && !item.checked) {
+                const hasReminder = !!(item.reminderValue && item.reminderUnit) || !!(item.nextAlertTime && item.nextAlertTime > 0);
+                // הצג במרכז התראות רק אם יש התראה מוגדרת במפורש
+                // (גם עבור פריטים פיננסיים עם isPaid:true — אם המשתמש הגדיר תזכורת, כבד אותה)
+                if (!hasReminder) return;
+
                 const dueDate = new Date(item.dueDate);
                 dueDate.setHours(0, 0, 0, 0);
                 
@@ -8386,10 +8394,6 @@ function getNotificationItems() {
                 // בדוק אם נמחקה ידנית ממרכז ההתראות
                 const notifKey = makeNotifKey(listId, idx, dueDateMs);
                 if (dismissed.includes(notifKey)) return;
-                
-                // הצג במרכז התראות רק אם יש התראה מוגדרת
-                const hasReminder = !!(item.reminderValue && item.reminderUnit) || !!(item.nextAlertTime && item.nextAlertTime > 0);
-                if (!hasReminder) return;
 
                 // הצג את הפריט — יש התראה (לא משנה אם הגיע הזמן עדיין)
                 {
