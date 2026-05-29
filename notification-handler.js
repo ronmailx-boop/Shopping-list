@@ -9,8 +9,11 @@ async function registerServiceWorker() {
         try {
             serviceWorkerRegistration = await navigator.serviceWorker.register('/sw.js');
             console.log('✅ Service Worker registered successfully');
+            
+            // Wait for activation
             await navigator.serviceWorker.ready;
             console.log('✅ Service Worker ready');
+            
             return serviceWorkerRegistration;
         } catch (error) {
             console.error('❌ Service Worker registration failed:', error);
@@ -25,37 +28,40 @@ async function requestNotificationPermissionWithDialog() {
     if (notificationPermissionRequested) {
         return Notification.permission === 'granted';
     }
-
+    
     if (!('Notification' in window)) {
         alert('הדפדפן שלך לא תומך בהתראות');
         return false;
     }
-
+    
+    // Check current permission
     if (Notification.permission === 'granted') {
         console.log('✅ Notification permission already granted');
         return true;
     }
-
+    
     if (Notification.permission === 'denied') {
         alert('הרשאות התראות נדחו. אנא אפשר התראות בהגדרות הדפדפן.');
         return false;
     }
-
+    
+    // Show custom dialog before requesting
     const userWantsNotifications = confirm(
         '🔔 VPlus רוצה לשלוח לך התראות\n\n' +
         'התראות יעזרו לך לזכור פריטים חשובים ותאריכי יעד.\n\n' +
         'האם תרצה לקבל התראות?'
     );
-
+    
     if (!userWantsNotifications) {
         console.log('User declined notification permission request');
         notificationPermissionRequested = true;
         return false;
     }
-
+    
+    // Request permission
     const permission = await Notification.requestPermission();
     notificationPermissionRequested = true;
-
+    
     if (permission === 'granted') {
         console.log('✅ Notification permission granted');
         showNotification('✅ התראות מופעלות בהצלחה!', 'success');
@@ -69,6 +75,7 @@ async function requestNotificationPermissionWithDialog() {
 
 // Show system notification via Service Worker
 async function showSystemNotification(title, body, tag, data) {
+    // Make sure we have permission
     if (Notification.permission !== 'granted') {
         const granted = await requestNotificationPermissionWithDialog();
         if (!granted) {
@@ -76,16 +83,18 @@ async function showSystemNotification(title, body, tag, data) {
             return;
         }
     }
-
+    
+    // Make sure Service Worker is registered
     if (!serviceWorkerRegistration) {
         serviceWorkerRegistration = await registerServiceWorker();
     }
-
+    
     if (!serviceWorkerRegistration) {
         console.error('Cannot show notification - Service Worker not available');
         return;
     }
-
+    
+    // Send message to Service Worker to show notification
     if (navigator.serviceWorker.controller) {
         navigator.serviceWorker.controller.postMessage({
             type: 'SHOW_NOTIFICATION',
@@ -97,93 +106,106 @@ async function showSystemNotification(title, body, tag, data) {
     }
 }
 
-// ── Badge management ──────────────────────────────────────────────────
-// עדכון badge: שולח תמיד גם ל-SW (אמין ב-Samsung/Android)
-// וגם מנסה ישירות מה-main thread כ-fallback
+// Update badge count on app icon
 async function updateAppBadge(count) {
     try {
-        // שיטה עיקרית: דרך SW — אמינה יותר ב-Android / Samsung One UI
-        if (navigator.serviceWorker && navigator.serviceWorker.controller) {
+        if ('setAppBadge' in navigator) {
+            if (count > 0) {
+                await navigator.setAppBadge(count);
+                console.log('✅ Badge set to:', count);
+            } else {
+                await navigator.clearAppBadge();
+                console.log('✅ Badge cleared');
+            }
+        } else if (navigator.serviceWorker.controller) {
+            // Fallback: send message to Service Worker
             navigator.serviceWorker.controller.postMessage({
                 type: 'SET_BADGE',
-                badgeCount: count
+                count: count
             });
-        }
-        // Fallback: ישירות מה-main thread
-        if ('setAppBadge' in navigator) {
-            count > 0
-                ? await navigator.setAppBadge(count)
-                : await navigator.clearAppBadge();
-            console.log('✅ Badge updated to:', count);
         }
     } catch (error) {
         console.log('Badge API not supported:', error);
     }
 }
 
+// Clear badge
 async function clearAppBadge() {
     await updateAppBadge(0);
+    
+    // Also send to Service Worker
+    if (navigator.serviceWorker.controller) {
+        navigator.serviceWorker.controller.postMessage({
+            type: 'CLEAR_BADGE'
+        });
+    }
 }
 
-// ── ספירת התראות — מאוחדת עם getNotificationItems של script.js ──────
-// משתמשת ב-getNotificationItems() אם קיימת (script.js), אחרת fallback
+// Count pending notifications (items with due dates)
 function countPendingNotifications() {
-    // getNotificationItems מוגדרת ב-script.js — מקיפה את כל הרשימות
-    // ומכבדת dismissed, reminders ו-dueDate מכל הסוגים
-    if (typeof getNotificationItems === 'function') {
-        return getNotificationItems().length;
-    }
-
-    // fallback אם script.js לא נטען עדיין
-    if (!db || !db.lists) return 0;
+    if (!db || !db.lists || !db.currentId) return 0;
+    
+    const currentList = db.lists[db.currentId];
+    if (!currentList || !currentList.items) return 0;
+    
     const now = Date.now();
     let count = 0;
-    Object.values(db.lists).forEach(list => {
-        (list.items || []).forEach(item => {
-            if (item.checked || item.isPaid || !item.dueDate) return;
-            const hasReminder = !!(item.reminderValue && item.reminderUnit) ||
-                                !!(item.nextAlertTime && item.nextAlertTime > 0);
-            if (hasReminder) count++;
-        });
+    
+    currentList.items.forEach(item => {
+        if (item.checked) return; // Skip completed items
+        
+        if (item.dueDate && item.reminderValue && item.reminderUnit) {
+            const dueDateObj = new Date(item.dueDate);
+            
+            if (item.dueTime) {
+                const [hours, minutes] = item.dueTime.split(':');
+                dueDateObj.setHours(parseInt(hours), parseInt(minutes), 0, 0);
+            } else {
+                dueDateObj.setHours(9, 0, 0, 0);
+            }
+            
+            const reminderMs = getReminderMilliseconds(item.reminderValue, item.reminderUnit);
+            const notificationTime = dueDateObj.getTime() - reminderMs;
+            
+            // Count if notification time is in the near future (within 24 hours)
+            if (notificationTime > now && notificationTime <= now + (24 * 60 * 60 * 1000)) {
+                count++;
+            }
+        }
     });
+    
     return count;
 }
 
-// updateNotificationBadge — מעדכן גם badge פנימי (פעמון) וגם badge אייקון
+// Update badge based on pending notifications
 function updateNotificationBadge() {
     const count = countPendingNotifications();
     updateAppBadge(count);
-
-    // עדכן גם את הbadge הפנימי של הפעמון ב-UI (אם לא עשה זאת script.js כבר)
-    const badge = document.getElementById('notificationBadge');
-    if (badge) {
-        if (count > 0) {
-            badge.textContent = count > 99 ? '99+' : count;
-            badge.style.display = 'flex';
-        } else {
-            badge.style.display = 'none';
-        }
-    }
 }
 
 // Initialize on page load
 window.addEventListener('load', async () => {
     console.log('🚀 Initializing notification system...');
-
+    
+    // Register Service Worker
     await registerServiceWorker();
-
+    
+    // Wait a bit before asking for permission (better UX)
     setTimeout(async () => {
+        // Auto-request permission on first load
         if (Notification.permission === 'default' && !localStorage.getItem('notificationPromptShown')) {
             localStorage.setItem('notificationPromptShown', 'true');
             await requestNotificationPermissionWithDialog();
         }
+        
+        // Update badge
         updateNotificationBadge();
     }, 3000);
-
-    // ✅ תוקן: כשהאפליקציה חוזרת לחזית — רענן את הbadge (לא מוחק אותו!)
+    
+    // Clear badge when app becomes visible
     document.addEventListener('visibilitychange', () => {
         if (!document.hidden) {
-            updateNotificationBadge(); // היה כאן clearAppBadge() — זה היה הבאג!
+            clearAppBadge();
         }
     });
 });

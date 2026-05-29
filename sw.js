@@ -1,5 +1,5 @@
-// Version v2.0.2 - added message listener for local notifications + app badge support
-const CACHE_NAME = 'vplus-pro-v2.0.2';
+// Version v2.0.1 - removed external CDN URLs from precache (CORS fix)
+const CACHE_NAME = 'vplus-pro-v2.0.1';
 const urlsToCache = [
   '/',
   '/index.html',
@@ -163,54 +163,5 @@ self.addEventListener('notificationclick', event => {
         return clients.openWindow('/');
       })
     );
-  }
-});
-
-// ── Message listener: local notifications + app badge sync ──────────
-self.addEventListener('message', event => {
-  const msg = event.data;
-  if (!msg) return;
-
-  // עדכון badge של אייקון האפליקציה (נקרא מה-main thread דרך _syncAppBadge)
-  if (msg.type === 'SET_BADGE') {
-    const count = msg.badgeCount || 0;
-    if ('setAppBadge' in self.registration) {
-      count > 0
-        ? self.registration.setAppBadge(count).catch(() => {})
-        : self.registration.clearAppBadge().catch(() => {});
-    }
-    return;
-  }
-
-  // הצגת התראה מקומית (נקרא מ-_firePushNotification כש-timer מתפוצץ)
-  if (msg.type === 'SHOW_NOTIFICATION') {
-    const { title, body, tag, data, badgeCount } = msg;
-    const options = {
-      body: body || '',
-      icon:    '/icon-96.png',
-      badge:   '/icon-96.png',
-      vibrate: [300, 100, 300, 100, 300],
-      tag:     tag || 'vplus-reminder',
-      data:    data || {},
-      requireInteraction: true,
-      actions: [
-        { action: 'snooze-10', title: 'דחה 10 דק׳' },
-        { action: 'snooze-60', title: 'דחה שעה' },
-        { action: 'close',     title: 'סגור' }
-      ]
-    };
-
-    const showAndBadge = self.registration.showNotification(title || 'Vplus Pro', options)
-      .then(() => {
-        // עדכן badge אחרי שההתראה הוצגה
-        if ('setAppBadge' in self.registration && badgeCount !== undefined) {
-          return badgeCount > 0
-            ? self.registration.setAppBadge(badgeCount).catch(() => {})
-            : self.registration.clearAppBadge().catch(() => {});
-        }
-      });
-
-    event.waitUntil(showAndBadge);
-    return;
   }
 });

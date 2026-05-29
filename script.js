@@ -8435,25 +8435,6 @@ function updateNotificationBadge() {
     } else {
         badge.style.display = 'none';
     }
-    // עדכן badge של אייקון האפליקציה דרך SW (אמין יותר מה-main thread)
-    _syncAppBadge(count);
-}
-
-function _syncAppBadge(count) {
-    // שיטה 1: דרך SW (הכי אמין ב-Android / Samsung One UI)
-    if (navigator.serviceWorker && navigator.serviceWorker.controller) {
-        navigator.serviceWorker.controller.postMessage({
-            type: 'SET_BADGE',
-            badgeCount: count
-        });
-        return;
-    }
-    // שיטה 2: fallback — ישירות מה-main thread
-    if ('setAppBadge' in navigator) {
-        count > 0
-            ? navigator.setAppBadge(count).catch(() => {})
-            : navigator.clearAppBadge().catch(() => {});
-    }
 }
 
 function dismissNotification(listId, itemIdx, dueDateMs, e) {
@@ -10002,11 +9983,9 @@ function _firePushNotification(item) {
     const data = { type: 'reminder', itemName: item.name, dueDate: item.dueDate || '', dueTime: item.dueTime || '' };
 
     if (navigator.serviceWorker && navigator.serviceWorker.controller) {
-        const badgeCount = getNotificationItems().length;
         navigator.serviceWorker.controller.postMessage({
             type: 'SHOW_NOTIFICATION', title, body,
-            tag: 'reminder-' + (item.cloudId || item.name), data,
-            badgeCount  // ה-SW יקרא setAppBadge עם הספירה הנכונה
+            tag: 'reminder-' + (item.cloudId || item.name), data
         });
     }
 }
