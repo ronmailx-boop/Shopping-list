@@ -4554,6 +4554,7 @@ function removeItem(idx) {
     db.lists[db.currentId].items.splice(idx, 1);
     save();
     render();
+    updateNotificationBadge(); // עדכן badge לאחר מחיקת פריט עם התראה
     
     // ביטול טיימר קודם אם קיים
     if (deleteTimeout) { clearTimeout(deleteTimeout); }
@@ -7935,20 +7936,7 @@ function checkUrgentPayments() {
     }
 }
 
-// Update app badge with overdue count
-function updateAppBadge(count) {
-    if ('setAppBadge' in navigator) {
-        if (count > 0) {
-            navigator.setAppBadge(count).catch(err => {
-                console.log('App badge not supported:', err);
-            });
-        } else {
-            navigator.clearAppBadge().catch(err => {
-                console.log('App badge not supported:', err);
-            });
-        }
-    }
-}
+// updateAppBadge — הוסר, הלוגיקה עברה ל-updateNotificationBadge
 
 // Legacy - snooze is now per-item via nextAlertTime
 function checkSnoozeStatus() { return true; }
@@ -8434,6 +8422,12 @@ function updateNotificationBadge() {
         badge.style.display = 'flex';
     } else {
         badge.style.display = 'none';
+    }
+    // סנכרן גם את ה-badge של אייקון האפליקציה במערכת
+    if ('setAppBadge' in navigator) {
+        count > 0
+            ? navigator.setAppBadge(count).catch(() => {})
+            : navigator.clearAppBadge().catch(() => {});
     }
 }
 
@@ -10036,11 +10030,7 @@ function showInAppNotification() {}
 function playNotificationSound() {}
 function showItemNotification() {}
 function checkSnoozeStatus() { return true; }
-function updateAppBadge(count) {
-    if ('setAppBadge' in navigator) {
-        count > 0 ? navigator.setAppBadge(count).catch(()=>{}) : navigator.clearAppBadge().catch(()=>{});
-    }
-}
+// updateAppBadge — הוסר, הלוגיקה עברה ל-updateNotificationBadge
 
 // ── SW Message Listener ───────────────────────────────────────────
 // flag: מונע מה-startup modal להופיע כשמגיעים מהתראה דרך SW
