@@ -8452,12 +8452,29 @@ function updateNotificationBadge() {
 
 function dismissNotification(listId, itemIdx, dueDateMs, e) {
     if (e) e.stopPropagation();
+    // מחק את נתוני התזכורת מהמוצר עצמו — כדי שלא יופיע ב-full view
+    if (db.lists[listId] && db.lists[listId].items[itemIdx]) {
+        const item = db.lists[listId].items[itemIdx];
+        item.dueDate       = '';
+        item.dueTime       = '';
+        item.reminderValue = '';
+        item.reminderUnit  = '';
+        item.nextAlertTime = null;
+        item.lastUpdated   = Date.now();
+        db.lastSync = Date.now();
+        localStorage.setItem('BUDGET_FINAL_V28', JSON.stringify(db));
+        if (typeof syncToCloud === 'function' && isConnected && currentUser) {
+            setTimeout(syncToCloud, 1500);
+        }
+    }
+    // גם הוסף לרשימת ה-dismissed (כדי שלא יחזור לפני ה-render)
     const key = makeNotifKey(listId, itemIdx, dueDateMs);
     const dismissed = getDismissedNotifications();
     if (!dismissed.includes(key)) dismissed.push(key);
     saveDismissedNotifications(dismissed);
     updateNotificationBadge();
-    // רענן badge ו-clear-all בלבד, ללא re-render מלא (ה-swipe עצמו מוריד את הקלף)
+    render();
+    // רענן badge ו-clear-all
     const items = getNotificationItems();
     const btn = document.getElementById('clearAllNotifsBtn');
     if (btn) btn.style.display = items.length > 0 ? 'flex' : 'none';
@@ -8476,6 +8493,25 @@ function dismissNotification(listId, itemIdx, dueDateMs, e) {
 
 function dismissAllNotifications() {
     const items = getNotificationItems();
+    // מחק נתוני תזכורת מכל הפריטים
+    items.forEach(n => {
+        if (db.lists[n.listId] && db.lists[n.listId].items[n.itemIdx]) {
+            const item = db.lists[n.listId].items[n.itemIdx];
+            item.dueDate       = '';
+            item.dueTime       = '';
+            item.reminderValue = '';
+            item.reminderUnit  = '';
+            item.nextAlertTime = null;
+            item.lastUpdated   = Date.now();
+        }
+    });
+    if (items.length > 0) {
+        db.lastSync = Date.now();
+        localStorage.setItem('BUDGET_FINAL_V28', JSON.stringify(db));
+        if (typeof syncToCloud === 'function' && isConnected && currentUser) {
+            setTimeout(syncToCloud, 1500);
+        }
+    }
     const dismissed = getDismissedNotifications();
     items.forEach(n => {
         const key = makeNotifKey(n.listId, n.itemIdx, n.dueDateMs);
@@ -8483,6 +8519,7 @@ function dismissAllNotifications() {
     });
     saveDismissedNotifications(dismissed);
     updateNotificationBadge();
+    render();
     openNotificationCenter(); // רענן
 }
 
