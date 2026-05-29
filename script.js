@@ -4554,7 +4554,6 @@ function removeItem(idx) {
     db.lists[db.currentId].items.splice(idx, 1);
     save();
     render();
-    updateNotificationBadge(); // עדכן badge לאחר מחיקת פריט עם התראה
     
     // ביטול טיימר קודם אם קיים
     if (deleteTimeout) { clearTimeout(deleteTimeout); }
@@ -7936,7 +7935,20 @@ function checkUrgentPayments() {
     }
 }
 
-// updateAppBadge — הוסר, הלוגיקה עברה ל-updateNotificationBadge
+// Update app badge with overdue count
+function updateAppBadge(count) {
+    if ('setAppBadge' in navigator) {
+        if (count > 0) {
+            navigator.setAppBadge(count).catch(err => {
+                console.log('App badge not supported:', err);
+            });
+        } else {
+            navigator.clearAppBadge().catch(err => {
+                console.log('App badge not supported:', err);
+            });
+        }
+    }
+}
 
 // Legacy - snooze is now per-item via nextAlertTime
 function checkSnoozeStatus() { return true; }
@@ -8423,7 +8435,20 @@ function updateNotificationBadge() {
     } else {
         badge.style.display = 'none';
     }
-    // סנכרן גם את ה-badge של אייקון האפליקציה במערכת
+    // עדכן badge של אייקון האפליקציה דרך SW (אמין יותר מה-main thread)
+    _syncAppBadge(count);
+}
+
+function _syncAppBadge(count) {
+    // שיטה 1: דרך SW (הכי אמין ב-Android / Samsung One UI)
+    if (navigator.serviceWorker && navigator.serviceWorker.controller) {
+        navigator.serviceWorker.controller.postMessage({
+            type: 'SET_BADGE',
+            badgeCount: count
+        });
+        return;
+    }
+    // שיטה 2: fallback — ישירות מה-main thread
     if ('setAppBadge' in navigator) {
         count > 0
             ? navigator.setAppBadge(count).catch(() => {})
@@ -9977,9 +10002,11 @@ function _firePushNotification(item) {
     const data = { type: 'reminder', itemName: item.name, dueDate: item.dueDate || '', dueTime: item.dueTime || '' };
 
     if (navigator.serviceWorker && navigator.serviceWorker.controller) {
+        const badgeCount = getNotificationItems().length;
         navigator.serviceWorker.controller.postMessage({
             type: 'SHOW_NOTIFICATION', title, body,
-            tag: 'reminder-' + (item.cloudId || item.name), data
+            tag: 'reminder-' + (item.cloudId || item.name), data,
+            badgeCount  // ה-SW יקרא setAppBadge עם הספירה הנכונה
         });
     }
 }
@@ -10030,7 +10057,11 @@ function showInAppNotification() {}
 function playNotificationSound() {}
 function showItemNotification() {}
 function checkSnoozeStatus() { return true; }
-// updateAppBadge — הוסר, הלוגיקה עברה ל-updateNotificationBadge
+function updateAppBadge(count) {
+    if ('setAppBadge' in navigator) {
+        count > 0 ? navigator.setAppBadge(count).catch(()=>{}) : navigator.clearAppBadge().catch(()=>{});
+    }
+}
 
 // ── SW Message Listener ───────────────────────────────────────────
 // flag: מונע מה-startup modal להופיע כשמגיעים מהתראה דרך SW
