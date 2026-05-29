@@ -4963,6 +4963,7 @@ function clearReminderFromModal() {
     db.lastSync = Date.now();
     localStorage.setItem('BUDGET_FINAL_V28', JSON.stringify(db));
     render();
+    if (typeof updateNotificationBadge === 'function') updateNotificationBadge();
     closeReminderModal();
     showNotification('🔕 התזכורת הוסרה');
     if (typeof syncToCloud === 'function' && isConnected && currentUser) {
@@ -8427,13 +8428,20 @@ function getNotificationItems() {
 function updateNotificationBadge() {
     const notificationItems = getNotificationItems();
     const badge = document.getElementById('notificationBadge');
-    if (!badge) return;
     const count = notificationItems.length;
-    if (count > 0) {
-        badge.textContent = count > 99 ? '99+' : count;
-        badge.style.display = 'flex';
-    } else {
-        badge.style.display = 'none';
+    if (badge) {
+        if (count > 0) {
+            badge.textContent = count > 99 ? '99+' : count;
+            badge.style.display = 'flex';
+        } else {
+            badge.style.display = 'none';
+        }
+    }
+    // עדכן גם את הbadge על אייקון האפליקציה
+    if ('setAppBadge' in navigator) {
+        count > 0
+            ? navigator.setAppBadge(count).catch(() => {})
+            : navigator.clearAppBadge().catch(() => {});
     }
 }
 
