@@ -8747,6 +8747,7 @@ function jumpToItem(listId, itemIdx) {
     closeModal('notificationCenterModal');
     db.currentId = listId;
     activePage = 'lists';
+    expandedItemIdx = itemIdx; // פתח את המוצר ב-full view
     
     setTimeout(() => {
         render();
