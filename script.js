@@ -10045,13 +10045,23 @@ function _scheduleAllReminders() {
 
 // ── _firePushNotification: שלח push דרך SW ──────────────────────────
 function _firePushNotification(item) {
+    // ─── Firebase מחובר = Firebase Cloud Functions שולחים את ה-push ───
+    // אל תשלח גם מקומית — זה גורם לכפילות!
+    // רק כשהמשתמש offline נשלח notification מקומי כגיבוי.
+    const firebaseConnected = typeof isConnected !== 'undefined' && isConnected
+                           && typeof currentUser !== 'undefined' && currentUser;
+    if (firebaseConnected) {
+        console.log('[Reminder] Firebase online — push handled by Cloud Functions, skipping local push for:', item.name);
+        return;
+    }
+
+    // ─── Offline fallback: שלח notification מקומי ───────────────────
     const key = item.name;
     const now = Date.now();
-    // בדיקת כפילות ב-localStorage (שרידה גם אחרי טעינת דף מחדש)
     const storageKey = 'vplus_notif_fired_' + key;
     const lastFired = parseInt(localStorage.getItem(storageKey) || '0');
     if (now - lastFired < 5 * 60 * 1000) {
-        console.log('[Reminder] skipped duplicate for:', key);
+        console.log('[Reminder] skipped duplicate offline push for:', key);
         return;
     }
     localStorage.setItem(storageKey, String(now));
