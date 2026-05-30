@@ -100,6 +100,9 @@ async function syncData() {
   }
 }
 
+// מניעת כפילויות: שמור זמן אחרון לכל tag
+const _pushDedup = new Map();
+
 self.addEventListener('push', event => {
   let title = 'Vplus Pro';
   let body  = 'New notification';
@@ -116,12 +119,26 @@ self.addEventListener('push', event => {
     }
   }
 
+  // tag מבוסס על שם הפריט — מונע הצגת שתי התראות זהות
+  const tag = 'reminder-' + (data.itemName || data.tag || 'vplus');
+
+  // בדיקת כפילות: אם נשלחה התראה עם אותו tag בתוך 5 דקות — התעלם
+  const now = Date.now();
+  const lastSent = _pushDedup.get(tag) || 0;
+  if (now - lastSent < 5 * 60 * 1000) {
+    console.log('[SW] Duplicate push suppressed for tag:', tag);
+    return; // skip — same notification already shown recently
+  }
+  _pushDedup.set(tag, now);
+
   const options = {
     body,
     icon:    '/icon-96.png',
     badge:   '/icon-96.png',
     vibrate: [300, 100, 300, 100, 300],
     data,
+    tag,                   // ← מפתח: החלפת התראה קיימת במקום יצירת כפולה
+    renotify: false,       // אל תרטוט/תצלצל שוב אם אותו tag כבר מוצג
     requireInteraction: true,
     actions: [
       { action: 'snooze-10', title: 'Snooze 10 min' },
@@ -133,6 +150,48 @@ self.addEventListener('push', event => {
   event.waitUntil(
     self.registration.showNotification(title, options)
   );
+});
+
+// ── handler ל-SHOW_NOTIFICATION מ-script.js (offline fallback) ──────
+self.addEventListener('message', event => {
+  if (!event.data) return;
+
+  if (event.data.type === 'SHOW_NOTIFICATION') {
+    const { title, body, tag, data } = event.data;
+    const notifTag = tag || 'vplus-local';
+
+    // בדיקת כפילות גם כאן
+    const now = Date.now();
+    const lastSent = _pushDedup.get(notifTag) || 0;
+    if (now - lastSent < 5 * 60 * 1000) {
+      console.log('[SW] Duplicate local notification suppressed:', notifTag);
+      return;
+    }
+    _pushDedup.set(notifTag, now);
+
+    self.registration.showNotification(title || 'Vplus Pro', {
+      body: body || '',
+      icon:    '/icon-96.png',
+      badge:   '/icon-96.png',
+      vibrate: [300, 100, 300, 100, 300],
+      data:    data || {},
+      tag:     notifTag,
+      renotify: false,
+      requireInteraction: true,
+      actions: [
+        { action: 'snooze-10', title: 'Snooze 10 min' },
+        { action: 'snooze-60', title: 'Snooze 1 hour' },
+        { action: 'close',     title: 'Close' }
+      ]
+    });
+  }
+
+  if (event.data.type === 'SET_BADGE') {
+    if ('setAppBadge' in self) self.setAppBadge(event.data.count || 0).catch(() => {});
+  }
+  if (event.data.type === 'CLEAR_BADGE') {
+    if ('clearAppBadge' in self) self.clearAppBadge().catch(() => {});
+  }
 });
 
 self.addEventListener('notificationclick', event => {
