@@ -2661,10 +2661,10 @@ function render() {
                                             כווץ
                                         </button>
                                     </div>
-                                    <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px;">
-                                        <input type="checkbox" ${item.checked ? 'checked' : ''} onchange="toggleItem(${idx})" class="w-7 h-7 accent-indigo-600" style="flex-shrink:0;">
+                                    <div style="display:flex;align-items:flex-start;gap:12px;margin-bottom:14px;">
+                                        <input type="checkbox" ${item.checked ? 'checked' : ''} onchange="toggleItem(${idx})" class="w-7 h-7 accent-indigo-600" style="flex-shrink:0;align-self:flex-start;margin-top:3px;">
                                         <div style="flex:1;cursor:pointer;" onclick="openEditItemNameModal(${idx})">
-                                            <div class="text-2xl font-bold ${item.checked ? 'line-through text-gray-300' : ''}" style="line-height:1.3;">
+                                            <div class="text-2xl font-bold ${item.checked ? 'line-through text-gray-300' : ''}" style="line-height:1.3;text-align:right;direction:rtl;">
                                                 <span class="item-number">${itemNumber}.</span> ${item.name}
                                             </div>
                                         </div>
@@ -2760,10 +2760,10 @@ function render() {
                                                 כווץ
                                             </button>
                                         </div>
-                                        <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px;">
-                                            <input type="checkbox" ${item.checked ? 'checked' : ''} onchange="toggleItem(${idx})" class="w-7 h-7 accent-indigo-600" style="flex-shrink:0;">
+                                        <div style="display:flex;align-items:flex-start;gap:12px;margin-bottom:14px;">
+                                            <input type="checkbox" ${item.checked ? 'checked' : ''} onchange="toggleItem(${idx})" class="w-7 h-7 accent-indigo-600" style="flex-shrink:0;align-self:flex-start;margin-top:3px;">
                                             <div style="flex:1;cursor:pointer;" onclick="openEditItemNameModal(${idx})">
-                                                <div class="text-2xl font-bold ${item.checked ? 'line-through text-gray-300' : ''}" style="line-height:1.3;">
+                                                <div class="text-2xl font-bold ${item.checked ? 'line-through text-gray-300' : ''}" style="line-height:1.3;text-align:right;direction:rtl;">
                                                     <span class="item-number">${itemNumber}.</span> ${item.name}
                                                 </div>
                                             </div>
@@ -2851,10 +2851,10 @@ function render() {
                                         כווץ
                                     </button>
                                 </div>
-                                <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px;">
-                                    <input type="checkbox" ${item.checked ? 'checked' : ''} onchange="toggleItem(${idx})" class="w-7 h-7 accent-indigo-600" style="flex-shrink:0;">
+                                <div style="display:flex;align-items:flex-start;gap:12px;margin-bottom:14px;">
+                                    <input type="checkbox" ${item.checked ? 'checked' : ''} onchange="toggleItem(${idx})" class="w-7 h-7 accent-indigo-600" style="flex-shrink:0;align-self:flex-start;margin-top:3px;">
                                     <div style="flex:1;cursor:pointer;" onclick="openEditItemNameModal(${idx})">
-                                        <div class="text-2xl font-bold ${item.checked ? 'line-through text-gray-300' : ''}" style="line-height:1.3;">
+                                        <div class="text-2xl font-bold ${item.checked ? 'line-through text-gray-300' : ''}" style="line-height:1.3;text-align:right;direction:rtl;">
                                             <span class="item-number">${idx + 1}.</span> ${item.name}
                                         </div>
                                     </div>
