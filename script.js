@@ -2664,7 +2664,7 @@ function render() {
                                     <div style="display:flex;align-items:flex-start;gap:12px;margin-bottom:14px;">
                                         <input type="checkbox" ${item.checked ? 'checked' : ''} onchange="toggleItem(${idx})" class="w-7 h-7 accent-indigo-600" style="flex-shrink:0;align-self:flex-start;margin-top:3px;">
                                         <div style="flex:1;min-width:0;cursor:pointer;display:flex;align-items:flex-start;gap:4px;direction:rtl;" onclick="openEditItemNameModal(${idx})">
-                                            <span class="item-number text-2xl" style="flex-shrink:0;margin-top:2px;">${itemNumber}.</span>
+                                            <span class="item-number text-2xl font-bold" style="flex-shrink:0;margin-top:2px;">${itemNumber}.</span>
                                             <span class="text-2xl font-bold ${item.checked ? 'line-through text-gray-300' : ''}" style="flex:1;min-width:0;word-break:break-word;line-height:1.3;text-align:right;">${item.name}</span>
                                         </div>
                                     </div>
@@ -2762,7 +2762,7 @@ function render() {
                                         <div style="display:flex;align-items:flex-start;gap:12px;margin-bottom:14px;">
                                             <input type="checkbox" ${item.checked ? 'checked' : ''} onchange="toggleItem(${idx})" class="w-7 h-7 accent-indigo-600" style="flex-shrink:0;align-self:flex-start;margin-top:3px;">
                                             <div style="flex:1;min-width:0;cursor:pointer;display:flex;align-items:flex-start;gap:4px;direction:rtl;" onclick="openEditItemNameModal(${idx})">
-                                                <span class="item-number text-2xl" style="flex-shrink:0;margin-top:2px;">${itemNumber}.</span>
+                                                <span class="item-number text-2xl font-bold" style="flex-shrink:0;margin-top:2px;">${itemNumber}.</span>
                                                 <span class="text-2xl font-bold ${item.checked ? 'line-through text-gray-300' : ''}" style="flex:1;min-width:0;word-break:break-word;line-height:1.3;text-align:right;">${item.name}</span>
                                             </div>
                                         </div>
@@ -2852,7 +2852,7 @@ function render() {
                                 <div style="display:flex;align-items:flex-start;gap:12px;margin-bottom:14px;">
                                     <input type="checkbox" ${item.checked ? 'checked' : ''} onchange="toggleItem(${idx})" class="w-7 h-7 accent-indigo-600" style="flex-shrink:0;align-self:flex-start;margin-top:3px;">
                                     <div style="flex:1;min-width:0;cursor:pointer;display:flex;align-items:flex-start;gap:4px;direction:rtl;" onclick="openEditItemNameModal(${idx})">
-                                        <span class="item-number text-2xl" style="flex-shrink:0;margin-top:2px;">${idx + 1}.</span>
+                                        <span class="item-number text-2xl font-bold" style="flex-shrink:0;margin-top:2px;">${idx + 1}.</span>
                                         <span class="text-2xl font-bold ${item.checked ? 'line-through text-gray-300' : ''}" style="flex:1;min-width:0;word-break:break-word;line-height:1.3;text-align:right;">${item.name}</span>
                                     </div>
                                 </div>
