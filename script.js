@@ -2700,9 +2700,10 @@ function render() {
                                     <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;height:100%;">
                                         <div style="display:flex;align-items:center;gap:6px;flex:1;min-width:0;height:100%;">
                                             <input type="checkbox" ${item.checked ? 'checked' : ''} onchange="toggleItem(${idx})" class="w-7 h-7 accent-indigo-600" style="flex-shrink:0;" onclick="event.stopPropagation()">
-                                            <span class="font-bold ${item.checked ? 'line-through text-gray-300' : ''}" style="font-size:15px;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;line-height:1.35;cursor:pointer;word-break:break-word;">
-                                                <span class="item-number">${itemNumber}.</span> ${item.name}
-                                            </span>
+                                            <div style="display:flex;align-items:flex-start;gap:4px;flex:1;min-width:0;direction:rtl;cursor:pointer;">
+                                                <span class="item-number font-bold" style="font-size:15px;flex-shrink:0;line-height:1.35;">${itemNumber}.</span>
+                                                <span class="font-bold ${item.checked ? 'line-through text-gray-300' : ''}" style="font-size:15px;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;line-height:1.35;word-break:break-word;text-align:right;flex:1;min-width:0;">${item.name}</span>
+                                            </div>
                                         </div>
                                         ${item.isGeneralNote ? '' : `<span class="font-black text-indigo-600" style="font-size:15px;flex-shrink:0;">₪${sub.toFixed(2)}</span>`}
                                     </div>
@@ -2798,9 +2799,10 @@ function render() {
                                         <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;height:100%;">
                                             <div style="display:flex;align-items:center;gap:6px;flex:1;min-width:0;height:100%;">
                                                 <input type="checkbox" ${item.checked ? 'checked' : ''} onchange="toggleItem(${idx})" class="w-7 h-7 accent-indigo-600" style="flex-shrink:0;" onclick="event.stopPropagation()">
-                                                <span class="font-bold line-through text-gray-300" style="font-size:15px;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;line-height:1.35;cursor:pointer;word-break:break-word;">
-                                                    <span class="item-number">${itemNumber}.</span> ${item.name}
-                                                </span>
+                                                <div style="display:flex;align-items:flex-start;gap:4px;flex:1;min-width:0;direction:rtl;cursor:pointer;">
+                                                    <span class="item-number font-bold" style="font-size:15px;flex-shrink:0;line-height:1.35;">${itemNumber}.</span>
+                                                    <span class="font-bold line-through text-gray-300" style="font-size:15px;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;line-height:1.35;word-break:break-word;text-align:right;flex:1;min-width:0;">${item.name}</span>
+                                                </div>
                                             </div>
                                             ${item.isGeneralNote ? '' : `<span class="font-black text-indigo-600" style="font-size:15px;flex-shrink:0;opacity:0.5;">₪${sub.toFixed(2)}</span>`}
                                         </div>
@@ -2903,7 +2905,7 @@ function render() {
                                         <div class="item-drag-handle" data-drag="true" style="display:${itemEditMode ? 'flex' : 'none'};align-items:center;justify-content:center;width:26px;height:26px;flex-shrink:0;cursor:grab;color:#a89fff;touch-action:none;"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" style="pointer-events:none"><rect x="2" y="3" width="12" height="2" rx="1" fill="currentColor"/><rect x="2" y="7" width="12" height="2" rx="1" fill="currentColor"/><rect x="2" y="11" width="12" height="2" rx="1" fill="currentColor"/></svg></div>
                                         <input type="checkbox" ${item.checked ? 'checked' : ''} onchange="toggleItem(${idx})" class="w-7 h-7 accent-indigo-600" style="flex-shrink:0;" onclick="event.stopPropagation()">
                                         `}
-                                        ${(() => { const _cDate = item.dueDate ? new Date(item.dueDate).toLocaleDateString('he-IL') : (item.note && item.note.trimStart().startsWith('📅') ? item.note.replace(/^📅\s*/, '').split('\n')[0].trim() : ''); return `<div style="flex:1;min-width:0;overflow:hidden;display:flex;flex-direction:column;justify-content:center;cursor:pointer;"><span class="font-bold ${item.checked && !compactDeleteMode ? 'line-through text-gray-300' : ''}" style="font-size:15px;overflow:hidden;display:-webkit-box;-webkit-line-clamp:${_cDate ? 1 : 2};-webkit-box-orient:vertical;line-height:1.35;word-break:break-word;"><span class="item-number">${idx + 1}.</span> ${item.name}</span>${_cDate ? `<span style="font-size:11px;color:#9ca3af;line-height:1.3;margin-top:2px;">${_cDate}</span>` : ''}</div>`; })()}
+                                        ${(() => { const _cDate = item.dueDate ? new Date(item.dueDate).toLocaleDateString('he-IL') : (item.note && item.note.trimStart().startsWith('📅') ? item.note.replace(/^📅\s*/, '').split('\n')[0].trim() : ''); return `<div style="flex:1;min-width:0;overflow:hidden;display:flex;flex-direction:column;justify-content:center;cursor:pointer;"><div style="display:flex;align-items:flex-start;gap:4px;direction:rtl;min-width:0;"><span class="item-number font-bold" style="font-size:15px;flex-shrink:0;line-height:1.35;">${idx + 1}.</span><span class="font-bold ${item.checked && !compactDeleteMode ? 'line-through text-gray-300' : ''}" style="font-size:15px;overflow:hidden;display:-webkit-box;-webkit-line-clamp:${_cDate ? 1 : 2};-webkit-box-orient:vertical;line-height:1.35;word-break:break-word;text-align:right;flex:1;min-width:0;">${item.name}</span></div>${_cDate ? `<span style="font-size:11px;color:#9ca3af;line-height:1.3;margin-top:2px;">${_cDate}</span>` : ''}</div>`; })()}
                                     </div>
                                     ${item.isGeneralNote ? '' : `<span class="font-black text-indigo-600" style="font-size:15px;flex-shrink:0;">₪${sub.toFixed(2)}</span>`}
                                 </div>
