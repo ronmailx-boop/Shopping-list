@@ -4944,7 +4944,7 @@ function saveReminderFromModal() {
     item.lastUpdated   = Date.now();
     initItemAlertTime(item);
     db.lastSync = Date.now();
-    localStorage.setItem('BUDGET_FINAL_V28', JSON.stringify(db));
+    save(); // נשמור דרך save() כדי ש-_scheduleAllReminders יתוזמן מחדש
     // הסר את הפריט הזה מרשימת ה-dismissed כדי שיופיע שוב במרכז ההתראות
     const prefix = `${_reminderListId}__${_reminderIdx}__`;
     const dismissed = getDismissedNotifications();
@@ -10029,7 +10029,19 @@ function _scheduleAllReminders() {
 }
 
 // ── _firePushNotification: שלח push דרך SW ──────────────────────────
+const _firedNotifications = new Map(); // מניעת כפילויות: key → timestamp
+
 function _firePushNotification(item) {
+    const key = item.name;
+    const now = Date.now();
+    const lastFired = _firedNotifications.get(key) || 0;
+    // אל תשלח אם כבר נשלחה התראה לפחות 5 דקות שעברו
+    if (now - lastFired < 5 * 60 * 1000) {
+        console.log('[Reminder] skipped duplicate for:', key);
+        return;
+    }
+    _firedNotifications.set(key, now);
+
     const title = `⏰ תזכורת: ${item.name}`;
     const dateStr = item.dueDate ? new Date(item.dueDate).toLocaleDateString('he-IL') : '';
     const timeStr = item.dueTime ? ' בשעה ' + item.dueTime : '';
@@ -10039,7 +10051,7 @@ function _firePushNotification(item) {
     if (navigator.serviceWorker && navigator.serviceWorker.controller) {
         navigator.serviceWorker.controller.postMessage({
             type: 'SHOW_NOTIFICATION', title, body,
-            tag: 'reminder-' + (item.cloudId || item.name), data
+            tag: 'reminder-' + key, data
         });
     }
 }
