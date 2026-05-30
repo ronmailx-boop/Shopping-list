@@ -4942,6 +4942,9 @@ function saveReminderFromModal() {
     item.reminderValue = reminderValue;
     item.reminderUnit  = reminderUnit;
     item.lastUpdated   = Date.now();
+    item.alertDismissedAt = null; // תזכורת חדשה — אפס dismiss קודם
+    // גם נקה את ה-localStorage guard כדי שהתזכורת החדשה תוכל להישלח
+    try { localStorage.removeItem('vplus_notif_fired_' + item.name); } catch(e) {}
     initItemAlertTime(item);
     db.lastSync = Date.now();
     save(); // נשמור דרך save() כדי ש-_scheduleAllReminders יתוזמן מחדש
@@ -9858,10 +9861,11 @@ function initItemAlertTime(item) {
         return;
     }
     const now = Date.now();
-    // אם אין nextAlertTime, או אם שינו את התאריך/תזכורת — אפס
+    // עדכן nextAlertTime רק אם לא קיים או עבר — אבל אל תאפס alertDismissedAt!
+    // alertDismissedAt מאופס רק בעת שמירת תזכורת חדשה (saveReminderFromModal)
     if (!item.nextAlertTime || item.nextAlertTime <= now) {
         item.nextAlertTime = natural;
-        item.alertDismissedAt = null;
+        // לא מאפסים alertDismissedAt כאן — מונע התראה כפולה אחרי טעינת דף
     }
     // אם יש nextAlertTime בעתיד (snooze) — שמור אותו
 }
