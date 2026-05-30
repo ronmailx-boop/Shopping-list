@@ -10011,36 +10011,46 @@ function _scheduleAllReminders() {
             const t = item.nextAlertTime;
             if (item.alertDismissedAt && item.alertDismissedAt >= t && t <= now) return; // dismissed
             const delay = t - now;
-            const key = item.cloudId || item.name;
+            const key = item.name; // תמיד name (לא cloudId) לעקביות
             if (delay > 0) {
+                // מנע כפילות: אם כבר יש timer לאותו key — בטל אותו
+                if (_reminderTimers.has(key)) clearTimeout(_reminderTimers.get(key));
                 const timerId = setTimeout(() => {
                     console.log('[Reminder] fired:', item.name);
                     _firePushNotification(item);
                     checkUrgentPayments();
+                    // סמן dismissed מיד אחרי שהpush נשלח —
+                    // מונע תזמון חוזר אם הדף ייטען מחדש לפני שהמשתמש סוגר את ההתראה
+                    if (item.nextAlertTime) {
+                        item.alertDismissedAt = item.nextAlertTime;
+                        db.lastSync = Date.now();
+                        localStorage.setItem('BUDGET_FINAL_V28', JSON.stringify(db));
+                    }
                 }, Math.min(delay, 2147483647));
                 _reminderTimers.set(key, timerId);
                 console.log(`[Reminder] scheduled "${item.name}" in ${Math.round(delay/1000)}s`);
             } else {
-                // הגיע כבר — הצג
-                checkUrgentPayments();
+                // הגיע כבר — הצג (רק אם לא dismissed)
+                if (!item.alertDismissedAt || item.alertDismissedAt < t) {
+                    checkUrgentPayments();
+                }
             }
         });
     });
 }
 
 // ── _firePushNotification: שלח push דרך SW ──────────────────────────
-const _firedNotifications = new Map(); // מניעת כפילויות: key → timestamp
-
 function _firePushNotification(item) {
     const key = item.name;
     const now = Date.now();
-    const lastFired = _firedNotifications.get(key) || 0;
-    // אל תשלח אם כבר נשלחה התראה לפחות 5 דקות שעברו
+    // בדיקת כפילות ב-localStorage (שרידה גם אחרי טעינת דף מחדש)
+    const storageKey = 'vplus_notif_fired_' + key;
+    const lastFired = parseInt(localStorage.getItem(storageKey) || '0');
     if (now - lastFired < 5 * 60 * 1000) {
         console.log('[Reminder] skipped duplicate for:', key);
         return;
     }
-    _firedNotifications.set(key, now);
+    localStorage.setItem(storageKey, String(now));
 
     const title = `⏰ תזכורת: ${item.name}`;
     const dateStr = item.dueDate ? new Date(item.dueDate).toLocaleDateString('he-IL') : '';
