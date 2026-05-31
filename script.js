@@ -4888,11 +4888,8 @@ function openReminderModal(idx) {
     }
     // ── Reset recurring toggles ──
     const dToggle  = document.getElementById('rsheetDailyToggle');
-    const wToggle  = document.getElementById('rsheetWeeklyToggle');
     const dPanel   = document.getElementById('rsheetDailyPanel');
-    const wPanel   = document.getElementById('rsheetWeeklyPanel');
     if (dToggle) { dToggle.classList.remove('on'); dPanel.classList.remove('open'); }
-    if (wToggle) { wToggle.classList.remove('on'); wPanel.classList.remove('open'); }
     // Reset all day buttons
     document.querySelectorAll('.rsheet-day-btn').forEach(b => b.classList.remove('selected'));
     // Restore saved recurring state
@@ -4902,12 +4899,6 @@ function openReminderModal(idx) {
         dToggle.classList.add('on');
         dPanel.classList.add('open');
         document.querySelectorAll('#rsheetDailyDays .rsheet-day-btn').forEach(b => {
-            if (recurDays.includes(parseInt(b.dataset.day))) b.classList.add('selected');
-        });
-    } else if (recurType === 'weekly' && wToggle) {
-        wToggle.classList.add('on');
-        wPanel.classList.add('open');
-        document.querySelectorAll('#rsheetWeeklyDays .rsheet-day-btn').forEach(b => {
             if (recurDays.includes(parseInt(b.dataset.day))) b.classList.add('selected');
         });
     }
@@ -4946,50 +4937,25 @@ window.rsheetSelectChip = rsheetSelectChip;
 
 /* ── פונקציות חזרתיות תזכורת ── */
 function rsheetToggle(type) {
-    const dailyToggle  = document.getElementById('rsheetDailyToggle');
-    const weeklyToggle = document.getElementById('rsheetWeeklyToggle');
-    const dailyPanel   = document.getElementById('rsheetDailyPanel');
-    const weeklyPanel  = document.getElementById('rsheetWeeklyPanel');
-    if (!dailyToggle || !weeklyToggle) return;
-    if (type === 'daily') {
-        const wasOn = dailyToggle.classList.contains('on');
-        // כיבוי שבועית אם פתוחה
-        weeklyToggle.classList.remove('on');
-        weeklyPanel.classList.remove('open');
-        // toggle יומית
-        dailyToggle.classList.toggle('on', !wasOn);
-        dailyPanel.classList.toggle('open', !wasOn);
-        // ברירת מחדל — ימים א'-ה'
-        if (!wasOn) {
-            document.querySelectorAll('#rsheetDailyDays .rsheet-day-btn').forEach(b => {
-                const d = parseInt(b.dataset.day);
-                b.classList.toggle('selected', d >= 0 && d <= 4);
-            });
-        }
-    } else {
-        const wasOn = weeklyToggle.classList.contains('on');
-        // כיבוי יומית אם פתוחה
-        dailyToggle.classList.remove('on');
-        dailyPanel.classList.remove('open');
-        // toggle שבועית
-        weeklyToggle.classList.toggle('on', !wasOn);
-        weeklyPanel.classList.toggle('open', !wasOn);
+    const dailyToggle = document.getElementById('rsheetDailyToggle');
+    const dailyPanel  = document.getElementById('rsheetDailyPanel');
+    if (!dailyToggle) return;
+    const wasOn = dailyToggle.classList.contains('on');
+    dailyToggle.classList.toggle('on', !wasOn);
+    dailyPanel.classList.toggle('open', !wasOn);
+    if (!wasOn) {
+        document.querySelectorAll('#rsheetDailyDays .rsheet-day-btn').forEach(b => {
+            const d = parseInt(b.dataset.day);
+            b.classList.toggle('selected', d >= 0 && d <= 4);
+        });
     }
 }
 window.rsheetToggle = rsheetToggle;
 
 function rsheetToggleDay(el, type) {
-    // multi-select — toggle הכפתור
     el.classList.toggle('selected');
 }
 window.rsheetToggleDay = rsheetToggleDay;
-
-function rsheetSelectDay(el) {
-    // single-select — רק יום אחד בשבועית
-    document.querySelectorAll('#rsheetWeeklyDays .rsheet-day-btn').forEach(b => b.classList.remove('selected'));
-    el.classList.add('selected');
-}
-window.rsheetSelectDay = rsheetSelectDay;
 
 // חישוב nextAlertTime הבא לתזכורת חזרתית
 function _calcNextRecurAlertTime(item) {
@@ -5029,17 +4995,12 @@ function saveReminderFromModal() {
     }
     // ── Read recurring state ──
     const dailyOn  = document.getElementById('rsheetDailyToggle')  && document.getElementById('rsheetDailyToggle').classList.contains('on');
-    const weeklyOn = document.getElementById('rsheetWeeklyToggle') && document.getElementById('rsheetWeeklyToggle').classList.contains('on');
     let recurType = '';
     let recurDays = [];
     if (dailyOn) {
         recurType = 'daily';
         document.querySelectorAll('#rsheetDailyDays .rsheet-day-btn.selected').forEach(b => recurDays.push(parseInt(b.dataset.day)));
         if (recurDays.length === 0) { showNotification('⚠️ יש לבחור לפחות יום אחד לחזרה'); return; }
-    } else if (weeklyOn) {
-        recurType = 'weekly';
-        document.querySelectorAll('#rsheetWeeklyDays .rsheet-day-btn.selected').forEach(b => recurDays.push(parseInt(b.dataset.day)));
-        if (recurDays.length === 0) { showNotification('⚠️ יש לבחור יום בשבוע'); return; }
     }
     // אם לא חוזרת — חייב תאריך
     if (!recurType && !date) { showNotification('⚠️ יש לבחור תאריך'); return; }
@@ -5067,7 +5028,7 @@ function saveReminderFromModal() {
     render();
     if (typeof updateNotificationBadge === 'function') updateNotificationBadge();
     closeReminderModal();
-    const msg = recurType === 'daily' ? '🔔 תזכורת יומית נשמרה!' : recurType === 'weekly' ? '🔔 תזכורת שבועית נשמרה!' : '🔔 תזכורת נשמרה!';
+    const msg = recurType === 'daily' ? '🔔 תזכורת יומית נשמרה!' : '🔔 תזכורת נשמרה!';
     showNotification(msg);
     if (typeof syncToCloud === 'function' && isConnected && currentUser) {
         setTimeout(syncToCloud, 1500);
