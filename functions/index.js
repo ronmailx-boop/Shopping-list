@@ -57,8 +57,12 @@ exports.sendScheduledReminders = functions.https.onRequest(async (req, res) => {
 
                 list.items.forEach(item => {
                     if (item.checked || item.isPaid) return;
-                    if (!item.dueDate || !item.reminderValue || !item.reminderUnit) return;
                     if (!item.nextAlertTime) return;
+
+                    // תזכורות חוזרות (recurType) אין להן dueDate קבוע — מספיק nextAlertTime
+                    // תזכורות חד-פעמיות חייבות dueDate + reminderValue + reminderUnit
+                    const isRecurring = !!item.recurType;
+                    if (!isRecurring && (!item.dueDate || !item.reminderValue || !item.reminderUnit)) return;
 
                     const t = item.nextAlertTime;
 
@@ -73,13 +77,15 @@ exports.sendScheduledReminders = functions.https.onRequest(async (req, res) => {
 
                     console.log(`🔔 שולח push: "${item.name}" (nextAlertTime: ${new Date(t).toISOString()})`);
 
-                    const dateStr = new Date(item.dueDate).toLocaleDateString('he-IL');
                     const timeStr = item.dueTime ? ` בשעה ${item.dueTime}` : '';
+                    const body = isRecurring
+                        ? `תזכורת יומית קבועה${timeStr}`
+                        : `יעד: ${new Date(item.dueDate).toLocaleDateString('he-IL')}${timeStr}`;
 
                     sendPromises.push(
                         sendPush(token, {
                             title: `⏰ תזכורת: ${item.name}`,
-                            body:  `יעד: ${dateStr}${timeStr}`,
+                            body,
                             data: {
                                 type:     'reminder',
                                 itemName: item.name,
