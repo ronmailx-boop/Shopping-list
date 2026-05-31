@@ -1983,6 +1983,60 @@
             font-size: 14px; font-weight: 700; border: none; border-radius: 16px;
             cursor: pointer; font-family: inherit;
         }
+        /* ── Recurring reminder ── */
+        .rsheet-divider { height: 1px; background: #f3f4f6; margin: 10px 0; }
+        .rsheet-toggle-row {
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 10px 0;
+        }
+        .rsheet-toggle-label { font-size: 13px; font-weight: 700; color: #374151; }
+        .rsheet-toggle-sub { font-size: 11px; color: #9ca3af; margin-top: 2px; }
+        .rsheet-toggle {
+            width: 46px; height: 24px; background: #e5e7eb;
+            border-radius: 12px; position: relative; cursor: pointer;
+            transition: background .25s; flex-shrink: 0;
+            border: none; outline: none; -webkit-appearance: none; padding: 0;
+        }
+        .rsheet-toggle.on { background: #7367f0; }
+        .rsheet-toggle::after {
+            content: ''; width: 18px; height: 18px; background: white;
+            border-radius: 50%; position: absolute; top: 3px; right: 3px;
+            transition: transform .25s; box-shadow: 0 1px 3px rgba(0,0,0,.25);
+        }
+        .rsheet-toggle.on::after { transform: translateX(-22px); }
+        .rsheet-collapsible {
+            overflow: hidden; max-height: 0;
+            transition: max-height .35s ease, opacity .25s; opacity: 0;
+        }
+        .rsheet-collapsible.open { max-height: 300px; opacity: 1; }
+        .rsheet-recur-panel {
+            background: #ede9fe; border-radius: 12px;
+            padding: 12px 14px; margin-bottom: 8px;
+        }
+        .rsheet-recur-panel.orange { background: #fff4e0; }
+        .rsheet-recur-title {
+            font-size: 12px; font-weight: 800; color: #5b50d6;
+            margin-bottom: 8px; text-align: right;
+        }
+        .rsheet-recur-panel.orange .rsheet-recur-title { color: #9a6000; }
+        .rsheet-day-row {
+            display: flex; gap: 5px; justify-content: flex-end;
+            flex-wrap: wrap; margin-bottom: 6px;
+        }
+        .rsheet-day-btn {
+            width: 34px; height: 34px; border-radius: 50%;
+            border: 2px solid #c4b9ff; background: white;
+            font-size: 11px; font-weight: 700; color: #6b7280;
+            cursor: pointer; font-family: inherit;
+            display: flex; align-items: center; justify-content: center;
+            transition: all .15s; flex-shrink: 0;
+        }
+        .rsheet-day-btn.selected { background: #7367f0; border-color: #7367f0; color: white; }
+        .rsheet-recur-panel.orange .rsheet-day-btn { border-color: #f5a623; }
+        .rsheet-recur-panel.orange .rsheet-day-btn.selected {
+            background: #f5a623; border-color: #f5a623; color: white;
+        }
+        .rsheet-recur-hint { font-size: 10px; color: #9ca3af; text-align: right; }
 
         .note-modal-textarea {
             width: 100%;
@@ -4556,6 +4610,58 @@ ${error.message}
           <span style="font-size:13px;font-weight:700;color:#9ca3af;">לפני</span>
         </div>
       </div>
+      </div>
+
+      <div class="rsheet-divider"></div>
+
+      <!-- Toggle: יומית קבועה -->
+      <div class="rsheet-toggle-row">
+        <div>
+          <div class="rsheet-toggle-label">תזכורת יומית קבועה</div>
+          <div class="rsheet-toggle-sub">התזכורת תחזור כל יום באותה שעה</div>
+        </div>
+        <button class="rsheet-toggle" id="rsheetDailyToggle" onclick="rsheetToggle('daily')"></button>
+      </div>
+      <div class="rsheet-collapsible" id="rsheetDailyPanel">
+        <div class="rsheet-recur-panel">
+          <div class="rsheet-recur-title">🔁 ימים לחזרה</div>
+          <div class="rsheet-day-row" id="rsheetDailyDays">
+            <button class="rsheet-day-btn" data-day="0" onclick="rsheetToggleDay(this,'daily')">א'</button>
+            <button class="rsheet-day-btn" data-day="1" onclick="rsheetToggleDay(this,'daily')">ב'</button>
+            <button class="rsheet-day-btn" data-day="2" onclick="rsheetToggleDay(this,'daily')">ג'</button>
+            <button class="rsheet-day-btn" data-day="3" onclick="rsheetToggleDay(this,'daily')">ד'</button>
+            <button class="rsheet-day-btn" data-day="4" onclick="rsheetToggleDay(this,'daily')">ה'</button>
+            <button class="rsheet-day-btn" data-day="5" onclick="rsheetToggleDay(this,'daily')">ו'</button>
+            <button class="rsheet-day-btn" data-day="6" onclick="rsheetToggleDay(this,'daily')">ש'</button>
+          </div>
+          <div class="rsheet-recur-hint">בחר אילו ימים התזכורת תחזור</div>
+        </div>
+      </div>
+
+      <!-- Toggle: שבועית -->
+      <div class="rsheet-toggle-row">
+        <div>
+          <div class="rsheet-toggle-label">תזכורת שבועית</div>
+          <div class="rsheet-toggle-sub">בחר יום ספציפי בשבוע</div>
+        </div>
+        <button class="rsheet-toggle" id="rsheetWeeklyToggle" onclick="rsheetToggle('weekly')"></button>
+      </div>
+      <div class="rsheet-collapsible" id="rsheetWeeklyPanel">
+        <div class="rsheet-recur-panel orange">
+          <div class="rsheet-recur-title">📅 יום בשבוע</div>
+          <div class="rsheet-day-row" id="rsheetWeeklyDays">
+            <button class="rsheet-day-btn" data-day="0" onclick="rsheetSelectDay(this)">א'</button>
+            <button class="rsheet-day-btn" data-day="1" onclick="rsheetSelectDay(this)">ב'</button>
+            <button class="rsheet-day-btn" data-day="2" onclick="rsheetSelectDay(this)">ג'</button>
+            <button class="rsheet-day-btn" data-day="3" onclick="rsheetSelectDay(this)">ד'</button>
+            <button class="rsheet-day-btn" data-day="4" onclick="rsheetSelectDay(this)">ה'</button>
+            <button class="rsheet-day-btn" data-day="5" onclick="rsheetSelectDay(this)">ו'</button>
+            <button class="rsheet-day-btn" data-day="6" onclick="rsheetSelectDay(this)">ש'</button>
+          </div>
+          <div class="rsheet-recur-hint">התזכורת תחזור כל שבוע ביום שנבחר</div>
+        </div>
+      </div>
+
     </div>
     <div class="rsheet-actions">
       <button class="rsheet-btn-save" onclick="saveReminderFromModal()">

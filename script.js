@@ -4886,6 +4886,31 @@ function openReminderModal(idx) {
         tomorrow.setDate(tomorrow.getDate() + 1);
         document.getElementById('rsheetDate').value = tomorrow.toISOString().split('T')[0];
     }
+    // ── Reset recurring toggles ──
+    const dToggle  = document.getElementById('rsheetDailyToggle');
+    const wToggle  = document.getElementById('rsheetWeeklyToggle');
+    const dPanel   = document.getElementById('rsheetDailyPanel');
+    const wPanel   = document.getElementById('rsheetWeeklyPanel');
+    if (dToggle) { dToggle.classList.remove('on'); dPanel.classList.remove('open'); }
+    if (wToggle) { wToggle.classList.remove('on'); wPanel.classList.remove('open'); }
+    // Reset all day buttons
+    document.querySelectorAll('.rsheet-day-btn').forEach(b => b.classList.remove('selected'));
+    // Restore saved recurring state
+    const recurType = item.recurType || '';
+    const recurDays = item.recurDays || [];
+    if (recurType === 'daily' && dToggle) {
+        dToggle.classList.add('on');
+        dPanel.classList.add('open');
+        document.querySelectorAll('#rsheetDailyDays .rsheet-day-btn').forEach(b => {
+            if (recurDays.includes(parseInt(b.dataset.day))) b.classList.add('selected');
+        });
+    } else if (recurType === 'weekly' && wToggle) {
+        wToggle.classList.add('on');
+        wPanel.classList.add('open');
+        document.querySelectorAll('#rsheetWeeklyDays .rsheet-day-btn').forEach(b => {
+            if (recurDays.includes(parseInt(b.dataset.day))) b.classList.add('selected');
+        });
+    }
     // Open sheet
     const backdrop = document.getElementById('reminderSheetBackdrop');
     const sheet    = document.getElementById('reminderSheet');
@@ -4919,10 +4944,77 @@ function rsheetSelectChip(el) {
 }
 window.rsheetSelectChip = rsheetSelectChip;
 
+/* ── פונקציות חזרתיות תזכורת ── */
+function rsheetToggle(type) {
+    const dailyToggle  = document.getElementById('rsheetDailyToggle');
+    const weeklyToggle = document.getElementById('rsheetWeeklyToggle');
+    const dailyPanel   = document.getElementById('rsheetDailyPanel');
+    const weeklyPanel  = document.getElementById('rsheetWeeklyPanel');
+    if (!dailyToggle || !weeklyToggle) return;
+    if (type === 'daily') {
+        const wasOn = dailyToggle.classList.contains('on');
+        // כיבוי שבועית אם פתוחה
+        weeklyToggle.classList.remove('on');
+        weeklyPanel.classList.remove('open');
+        // toggle יומית
+        dailyToggle.classList.toggle('on', !wasOn);
+        dailyPanel.classList.toggle('open', !wasOn);
+        // ברירת מחדל — ימים א'-ה'
+        if (!wasOn) {
+            document.querySelectorAll('#rsheetDailyDays .rsheet-day-btn').forEach(b => {
+                const d = parseInt(b.dataset.day);
+                b.classList.toggle('selected', d >= 0 && d <= 4);
+            });
+        }
+    } else {
+        const wasOn = weeklyToggle.classList.contains('on');
+        // כיבוי יומית אם פתוחה
+        dailyToggle.classList.remove('on');
+        dailyPanel.classList.remove('open');
+        // toggle שבועית
+        weeklyToggle.classList.toggle('on', !wasOn);
+        weeklyPanel.classList.toggle('open', !wasOn);
+    }
+}
+window.rsheetToggle = rsheetToggle;
+
+function rsheetToggleDay(el, type) {
+    // multi-select — toggle הכפתור
+    el.classList.toggle('selected');
+}
+window.rsheetToggleDay = rsheetToggleDay;
+
+function rsheetSelectDay(el) {
+    // single-select — רק יום אחד בשבועית
+    document.querySelectorAll('#rsheetWeeklyDays .rsheet-day-btn').forEach(b => b.classList.remove('selected'));
+    el.classList.add('selected');
+}
+window.rsheetSelectDay = rsheetSelectDay;
+
+// חישוב nextAlertTime הבא לתזכורת חזרתית
+function _calcNextRecurAlertTime(item) {
+    if (!item.recurType || !item.recurDays || !item.recurDays.length) return null;
+    const timeStr = item.dueTime || '09:00';
+    const [h, m]  = timeStr.split(':').map(Number);
+    const reminderMs = (item.reminderValue && item.reminderUnit)
+        ? getReminderMilliseconds(item.reminderValue, item.reminderUnit) : 0;
+    const now = Date.now();
+    // מחפש את הפגיעה הבאה (עד 14 ימים קדימה)
+    for (let i = 0; i < 14; i++) {
+        const d = new Date(now + i * 86400000);
+        // getDay(): 0=ראשון...6=שבת — המרה לסולם שלנו (0=א'...6=ש')
+        const jsDay  = d.getDay(); // 0=Sun
+        const ourDay = jsDay === 0 ? 0 : jsDay; // 0=Sun=א', 1=Mon=ב' ... 6=Sat=ש'
+        if (!item.recurDays.includes(ourDay)) continue;
+        const candidate = new Date(d.getFullYear(), d.getMonth(), d.getDate(), h, m, 0).getTime() - reminderMs;
+        if (candidate > now) return candidate;
+    }
+    return null;
+}
+
 function saveReminderFromModal() {
     if (_reminderIdx === null) return;
     const date = document.getElementById('rsheetDate').value;
-    if (!date) { showNotification('⚠️ יש לבחור תאריך'); return; }
     const time = document.getElementById('rsheetTime').value || '09:00';
     const selChip = document.querySelector('.rsheet-chip.selected');
     let reminderValue = '', reminderUnit = 'minutes';
@@ -4935,19 +5027,39 @@ function saveReminderFromModal() {
             reminderUnit  = selChip.dataset.unit;
         }
     }
+    // ── Read recurring state ──
+    const dailyOn  = document.getElementById('rsheetDailyToggle')  && document.getElementById('rsheetDailyToggle').classList.contains('on');
+    const weeklyOn = document.getElementById('rsheetWeeklyToggle') && document.getElementById('rsheetWeeklyToggle').classList.contains('on');
+    let recurType = '';
+    let recurDays = [];
+    if (dailyOn) {
+        recurType = 'daily';
+        document.querySelectorAll('#rsheetDailyDays .rsheet-day-btn.selected').forEach(b => recurDays.push(parseInt(b.dataset.day)));
+        if (recurDays.length === 0) { showNotification('⚠️ יש לבחור לפחות יום אחד לחזרה'); return; }
+    } else if (weeklyOn) {
+        recurType = 'weekly';
+        document.querySelectorAll('#rsheetWeeklyDays .rsheet-day-btn.selected').forEach(b => recurDays.push(parseInt(b.dataset.day)));
+        if (recurDays.length === 0) { showNotification('⚠️ יש לבחור יום בשבוע'); return; }
+    }
+    // אם לא חוזרת — חייב תאריך
+    if (!recurType && !date) { showNotification('⚠️ יש לבחור תאריך'); return; }
     const item = db.lists[_reminderListId].items[_reminderIdx];
     item.dueDate       = date;
     item.dueTime       = time;
     item.reminderValue = reminderValue;
     item.reminderUnit  = reminderUnit;
+    item.recurType     = recurType;
+    item.recurDays     = recurDays;
     item.lastUpdated   = Date.now();
-    item.alertDismissedAt = null; // תזכורת חדשה — אפס dismiss קודם
-    // גם נקה את ה-localStorage guard כדי שהתזכורת החדשה תוכל להישלח
+    item.alertDismissedAt = null;
+    // חישוב nextAlertTime לחזרתיות
+    if (recurType) {
+        item.nextAlertTime = _calcNextRecurAlertTime(item);
+    }
     try { localStorage.removeItem('vplus_notif_fired_' + item.name); } catch(e) {}
     initItemAlertTime(item);
     db.lastSync = Date.now();
-    save(); // נשמור דרך save() כדי ש-_scheduleAllReminders יתוזמן מחדש
-    // הסר את הפריט הזה מרשימת ה-dismissed כדי שיופיע שוב במרכז ההתראות
+    save();
     const prefix = `${_reminderListId}__${_reminderIdx}__`;
     const dismissed = getDismissedNotifications();
     const filtered = dismissed.filter(k => !k.startsWith(prefix));
@@ -4955,7 +5067,8 @@ function saveReminderFromModal() {
     render();
     if (typeof updateNotificationBadge === 'function') updateNotificationBadge();
     closeReminderModal();
-    showNotification('🔔 תזכורת נשמרה!');
+    const msg = recurType === 'daily' ? '🔔 תזכורת יומית נשמרה!' : recurType === 'weekly' ? '🔔 תזכורת שבועית נשמרה!' : '🔔 תזכורת נשמרה!';
+    showNotification(msg);
     if (typeof syncToCloud === 'function' && isConnected && currentUser) {
         setTimeout(syncToCloud, 1500);
     }
@@ -4968,6 +5081,7 @@ function clearReminderFromModal() {
     item.dueDate = ''; item.dueTime = '';
     item.reminderValue = ''; item.reminderUnit = '';
     item.nextAlertTime = null;
+    item.recurType = ''; item.recurDays = [];
     item.lastUpdated = Date.now();
     db.lastSync = Date.now();
     localStorage.setItem('BUDGET_FINAL_V28', JSON.stringify(db));
@@ -7911,7 +8025,8 @@ function checkUrgentPayments() {
         if (!list || !Array.isArray(list.items)) return;
         list.items.forEach((item, idx) => {
             if (item.checked || item.isPaid) return;
-            if (!item.dueDate) return;
+            // תזכורות חוזרות אינן תלויות בתאריך יעד
+            if (!item.dueDate && !item.recurType) return;
 
             // Get the scheduled alert time
             let alertTime = item.nextAlertTime;
@@ -7936,6 +8051,12 @@ function checkUrgentPayments() {
             if (!forceShow && item.alertDismissedAt && item.alertDismissedAt >= alertTime) return;
 
             alertItems.push({ item, idx, listId });
+
+            // תזכורת חוזרת — קבע מועד הבא אוטומטית אחרי הפעלה
+            if (item.recurType && item.recurDays && item.recurDays.length > 0) {
+                const nextT = _calcNextRecurAlertTime(item);
+                if (nextT) item.nextAlertTime = nextT;
+            }
         });
     });
 
@@ -9855,6 +9976,12 @@ function computeNextAlertTime(item) {
 
 // ── initItemAlertTime: קרא בעת יצירה/עריכה של פריט ───────────────
 function initItemAlertTime(item) {
+    // תזכורת חזרתית — חישוב לפי recurType
+    if (item.recurType && item.recurDays && item.recurDays.length > 0) {
+        const next = _calcNextRecurAlertTime(item);
+        if (next) { item.nextAlertTime = next; }
+        return;
+    }
     const natural = computeNextAlertTime(item);
     if (!natural) {
         item.nextAlertTime = null;
