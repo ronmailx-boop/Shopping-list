@@ -4946,50 +4946,25 @@ window.rsheetSelectChip = rsheetSelectChip;
 
 /* ── פונקציות חזרתיות תזכורת ── */
 function rsheetToggle(type) {
-    const dailyToggle  = document.getElementById('rsheetDailyToggle');
-    const weeklyToggle = document.getElementById('rsheetWeeklyToggle');
-    const dailyPanel   = document.getElementById('rsheetDailyPanel');
-    const weeklyPanel  = document.getElementById('rsheetWeeklyPanel');
-    if (!dailyToggle || !weeklyToggle) return;
-    if (type === 'daily') {
-        const wasOn = dailyToggle.classList.contains('on');
-        // כיבוי שבועית אם פתוחה
-        weeklyToggle.classList.remove('on');
-        weeklyPanel.classList.remove('open');
-        // toggle יומית
-        dailyToggle.classList.toggle('on', !wasOn);
-        dailyPanel.classList.toggle('open', !wasOn);
-        // ברירת מחדל — ימים א'-ה'
-        if (!wasOn) {
-            document.querySelectorAll('#rsheetDailyDays .rsheet-day-btn').forEach(b => {
-                const d = parseInt(b.dataset.day);
-                b.classList.toggle('selected', d >= 0 && d <= 4);
-            });
-        }
-    } else {
-        const wasOn = weeklyToggle.classList.contains('on');
-        // כיבוי יומית אם פתוחה
-        dailyToggle.classList.remove('on');
-        dailyPanel.classList.remove('open');
-        // toggle שבועית
-        weeklyToggle.classList.toggle('on', !wasOn);
-        weeklyPanel.classList.toggle('open', !wasOn);
+    const dailyToggle = document.getElementById('rsheetDailyToggle');
+    const dailyPanel  = document.getElementById('rsheetDailyPanel');
+    if (!dailyToggle) return;
+    const wasOn = dailyToggle.classList.contains('on');
+    dailyToggle.classList.toggle('on', !wasOn);
+    dailyPanel.classList.toggle('open', !wasOn);
+    if (!wasOn) {
+        document.querySelectorAll('#rsheetDailyDays .rsheet-day-btn').forEach(b => {
+            const d = parseInt(b.dataset.day);
+            b.classList.toggle('selected', d >= 0 && d <= 4);
+        });
     }
 }
 window.rsheetToggle = rsheetToggle;
 
 function rsheetToggleDay(el, type) {
-    // multi-select — toggle הכפתור
     el.classList.toggle('selected');
 }
 window.rsheetToggleDay = rsheetToggleDay;
-
-function rsheetSelectDay(el) {
-    // single-select — רק יום אחד בשבועית
-    document.querySelectorAll('#rsheetWeeklyDays .rsheet-day-btn').forEach(b => b.classList.remove('selected'));
-    el.classList.add('selected');
-}
-window.rsheetSelectDay = rsheetSelectDay;
 
 // חישוב nextAlertTime הבא לתזכורת חזרתית
 function _calcNextRecurAlertTime(item) {
