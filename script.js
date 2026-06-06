@@ -11288,13 +11288,47 @@ function selectBank(bankId, btn) {
 }
 
 // ── Progress helpers ──
-function showFinProgress() {
+let _finWakeLock = null;
+async function showFinProgress() {
     const el = document.getElementById('finProgressOverlay');
     if (el) { el.style.display = 'flex'; }
+    // אפס לוג
+    const logEl = document.getElementById('finSyncLog');
+    if (logEl) logEl.innerHTML = '';
+    // Wake Lock — מונע כיבוי מסך
+    if ('wakeLock' in navigator) {
+        try {
+            _finWakeLock = await navigator.wakeLock.request('screen');
+            const lbl = document.getElementById('finWakeLabel');
+            if (lbl) lbl.textContent = 'מסך נעול פעיל';
+            _finWakeLock.addEventListener('release', () => {
+                const lbl2 = document.getElementById('finWakeLabel');
+                if (lbl2) lbl2.textContent = 'מסך פעיל';
+            });
+        } catch(e) {
+            console.warn('WakeLock לא זמין:', e);
+        }
+    }
 }
 function hideFinProgress() {
     const el = document.getElementById('finProgressOverlay');
     if (el) { el.style.display = 'none'; }
+    // שחרר Wake Lock
+    if (_finWakeLock) { _finWakeLock.release().catch(()=>{}); _finWakeLock = null; }
+}
+function finSyncLog(msg, type='info') {
+    const logEl = document.getElementById('finSyncLog');
+    if (!logEl) return;
+    const colors = { info:'#94a3b8', success:'#4ade80', error:'#f87171', warn:'#fbbf24' };
+    const now = new Date();
+    const ts = `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}:${String(now.getSeconds()).padStart(2,'0')}`;
+    const line = document.createElement('div');
+    line.style.color = colors[type] || colors.info;
+    line.style.borderBottom = '1px solid #1e293b';
+    line.style.paddingBottom = '2px';
+    line.textContent = `[${ts}] ${msg}`;
+    logEl.appendChild(line);
+    logEl.scrollTop = logEl.scrollHeight;
 }
 function setFinStage(step, icon, title, sub, pct) {
     document.getElementById('finProgressIcon').textContent = icon;
@@ -11318,6 +11352,8 @@ function dbgLog(msg, color) { /* no-op */ }
 async function runFinancialFetch({ companyId, credentials, modalId, nameLabel }) {
     const log = (msg, type='info', icon='•') => {
         console.log(`[BankSync][${type}] ${icon} ${msg}`);
+        const logType = type === 'success' ? 'success' : type === 'error' ? 'error' : type === 'warn' ? 'warn' : 'info';
+        finSyncLog(`${icon} ${msg}`, logType);
     };
 
     closeModal(modalId);
@@ -11510,8 +11546,14 @@ async function runFinancialFetch({ companyId, credentials, modalId, nameLabel })
         }
 
     } catch (err) {
-        const msg = err.message === 'timeout' ? 'פסק הזמן — נסה שוב' : err.message;
+        const isTimeout = err.message === 'timeout';
+        const msg = isTimeout ? 'פסק הזמן — נסה שוב' : err.message;
         log(`שגיאה: ${msg}`, 'error', '💥');
+        if (err.stack && !isTimeout) {
+            finSyncLog(err.stack.split('\n')[1] || '', 'error');
+        }
+        // השאר את הלוג גלוי 5 שניות לפני סגירה
+        await new Promise(r => setTimeout(r, 5000));
         hideFinProgress();
         showNotification('❌ ' + msg, 'error');
     }
