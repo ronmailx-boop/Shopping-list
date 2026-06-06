@@ -34,6 +34,47 @@ jobs:
           cd scripts/bank-sync
           npm install
 
+      - name: Patch max scraper - add missing transaction types
+        run: |
+          cd scripts/bank-sync
+          node << 'EOF'
+          const { readFileSync, writeFileSync } = require('fs');
+          const { execSync } = require('child_process');
+
+          const result = execSync('find node_modules/israeli-bank-scrapers -name "max.js"').toString().trim();
+          console.log('max files found:', result);
+          const files = result.split('\n').filter(Boolean);
+          let patched = 0;
+
+          for (const filePath of files) {
+            let content = readFileSync(filePath, 'utf8');
+            if (!content.includes('Unknown transaction type')) {
+              console.log(filePath + ' -- no throw found, skipping');
+              continue;
+            }
+            const before = content;
+            // Replace throw with warn so unknown types dont crash
+            content = content.replace(
+              /throw new Error\([^)]*Unknown transaction type[^)]*\)/g,
+              "console.warn('Unknown transaction type -- treating as normal')"
+            );
+            if (content !== before) {
+              writeFileSync(filePath, content, 'utf8');
+              console.log('patched: ' + filePath);
+              patched++;
+            } else {
+              console.log('WARNING: could not patch ' + filePath);
+              // Print relevant lines for debugging
+              content.split('\n').forEach((l, i) => {
+                if (l.includes('transaction type') || l.includes('transactionType')) {
+                  console.log('  line ' + (i+1) + ': ' + l.trim());
+                }
+              });
+            }
+          }
+          console.log('Total patched: ' + patched);
+          EOF
+
       - name: Run bank scraper
         env:
           FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_VPLUS_PRO }}
