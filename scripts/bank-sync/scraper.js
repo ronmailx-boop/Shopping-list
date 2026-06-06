@@ -38,6 +38,52 @@ await jobRef.set({
 });
 console.log(`📝 סטטוס "running" נשמר ב-Firestore`);
 
+// ── סוגי עסקאות מוכרים ───────────────────────────────────────────
+const KNOWN_TYPES = [
+    'normal', 'installments', 'standing_order',
+    'refund', 'canceled', 'credit', 'immediatePayment',
+];
+
+// ── המרת עסקה גולמית לפורמט VPlus ───────────────────────────────
+function normalizeTxn(t) {
+    const rawType  = (t.type || '').toLowerCase();
+    const desc     = t.description || t.memo || '';
+    const amount   = Math.abs(t.chargedAmount ?? t.originalAmount ?? 0);
+
+    // "העברה לסל מצטבר" — Max מחזיר type לא סטנדרטי
+    // נטפל בו כעסקה רגילה עם הסכום המצטבר
+    const isSal = rawType.includes('סל') ||
+                  desc.includes('סל מצטבר') ||
+                  rawType === 'accumulating_basket' ||
+                  rawType === 'basket';
+
+    if (isSal) {
+        console.log(`🧺 סל מצטבר: "${desc}" — ₪${amount}`);
+        return {
+            date:        t.date,
+            description: desc || 'סל מצטבר',
+            amount,
+            type:        'normal',   // מטפלים כעסקה רגילה
+            status:      'completed',
+            category:    'סל מצטבר',
+        };
+    }
+
+    // עסקה עם type לא מוכר — מייבא כ-normal ולא מדלג (לא לאבד כסף)
+    if (t.type && !KNOWN_TYPES.includes(t.type)) {
+        console.warn(`⚠️ type לא מוכר "${t.type}" — "${desc}" ₪${amount} — מייבא כ-normal`);
+    }
+
+    return {
+        date:        t.date,
+        description: desc,
+        amount,
+        type:        KNOWN_TYPES.includes(t.type) ? t.type : 'normal',
+        status:      t.status || 'completed',
+        category:    '',
+    };
+}
+
 // ── הרץ את הסריקה ────────────────────────────────────────────────
 try {
     const startDate = new Date();
@@ -66,10 +112,10 @@ try {
     if (!result.success) {
         console.error(`❌ סריקה נכשלה: ${result.errorType} — ${result.errorMessage}`);
         await jobRef.update({
-            status:      'error',
-            errorType:   result.errorType,
+            status:       'error',
+            errorType:    result.errorType,
             errorMessage: result.errorMessage || 'שגיאה לא ידועה',
-            finishedAt:  admin.firestore.FieldValue.serverTimestamp(),
+            finishedAt:   admin.firestore.FieldValue.serverTimestamp(),
         });
         process.exit(1);
     }
@@ -77,15 +123,11 @@ try {
     // ── עבד תוצאות ───────────────────────────────────────────────
     const accounts = result.accounts || [];
     let totalTxns = 0;
+
     const processedAccounts = accounts.map(acc => {
-        const txns = (acc.txns || []).map(t => ({
-            date:        t.date,
-            description: t.description || t.memo || '',
-            amount:      t.chargedAmount ?? t.originalAmount ?? 0,
-            type:        t.type || 'normal',
-            status:      t.status || 'completed',
-            category:    '',
-        }));
+        const txns = (acc.txns || [])
+            .map(t => normalizeTxn(t))
+            .filter(t => t !== null);
         totalTxns += txns.length;
         return {
             accountNumber: acc.accountNumber || '',
@@ -98,16 +140,15 @@ try {
 
     // ── שמור ב-Firestore ──────────────────────────────────────────
     await jobRef.update({
-        status:     'done',
-        accounts:   processedAccounts,
+        status:      'done',
+        accounts:    processedAccounts,
         totalTxns,
-        finishedAt: admin.firestore.FieldValue.serverTimestamp(),
+        finishedAt:  admin.firestore.FieldValue.serverTimestamp(),
     });
 
-    // עדכן גם את lastSync
     await db.collection('bankSync').doc(userId).set({
-        lastSync:   admin.firestore.FieldValue.serverTimestamp(),
-        lastJobId:  jobId,
+        lastSync:  admin.firestore.FieldValue.serverTimestamp(),
+        lastJobId: jobId,
         companyId,
     }, { merge: true });
 
@@ -115,12 +156,14 @@ try {
     process.exit(0);
 
 } catch (err) {
+    const isUnknownType = err.message && err.message.includes('Unknown transaction type');
     console.error(`💥 שגיאה לא צפויה: ${err.message}`);
+    if (err.stack) console.error(err.stack);
     await jobRef.update({
-        status:      'error',
-        errorType:   'Generic',
+        status:       'error',
+        errorType:    isUnknownType ? 'UnknownTransactionType' : 'Generic',
         errorMessage: err.message,
-        finishedAt:  admin.firestore.FieldValue.serverTimestamp(),
+        finishedAt:   admin.firestore.FieldValue.serverTimestamp(),
     }).catch(() => {});
     process.exit(1);
 }
